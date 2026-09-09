@@ -99,7 +99,7 @@ struct CodeTextView: UIViewRepresentable {
         if isSearchActive && !searchText.isEmpty {
             context.coordinator.performSearch(text: searchText, currentIndex: currentMatchIndex)
         } else if !isSearchActive {
-            context.coordinator.clearSearchHighlight()
+            context.coordinator.resetSearch()
         }
     }
 
@@ -221,11 +221,9 @@ struct CodeTextView: UIViewRepresentable {
             onSearchResult?(safeIndex + 1, searchMatches.count)
         }
 
-        /// 清除查找高亮
+        /// 清除查找高亮（只清除高亮，不重置查找状态）
         func clearSearchHighlight() {
             guard let textView = textView, let fullText = textView.text else { return }
-            currentSearchText = ""
-            searchMatches = []
 
             let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
             let highlightedText = SyntaxHighlighter.highlight(fullText, font: font)
@@ -236,6 +234,13 @@ struct CodeTextView: UIViewRepresentable {
             DispatchQueue.main.async { [weak self] in
                 self?.isInternalUpdate = false
             }
+        }
+
+        /// 重置查找状态（退出查找模式时调用）
+        func resetSearch() {
+            currentSearchText = ""
+            searchMatches = []
+            clearSearchHighlight()
         }
     }
 }
