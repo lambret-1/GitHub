@@ -1,4 +1,4 @@
-# GitHub iOS 客户端
+# GitHub iOS 中文第三方客户端
 
 一个轻量级的 GitHub iOS 客户端，支持 Token 安全登录，可随时随地查看和编辑代码。
 
