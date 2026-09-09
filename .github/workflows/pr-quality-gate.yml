@@ -1,0 +1,254 @@
+# ==============================================================================
+# 工作流名称：PR代码校验流水线（Pull Request Quality Gate）
+# 触发条件：所有 Pull Request + 非 main 分支推送
+# 流水线职责：
+#   1. Xcode 语法编译校验（确保代码可编译）
+#   2. 静态代码分析（Xcode Analyze）
+#   3. 编译警告计数门禁（超出阈值直接标记PR失败）
+# 严格禁止：版本递增、README修改、IPA导出、仓库提交变更
+# 设计目的：提前拦截劣质代码，防止未通过质量门禁的代码合并进 main
+# ==============================================================================
+
+name: PR代码校验流水线
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches-ignore:
+      - main  # 非main分支触发，main分支走生产流水线
+
+# 全局环境变量
+env:
+  PROJECT_NAME: GitHub
+  SCHEME_NAME: GitHub
+  XCODE_PROJECT: GitHub.xcodeproj
+  WARNING_THRESHOLD: 10  # 编译警告阈值，超过则PR失败
+
+jobs:
+  # ============================================================================
+  # Job 1：Xcode 编译校验 + 静态分析 + 警告门禁
+  # ============================================================================
+  build-and-analyze:
+    name: 编译校验与静态分析
+    runs-on: macos-14
+    steps:
+      # Step 1: 检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Step 2: 选择Xcode版本
+      - name: 选择Xcode版本
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          xcodebuild -version
+
+      # Step 3: 缓存Swift包依赖
+      - name: 缓存Swift包依赖
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData/*/SourcePackages
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      # Step 4: 缓存编译产物
+      - name: 缓存编译产物
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-xcode-pr-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-pr-
+
+      # Step 5: 执行Xcode编译（未签名，仅校验语法和可编译性）
+      - name: 执行Xcode编译校验
+        id: build
+        run: |
+          echo "=========================================="
+          echo "开始Xcode编译校验（PR质量门禁）..."
+          echo "项目: ${{ env.XCODE_PROJECT }}"
+          echo "Scheme: ${{ env.SCHEME_NAME }}"
+          echo "=========================================="
+
+          xcodebuild \
+            -project "${{ env.XCODE_PROJECT }}" \
+            -scheme "${{ env.SCHEME_NAME }}" \
+            -configuration Debug \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build-pr \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build-pr.log
+
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          if [ ${BUILD_EXIT_CODE} -ne 0 ]; then
+            echo "::error::Xcode编译失败，退出码: ${BUILD_EXIT_CODE}"
+            echo "::group::编译错误日志（最后100行）"
+            tail -100 build-pr.log
+            echo "::endgroup::"
+            exit ${BUILD_EXIT_CODE}
+          fi
+
+          echo "::notice::Xcode编译校验通过"
+
+      # Step 6: 统计编译警告数量
+      - name: 统计编译警告
+        id: warning_count
+        run: |
+          echo "=========================================="
+          echo "统计编译警告数量..."
+          echo "=========================================="
+
+          WARNING_COUNT=$(grep -c "warning:" build-pr.log || echo 0)
+          echo "warning_count=${WARNING_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "编译警告数量: ${WARNING_COUNT}"
+          echo "警告阈值: ${{ env.WARNING_THRESHOLD }}"
+
+          # 输出警告详情（便于开发者定位）
+          if [ ${WARNING_COUNT} -gt 0 ]; then
+            echo "::group::编译警告详情"
+            grep "warning:" build-pr.log | head -50
+            echo "::endgroup::"
+          fi
+
+      # Step 7: 警告数量门禁校验（超过阈值则PR失败）
+      - name: 警告数量门禁校验
+        run: |
+          WARNING_COUNT="${{ steps.warning_count.outputs.warning_count }}"
+          THRESHOLD="${{ env.WARNING_THRESHOLD }}"
+
+          echo "=========================================="
+          echo "警告数量门禁校验"
+          echo "当前警告数: ${WARNING_COUNT}"
+          echo "阈值: ${THRESHOLD}"
+          echo "=========================================="
+
+          if [ "${WARNING_COUNT}" -gt "${THRESHOLD}" ]; then
+            echo "::error::编译警告数量(${WARNING_COUNT})超过阈值(${THRESHOLD})，PR质量门禁未通过"
+            echo "::warning::请修复上述警告后再提交PR"
+            exit 1
+          fi
+
+          if [ "${WARNING_COUNT}" -gt 0 ]; then
+            echo "::warning::存在 ${WARNING_COUNT} 个编译警告（未超过阈值），建议尽快修复"
+          else
+            echo "::notice::零编译警告，代码质量优秀"
+          fi
+
+          echo "::notice::警告数量门禁校验通过"
+
+      # Step 8: 执行静态代码分析（Xcode Analyze）
+      - name: 执行静态代码分析
+        id: analyze
+        run: |
+          echo "=========================================="
+          echo "开始执行静态代码分析（Xcode Analyze）..."
+          echo "=========================================="
+
+          xcodebuild \
+            -project "${{ env.XCODE_PROJECT }}" \
+            -scheme "${{ env.SCHEME_NAME }}" \
+            -configuration Debug \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build-pr \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            analyze 2>&1 | tee analyze.log
+
+          ANALYZE_EXIT_CODE=${PIPESTATUS[0]}
+          if [ ${ANALYZE_EXIT_CODE} -ne 0 ]; then
+            echo "::error::静态代码分析失败，退出码: ${ANALYZE_EXIT_CODE}"
+            echo "::group::静态分析错误日志（最后100行）"
+            tail -100 analyze.log
+            echo "::endgroup::"
+            exit ${ANALYZE_EXIT_CODE}
+          fi
+
+          # 统计静态分析发现的问题
+          ANALYZE_ISSUES=$(grep -c "warning:" analyze.log || echo 0)
+          echo "analyze_issues=${ANALYZE_ISSUES}" >> "$GITHUB_OUTPUT"
+          echo "静态分析发现问题数: ${ANALYZE_ISSUES}"
+
+          if [ ${ANALYZE_ISSUES} -gt 0 ]; then
+            echo "::group::静态分析问题详情"
+            grep "warning:" analyze.log | head -50
+            echo "::endgroup::"
+            echo "::warning::静态分析发现 ${ANALYZE_ISSUES} 个潜在问题，建议检查"
+          else
+            echo "::notice::静态分析未发现问题"
+          fi
+
+      # Step 9: 上传编译日志（便于问题排查）
+      - name: 上传编译日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PR-BuildLog-${{ github.event.pull_request.number || github.ref_name }}
+          path: |
+            build-pr.log
+            analyze.log
+          retention-days: 7
+
+      # Step 10: 输出PR质量报告摘要
+      - name: 输出质量报告摘要
+        run: |
+          echo "=========================================="
+          echo "PR代码质量校验报告"
+          echo "=========================================="
+          echo "✅ Xcode编译校验: 通过"
+          echo "⚠️  编译警告数量: ${{ steps.warning_count.outputs.warning_count }} / 阈值 ${{ env.WARNING_THRESHOLD }}"
+          echo "🔍 静态分析问题: ${{ steps.analyze.outputs.analyze_issues }}"
+          echo "=========================================="
+          echo "🎉 PR质量门禁全部通过，可以进入代码评审环节"
+          echo "=========================================="
+
+  # ============================================================================
+  # Job 2：Shell脚本语法检查（确保CI脚本本身质量）
+  # ============================================================================
+  shell-script-lint:
+    name: Shell脚本语法检查
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: 检查所有Shell脚本语法
+        run: |
+          echo "=========================================="
+          echo "开始检查Shell脚本语法..."
+          echo "=========================================="
+
+          SCRIPT_FILES=$(find scripts -name "*.sh" -type f)
+          TOTAL_FILES=$(echo "${SCRIPT_FILES}" | wc -l)
+          echo "待检查脚本数量: ${TOTAL_FILES}"
+
+          ERROR_COUNT=0
+          for script in ${SCRIPT_FILES}; do
+            echo "检查: ${script}"
+            if ! shellcheck -x "${script}"; then
+              echo "::error::脚本语法检查失败: ${script}"
+              ERROR_COUNT=$((ERROR_COUNT + 1))
+            fi
+          done
+
+          if [ ${ERROR_COUNT} -gt 0 ]; then
+            echo "::error::共 ${ERROR_COUNT} 个脚本存在语法问题"
+            exit 1
+          fi
+
+          echo "::notice::所有Shell脚本语法检查通过"

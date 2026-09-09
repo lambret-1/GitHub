@@ -145,7 +145,17 @@ GitHub/
 - 应用卸载后 Token 自动清除
 - 建议定期轮换 Token，设置合理的过期时间
 
+## 项目文档
+
+| 文档 | 说明 |
+|------|------|
+| [仓库环境配置手册](docs/repository-setup-guide.md) | 仓库目录结构、分支策略、CI环境配置、版本管理规范 |
+| [流水线运维 & 故障排查文档](docs/pipeline-operations-guide.md) | 流水线架构、版本进位逻辑、常见故障排查、运维操作手册 |
+| [制品说明文档](docs/artifact-guide.md) | IPA制品说明、SHA256校验方法、全能签导入指南、制品生命周期 |
+
 ## 更新日志
+
+<!-- CHANGELOG_START -->
 
 ### v1.0.0 (2026-09-09)
 
@@ -159,6 +169,9 @@ GitHub/
 - ✅ 分支切换
 - ✅ 提交记录查看
 - ✅ GitHub Actions 自动构建 IPA
+- ✅ 企业级 CI/CD 流水线（版本自动递增、质量门禁、制品溯源）
+
+<!-- CHANGELOG_END -->
 
 ## 许可证
 

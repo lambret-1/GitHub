@@ -1,0 +1,461 @@
+# ==============================================================================
+# 工作流名称：生产构建流水线（Production Build Pipeline）
+# 触发条件：仅 main 分支推送触发完整生产流水线
+# 流水线职责：
+#   1. 版本进位单元测试（质量门禁）
+#   2. 版本号自动递增（三段式语义版本，补丁位0~9自动进位）
+#   3. Xcode 编译（未签名，适配全能签导入标准）
+#   4. 导出未签名 IPA 制品
+#   5. 计算 IPA SHA256 哈希 + 生成制品元数据 JSON
+#   6. 自动更新 README 顶部更新日志
+#   7. 提交版本变更 + README 变更到仓库
+#   8. 上传 IPA + 元数据作为 Artifacts
+#   9. 自动清理过期 Artifacts（节约存储配额）
+# 严格禁止：PR/其他分支触发本流水线
+# ==============================================================================
+
+name: 生产构建流水线
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # 支持手动触发
+
+# 全局环境变量（消除硬编码，便于统一维护）
+env:
+  PROJECT_NAME: GitHub
+  SCHEME_NAME: GitHub
+  XCODE_PROJECT: GitHub.xcodeproj
+  INFO_PLIST_PATH: GitHub/Info.plist
+  IPA_FILE_NAME: GitHub.ipa
+  ARTIFACT_RETENTION_DAYS: 30
+  DEPLOYMENT_TARGET: 15.0
+
+jobs:
+  # ============================================================================
+  # Job 1：版本计算与单元测试（质量门禁，失败则终止整个流水线）
+  # ============================================================================
+  version-bump:
+    name: 版本计算与单元测试
+    runs-on: macos-14
+    outputs:
+      version_new: ${{ steps.bump.outputs.version_new }}
+      version_old: ${{ steps.bump.outputs.version_old }}
+      git_commit_short: ${{ steps.commit_info.outputs.commit_short }}
+      build_start_time: ${{ steps.time.outputs.start_time }}
+    steps:
+      # Step 1: 检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 完整历史，用于git log和commit信息
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 2: 记录构建开始时间
+      - name: 记录构建开始时间
+        id: time
+        run: |
+          echo "start_time=$(date +%s)" >> "$GITHUB_OUTPUT"
+          echo "构建开始时间戳: $(date +%s)"
+
+      # Step 3: 获取Git Commit短哈希
+      - name: 获取Git Commit信息
+        id: commit_info
+        run: |
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          echo "commit_short=${COMMIT_SHORT}" >> "$GITHUB_OUTPUT"
+          echo "当前Commit短哈希: ${COMMIT_SHORT}"
+
+      # Step 4: 执行版本进位单元测试（质量门禁，失败立即终止）
+      - name: 执行版本进位单元测试
+        id: unit_test
+        run: |
+          echo "=========================================="
+          echo "开始执行版本进位逻辑单元测试..."
+          echo "=========================================="
+          chmod +x scripts/test-bump-version.sh
+          bash scripts/test-bump-version.sh
+          TEST_EXIT_CODE=$?
+          if [ ${TEST_EXIT_CODE} -ne 0 ]; then
+            echo "::error::版本进位单元测试失败，退出码: ${TEST_EXIT_CODE}"
+            exit ${TEST_EXIT_CODE}
+          fi
+          echo "::notice::版本进位单元测试全部通过"
+
+      # Step 5: 执行版本号自动递增
+      - name: 执行版本号自动递增
+        id: bump
+        run: |
+          echo "=========================================="
+          echo "开始执行版本号自动递增..."
+          echo "=========================================="
+          chmod +x scripts/bump-version.sh
+          bash scripts/bump-version.sh
+          BUMP_EXIT_CODE=$?
+          if [ ${BUMP_EXIT_CODE} -ne 0 ]; then
+            echo "::error::版本号递增失败，退出码: ${BUMP_EXIT_CODE}"
+            exit ${BUMP_EXIT_CODE}
+          fi
+
+      # Step 6: 读取递增后的版本号（用于后续步骤传递）
+      - name: 读取新版本号
+        id: read_version
+        run: |
+          NEW_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${{ env.INFO_PLIST_PATH }}")
+          echo "version_new=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "递增后版本号: ${NEW_VERSION}"
+
+      # Step 7: 提交版本变更到仓库（Info.plist）
+      - name: 提交版本变更
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 检查是否有变更
+          if git diff --quiet "${{ env.INFO_PLIST_PATH }}"; then
+            echo "::warning::Info.plist 无变更，跳过提交"
+          else
+            git add "${{ env.INFO_PLIST_PATH }}"
+            NEW_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${{ env.INFO_PLIST_PATH }}")
+            git commit -m "chore(release): 版本号自动递增至 v${NEW_VERSION}
+
+- 触发Commit: $(git rev-parse --short HEAD)
+- 构建时间: $(date '+%Y-%m-%d %H:%M:%S')
+- 触发方式: GitHub Actions 生产构建流水线"
+            git push origin main
+            echo "::notice::版本变更已提交并推送到 main 分支"
+          fi
+
+  # ============================================================================
+  # Job 2：Xcode 编译与 IPA 导出（依赖版本计算Job完成）
+  # ============================================================================
+  build-ipa:
+    name: Xcode编译与IPA导出
+    runs-on: macos-14
+    needs: version-bump
+    outputs:
+      ipa_sha256: ${{ steps.sha256.outputs.sha256 }}
+      build_duration: ${{ steps.duration.outputs.duration }}
+    steps:
+      # Step 1: 检出代码（获取最新版本号）
+      - name: 检出最新代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      # Step 2: 选择Xcode版本
+      - name: 选择Xcode版本
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos || true
+
+      # Step 3: 缓存Swift包依赖（性能优化）
+      - name: 缓存Swift包依赖
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData/*/SourcePackages
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      # Step 4: 缓存编译产物（性能优化）
+      - name: 缓存编译产物
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-xcode-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-
+
+      # Step 5: 读取当前版本号
+      - name: 读取当前版本号
+        id: version
+        run: |
+          CURRENT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${{ env.INFO_PLIST_PATH }}")
+          echo "current_version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "当前编译版本号: ${CURRENT_VERSION}"
+
+      # Step 6: 执行Xcode编译（未签名，适配全能签导入标准）
+      - name: 执行Xcode编译
+        id: build
+        run: |
+          echo "=========================================="
+          echo "开始Xcode编译（未签名模式）..."
+          echo "项目: ${{ env.XCODE_PROJECT }}"
+          echo "Scheme: ${{ env.SCHEME_NAME }}"
+          echo "版本: ${{ steps.version.outputs.current_version }}"
+          echo "=========================================="
+
+          xcodebuild \
+            -project "${{ env.XCODE_PROJECT }}" \
+            -scheme "${{ env.SCHEME_NAME }}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+            build 2>&1 | tee build.log
+
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          if [ ${BUILD_EXIT_CODE} -ne 0 ]; then
+            echo "::error::Xcode编译失败，退出码: ${BUILD_EXIT_CODE}"
+            echo "::group::编译错误日志（最后50行）"
+            tail -50 build.log
+            echo "::endgroup::"
+            exit ${BUILD_EXIT_CODE}
+          fi
+
+          # 统计编译警告数量（用于质量监控）
+          WARNING_COUNT=$(grep -c "warning:" build.log || echo 0)
+          echo "warning_count=${WARNING_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "::notice::编译完成，警告数量: ${WARNING_COUNT}"
+
+          # 验证.app产物存在
+          APP_PATH="build/Build/Products/Release-iphoneos/${{ env.PROJECT_NAME }}.app"
+          if [ ! -d "${APP_PATH}" ]; then
+            echo "::error::编译产物不存在: ${APP_PATH}"
+            exit 1
+          fi
+          echo "app_path=${APP_PATH}" >> "$GITHUB_OUTPUT"
+          echo "编译产物路径: ${APP_PATH}"
+
+      # Step 7: 导出未签名IPA（适配全能签导入标准）
+      - name: 导出未签名IPA
+        id: export_ipa
+        run: |
+          echo "=========================================="
+          echo "开始导出未签名IPA..."
+          echo "=========================================="
+
+          APP_PATH="build/Build/Products/Release-iphoneos/${{ env.PROJECT_NAME }}.app"
+
+          # 创建Payload目录（标准IPA结构）
+          mkdir -p Payload
+          cp -R "${APP_PATH}" Payload/
+
+          # 确保.app内部结构完整（全能签导入要求）
+          if [ ! -f "Payload/${{ env.PROJECT_NAME }}.app/Info.plist" ]; then
+            echo "::error::IPA包结构异常，缺少Info.plist"
+            exit 1
+          fi
+
+          # 打包为IPA（zip格式，标准iOS包结构）
+          zip -r -q "${{ env.IPA_FILE_NAME }}" Payload
+          rm -rf Payload
+
+          # 验证IPA文件
+          if [ ! -f "${{ env.IPA_FILE_NAME }}" ]; then
+            echo "::error::IPA导出失败，文件不存在"
+            exit 1
+          fi
+
+          IPA_SIZE=$(ls -lh "${{ env.IPA_FILE_NAME }}" | awk '{print $5}')
+          echo "ipa_size=${IPA_SIZE}" >> "$GITHUB_OUTPUT"
+          echo "::notice::IPA导出成功，文件大小: ${IPA_SIZE}"
+
+      # Step 8: 计算IPA文件SHA256哈希
+      - name: 计算IPA SHA256哈希
+        id: sha256
+        run: |
+          echo "=========================================="
+          echo "计算IPA文件SHA256哈希..."
+          echo "=========================================="
+
+          SHA256=$(shasum -a 256 "${{ env.IPA_FILE_NAME }}" | awk '{print $1}')
+          echo "sha256=${SHA256}" >> "$GITHUB_OUTPUT"
+          echo "IPA SHA256: ${SHA256}"
+          echo "::notice::SHA256哈希计算完成"
+
+      # Step 9: 计算构建耗时
+      - name: 计算构建耗时
+        id: duration
+        run: |
+          BUILD_START="${{ needs.version-bump.outputs.build_start_time }}"
+          BUILD_END=$(date +%s)
+          DURATION=$((BUILD_END - BUILD_START))
+          echo "duration=${DURATION}" >> "$GITHUB_OUTPUT"
+          echo "构建总耗时: ${DURATION} 秒"
+
+      # Step 10: 生成制品元数据JSON
+      - name: 生成制品元数据JSON
+        id: metadata
+        run: |
+          echo "=========================================="
+          echo "生成制品元数据JSON..."
+          echo "=========================================="
+
+          chmod +x scripts/generate-artifact-metadata.sh
+          bash scripts/generate-artifact-metadata.sh \
+            --ipa "${{ env.IPA_FILE_NAME }}" \
+            --version "${{ steps.version.outputs.current_version }}" \
+            --commit "${{ needs.version-bump.outputs.git_commit_short }}" \
+            --build-start "${{ needs.version-bump.outputs.build_start_time }}" \
+            --output artifact-metadata.json
+
+          echo "::notice::制品元数据JSON生成完成"
+
+      # Step 11: 上传IPA作为Artifacts
+      - name: 上传IPA制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: GitHub-iOS-IPA-v${{ steps.version.outputs.current_version }}
+          path: ${{ env.IPA_FILE_NAME }}
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+      # Step 12: 上传制品元数据作为Artifacts
+      - name: 上传制品元数据
+        uses: actions/upload-artifact@v4
+        with:
+          name: GitHub-iOS-Metadata-v${{ steps.version.outputs.current_version }}
+          path: artifact-metadata.json
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+      # Step 13: 上传编译日志（便于问题排查）
+      - name: 上传编译日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GitHub-iOS-BuildLog-v${{ steps.version.outputs.current_version }}
+          path: build.log
+          retention-days: 7
+
+  # ============================================================================
+  # Job 3：更新README日志并提交（依赖编译Job完成）
+  # ============================================================================
+  update-changelog:
+    name: 更新README更新日志
+    runs-on: macos-14
+    needs:
+      - version-bump
+      - build-ipa
+    steps:
+      # Step 1: 检出最新代码
+      - name: 检出最新代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 2: 下载IPA制品（用于SHA256校验和确认）
+      - name: 下载IPA制品
+        uses: actions/download-artifact@v4
+        with:
+          name: GitHub-iOS-IPA-v${{ needs.version-bump.outputs.version_new }}
+
+      # Step 3: 验证下载的IPA SHA256（制品完整性校验）
+      - name: 验证IPA完整性
+        run: |
+          echo "=========================================="
+          echo "验证下载的IPA文件完整性..."
+          echo "=========================================="
+
+          if [ ! -f "${{ env.IPA_FILE_NAME }}" ]; then
+            echo "::error::下载的IPA文件不存在"
+            exit 1
+          fi
+
+          DOWNLOAD_SHA256=$(shasum -a 256 "${{ env.IPA_FILE_NAME }}" | awk '{print $1}')
+          EXPECTED_SHA256="${{ needs.build-ipa.outputs.ipa_sha256 }}"
+
+          echo "下载文件SHA256: ${DOWNLOAD_SHA256}"
+          echo "预期SHA256:     ${EXPECTED_SHA256}"
+
+          if [ "${DOWNLOAD_SHA256}" != "${EXPECTED_SHA256}" ]; then
+            echo "::error::IPA文件SHA256校验失败，制品可能被篡改或损坏"
+            exit 1
+          fi
+
+          echo "::notice::IPA文件完整性校验通过"
+
+      # Step 4: 执行README更新日志脚本
+      - name: 更新README更新日志
+        run: |
+          echo "=========================================="
+          echo "开始更新README顶部更新日志..."
+          echo "=========================================="
+
+          BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+          chmod +x scripts/update-changelog.sh
+          bash scripts/update-changelog.sh \
+            --version "${{ needs.version-bump.outputs.version_new }}" \
+            --commit "${{ needs.version-bump.outputs.git_commit_short }}" \
+            --build-time "${BUILD_TIME}" \
+            --sha256 "${{ needs.build-ipa.outputs.ipa_sha256 }}" \
+            --desc "生产构建版本，包含完整代码管理功能"
+
+          echo "::notice::README更新日志已更新"
+
+      # Step 5: 提交README变更到仓库
+      - name: 提交README变更
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet README.md; then
+            echo "::warning::README.md 无变更，跳过提交"
+          else
+            git add README.md
+            git commit -m "docs(changelog): 追加 v${{ needs.version-bump.outputs.version_new }} 更新日志
+
+- 版本: v${{ needs.version-bump.outputs.version_new }}
+- Commit: ${{ needs.version-bump.outputs.git_commit_short }}
+- SHA256: ${{ needs.build-ipa.outputs.ipa_sha256 }}
+- 构建耗时: ${{ needs.build-ipa.outputs.build_duration }} 秒"
+            git push origin main
+            echo "::notice::README变更已提交并推送到 main 分支"
+          fi
+
+  # ============================================================================
+  # Job 4：清理过期Artifacts（节约GitHub存储配额）
+  # ============================================================================
+  cleanup-artifacts:
+    name: 清理过期Artifacts
+    runs-on: ubuntu-latest
+    needs:
+      - version-bump
+      - build-ipa
+      - update-changelog
+    steps:
+      - name: 清理过期Artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const retentionDays = 30;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+            console.log(`开始清理超过 ${retentionDays} 天的Artifacts...`);
+            console.log(`截止日期: ${cutoffDate.toISOString()}`);
+
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+
+            let deletedCount = 0;
+            for (const artifact of artifacts.data.artifacts) {
+              const createdDate = new Date(artifact.created_at);
+              if (createdDate < cutoffDate) {
+                console.log(`删除过期Artifact: ${artifact.name} (创建于 ${artifact.created_at})`);
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id
+                });
+                deletedCount++;
+              }
+            }
+
+            console.log(`清理完成，共删除 ${deletedCount} 个过期Artifacts`);
+            console.log(`当前剩余Artifacts: ${artifacts.data.artifacts.length - deletedCount}`);
