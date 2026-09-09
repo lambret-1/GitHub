@@ -201,11 +201,11 @@ format_file_size() {
     if (( bytes < 1024 )); then
         echo "${bytes} B"
     elif (( bytes < 1024 * 1024 )); then
-        echo "$(awk "BEGIN {printf \"%.2f\", ${bytes}/1024}") KB"
+        echo "$(awk -v b="${bytes}" 'BEGIN {printf "%.2f", b/1024}') KB"
     elif (( bytes < 1024 * 1024 * 1024 )); then
-        echo "$(awk "BEGIN {printf \"%.2f\", ${bytes}/(1024*1024)}") MB"
+        echo "$(awk -v b="${bytes}" 'BEGIN {printf "%.2f", b/(1024*1024)}') MB"
     else
-        echo "$(awk "BEGIN {printf \"%.2f\", ${bytes}/(1024*1024*1024)}") GB"
+        echo "$(awk -v b="${bytes}" 'BEGIN {printf "%.2f", b/(1024*1024*1024)}') GB"
     fi
 }
 
