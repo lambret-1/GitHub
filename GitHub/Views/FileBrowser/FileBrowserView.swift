@@ -26,103 +26,13 @@ struct FileBrowserView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // 路径导航栏
             pathNavigationBar
-            
-            // 文件列表
-            if isLoading {
-                Spacer()
-                ProgressView("加载中...")
-                Spacer()
-            } else if let error = errorMessage {
-                Spacer()
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundColor(.orange)
-                    Text(error)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                    Button("重试") {
-                        loadFiles()
-                    }
-                    .buttonStyle(.bordered)
-                }
-                .padding()
-                Spacer()
-            } else if files.isEmpty {
-                Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: "folder")
-                        .font(.largeTitle)
-                        .foregroundColor(.gray)
-                    Text("此目录为空")
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-            } else {
-                List {
-                    // 返回上一级
-                    if !pathStack.isEmpty || !currentPath.isEmpty {
-                        Button(action: navigateUp) {
-                            HStack {
-                                Image(systemName: "arrow.left")
-                                    .foregroundColor(.blue)
-                                    .frame(width: 30)
-                                Text("返回上一级")
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                    }
-                    
-                    ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
-                        fileRowView(for: file)
-                    }
-                }
-                .listStyle(PlainListStyle())
-            }
+            fileListContent
         }
         .navigationTitle(repository.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: {
-                    showDocumentPicker = true
-                }) {
-                    if isUploading {
-                        ProgressView()
-                    } else {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                }
-                .disabled(isUploading || isDownloading)
-            }
-
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button(action: {
-                        showBranchPicker = true
-                    }) {
-                        Label("切换分支: \(selectedBranch)", systemImage: "arrow.triangle.branch")
-                    }
-
-                    Button(action: {
-                        showCommits = true
-                    }) {
-                        Label("提交记录", systemImage: "clock.arrow.circlepath")
-                    }
-
-                    Button(action: {
-                        if let url = URL(string: repository.htmlUrl) {
-                            UIApplication.shared.open(url)
-                        }
-                    }) {
-                        Label("在 GitHub 打开", systemImage: "safari")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-            }
+            toolbarContent
         }
         .sheet(isPresented: $showBranchPicker) {
             BranchPickerView(branches: branches, selectedBranch: $selectedBranch) {
@@ -185,6 +95,132 @@ struct FileBrowserView: View {
         }
     }
     
+    // MARK: - 文件列表内容
+
+    @ViewBuilder
+    private var fileListContent: some View {
+        if isLoading {
+            loadingView
+        } else if let error = errorMessage {
+            errorView(error: error)
+        } else if files.isEmpty {
+            emptyView
+        } else {
+            fileListView
+        }
+    }
+
+    private var loadingView: some View {
+        VStack {
+            Spacer()
+            ProgressView("加载中...")
+            Spacer()
+        }
+    }
+
+    private func errorView(error: String) -> some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+                .foregroundColor(.orange)
+            Text(error)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            Button("重试") {
+                loadFiles()
+            }
+            .buttonStyle(.bordered)
+            Spacer()
+        }
+        .padding()
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "folder")
+                .font(.largeTitle)
+                .foregroundColor(.gray)
+            Text("此目录为空")
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+    }
+
+    private var fileListView: some View {
+        List {
+            if !pathStack.isEmpty || !currentPath.isEmpty {
+                Button(action: navigateUp) {
+                    HStack {
+                        Image(systemName: "arrow.left")
+                            .foregroundColor(.blue)
+                            .frame(width: 30)
+                        Text("返回上一级")
+                            .foregroundColor(.blue)
+                    }
+                }
+            }
+
+            ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
+                fileRowView(for: file)
+            }
+        }
+        .listStyle(PlainListStyle())
+    }
+
+    // MARK: - 工具栏内容
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            uploadButton
+        }
+
+        ToolbarItem(placement: .navigationBarTrailing) {
+            moreMenu
+        }
+    }
+
+    private var uploadButton: some View {
+        Button(action: {
+            showDocumentPicker = true
+        }) {
+            if isUploading {
+                ProgressView()
+            } else {
+                Image(systemName: "square.and.arrow.up")
+            }
+        }
+        .disabled(isUploading || isDownloading)
+    }
+
+    private var moreMenu: some View {
+        Menu {
+            Button(action: {
+                showBranchPicker = true
+            }) {
+                Label("切换分支: \(selectedBranch)", systemImage: "arrow.triangle.branch")
+            }
+
+            Button(action: {
+                showCommits = true
+            }) {
+                Label("提交记录", systemImage: "clock.arrow.circlepath")
+            }
+
+            Button(action: {
+                if let url = URL(string: repository.htmlUrl) {
+                    UIApplication.shared.open(url)
+                }
+            }) {
+                Label("在 GitHub 打开", systemImage: "safari")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+    }
+
     // MARK: - 进度覆盖层
 
     @ViewBuilder
