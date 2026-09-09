@@ -178,6 +178,16 @@ jobs:
           echo "::notice::Xcode项目生成成功"
           ls -la GitHub.xcodeproj/
 
+          echo "=========================================="
+          echo "验证项目是否可被Xcode读取..."
+          echo "=========================================="
+          xcodebuild -list -project GitHub.xcodeproj 2>&1 || {
+            echo "::error::项目无法被Xcode读取，打印project.pbxproj前50行用于调试"
+            head -50 GitHub.xcodeproj/project.pbxproj
+            exit 1
+          }
+          echo "::notice::项目可被Xcode正常读取"
+
       # Step 4: 缓存Swift包依赖（性能优化）
       - name: 缓存Swift包依赖
         uses: actions/cache@v4
