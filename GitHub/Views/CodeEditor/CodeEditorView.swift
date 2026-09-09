@@ -29,6 +29,10 @@ struct CodeEditorView: View {
     @State private var downloadProgress: Double = 0
     @State private var showCopySuccess: Bool = false
     @State private var lastCommitInfo: Commit?
+    @State private var isLargeFile: Bool = false
+    @State private var largeFileSize: String = ""
+    @State private var largeFileLineCount: Int = 0
+    @State private var forceViewLargeFile: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -111,6 +115,7 @@ struct CodeEditorView: View {
                         }) {
                             Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark" : "pencil")
                         }
+                        .disabled(isLargeFile)
 
                         Button(action: {
                             UIPasteboard.general.string = codeText
@@ -281,12 +286,50 @@ struct CodeEditorView: View {
         .background(Color(.systemGray6))
     }
 
+    // MARK: - 大文件警告条
+
+    private var largeFileWarningBar: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.orange)
+                .font(.caption)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("大文件模式（只读）")
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.orange)
+                Text("\(largeFileSize) · \(largeFileLineCount) 行 · 为保证性能已禁用编辑和行号")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            Button(action: {
+                downloadFile()
+            }) {
+                Label("下载", systemImage: "square.and.arrow.down")
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color.orange.opacity(0.1))
+    }
+
     // MARK: - 代码编辑区域
 
     private var codeEditorArea: some View {
         VStack(spacing: 0) {
             // 文件信息栏
             fileInfoBar
+
+            // 大文件警告条
+            if isLargeFile {
+                largeFileWarningBar
+            }
 
             // 编辑模式提示条
             if isEditing {
@@ -352,6 +395,12 @@ struct CodeEditorView: View {
                     .disableAutocorrection(true)
                     .autocapitalization(.none)
                     .padding(4)
+            } else if isLargeFile {
+                // 大文件使用TextEditor只读模式，内部UITextView对大文本处理更高效
+                TextEditor(text: .constant(codeText))
+                    .font(.system(size: fontSize, design: .monospaced))
+                    .disabled(true)
+                    .padding(4)
             } else {
                 ScrollView {
                     HStack(alignment: .top, spacing: 0) {
@@ -399,6 +448,8 @@ struct CodeEditorView: View {
         isLoading = true
         errorMessage = nil
         lastCommitInfo = nil
+        isLargeFile = false
+        forceViewLargeFile = false
 
         GitHubAPI.shared.getFileContent(owner: owner, repo: repo, path: path, branch: branch) { result in
             DispatchQueue.main.async {
@@ -407,28 +458,27 @@ struct CodeEditorView: View {
                 case .success(let file):
                     fileContent = file
 
-                    // 大文件保护：超过1MB或超过5000行，不在线编辑，只提供下载
-                    let isLargeFile = file.size > 1024 * 1024
+                    // 大文件保护：超过5MB或超过20000行，提示用户但允许只读查看
+                    let isOverSizeLimit = file.size > 5 * 1024 * 1024
                     let lineCount = file.decodedContent.components(separatedBy: .newlines).count
-                    let isTooManyLines = lineCount > 5000
+                    let isOverLineLimit = lineCount > 20000
 
-                    if isLargeFile || isTooManyLines {
-                        // 大文件只显示提示，不加载内容到编辑器
-                        codeText = ""
-                        originalContent = ""
-                        errorMessage = """
-                        文件过大，无法在线编辑。
-
-                        文件大小：\(file.size.formattedFileSize)
-                        行数：\(lineCount) 行
-
-                        请下载文件后在本地编辑，编辑完成后再上传。
-                        """
+                    if isOverSizeLimit || isOverLineLimit {
+                        // 标记为大文件，显示警告但不阻止查看
+                        isLargeFile = true
+                        largeFileSize = file.size.formattedFileSize
+                        largeFileLineCount = lineCount
+                        // 仍然加载内容，但默认隐藏行号
+                        codeText = file.decodedContent
+                        originalContent = codeText
+                        showLineNumbers = false
+                        // 禁止编辑大文件
+                        isEditing = false
                     } else {
                         codeText = file.decodedContent
                         originalContent = codeText
-                        // 行数过多时自动隐藏行号，避免性能问题
-                        if lineCount > 2000 {
+                        // 行数超过5000行时自动隐藏行号，避免性能问题
+                        if lineCount > 5000 {
                             showLineNumbers = false
                         }
                     }
