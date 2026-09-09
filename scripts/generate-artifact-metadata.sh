@@ -334,6 +334,15 @@ validate_json_format() {
     if command -v python3 &> /dev/null; then
         if ! python3 -m json.tool "${OUTPUT_PATH}" > /dev/null 2>&1; then
             log_error "JSON格式校验失败"
+            echo "=========================================="
+            echo "JSON文件内容（调试用）:"
+            echo "=========================================="
+            cat "${OUTPUT_PATH}"
+            echo "=========================================="
+            echo "Python3校验错误详情:"
+            echo "=========================================="
+            python3 -m json.tool "${OUTPUT_PATH}" 2>&1 || true
+            echo "=========================================="
             exit 2
         fi
         log_success "JSON格式校验通过（python3）"
