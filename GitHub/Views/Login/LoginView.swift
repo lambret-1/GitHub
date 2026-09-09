@@ -13,7 +13,7 @@ struct LoginView: View {
                 // 顶部Logo区域
                 VStack(spacing: 16) {
                     // 使用APP图标
-                    Image("AppIcon")
+                    Image("AppIconImage")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)

@@ -29,6 +29,12 @@ struct CodeEditorView: View {
     @State private var downloadProgress: Double = 0
     @State private var showCopySuccess: Bool = false
     @State private var lastCommitInfo: Commit?
+
+    // 查找相关状态
+    @State private var showSearch: Bool = false
+    @State private var searchText: String = ""
+    @State private var currentMatchIndex: Int = 0
+    @State private var totalMatches: Int = 0
     
     var body: some View {
         VStack(spacing: 0) {
@@ -106,6 +112,17 @@ struct CodeEditorView: View {
                     Divider()
 
                     if fileContent?.isTextFile ?? false {
+                        Button(action: {
+                            showSearch.toggle()
+                            if !showSearch {
+                                searchText = ""
+                                currentMatchIndex = 0
+                                totalMatches = 0
+                            }
+                        }) {
+                            Label(showSearch ? "关闭查找" : "查找", systemImage: "magnifyingglass")
+                        }
+
                         Button(action: {
                             isEditing.toggle()
                         }) {
@@ -344,15 +361,100 @@ struct CodeEditorView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
             }
-            
+
+            // 查找栏
+            if showSearch {
+                searchBar
+            }
+
             // 代码显示/编辑区 - 使用高性能CodeTextView，基于原生UITextView
             CodeTextView(
                 text: $codeText,
                 isEditable: isEditing,
                 showLineNumbers: showLineNumbers,
-                fontSize: fontSize
-            )
+                fontSize: fontSize,
+                searchText: searchText,
+                currentMatchIndex: currentMatchIndex,
+                isSearchActive: showSearch && !searchText.isEmpty
+            ) { current, total in
+                currentMatchIndex = current - 1
+                totalMatches = total
+            }
         }
+    }
+
+    // MARK: - 查找栏
+
+    private var searchBar: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+
+                TextField("查找代码...", text: $searchText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .onChange(of: searchText) { _ in
+                        currentMatchIndex = 0
+                    }
+
+                // 查找结果显示
+                if totalMatches > 0 {
+                    Text("\(currentMatchIndex + 1)/\(totalMatches)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(minWidth: 50)
+                } else if !searchText.isEmpty {
+                    Text("无结果")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .frame(minWidth: 50)
+                }
+            }
+
+            HStack(spacing: 12) {
+                // 上一个
+                Button(action: {
+                    if totalMatches > 0 {
+                        currentMatchIndex = (currentMatchIndex - 1 + totalMatches) % totalMatches
+                    }
+                }) {
+                    Image(systemName: "chevron.up")
+                        .foregroundColor(.blue)
+                        .frame(width: 30, height: 30)
+                }
+                .disabled(totalMatches == 0)
+
+                // 下一个
+                Button(action: {
+                    if totalMatches > 0 {
+                        currentMatchIndex = (currentMatchIndex + 1) % totalMatches
+                    }
+                }) {
+                    Image(systemName: "chevron.down")
+                        .foregroundColor(.blue)
+                        .frame(width: 30, height: 30)
+                }
+                .disabled(totalMatches == 0)
+
+                Spacer()
+
+                // 关闭查找
+                Button(action: {
+                    showSearch = false
+                    searchText = ""
+                    currentMatchIndex = 0
+                    totalMatches = 0
+                }) {
+                    Text("完成")
+                        .foregroundColor(.blue)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color(.systemGray6))
     }
 
     private var hasChanges: Bool {
