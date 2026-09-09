@@ -8,9 +8,6 @@ import SwiftUI
 struct AccountManagerView: View {
     @StateObject private var accountManager = AccountManager.shared
     @State private var showAddAccount = false
-    @State private var newToken = ""
-    @State private var isVerifying = false
-    @State private var verifyError: String?
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
@@ -46,31 +43,15 @@ struct AccountManagerView: View {
         .listStyle(InsetGroupedListStyle())
         .navigationTitle("账号管理")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("添加账号", isPresented: $showAddAccount) {
-            SecureField("请输入 GitHub Token", text: $newToken)
-            Button("取消", role: .cancel) {
-                newToken = ""
-                verifyError = nil
-            }
-            Button("验证并添加") {
-                verifyAndAddAccount()
-            }
-            .disabled(newToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isVerifying)
-        } message: {
-            if let error = verifyError {
-                Text(error)
-                    .foregroundColor(.red)
-            } else {
-                Text("请输入具有 repo 权限的 GitHub Personal Access Token")
-            }
-        }
-        .overlay {
-            if isVerifying {
-                ProgressView("正在验证 Token...")
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(10)
-                    .shadow(radius: 5)
+        // 使用sheet显示添加账号页面，确保验证按钮正常显示
+        .sheet(isPresented: $showAddAccount) {
+            AddAccountView { account in
+                // 添加账号成功
+                AccountManager.shared.addAccount(account)
+                AccountManager.shared.switchTo(account)
+                showAddAccount = false
+            } onCancel: {
+                showAddAccount = false
             }
         }
     }
@@ -124,54 +105,6 @@ struct AccountManagerView: View {
                     accountManager.deleteAccount(account)
                 }) {
                     Label("删除账号", systemImage: "trash")
-                }
-            }
-        }
-    }
-
-    // MARK: - 验证并添加账号
-
-    private func verifyAndAddAccount() {
-        let token = newToken.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !token.isEmpty else { return }
-
-        isVerifying = true
-        verifyError = nil
-
-        // 临时设置Token用于验证
-        TokenKeychain.shared.saveToken(token)
-
-        GitHubAPI.shared.getUserInfo { result in
-            DispatchQueue.main.async {
-                isVerifying = false
-                switch result {
-                case .success(let user):
-                    // 创建账号
-                    let account = GitHubAccount(
-                        id: String(user.id),
-                        username: user.login,
-                        token: token,
-                        avatarUrl: user.avatarUrl,
-                        displayName: user.name
-                    )
-
-                    // 检查是否已存在
-                    if AccountManager.shared.hasAccount(withId: account.id) {
-                        verifyError = "该账号已添加"
-                    } else {
-                        AccountManager.shared.addAccount(account)
-                        AccountManager.shared.switchTo(account)
-                        showAddAccount = false
-                        newToken = ""
-                    }
-                case .failure(let error):
-                    verifyError = "Token 验证失败: \(error.localizedDescription)"
-                    // 恢复原来的Token
-                    if let current = AccountManager.shared.currentAccount {
-                        TokenKeychain.shared.saveToken(current.token)
-                    } else {
-                        TokenKeychain.shared.deleteToken()
-                    }
                 }
             }
         }
