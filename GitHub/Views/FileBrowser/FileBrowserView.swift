@@ -56,7 +56,7 @@ struct FileBrowserView: View {
                     FileDownloadManager.shared.shareFile(at: fileURL, from: viewController)
                 }
             }
-            Button("保存到文件", role: .default) {
+            Button("保存到文件") {
                 if let fileURL = downloadedFileURL,
                    let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                    let viewController = windowScene.windows.first?.rootViewController {
