@@ -22,6 +22,10 @@ struct CodeTextView: UIViewRepresentable {
     var currentMatchIndex: Int = 0
     var isSearchActive: Bool = false
 
+    // 获取选中文字配置
+    var getSelectedTextTrigger: Int = 0
+    var onSelectedText: ((String) -> Void)?
+
     func makeUIView(context: Context) -> UITextView {
         // 使用自定义LayoutManager绘制行号
         let layoutManager = LineNumberLayoutManager()
@@ -64,6 +68,7 @@ struct CodeTextView: UIViewRepresentable {
         context.coordinator.textView = textView
         context.coordinator.fontSize = fontSize
         context.coordinator.onSearchResult = onSearchResult
+        context.coordinator.onSelectedText = onSelectedText
 
         return textView
     }
@@ -101,6 +106,9 @@ struct CodeTextView: UIViewRepresentable {
         } else if !isSearchActive {
             context.coordinator.resetSearch()
         }
+
+        // 处理选中文字获取
+        context.coordinator.checkSelectedTextTrigger(trigger: getSelectedTextTrigger)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -114,6 +122,7 @@ struct CodeTextView: UIViewRepresentable {
         var fontSize: CGFloat = 14
         var isInternalUpdate = false
         var onSearchResult: ((Int, Int) -> Void)?
+        var onSelectedText: ((String) -> Void)?
         private var highlightWorkItem: DispatchWorkItem?
         private var searchWorkItem: DispatchWorkItem?
         private var searchMatches: [NSRange] = []
@@ -121,6 +130,7 @@ struct CodeTextView: UIViewRepresentable {
         private var isSearching = false // 防重入标志，防止查找触发的textStorage修改导致无限循环
         private var pendingSearchText: String = ""
         private var pendingSearchIndex: Int = 0
+        private var lastSelectedTextTrigger: Int = 0
 
         init(text: Binding<String>, onTextChange: ((String) -> Void)?) {
             _text = text
@@ -298,6 +308,22 @@ struct CodeTextView: UIViewRepresentable {
             currentSearchText = ""
             searchMatches = []
             clearSearchHighlight()
+        }
+
+        // MARK: - 选中文字
+
+        /// 检查选中文字触发器，当触发器变化时获取选中文字
+        func checkSelectedTextTrigger(trigger: Int) {
+            guard trigger != lastSelectedTextTrigger else { return }
+            lastSelectedTextTrigger = trigger
+
+            guard let textView = textView else { return }
+            let selectedRange = textView.selectedRange
+            guard selectedRange.length > 0 else { return }
+
+            if let selectedText = textView.text(in: textView.textRange(from: textView.position(from: textView.beginningOfDocument, offset: selectedRange.location)!, to: textView.position(from: textView.beginningOfDocument, offset: selectedRange.location + selectedRange.length)!) {
+                onSelectedText?(selectedText)
+            }
         }
     }
 }

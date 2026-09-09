@@ -35,6 +35,11 @@ struct CodeEditorView: View {
     @State private var searchText: String = ""
     @State private var currentMatchIndex: Int = 0
     @State private var totalMatches: Int = 0
+
+    // 选中文字查找相关状态
+    @State private var getSelectedTextTrigger: Int = 0
+    @State private var showNoSelectionAlert: Bool = false
+    @State private var waitingForSelectedText: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -121,6 +126,12 @@ struct CodeEditorView: View {
                             }
                         }) {
                             Label(showSearch ? "关闭查找" : "查找", systemImage: "magnifyingglass")
+                        }
+
+                        Button(action: {
+                            searchSelectedText()
+                        }) {
+                            Label("查找选中文字", systemImage: "text.magnifyingglass")
                         }
 
                         Button(action: {
@@ -219,6 +230,11 @@ struct CodeEditorView: View {
             Button("确定") {}
         } message: {
             Text("文件 Raw 地址已复制到剪贴板")
+        }
+        .alert("未选中文字", isPresented: $showNoSelectionAlert) {
+            Button("确定") {}
+        } message: {
+            Text("请先在代码中选中要查找的文字，然后再点击"查找选中文字"")
         }
         .overlay {
             if isDownloading {
@@ -380,8 +396,35 @@ struct CodeEditorView: View {
                 },
                 searchText: searchText,
                 currentMatchIndex: currentMatchIndex,
-                isSearchActive: showSearch && !searchText.isEmpty
+                isSearchActive: showSearch && !searchText.isEmpty,
+                getSelectedTextTrigger: getSelectedTextTrigger,
+                onSelectedText: { selectedText in
+                    // 获取到选中文字后，自动填入查找框并显示查找栏
+                    waitingForSelectedText = false
+                    searchText = selectedText
+                    currentMatchIndex = 0
+                    showSearch = true
+                }
             )
+        }
+    }
+
+    // MARK: - 选中文字查找
+
+    private func searchSelectedText() {
+        // 设置等待标志
+        waitingForSelectedText = true
+
+        // 递增触发器，触发CodeTextView获取选中文字
+        getSelectedTextTrigger += 1
+
+        // 延迟200ms检查是否有选中文字
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            if waitingForSelectedText {
+                // 没有选中文字，显示提示
+                waitingForSelectedText = false
+                showNoSelectionAlert = true
+            }
         }
     }
 

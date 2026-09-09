@@ -4,6 +4,10 @@ struct ProfileView: View {
     @EnvironmentObject var appState: AppState
     @State private var showLogoutAlert = false
 
+    // 页面导航状态（用于隐藏NavigationLink的>符号）
+    @State private var showAbout = false
+    @State private var showAccountManager = false
+
     // 检查更新相关状态
     @State private var isCheckingUpdate = false
     @State private var showUpdateResult = false
@@ -112,7 +116,9 @@ struct ProfileView: View {
                     
                     // 账号设置
                     Section("账号") {
-                        NavigationLink(destination: AccountManagerView()) {
+                        Button(action: {
+                            showAccountManager = true
+                        }) {
                             HStack {
                                 Image(systemName: "person.2.circle")
                                     .foregroundColor(.blue)
@@ -123,10 +129,14 @@ struct ProfileView: View {
                                 Text("\(AccountManager.shared.accounts.count) 个账号")
                                     .foregroundColor(.gray)
                                     .font(.subheadline)
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.gray)
                             }
                         }
+                        .background(
+                            NavigationLink(destination: AccountManagerView(), isActive: $showAccountManager) {
+                                EmptyView()
+                            }
+                            .hidden()
+                        )
 
                         Button(action: {
                             if let url = URL(string: user.htmlUrl) {
@@ -167,7 +177,9 @@ struct ProfileView: View {
                         }
                         .disabled(isCheckingUpdate)
 
-                        NavigationLink(destination: AboutView()) {
+                        Button(action: {
+                            showAbout = true
+                        }) {
                             HStack {
                                 Image(systemName: "info.circle")
                                     .foregroundColor(.blue)
@@ -178,10 +190,14 @@ struct ProfileView: View {
                                 Text("v\(AppVersion.currentVersion)")
                                     .foregroundColor(.gray)
                                     .font(.subheadline)
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.gray)
                             }
                         }
+                        .background(
+                            NavigationLink(destination: AboutView(), isActive: $showAbout) {
+                                EmptyView()
+                            }
+                            .hidden()
+                        )
 
                         Button(action: {
                             showLogoutAlert = true
