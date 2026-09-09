@@ -96,7 +96,7 @@ struct AboutView: View {
         .navigationBarTitleDisplayMode(.inline)
         .alert("发现新版本", isPresented: $showDownloadConfirm) {
             if let release = latestRelease {
-                Button("立即下载", role: .default) {
+                Button("立即下载") {
                     downloadUpdate(release: release)
                 }
                 Button("稍后再说", role: .cancel) {}
