@@ -6,7 +6,10 @@ struct CodeEditorView: View {
     let path: String
     let branch: String
     let fileName: String
-    
+
+    // 用于退出页面
+    @Environment(\.dismiss) private var dismiss
+
     @State private var fileContent: FileContent?
     @State private var codeText: String = ""
     @State private var originalContent: String = ""
@@ -29,6 +32,11 @@ struct CodeEditorView: View {
     @State private var downloadProgress: Double = 0
     @State private var showCopySuccess: Bool = false
     @State private var lastCommitInfo: Commit?
+
+    // 未保存提醒状态
+    @State private var showUnsavedAlert: Bool = false
+    // 标记是否保存后自动退出（从"未保存提醒"弹窗点击"保存并离开"时设置）
+    @State private var shouldDismissAfterSave: Bool = false
 
     // 查找相关状态
     @State private var showSearch: Bool = false
@@ -91,7 +99,27 @@ struct CodeEditorView: View {
         }
         .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
+        // 隐藏系统默认返回按钮，使用自定义返回按钮实现编辑保护
+        .navigationBarBackButtonHidden(true)
         .toolbar {
+            // 自定义返回按钮
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    // 检查是否有未保存的修改
+                    if hasChanges {
+                        showUnsavedAlert = true
+                    } else {
+                        dismiss()
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("返回")
+                    }
+                    .foregroundColor(.blue)
+                }
+            }
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     // 文件操作
@@ -189,8 +217,14 @@ struct CodeEditorView: View {
         }
         .alert("提交成功", isPresented: $showSaveSuccess) {
             Button("确定") {
-                isEditing = false
-                loadFile()
+                // 如果是从"未保存提醒"弹窗点击"保存并离开"触发的提交，提交成功后自动退出
+                if shouldDismissAfterSave {
+                    shouldDismissAfterSave = false
+                    dismiss()
+                } else {
+                    isEditing = false
+                    loadFile()
+                }
             }
         } message: {
             Text("文件已成功提交到 GitHub 仓库")
@@ -229,6 +263,32 @@ struct CodeEditorView: View {
             Button("确定") {}
         } message: {
             Text("请先在代码中选中要查找的文字，然后再点击「查找选中文字」")
+        }
+        // 未保存提醒弹窗
+        .alert("文件未保存", isPresented: $showUnsavedAlert) {
+            // 保存按钮（蓝色）
+            Button(action: {
+                // 标记保存后自动退出
+                shouldDismissAfterSave = true
+                // 先提交修改，提交成功后退出
+                showCommitDialog = true
+                showUnsavedAlert = false
+            }) {
+                Text("保存并离开")
+                    .foregroundColor(.blue)
+            }
+            // 不保存按钮（红色）
+            Button(role: .destructive) {
+                // 直接退出，不保存
+                dismiss()
+            } label: {
+                Text("不保存，直接离开")
+                    .foregroundColor(.red)
+            }
+            // 取消按钮
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("当前文件有未保存的修改，确定要离开吗？")
         }
         .overlay {
             if isDownloading {
