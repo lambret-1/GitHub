@@ -66,6 +66,49 @@ class FileDownloadManager {
         viewController.present(activityVC, animated: true)
     }
 
+    /// 下载文件并自动弹出分享面板
+    /// - Parameters:
+    ///   - url: 文件下载URL
+    ///   - fileName: 保存的文件名
+    ///   - progress: 下载进度回调
+    ///   - completion: 完成回调
+    func downloadAndShare(
+        from url: String,
+        fileName: String,
+        progress: ((Double) -> Void)? = nil,
+        completion: ((Result<Void, Error>) -> Void)? = nil
+    ) {
+        downloadFile(from: url, fileName: fileName, progress: progress) { result in
+            switch result {
+            case .success(let fileURL):
+                DispatchQueue.main.async {
+                    if let topVC = Self.getTopViewController() {
+                        self.shareFile(at: fileURL, from: topVC)
+                        completion?(.success(()))
+                    } else {
+                        completion?(.failure(NSError(domain: "FileDownloadManager", code: -3, userInfo: [NSLocalizedDescriptionKey: "无法获取当前视图控制器"])))
+                    }
+                }
+            case .failure(let error):
+                completion?(.failure(error))
+            }
+        }
+    }
+
+    /// 获取当前最顶层的视图控制器
+    static func getTopViewController() -> UIViewController? {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first(where: { $0.isKeyWindow }) else {
+            return nil
+        }
+
+        var topVC = window.rootViewController
+        while let presentedVC = topVC?.presentedViewController {
+            topVC = presentedVC
+        }
+        return topVC
+    }
+
     // MARK: - 保存到文件App
 
     /// 保存文件到"文件"App（使用UIDocumentPickerViewController导出）

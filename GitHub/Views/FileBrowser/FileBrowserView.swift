@@ -17,8 +17,6 @@ struct FileBrowserView: View {
     @State private var isDownloading: Bool = false
     @State private var downloadProgress: Double = 0
     @State private var downloadingFileName: String = ""
-    @State private var showDownloadSuccess: Bool = false
-    @State private var downloadedFileURL: URL?
     @State private var showActionSheet: Bool = false
     @State private var selectedFile: FileItem?
     @State private var showUploadSuccess: Bool = false
@@ -46,27 +44,6 @@ struct FileBrowserView: View {
         .sheet(isPresented: $showDocumentPicker) {
             DocumentPickerView { url in
                 uploadFile(at: url)
-            }
-        }
-        .alert("下载完成", isPresented: $showDownloadSuccess) {
-            Button("分享文件") {
-                if let fileURL = downloadedFileURL,
-                   let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let viewController = windowScene.windows.first?.rootViewController {
-                    FileDownloadManager.shared.shareFile(at: fileURL, from: viewController)
-                }
-            }
-            Button("保存到文件") {
-                if let fileURL = downloadedFileURL,
-                   let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let viewController = windowScene.windows.first?.rootViewController {
-                    FileDownloadManager.shared.exportToFilesApp(at: fileURL, from: viewController)
-                }
-            }
-            Button("确定", role: .cancel) {}
-        } message: {
-            if let fileURL = downloadedFileURL {
-                Text("文件已下载: \(fileURL.lastPathComponent)")
             }
         }
         .alert("上传完成", isPresented: $showUploadSuccess) {
@@ -428,7 +405,7 @@ struct FileBrowserView: View {
         downloadProgress = 0
         downloadingFileName = file.name
 
-        FileDownloadManager.shared.downloadFile(
+        FileDownloadManager.shared.downloadAndShare(
             from: downloadUrl,
             fileName: file.name,
             progress: { progress in
@@ -438,9 +415,9 @@ struct FileBrowserView: View {
             self.isDownloading = false
 
             switch result {
-            case .success(let fileURL):
-                self.downloadedFileURL = fileURL
-                self.showDownloadSuccess = true
+            case .success:
+                // 分享面板已自动弹出
+                break
             case .failure(let error):
                 self.errorMessage = "下载失败: \(error.localizedDescription)"
             }

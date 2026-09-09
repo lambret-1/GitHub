@@ -2,14 +2,18 @@ import SwiftUI
 
 // ==============================================================================
 // AboutView 关于页面
-// 功能：显示应用版本信息、检查更新、跳转GitHub仓库
+// 功能：显示应用版本信息、检查更新、应用内下载更新、自动分享至签名工具
 // ==============================================================================
 
 struct AboutView: View {
     @State private var isCheckingUpdate = false
+    @State private var isDownloadingUpdate = false
+    @State private var downloadProgress: Double = 0
     @State private var updateCheckResult: AppVersion.UpdateCheckResult?
-    @State private var showUpdateAlert = false
     @State private var latestRelease: AppVersion.ReleaseInfo?
+    @State private var showDownloadConfirm = false
+    @State private var downloadErrorMessage: String?
+    @State private var showDownloadError = false
 
     var body: some View {
         List {
@@ -46,122 +50,31 @@ struct AboutView: View {
 
             // 版本信息
             Section("版本信息") {
-                HStack {
-                    Image(systemName: "number")
-                        .foregroundColor(.blue)
-                        .frame(width: 30)
-                    Text("版本号")
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text("v\(AppVersion.currentVersion)")
-                }
-
-                HStack {
-                    Image(systemName: "hammer")
-                        .foregroundColor(.orange)
-                        .frame(width: 30)
-                    Text("构建号")
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text(AppVersion.buildNumber)
-                }
-
-                HStack {
-                    Image(systemName: "apple.logo")
-                        .foregroundColor(.gray)
-                        .frame(width: 30)
-                    Text("部署目标")
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text("iOS 15.0+")
-                }
+                versionInfoRow(icon: "number", color: .blue, title: "版本号", value: "v\(AppVersion.currentVersion)")
+                versionInfoRow(icon: "hammer", color: .orange, title: "构建号", value: AppVersion.buildNumber)
+                versionInfoRow(icon: "apple.logo", color: .gray, title: "部署目标", value: "iOS 15.0+")
             }
 
             // 检查更新
             Section("更新") {
-                Button(action: {
-                    checkForUpdates()
-                }) {
-                    HStack {
-                        if isCheckingUpdate {
-                            ProgressView()
-                                .frame(width: 30)
-                        } else {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .foregroundColor(.blue)
-                                .frame(width: 30)
-                        }
-                        Text(isCheckingUpdate ? "正在检查更新..." : "检查更新")
-                            .foregroundColor(.primary)
-                        Spacer()
-                        if let result = updateCheckResult {
-                            updateResultIcon(result)
-                        } else {
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.gray)
-                        }
-                    }
-                }
-                .disabled(isCheckingUpdate)
+                updateButton
 
                 // 显示检查结果
                 if let result = updateCheckResult {
                     updateResultView(result)
                 }
+
+                // 下载进度
+                if isDownloadingUpdate {
+                    downloadProgressView
+                }
             }
 
             // 链接
             Section("相关链接") {
-                Button(action: {
-                    if let url = URL(string: "https://github.com/lambret-1/GitHub") {
-                        UIApplication.shared.open(url)
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "chevron.left.forwardslash.chevron.right")
-                            .foregroundColor(.black)
-                            .frame(width: 30)
-                        Text("GitHub 仓库")
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.gray)
-                    }
-                }
-
-                Button(action: {
-                    if let url = URL(string: "https://github.com/lambret-1/GitHub/releases") {
-                        UIApplication.shared.open(url)
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "tag")
-                            .foregroundColor(.green)
-                            .frame(width: 30)
-                        Text("所有 Releases")
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.gray)
-                    }
-                }
-
-                Button(action: {
-                    if let url = URL(string: "https://github.com/lambret-1/GitHub/issues") {
-                        UIApplication.shared.open(url)
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "exclamationmark.bubble")
-                            .foregroundColor(.red)
-                            .frame(width: 30)
-                        Text("反馈问题")
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.gray)
-                    }
-                }
+                linkRow(icon: "chevron.left.forwardslash.chevron.right", color: .black, title: "GitHub 仓库", url: "https://github.com/lambret-1/GitHub")
+                linkRow(icon: "tag", color: .green, title: "所有 Releases", url: "https://github.com/lambret-1/GitHub/releases")
+                linkRow(icon: "exclamationmark.bubble", color: .red, title: "反馈问题", url: "https://github.com/lambret-1/GitHub/issues")
             }
 
             // 版权信息
@@ -181,22 +94,92 @@ struct AboutView: View {
         .listStyle(InsetGroupedListStyle())
         .navigationTitle("关于")
         .navigationBarTitleDisplayMode(.inline)
-        .alert(isPresented: $showUpdateAlert) {
+        .alert("发现新版本", isPresented: $showDownloadConfirm) {
             if let release = latestRelease {
-                return Alert(
-                    title: Text("发现新版本"),
-                    message: Text("新版本 \(release.tagName)\n发布时间: \(AppVersion.formattedDate(from: release.publishedAt))\n\n\(release.body ?? "暂无更新说明")"),
-                    primaryButton: .default(Text("前往下载")) {
-                        if let url = URL(string: release.htmlUrl) {
-                            UIApplication.shared.open(url)
-                        }
-                    },
-                    secondaryButton: .cancel(Text("稍后再说"))
-                )
-            } else {
-                return Alert(title: Text("提示"), message: Text("已是最新版本"), dismissButton: .default(Text("确定")))
+                Button("立即下载", role: .default) {
+                    downloadUpdate(release: release)
+                }
+                Button("稍后再说", role: .cancel) {}
+            }
+        } message: {
+            if let release = latestRelease {
+                Text("新版本 \(release.tagName)\n发布时间: \(AppVersion.formattedDate(from: release.publishedAt))\n\n\(release.body ?? "暂无更新说明")\n\n下载完成后将自动弹出分享面板，可选择全能签等签名工具进行安装")
             }
         }
+        .alert("下载失败", isPresented: $showDownloadError) {
+            Button("确定", role: .cancel) {}
+        } message: {
+            Text(downloadErrorMessage ?? "未知错误")
+        }
+        .overlay {
+            if isDownloadingUpdate {
+                downloadingOverlay
+            }
+        }
+    }
+
+    // MARK: - 版本信息行
+
+    private func versionInfoRow(icon: String, color: Color, title: String, value: String) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .frame(width: 30)
+            Text(title)
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(value)
+        }
+    }
+
+    // MARK: - 链接行
+
+    private func linkRow(icon: String, color: Color, title: String, url: String) -> some View {
+        Button(action: {
+            if let url = URL(string: url) {
+                UIApplication.shared.open(url)
+            }
+        }) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                    .frame(width: 30)
+                Text(title)
+                    .foregroundColor(.primary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+
+    // MARK: - 更新按钮
+
+    private var updateButton: some View {
+        Button(action: {
+            checkForUpdates()
+        }) {
+            HStack {
+                if isCheckingUpdate {
+                    ProgressView()
+                        .frame(width: 30)
+                } else {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .foregroundColor(.blue)
+                        .frame(width: 30)
+                }
+                Text(isCheckingUpdate ? "正在检查更新..." : "检查更新")
+                    .foregroundColor(.primary)
+                Spacer()
+                if let result = updateCheckResult, !isDownloadingUpdate {
+                    updateResultIcon(result)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .disabled(isCheckingUpdate || isDownloadingUpdate)
     }
 
     // MARK: - 更新结果图标
@@ -248,18 +231,20 @@ struct AboutView: View {
                         .lineLimit(3)
                 }
                 Button(action: {
-                    if let url = URL(string: release.htmlUrl) {
-                        UIApplication.shared.open(url)
-                    }
+                    downloadUpdate(release: release)
                 }) {
-                    Text("前往下载")
-                        .font(.subheadline.bold())
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(Color.blue)
-                        .cornerRadius(8)
+                    HStack {
+                        Image(systemName: "arrow.down.circle")
+                        Text("立即下载更新")
+                            .font(.subheadline.bold())
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.blue)
+                    .cornerRadius(8)
                 }
+                .disabled(isDownloadingUpdate)
             }
             .padding(.vertical, 4)
         case .checkFailed(let error):
@@ -270,6 +255,55 @@ struct AboutView: View {
                     .foregroundColor(.red)
                     .font(.subheadline)
             }
+        }
+    }
+
+    // MARK: - 下载进度视图
+
+    private var downloadProgressView: some View {
+        VStack(spacing: 8) {
+            ProgressView(value: downloadProgress)
+                .progressViewStyle(LinearProgressViewStyle())
+            HStack {
+                Text("正在下载更新...")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(String(format: "%.0f%%", downloadProgress * 100))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    // MARK: - 下载中全屏覆盖层
+
+    private var downloadingOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                ProgressView(value: downloadProgress)
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .scaleEffect(1.5)
+
+                Text("正在下载更新...")
+                    .font(.headline)
+                    .foregroundColor(.white)
+
+                Text(String(format: "%.0f%%", downloadProgress * 100))
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+
+                Text("下载完成后将自动弹出分享面板")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .padding(32)
+            .background(Color(.systemGray6).opacity(0.9))
+            .cornerRadius(16)
         }
     }
 
@@ -285,7 +319,42 @@ struct AboutView: View {
 
             if case .updateAvailable(let release) = result {
                 latestRelease = release
-                showUpdateAlert = true
+                showDownloadConfirm = true
+            }
+        }
+    }
+
+    // MARK: - 下载更新
+
+    private func downloadUpdate(release: AppVersion.ReleaseInfo) {
+        // 找到IPA文件的下载链接
+        let ipaAsset = release.assets.first { $0.name.hasSuffix(".ipa") }
+
+        guard let asset = ipaAsset else {
+            downloadErrorMessage = "未找到IPA安装包"
+            showDownloadError = true
+            return
+        }
+
+        isDownloadingUpdate = true
+        downloadProgress = 0
+
+        FileDownloadManager.shared.downloadAndShare(
+            from: asset.browserDownloadUrl,
+            fileName: asset.name,
+            progress: { progress in
+                self.downloadProgress = progress
+            }
+        ) { result in
+            self.isDownloadingUpdate = false
+
+            switch result {
+            case .success:
+                // 分享面板已自动弹出
+                break
+            case .failure(let error):
+                self.downloadErrorMessage = "下载失败: \(error.localizedDescription)"
+                self.showDownloadError = true
             }
         }
     }
