@@ -400,6 +400,8 @@ struct CodeEditorView: View {
         .padding(.vertical, 8)
         .background(Color(.systemGray6))
         .edgesIgnoringSafeArea(.bottom)
+        // 底部按钮不跟随键盘移动
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     // MARK: - 文件信息栏
@@ -435,8 +437,10 @@ struct CodeEditorView: View {
 
     private var codeEditorArea: some View {
         VStack(spacing: 0) {
-            // 文件信息栏
-            fileInfoBar
+            // 文件信息栏（编辑模式下隐藏，让出更多代码区域空间）
+            if !isEditing {
+                fileInfoBar
+            }
 
             // 编辑模式提示条
             if isEditing {
@@ -454,7 +458,8 @@ struct CodeEditorView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                // 编辑模式提示条行高减少一半
+                .padding(.vertical, 4)
                 .background(Color.blue.opacity(0.1))
             }
 
