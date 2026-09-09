@@ -129,12 +129,6 @@ struct CodeEditorView: View {
                         }
 
                         Button(action: {
-                            searchSelectedText()
-                        }) {
-                            Label("查找选中文字", systemImage: "text.magnifyingglass")
-                        }
-
-                        Button(action: {
                             isEditing.toggle()
                         }) {
                             Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark" : "pencil")
@@ -401,6 +395,12 @@ struct CodeEditorView: View {
                 onSelectedText: { selectedText in
                     // 获取到选中文字后，自动填入查找框并显示查找栏
                     waitingForSelectedText = false
+                    searchText = selectedText
+                    currentMatchIndex = 0
+                    showSearch = true
+                },
+                onLookupSelectedText: { selectedText in
+                    // 选中文字后点击编辑菜单中的"🔍查找"，直接查找选中的文字
                     searchText = selectedText
                     currentMatchIndex = 0
                     showSearch = true

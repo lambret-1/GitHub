@@ -2,6 +2,34 @@ import SwiftUI
 import UIKit
 
 // ==============================================================================
+// CodeEditorTextView 自定义UITextView子类
+// 功能：自定义选中文字后的编辑菜单，将"搜索网页"替换为"🔍查找"
+// ==============================================================================
+
+class CodeEditorTextView: UITextView {
+    /// 查找选中文字的回调
+    var onLookupSelectedText: ((String) -> Void)?
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        // 移除"搜索网页"选项
+        if action == #selector(UIResponderStandardEditActions.search(_:)) {
+            return false
+        }
+        return super.canPerformAction(action, withSender: sender)
+    }
+
+    /// 自定义查找方法
+    @objc func lookupSelectedText(_ sender: Any?) {
+        guard let selectedTextRange = selectedTextRange,
+              let selectedText = text(in: selectedTextRange),
+              !selectedText.isEmpty else {
+            return
+        }
+        onLookupSelectedText?(selectedText)
+    }
+}
+
+// ==============================================================================
 // CodeTextView 高性能代码编辑器（带语法高亮）
 // 功能：基于UITextView+自定义LineNumberLayoutManager+SyntaxHighlighter
 // 优势：原生UITextView内部使用按需加载，内存占用低，滚动流畅，语法高亮
@@ -16,6 +44,7 @@ struct CodeTextView: UIViewRepresentable {
 
     // 查找相关回调
     var onSearchResult: ((Int, Int) -> Void)? // (当前匹配索引, 总匹配数)
+    var onLookupSelectedText: ((String) -> Void)? // 选中文字后点击查找菜单的回调
 
     // 查找配置
     var searchText: String = ""
@@ -37,8 +66,8 @@ struct CodeTextView: UIViewRepresentable {
         textContainer.heightTracksTextView = false
         layoutManager.addTextContainer(textContainer)
 
-        // 创建UITextView
-        let textView = UITextView(frame: .zero, textContainer: textContainer)
+        // 创建UITextView（使用自定义子类，支持自定义编辑菜单）
+        let textView = CodeEditorTextView(frame: .zero, textContainer: textContainer)
         textView.delegate = context.coordinator
         textView.font = .monospacedSystemFont(ofSize: fontSize, weight: .regular)
         textView.isEditable = isEditable
@@ -52,6 +81,13 @@ struct CodeTextView: UIViewRepresentable {
         textView.backgroundColor = .systemBackground
         textView.alwaysBounceVertical = true
         textView.keyboardDismissMode = .interactive
+
+        // 设置自定义编辑菜单：将"搜索网页"替换为"🔍查找"
+        let lookupMenuItem = UIMenuItem(title: "🔍查找", action: #selector(CodeEditorTextView.lookupSelectedText(_:)))
+        UIMenuController.shared.menuItems = [lookupMenuItem]
+
+        // 设置查找选中文字回调
+        textView.onLookupSelectedText = onLookupSelectedText
 
         // 配置行号LayoutManager
         layoutManager.lineNumberFont = .monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
@@ -76,6 +112,11 @@ struct CodeTextView: UIViewRepresentable {
     func updateUIView(_ textView: UITextView, context: Context) {
         // 更新可编辑状态
         textView.isEditable = isEditable
+
+        // 更新查找选中文字回调
+        if let codeEditorTextView = textView as? CodeEditorTextView {
+            codeEditorTextView.onLookupSelectedText = onLookupSelectedText
+        }
 
         // 更新字体
         let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
