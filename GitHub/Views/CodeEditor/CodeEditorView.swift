@@ -373,13 +373,15 @@ struct CodeEditorView: View {
                 isEditable: isEditing,
                 showLineNumbers: showLineNumbers,
                 fontSize: fontSize,
+                onTextChange: { _ in },
+                onSearchResult: { current, total in
+                    currentMatchIndex = current - 1
+                    totalMatches = total
+                },
                 searchText: searchText,
                 currentMatchIndex: currentMatchIndex,
                 isSearchActive: showSearch && !searchText.isEmpty
-            ) { current, total in
-                currentMatchIndex = current - 1
-                totalMatches = total
-            }
+            )
         }
     }
 
