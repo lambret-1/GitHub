@@ -31,15 +31,15 @@ readonly COLOR_RESET='\033[0m'
 # 日志函数
 # ------------------------------------------------------------------------------
 log_info() {
-    echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*"
+    echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*" >&2
 }
 
 log_success() {
-    echo -e "${COLOR_GREEN}[SUCCESS]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*"
+    echo -e "${COLOR_GREEN}[SUCCESS]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*" >&2
 }
 
 log_warn() {
-    echo -e "${COLOR_YELLOW}[WARN]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*"
+    echo -e "${COLOR_YELLOW}[WARN]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*" >&2
 }
 
 log_error() {
@@ -198,18 +198,27 @@ generate_changelog_entry() {
 insert_changelog_entry() {
     local entry="$1"
     local temp_file
+    local entry_file
 
     log_info "插入新日志条目到README顶部..."
 
     # 创建临时文件
     temp_file=$(mktemp)
+    entry_file=$(mktemp)
+
+    # 将日志条目写入临时文件（避免awk多行变量传递问题）
+    echo -e "${entry}" > "${entry_file}"
 
     # 读取README，在CHANGELOG_START标记后插入新条目
-    awk -v entry="${entry}" -v start_marker="${CHANGELOG_START_MARKER}" '
+    # 使用awk读取条目文件，避免多行变量传递导致的"newline in string"错误
+    awk -v start_marker="${CHANGELOG_START_MARKER}" -v entry_file="${entry_file}" '
     {
         print $0
         if ($0 == start_marker) {
-            print entry
+            while ((getline line < entry_file) > 0) {
+                print line
+            }
+            close(entry_file)
         }
     }
     ' "${README_PATH}" > "${temp_file}"
@@ -217,7 +226,7 @@ insert_changelog_entry() {
     # 校验临时文件非空
     if [[ ! -s "${temp_file}" ]]; then
         log_error "生成的临时文件为空，插入失败"
-        rm -f "${temp_file}"
+        rm -f "${temp_file}" "${entry_file}"
         exit 2
     fi
 
@@ -228,11 +237,11 @@ insert_changelog_entry() {
     if ! mv "${temp_file}" "${README_PATH}"; then
         log_error "替换README文件失败，正在回滚..."
         cp "${backup_path}" "${README_PATH}"
-        rm -f "${backup_path}" "${temp_file}"
+        rm -f "${backup_path}" "${temp_file}" "${entry_file}"
         exit 2
     fi
 
-    rm -f "${backup_path}"
+    rm -f "${backup_path}" "${entry_file}"
     log_success "日志条目插入完成"
 }
 
