@@ -31,11 +31,28 @@ struct FileBrowserView: View {
     @State private var isCreatingFolder: Bool = false
     @State private var showCreateFolderSuccess: Bool = false
     @State private var createFolderErrorMessage: String?
+
+    // 新建文件相关状态
+    @State private var showCreateFileDialog: Bool = false
+    @State private var newFileName: String = ""
+    @State private var isCreatingFile: Bool = false
+    @State private var showCreateFileSuccess: Bool = false
+    @State private var createFileErrorMessage: String?
+
+    // 删除文件相关状态
+    @State private var isDeleteMode: Bool = false
+    @State private var selectedFilesForDelete: Set<String> = []
+    @State private var isDeleting: Bool = false
+    @State private var showDeleteConfirm: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
             pathNavigationBar
             fileListContent
+            // 删除模式底部操作栏
+            if isDeleteMode {
+                deleteActionBar
+            }
         }
         .navigationTitle(repository.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -97,6 +114,40 @@ struct FileBrowserView: View {
             }
         } message: {
             Text(createFolderErrorMessage ?? "未知错误")
+        }
+        // 新建文件对话框
+        .alert("新建文件", isPresented: $showCreateFileDialog) {
+            TextField("文件名（如：test.swift）", text: $newFileName)
+            Button("取消", role: .cancel) {}
+            Button("创建") {
+                createFile()
+            }
+            .disabled(newFileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } message: {
+            Text("将在 \(currentPath.isEmpty ? "根目录" : currentPath) 下创建空文件")
+        }
+        .alert("创建成功", isPresented: $showCreateFileSuccess) {
+            Button("确定") {
+                loadFiles()
+            }
+        } message: {
+            Text("文件已成功创建")
+        }
+        .alert("创建失败", isPresented: .constant(createFileErrorMessage != nil)) {
+            Button("确定", role: .cancel) {
+                createFileErrorMessage = nil
+            }
+        } message: {
+            Text(createFileErrorMessage ?? "未知错误")
+        }
+        // 删除确认对话框
+        .alert("确认删除", isPresented: $showDeleteConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) {
+                deleteSelectedFiles()
+            }
+        } message: {
+            Text("确定要删除选中的 \(selectedFilesForDelete.count) 个文件/文件夹吗？此操作不可撤销。")
         }
         .overlay {
             progressOverlay
@@ -184,6 +235,65 @@ struct FileBrowserView: View {
         .listStyle(PlainListStyle())
     }
 
+    // MARK: - 删除模式底部操作栏
+
+    private var deleteActionBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 12) {
+                // 已选择数量
+                Text("已选择 \(selectedFilesForDelete.count) 项")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                // 全选/取消全选
+                Button(action: {
+                    if selectedFilesForDelete.count == files.count {
+                        selectedFilesForDelete.removeAll()
+                    } else {
+                        selectedFilesForDelete = Set(files.map { $0.path })
+                    }
+                }) {
+                    Text(selectedFilesForDelete.count == files.count ? "取消全选" : "全选")
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                }
+
+                // 删除按钮
+                Button(action: {
+                    showDeleteConfirm = true
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "trash")
+                        Text("删除")
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(selectedFilesForDelete.isEmpty ? Color.gray : Color.red)
+                    .cornerRadius(8)
+                }
+                .disabled(selectedFilesForDelete.isEmpty || isDeleting)
+
+                // 取消按钮
+                Button(action: {
+                    isDeleteMode = false
+                    selectedFilesForDelete.removeAll()
+                }) {
+                    Text("取消")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(.systemBackground))
+        }
+    }
+
     // MARK: - 工具栏内容
 
     @ToolbarContentBuilder
@@ -200,7 +310,15 @@ struct FileBrowserView: View {
             }) {
                 Label("上传文件", systemImage: "square.and.arrow.up")
             }
-            .disabled(isUploading || isDownloading)
+            .disabled(isUploading || isDownloading || isDeleteMode)
+
+            Button(action: {
+                showCreateFileDialog = true
+                newFileName = ""
+            }) {
+                Label("新建文件", systemImage: "doc.badge.plus")
+            }
+            .disabled(isCreatingFile || isDeleteMode)
 
             Button(action: {
                 showCreateFolderDialog = true
@@ -208,7 +326,16 @@ struct FileBrowserView: View {
             }) {
                 Label("创建文件夹", systemImage: "folder.badge.plus")
             }
-            .disabled(isCreatingFolder)
+            .disabled(isCreatingFolder || isDeleteMode)
+
+            Divider()
+
+            Button(action: {
+                isDeleteMode.toggle()
+                selectedFilesForDelete.removeAll()
+            }) {
+                Label(isDeleteMode ? "取消删除" : "删除文件", systemImage: isDeleteMode ? "xmark.circle" : "trash")
+            }
 
             Divider()
 
@@ -217,12 +344,14 @@ struct FileBrowserView: View {
             }) {
                 Label("切换分支: \(selectedBranch)", systemImage: "arrow.triangle.branch")
             }
+            .disabled(isDeleteMode)
 
             Button(action: {
                 showCommits = true
             }) {
                 Label("提交记录", systemImage: "clock.arrow.circlepath")
             }
+            .disabled(isDeleteMode)
 
             Button(action: {
                 if let url = URL(string: repository.htmlUrl) {
@@ -231,6 +360,7 @@ struct FileBrowserView: View {
             }) {
                 Label("在 GitHub 打开", systemImage: "safari")
             }
+            .disabled(isDeleteMode)
         } label: {
             Image(systemName: "ellipsis.circle")
         }
@@ -605,7 +735,20 @@ struct FileBrowserView: View {
 
     @ViewBuilder
     private func fileRowView(for file: FileItem) -> some View {
-        if file.isDirectory {
+        // 删除模式：显示复选框，点击切换选择状态
+        if isDeleteMode {
+            Button(action: {
+                toggleFileSelection(file)
+            }) {
+                HStack(spacing: 12) {
+                    Image(systemName: selectedFilesForDelete.contains(file.path) ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(selectedFilesForDelete.contains(file.path) ? .blue : .gray)
+                        .font(.system(size: 20))
+                    FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+        } else if file.isDirectory {
             Button(action: {
                 navigateToDirectory(file.path)
             }) {
@@ -624,6 +767,15 @@ struct FileBrowserView: View {
             .contextMenu {
                 contextMenuContent(for: file)
             }
+        }
+    }
+
+    // 切换文件选择状态
+    private func toggleFileSelection(_ file: FileItem) {
+        if selectedFilesForDelete.contains(file.path) {
+            selectedFilesForDelete.remove(file.path)
+        } else {
+            selectedFilesForDelete.insert(file.path)
         }
     }
 
@@ -785,6 +937,89 @@ struct FileBrowserView: View {
                 case .failure(let error):
                     createFolderErrorMessage = "创建失败: \(error.localizedDescription)"
                 }
+            }
+        }
+    }
+
+    // MARK: - 新建文件
+
+    private func createFile() {
+        let fileName = newFileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !fileName.isEmpty else { return }
+
+        isCreatingFile = true
+        showCreateFileDialog = false
+
+        let filePath = currentPath.isEmpty ? fileName : "\(currentPath)/\(fileName)"
+
+        GitHubAPI.shared.createFile(
+            owner: repository.ownerName,
+            repo: repository.name,
+            path: filePath,
+            content: "",
+            message: "创建文件: \(fileName)",
+            branch: selectedBranch
+        ) { result in
+            DispatchQueue.main.async {
+                isCreatingFile = false
+                switch result {
+                case .success:
+                    showCreateFileSuccess = true
+                case .failure(let error):
+                    createFileErrorMessage = "创建失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // MARK: - 删除选中文件
+
+    private func deleteSelectedFiles() {
+        guard !selectedFilesForDelete.isEmpty else { return }
+
+        isDeleting = true
+        showDeleteConfirm = false
+
+        let filesToDelete = files.filter { selectedFilesForDelete.contains($0.path) }
+        let group = DispatchGroup()
+        var deleteErrors: [String] = []
+        var successCount = 0
+
+        for file in filesToDelete {
+            group.enter()
+
+            GitHubAPI.shared.deleteFile(
+                owner: repository.ownerName,
+                repo: repository.name,
+                path: file.path,
+                sha: file.sha,
+                message: "删除文件: \(file.name)",
+                branch: selectedBranch
+            ) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success:
+                        successCount += 1
+                    case .failure(let error):
+                        deleteErrors.append("\(file.name): \(error.localizedDescription)")
+                    }
+                    group.leave()
+                }
+            }
+        }
+
+        group.notify(queue: .main) {
+            isDeleting = false
+            isDeleteMode = false
+            selectedFilesForDelete.removeAll()
+            loadFiles()
+
+            if deleteErrors.isEmpty {
+                // 删除成功，可以显示一个提示
+                print("成功删除 \(successCount) 个文件")
+            } else {
+                // 部分删除失败，显示错误信息
+                errorMessage = "部分文件删除失败:\n\(deleteErrors.joined(separator: "\n"))"
             }
         }
     }
