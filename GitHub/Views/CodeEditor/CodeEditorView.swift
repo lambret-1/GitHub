@@ -234,7 +234,7 @@ struct CodeEditorView: View {
         .alert("未选中文字", isPresented: $showNoSelectionAlert) {
             Button("确定") {}
         } message: {
-            Text("请先在代码中选中要查找的文字，然后再点击"查找选中文字"")
+            Text("请先在代码中选中要查找的文字，然后再点击「查找选中文字」")
         }
         .overlay {
             if isDownloading {

@@ -321,9 +321,10 @@ struct CodeTextView: UIViewRepresentable {
             let selectedRange = textView.selectedRange
             guard selectedRange.length > 0 else { return }
 
-            if let selectedText = textView.text(in: textView.textRange(from: textView.position(from: textView.beginningOfDocument, offset: selectedRange.location)!, to: textView.position(from: textView.beginningOfDocument, offset: selectedRange.location + selectedRange.length)!) {
-                onSelectedText?(selectedText)
-            }
+            // 使用NSString获取选中文字，更简单可靠
+            let fullText = textView.text as NSString
+            let selectedText = fullText.substring(with: selectedRange)
+            onSelectedText?(selectedText)
         }
     }
 }
