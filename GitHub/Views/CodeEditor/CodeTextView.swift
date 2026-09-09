@@ -124,7 +124,7 @@ struct CodeTextView: UIViewRepresentable {
         private func applySyntaxHighlight(textView: UITextView) {
             let selectedRange = textView.selectedRange
             let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-            let currentText = textView.text
+            guard let currentText = textView.text else { return }
             let highlightedText = SyntaxHighlighter.highlight(currentText, font: font)
 
             isInternalUpdate = true
