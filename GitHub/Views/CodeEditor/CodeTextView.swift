@@ -13,20 +13,12 @@ class CodeEditorTextView: UITextView {
     var onLookupSelectedText: ((String) -> Void)?
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        // 只保留复制、剪切、粘贴三个最常用的系统菜单项
-        // 移除"搜索网页"、"分享"、"定义"、"查找"等其他菜单项
-        // 这样可以减少菜单项数量，让自定义的"🔍查找"显示在主菜单中，不被折叠
-        let allowedActions: [Selector] = [
-            #selector(UIResponderStandardEditActions.copy(_:)),
-            #selector(UIResponderStandardEditActions.cut(_:)),
-            #selector(UIResponderStandardEditActions.paste(_:))
-        ]
-
-        if allowedActions.contains(action) {
-            return super.canPerformAction(action, withSender: sender)
+        // 只移除"搜索网页"选项，保留其他所有系统菜单项
+        // "搜索网页"的 selector 是私有 API _lookup:
+        if action == Selector(("_lookup:")) {
+            return false
         }
-
-        return false
+        return super.canPerformAction(action, withSender: sender)
     }
 
     /// 自定义查找方法
