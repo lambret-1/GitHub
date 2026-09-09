@@ -44,6 +44,10 @@ struct FileBrowserView: View {
     @State private var selectedFilesForDelete: Set<String> = []
     @State private var isDeleting: Bool = false
     @State private var showDeleteConfirm: Bool = false
+
+    // 新创建文件路径，用于跳转到编辑状态
+    @State private var newlyCreatedFilePath: String?
+    @State private var navigateToEditor: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -59,6 +63,23 @@ struct FileBrowserView: View {
         .toolbar {
             toolbarContent
         }
+        // 隐藏的NavigationLink，用于创建文件成功后跳转到编辑状态
+        .background(
+            NavigationLink(destination: Group {
+                if let filePath = newlyCreatedFilePath {
+                    CodeEditorView(
+                        owner: repository.ownerName,
+                        repo: repository.name,
+                        path: filePath,
+                        branch: selectedBranch,
+                        fileName: (filePath as NSString).lastPathComponent
+                    )
+                }
+            }, isActive: $navigateToEditor) {
+                EmptyView()
+            }
+            .hidden()
+        )
         .sheet(isPresented: $showBranchPicker) {
             BranchPickerView(branches: branches, selectedBranch: $selectedBranch) {
                 loadFiles()
@@ -91,15 +112,13 @@ struct FileBrowserView: View {
         } message: {
             Text(uploadErrorMessage ?? "未知错误")
         }
-        .alert("创建文件夹", isPresented: $showCreateFolderDialog) {
-            TextField("文件夹名称", text: $newFolderName)
-            Button("取消", role: .cancel) {}
-            Button("创建") {
-                createFolder()
+        // 创建文件夹对话框（使用sheet替代alert，确保创建按钮正常显示）
+        .sheet(isPresented: $showCreateFolderDialog) {
+            CreateFolderView(currentPath: currentPath) { folderName in
+                createFolder(folderName: folderName)
+            } onCancel: {
+                showCreateFolderDialog = false
             }
-            .disabled(newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        } message: {
-            Text("将在 \(currentPath.isEmpty ? "根目录" : currentPath) 下创建文件夹")
         }
         .alert("创建成功", isPresented: $showCreateFolderSuccess) {
             Button("确定") {
@@ -230,6 +249,21 @@ struct FileBrowserView: View {
             }
         }
         .listStyle(PlainListStyle())
+        // 下拉刷新功能，识别区在列表顶部（上半屏）
+        .refreshable {
+            await loadFilesAsync()
+        }
+    }
+
+    // 异步加载文件，用于下拉刷新
+    private func loadFilesAsync() async {
+        await withCheckedContinuation { continuation in
+            loadFiles()
+            // 延迟一点时间，让刷新动画更自然
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                continuation.resume()
+            }
+        }
     }
 
     // MARK: - 删除模式底部操作栏
@@ -912,13 +946,14 @@ struct FileBrowserView: View {
 
     // MARK: - 创建文件夹
 
-    private func createFolder() {
-        let folderName = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !folderName.isEmpty else { return }
+    private func createFolder(folderName: String) {
+        let trimmedFolderName = folderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedFolderName.isEmpty else { return }
 
         isCreatingFolder = true
+        showCreateFolderDialog = false
 
-        let folderPath = currentPath.isEmpty ? folderName : "\(currentPath)/\(folderName)"
+        let folderPath = currentPath.isEmpty ? trimmedFolderName : "\(currentPath)/\(trimmedFolderName)"
 
         GitHubAPI.shared.createDirectory(
             owner: repository.ownerName,
@@ -961,7 +996,11 @@ struct FileBrowserView: View {
                 isCreatingFile = false
                 switch result {
                 case .success:
-                    showCreateFileSuccess = true
+                    // 创建成功后直接跳转到编辑状态
+                    newlyCreatedFilePath = filePath
+                    navigateToEditor = true
+                    // 同时刷新文件列表
+                    loadFiles()
                 case .failure(let error):
                     createFileErrorMessage = "创建失败: \(error.localizedDescription)"
                 }
