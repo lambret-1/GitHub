@@ -29,10 +29,6 @@ struct CodeEditorView: View {
     @State private var downloadProgress: Double = 0
     @State private var showCopySuccess: Bool = false
     @State private var lastCommitInfo: Commit?
-    @State private var isLargeFile: Bool = false
-    @State private var largeFileSize: String = ""
-    @State private var largeFileLineCount: Int = 0
-    @State private var forceViewLargeFile: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -115,7 +111,6 @@ struct CodeEditorView: View {
                         }) {
                             Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark" : "pencil")
                         }
-                        .disabled(isLargeFile)
 
                         Button(action: {
                             UIPasteboard.general.string = codeText
@@ -286,50 +281,12 @@ struct CodeEditorView: View {
         .background(Color(.systemGray6))
     }
 
-    // MARK: - 大文件警告条
-
-    private var largeFileWarningBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.orange)
-                .font(.caption)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("大文件模式（只读）")
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.orange)
-                Text("\(largeFileSize) · \(largeFileLineCount) 行 · 为保证性能已禁用编辑和行号")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-
-            Spacer()
-
-            Button(action: {
-                downloadFile()
-            }) {
-                Label("下载", systemImage: "square.and.arrow.down")
-                    .font(.caption2)
-                    .foregroundColor(.blue)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color.orange.opacity(0.1))
-    }
-
     // MARK: - 代码编辑区域
 
     private var codeEditorArea: some View {
         VStack(spacing: 0) {
             // 文件信息栏
             fileInfoBar
-
-            // 大文件警告条
-            if isLargeFile {
-                largeFileWarningBar
-            }
 
             // 编辑模式提示条
             if isEditing {
@@ -388,58 +345,16 @@ struct CodeEditorView: View {
                 .padding(.vertical, 8)
             }
             
-            // 代码显示/编辑区
-            if isEditing {
-                TextEditor(text: $codeText)
-                    .font(.system(size: fontSize, design: .monospaced))
-                    .disableAutocorrection(true)
-                    .autocapitalization(.none)
-                    .padding(4)
-            } else if isLargeFile {
-                // 大文件使用TextEditor只读模式，内部UITextView对大文本处理更高效
-                TextEditor(text: .constant(codeText))
-                    .font(.system(size: fontSize, design: .monospaced))
-                    .disabled(true)
-                    .padding(4)
-            } else {
-                ScrollView {
-                    HStack(alignment: .top, spacing: 0) {
-                        if showLineNumbers {
-                            lineNumbers
-                        }
-                        Text(codeText)
-                            .font(.system(size: fontSize, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, showLineNumbers ? 8 : 12)
-                            .padding(.trailing, 12)
-                            .textSelection(.enabled)
-                    }
-                    .padding(.vertical, 8)
-                }
-            }
+            // 代码显示/编辑区 - 使用高性能CodeTextView，基于原生UITextView
+            CodeTextView(
+                text: $codeText,
+                isEditable: isEditing,
+                showLineNumbers: showLineNumbers,
+                fontSize: fontSize
+            )
         }
     }
-    
-    // 行号
-    private var lineNumbers: some View {
-        let lines = codeText.components(separatedBy: .newlines)
-        // 行数过多时使用LazyVStack延迟加载，避免内存暴涨
-        return ScrollView {
-            LazyVStack(alignment: .trailing, spacing: 0) {
-                ForEach(0..<lines.count, id: \.self) { index in
-                    Text("\(index + 1)")
-                        .font(.system(size: fontSize, design: .monospaced))
-                        .foregroundColor(.gray)
-                        .frame(height: fontSize * 1.5)
-                        .padding(.trailing, 8)
-                }
-            }
-            .padding(.leading, 12)
-            .background(Color(.systemGray6))
-        }
-        .disabled(true)
-    }
-    
+
     private var hasChanges: Bool {
         return codeText != originalContent
     }
@@ -448,8 +363,6 @@ struct CodeEditorView: View {
         isLoading = true
         errorMessage = nil
         lastCommitInfo = nil
-        isLargeFile = false
-        forceViewLargeFile = false
 
         GitHubAPI.shared.getFileContent(owner: owner, repo: repo, path: path, branch: branch) { result in
             DispatchQueue.main.async {
@@ -457,31 +370,8 @@ struct CodeEditorView: View {
                 switch result {
                 case .success(let file):
                     fileContent = file
-
-                    // 大文件保护：超过5MB或超过20000行，提示用户但允许只读查看
-                    let isOverSizeLimit = file.size > 5 * 1024 * 1024
-                    let lineCount = file.decodedContent.components(separatedBy: .newlines).count
-                    let isOverLineLimit = lineCount > 20000
-
-                    if isOverSizeLimit || isOverLineLimit {
-                        // 标记为大文件，显示警告但不阻止查看
-                        isLargeFile = true
-                        largeFileSize = file.size.formattedFileSize
-                        largeFileLineCount = lineCount
-                        // 仍然加载内容，但默认隐藏行号
-                        codeText = file.decodedContent
-                        originalContent = codeText
-                        showLineNumbers = false
-                        // 禁止编辑大文件
-                        isEditing = false
-                    } else {
-                        codeText = file.decodedContent
-                        originalContent = codeText
-                        // 行数超过5000行时自动隐藏行号，避免性能问题
-                        if lineCount > 5000 {
-                            showLineNumbers = false
-                        }
-                    }
+                    codeText = file.decodedContent
+                    originalContent = codeText
 
                     // 获取文件最后编辑时间
                     loadLastCommit()
