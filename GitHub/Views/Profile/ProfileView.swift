@@ -3,6 +3,14 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var appState: AppState
     @State private var showLogoutAlert = false
+
+    // 检查更新相关状态
+    @State private var isCheckingUpdate = false
+    @State private var showUpdateResult = false
+    @State private var updateResultTitle = ""
+    @State private var updateResultMessage = ""
+    @State private var latestRelease: AppVersion.ReleaseInfo?
+    @State private var showDownloadConfirm = false
     
     var body: some View {
         NavigationView {
@@ -137,6 +145,28 @@ struct ProfileView: View {
                             }
                         }
 
+                        // 检查更新
+                        Button(action: {
+                            checkForUpdates()
+                        }) {
+                            HStack {
+                                if isCheckingUpdate {
+                                    ProgressView()
+                                        .frame(width: 30)
+                                } else {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .foregroundColor(.blue)
+                                        .frame(width: 30)
+                                }
+                                Text(isCheckingUpdate ? "正在检查更新..." : "检查更新")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .disabled(isCheckingUpdate)
+
                         NavigationLink(destination: AboutView()) {
                             HStack {
                                 Image(systemName: "info.circle")
@@ -178,6 +208,31 @@ struct ProfileView: View {
             }
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("我的")
+            // 检查更新结果alert
+            .alert(isPresented: $showUpdateResult) {
+                Alert(
+                    title: Text(updateResultTitle),
+                    message: Text(updateResultMessage),
+                    dismissButton: .default(Text("确定"))
+                )
+            }
+            // 发现新版本，确认下载alert
+            .alert("发现新版本", isPresented: $showDownloadConfirm) {
+                if let release = latestRelease {
+                    Button("立即下载") {
+                        // 跳转到AboutView页面进行下载
+                        // 这里可以直接打开GitHub Release页面
+                        if let url = URL(string: release.htmlUrl) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    Button("稍后再说", role: .cancel) {}
+                }
+            } message: {
+                if let release = latestRelease {
+                    Text("新版本 \(release.tagName)\n发布时间: \(AppVersion.formattedDate(from: release.publishedAt))\n\n\(release.body ?? "暂无更新说明")")
+                }
+            }
         }
         .alert(isPresented: $showLogoutAlert) {
             Alert(
@@ -188,6 +243,31 @@ struct ProfileView: View {
                 },
                 secondaryButton: .cancel(Text("取消"))
             )
+        }
+    }
+
+    // MARK: - 检查更新
+
+    private func checkForUpdates() {
+        isCheckingUpdate = true
+
+        AppVersion.checkForUpdates { result in
+            DispatchQueue.main.async {
+                isCheckingUpdate = false
+                switch result {
+                case .upToDate:
+                    updateResultTitle = "已是最新版本"
+                    updateResultMessage = "当前版本 v\(AppVersion.currentVersion) 已是最新版本"
+                    showUpdateResult = true
+                case .updateAvailable(let release):
+                    latestRelease = release
+                    showDownloadConfirm = true
+                case .checkFailed(let error):
+                    updateResultTitle = "检查失败"
+                    updateResultMessage = "检查更新失败: \(error.localizedDescription)"
+                    showUpdateResult = true
+                }
+            }
         }
     }
 }
