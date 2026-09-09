@@ -42,7 +42,7 @@ struct CodeTextView: UIViewRepresentable {
     @Binding var text: String
     var isEditable: Bool
     var showLineNumbers: Bool
-    var fontSize: CGFloat
+    @Binding var fontSize: CGFloat
     var onTextChange: ((String) -> Void)?
 
     // 查找相关回调
@@ -114,8 +114,13 @@ struct CodeTextView: UIViewRepresentable {
         // 保存coordinator引用，用于后续更新
         context.coordinator.textView = textView
         context.coordinator.fontSize = fontSize
+        context.coordinator.fontSizeBinding = _fontSize
         context.coordinator.onSearchResult = onSearchResult
         context.coordinator.onSelectedText = onSelectedText
+
+        // 添加双指缩放手势，用于动态调整字体大小
+        let pinchGesture = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch(_:)))
+        textView.addGestureRecognizer(pinchGesture)
 
         return textView
     }
@@ -178,6 +183,7 @@ struct CodeTextView: UIViewRepresentable {
         var onTextChange: ((String) -> Void)?
         weak var textView: UITextView?
         var fontSize: CGFloat = 14
+        var fontSizeBinding: Binding<CGFloat>?
         var isInternalUpdate = false
         var onSearchResult: ((Int, Int) -> Void)?
         var onSelectedText: ((String) -> Void)?
@@ -189,6 +195,10 @@ struct CodeTextView: UIViewRepresentable {
         private var pendingSearchText: String = ""
         private var pendingSearchIndex: Int = 0
         private var lastSelectedTextTrigger: Int = 0
+        // 双指缩放相关
+        private var initialFontSize: CGFloat = 14
+        private let minFontSize: CGFloat = 8
+        private let maxFontSize: CGFloat = 24
 
         init(text: Binding<String>, onTextChange: ((String) -> Void)?) {
             _text = text
@@ -383,6 +393,55 @@ struct CodeTextView: UIViewRepresentable {
             let fullText = textView.text as NSString
             let selectedText = fullText.substring(with: selectedRange)
             onSelectedText?(selectedText)
+        }
+
+        // MARK: - 双指缩放
+
+        /// 处理双指缩放手势，动态调整字体大小
+        @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
+            guard let textView = textView else { return }
+
+            switch gesture.state {
+            case .began:
+                // 记录缩放开始时的字体大小
+                initialFontSize = fontSize
+
+            case .changed:
+                // 根据缩放比例计算新的字体大小
+                let newFontSize = initialFontSize * gesture.scale
+                // 限制字体大小范围
+                let clampedFontSize = min(max(newFontSize, minFontSize), maxFontSize)
+                // 只在字体大小实际变化时更新
+                guard abs(clampedFontSize - fontSize) > 0.1 else { return }
+
+                fontSize = clampedFontSize
+                // 更新外部绑定的字体大小
+                fontSizeBinding?.wrappedValue = clampedFontSize
+
+                // 更新textView字体
+                let font = UIFont.monospacedSystemFont(ofSize: clampedFontSize, weight: .regular)
+                textView.font = font
+
+                // 更新行号字体和列宽
+                if let layoutManager = textView.layoutManager as? LineNumberLayoutManager {
+                    let lineNumberFont = UIFont.monospacedSystemFont(ofSize: clampedFontSize - 2, weight: .regular)
+                    layoutManager.lineNumberFont = lineNumberFont
+                    let calculatedWidth = LineNumberLayoutManager.calculateLineNumberWidth(for: textView.text, font: lineNumberFont)
+                    let clampedWidth = min(max(calculatedWidth, 30), 80)
+                    layoutManager.lineNumberWidth = clampedWidth
+                    textView.textContainerInset = UIEdgeInsets(top: 8, left: clampedWidth + 8, bottom: 8, right: 8)
+                    layoutManager.containerInset = textView.textContainerInset
+                }
+
+                // 重新应用语法高亮（因为字体变化了）
+                applySyntaxHighlight(textView: textView)
+
+            case .ended, .cancelled, .failed:
+                break
+
+            default:
+                break
+            }
         }
     }
 }

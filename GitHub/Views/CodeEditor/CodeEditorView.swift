@@ -98,8 +98,9 @@ struct CodeEditorView: View {
                     codeEditorArea
                 }
             }
-
-            // 编辑模式底部工具栏（取消和提交修改按钮）
+        }
+        // 编辑模式底部工具栏使用overlay，确保不跟随键盘移动
+        .overlay(alignment: .bottom) {
             if isEditing && (fileContent?.isTextFile ?? false) {
                 editModeBottomBar
             }
@@ -400,8 +401,6 @@ struct CodeEditorView: View {
         .padding(.vertical, 8)
         .background(Color(.systemGray6))
         .edgesIgnoringSafeArea(.bottom)
-        // 底部按钮不跟随键盘移动
-        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     // MARK: - 文件信息栏
@@ -473,7 +472,7 @@ struct CodeEditorView: View {
                 text: $codeText,
                 isEditable: isEditing,
                 showLineNumbers: showLineNumbers,
-                fontSize: fontSize,
+                fontSize: $fontSize,
                 onTextChange: { _ in },
                 onSearchResult: { current, total in
                     currentMatchIndex = current - 1
