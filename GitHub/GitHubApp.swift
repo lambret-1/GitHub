@@ -14,6 +14,8 @@ struct GitHubApp: App {
                 }
             }
             .environmentObject(appState)
+            // 根据暗黑模式状态设置应用配色方案
+            .preferredColorScheme(appState.isDarkMode ? .dark : .light)
         }
     }
 }

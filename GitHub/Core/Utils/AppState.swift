@@ -10,8 +10,19 @@ class AppState: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     
+    // 暗黑模式状态
+    @Published var isDarkMode: Bool = false
+    
     private init() {
+        // 从UserDefaults读取暗黑模式设置
+        isDarkMode = UserDefaults.standard.bool(forKey: "isDarkMode")
         checkLoginStatus()
+    }
+    
+    /// 切换暗黑模式
+    func toggleDarkMode() {
+        isDarkMode.toggle()
+        UserDefaults.standard.set(isDarkMode, forKey: "isDarkMode")
     }
     
     func checkLoginStatus() {

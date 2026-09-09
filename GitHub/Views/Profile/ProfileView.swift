@@ -23,7 +23,7 @@ struct ProfileView: View {
                     // 用户信息卡片
                     Section {
                         VStack(spacing: 16) {
-                            // 头像
+                            // 头像（双击切换暗黑模式）
                             AsyncImage(url: URL(string: user.avatarUrl)) { image in
                                 image.resizable()
                                     .aspectRatio(contentMode: .fill)
@@ -34,6 +34,10 @@ struct ProfileView: View {
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color.white, lineWidth: 2))
                             .shadow(radius: 4)
+                            .onTapGesture(count: 2) {
+                                // 双击头像切换暗黑模式
+                                appState.toggleDarkMode()
+                            }
                             
                             // 姓名和用户名
                             VStack(spacing: 4) {
