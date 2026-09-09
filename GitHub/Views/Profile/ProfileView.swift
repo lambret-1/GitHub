@@ -15,6 +15,12 @@ struct ProfileView: View {
     @State private var updateResultMessage = ""
     @State private var latestRelease: AppVersion.ReleaseInfo?
     @State private var showDownloadConfirm = false
+
+    // 下载更新相关状态
+    @State private var isDownloadingUpdate = false
+    @State private var downloadProgress: Double = 0
+    @State private var downloadErrorMessage: String?
+    @State private var showDownloadError = false
     
     var body: some View {
         NavigationView {
@@ -133,6 +139,8 @@ struct ProfileView: View {
                                 Text("\(AccountManager.shared.accounts.count) 个账号")
                                     .foregroundColor(.gray)
                                     .font(.subheadline)
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
                             }
                         }
                         .background(
@@ -194,6 +202,8 @@ struct ProfileView: View {
                                 Text("v\(AppVersion.currentVersion)")
                                     .foregroundColor(.gray)
                                     .font(.subheadline)
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
                             }
                         }
                         .background(
@@ -240,17 +250,50 @@ struct ProfileView: View {
             .alert("发现新版本", isPresented: $showDownloadConfirm) {
                 if let release = latestRelease {
                     Button("立即下载") {
-                        // 跳转到AboutView页面进行下载
-                        // 这里可以直接打开GitHub Release页面
-                        if let url = URL(string: release.htmlUrl) {
-                            UIApplication.shared.open(url)
-                        }
+                        // 应用内下载更新，下载完成后自动弹出分享面板
+                        downloadUpdate(release: release)
                     }
                     Button("稍后再说", role: .cancel) {}
                 }
             } message: {
                 if let release = latestRelease {
-                    Text("新版本 \(release.tagName)\n发布时间: \(AppVersion.formattedDate(from: release.publishedAt))\n\n\(release.body ?? "暂无更新说明")")
+                    Text("新版本 \(release.tagName)\n发布时间: \(AppVersion.formattedDate(from: release.publishedAt))\n\n\(release.body ?? "暂无更新说明")\n\n下载完成后将自动弹出分享面板，可选择全能签等签名工具进行安装")
+                }
+            }
+            // 下载失败alert
+            .alert("下载失败", isPresented: $showDownloadError) {
+                Button("确定") {}
+            } message: {
+                Text(downloadErrorMessage ?? "未知错误")
+            }
+            // 下载中全屏覆盖层
+            .overlay {
+                if isDownloadingUpdate {
+                    ZStack {
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+
+                        VStack(spacing: 16) {
+                            ProgressView(value: downloadProgress)
+                                .progressViewStyle(CircularProgressViewStyle())
+                                .scaleEffect(1.5)
+
+                            Text("正在下载更新...")
+                                .font(.headline)
+                                .foregroundColor(.black)
+
+                            Text(String(format: "%.0f%%", downloadProgress * 100))
+                                .font(.subheadline)
+                                .foregroundColor(.black)
+
+                            Text("下载完成后将自动弹出分享面板")
+                                .font(.caption)
+                                .foregroundColor(.black.opacity(0.7))
+                        }
+                        .padding(32)
+                        .background(Color.white)
+                        .cornerRadius(16)
+                    }
                 }
             }
         }
@@ -287,6 +330,41 @@ struct ProfileView: View {
                     updateResultMessage = "检查更新失败: \(error.localizedDescription)"
                     showUpdateResult = true
                 }
+            }
+        }
+    }
+
+    // MARK: - 下载更新
+
+    private func downloadUpdate(release: AppVersion.ReleaseInfo) {
+        // 找到IPA文件的下载链接
+        let ipaAsset = release.assets.first { $0.name.hasSuffix(".ipa") }
+
+        guard let asset = ipaAsset else {
+            downloadErrorMessage = "未找到IPA安装包"
+            showDownloadError = true
+            return
+        }
+
+        isDownloadingUpdate = true
+        downloadProgress = 0
+
+        FileDownloadManager.shared.downloadAndShare(
+            from: asset.browserDownloadUrl,
+            fileName: asset.name,
+            progress: { progress in
+                self.downloadProgress = progress
+            }
+        ) { result in
+            self.isDownloadingUpdate = false
+
+            switch result {
+            case .success:
+                // 分享面板已自动弹出
+                break
+            case .failure(let error):
+                self.downloadErrorMessage = "下载失败: \(error.localizedDescription)"
+                self.showDownloadError = true
             }
         }
     }
