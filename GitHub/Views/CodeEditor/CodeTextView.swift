@@ -115,8 +115,12 @@ struct CodeTextView: UIViewRepresentable {
         var isInternalUpdate = false
         var onSearchResult: ((Int, Int) -> Void)?
         private var highlightWorkItem: DispatchWorkItem?
+        private var searchWorkItem: DispatchWorkItem?
         private var searchMatches: [NSRange] = []
         private var currentSearchText: String = ""
+        private var isSearching = false // 防重入标志，防止查找触发的textStorage修改导致无限循环
+        private var pendingSearchText: String = ""
+        private var pendingSearchIndex: Int = 0
 
         init(text: Binding<String>, onTextChange: ((String) -> Void)?) {
             _text = text
@@ -124,6 +128,9 @@ struct CodeTextView: UIViewRepresentable {
         }
 
         func textViewDidChange(_ textView: UITextView) {
+            // 如果是查找高亮触发的修改，不更新text，避免无限循环
+            guard !isSearching else { return }
+
             isInternalUpdate = true
             text = textView.text
             onTextChange?(textView.text)
@@ -145,6 +152,9 @@ struct CodeTextView: UIViewRepresentable {
 
         /// 应用语法高亮
         private func applySyntaxHighlight(textView: UITextView) {
+            // 如果正在查找，不应用纯语法高亮，避免覆盖查找高亮
+            guard !isSearching else { return }
+
             let selectedRange = textView.selectedRange
             let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
             guard let currentText = textView.text else { return }
@@ -161,9 +171,32 @@ struct CodeTextView: UIViewRepresentable {
 
         // MARK: - 查找功能
 
-        /// 执行查找
+        /// 执行查找（带防抖）
         func performSearch(text searchText: String, currentIndex: Int) {
+            // 取消之前的查找任务
+            searchWorkItem?.cancel()
+
+            // 保存待查找的参数
+            pendingSearchText = searchText
+            pendingSearchIndex = currentIndex
+
+            // 延迟200ms执行查找，提高输入框响应速度
+            let workItem = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                self.doPerformSearch(text: self.pendingSearchText, currentIndex: self.pendingSearchIndex)
+            }
+            searchWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: workItem)
+        }
+
+        /// 实际执行查找
+        private func doPerformSearch(text searchText: String, currentIndex: Int) {
             guard let textView = textView, let fullText = textView.text else { return }
+            guard !isSearching else { return }
+
+            // 设置防重入标志
+            isSearching = true
+            defer { isSearching = false }
 
             // 如果搜索文本变化，重新查找所有匹配
             if searchText != currentSearchText {
@@ -179,10 +212,15 @@ struct CodeTextView: UIViewRepresentable {
                 }
             }
 
-            // 清除之前的查找高亮
-            clearSearchHighlight()
-
             guard !searchMatches.isEmpty else {
+                // 无匹配结果，只应用语法高亮
+                let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+                let highlightedText = SyntaxHighlighter.highlight(fullText, font: font)
+                isInternalUpdate = true
+                textView.textStorage.setAttributedString(highlightedText)
+                DispatchQueue.main.async { [weak self] in
+                    self?.isInternalUpdate = false
+                }
                 onSearchResult?(0, 0)
                 return
             }
@@ -190,7 +228,7 @@ struct CodeTextView: UIViewRepresentable {
             // 确保当前索引在有效范围内
             let safeIndex = max(0, min(currentIndex, searchMatches.count - 1))
 
-            // 高亮所有匹配项（黄色背景）
+            // 创建带语法高亮和查找高亮的完整attributed string
             let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
             let highlightedText = SyntaxHighlighter.highlight(fullText, font: font)
             let mutableAttributedString = NSMutableAttributedString(attributedString: highlightedText)
@@ -205,13 +243,18 @@ struct CodeTextView: UIViewRepresentable {
                 }
             }
 
+            // 保存当前选中范围
+            let selectedRange = textView.selectedRange
+
             isInternalUpdate = true
             textView.textStorage.setAttributedString(mutableAttributedString)
 
-            // 滚动到当前匹配项
+            // 恢复选中范围，并设置当前匹配项为选中范围
             let currentRange = searchMatches[safeIndex]
-            textView.scrollRangeToVisible(currentRange)
             textView.selectedRange = currentRange
+
+            // 滚动到当前匹配项，确保光标跟随
+            textView.scrollRangeToVisible(currentRange)
 
             DispatchQueue.main.async { [weak self] in
                 self?.isInternalUpdate = false
@@ -224,6 +267,7 @@ struct CodeTextView: UIViewRepresentable {
         /// 清除查找高亮（只清除高亮，不重置查找状态）
         func clearSearchHighlight() {
             guard let textView = textView, let fullText = textView.text else { return }
+            guard !isSearching else { return }
 
             let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
             let highlightedText = SyntaxHighlighter.highlight(fullText, font: font)
@@ -238,6 +282,9 @@ struct CodeTextView: UIViewRepresentable {
 
         /// 重置查找状态（退出查找模式时调用）
         func resetSearch() {
+            // 取消待执行的查找任务
+            searchWorkItem?.cancel()
+
             currentSearchText = ""
             searchMatches = []
             clearSearchHighlight()
