@@ -76,47 +76,7 @@ struct FileBrowserView: View {
                     }
                     
                     ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
-                        if file.isDirectory {
-                            Button(action: {
-                                navigateToDirectory(file.path)
-                            }) {
-                                FileRow(file: file)
-                            }
-                        } else {
-                            NavigationLink(destination: CodeEditorView(
-                                owner: repository.ownerName,
-                                repo: repository.name,
-                                path: file.path,
-                                branch: selectedBranch,
-                                fileName: file.name
-                            )) {
-                                FileRow(file: file)
-                            }
-                            .contextMenu {
-                                Button(action: {
-                                    selectedFile = file
-                                    downloadFile(file)
-                                }) {
-                                    Label("下载文件", systemImage: "arrow.down.circle")
-                                }
-
-                                Button(action: {
-                                    if let url = URL(string: file.htmlUrl ?? repository.htmlUrl) {
-                                        UIApplication.shared.open(url)
-                                    }
-                                }) {
-                                    Label("在 GitHub 打开", systemImage: "safari")
-                                }
-
-                                Button(action: {
-                                    if let url = URL(string: file.downloadUrl ?? "") {
-                                        UIApplication.shared.open(url)
-                                    }
-                                }) {
-                                    Label("复制下载链接", systemImage: "link")
-                                }
-                            }
-                        }
+                        fileRowView(for: file)
                     }
                 }
                 .listStyle(PlainListStyle())
@@ -214,52 +174,7 @@ struct FileBrowserView: View {
             Text(uploadErrorMessage ?? "未知错误")
         }
         .overlay {
-            if isDownloading {
-                ZStack {
-                    Color.black.opacity(0.4)
-                        .ignoresSafeArea()
-
-                    VStack(spacing: 16) {
-                        ProgressView(value: downloadProgress)
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .scaleEffect(1.5)
-
-                        Text("正在下载: \(downloadingFileName)")
-                            .font(.headline)
-                            .foregroundColor(.white)
-
-                        Text(String(format: "%.0f%%", downloadProgress * 100))
-                            .font(.subheadline)
-                            .foregroundColor(.white)
-                    }
-                    .padding(32)
-                    .background(Color(.systemGray6).opacity(0.9))
-                    .cornerRadius(16)
-                }
-            }
-
-            if isUploading {
-                ZStack {
-                    Color.black.opacity(0.4)
-                        .ignoresSafeArea()
-
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-
-                        Text("正在上传文件...")
-                            .font(.headline)
-                            .foregroundColor(.white)
-
-                        Text("请稍候")
-                            .font(.subheadline)
-                            .foregroundColor(.white)
-                    }
-                    .padding(32)
-                    .background(Color(.systemGray6).opacity(0.9))
-                    .cornerRadius(16)
-                }
-            }
+            progressOverlay
         }
         .onAppear {
             if selectedBranch.isEmpty {
@@ -270,6 +185,64 @@ struct FileBrowserView: View {
         }
     }
     
+    // MARK: - 进度覆盖层
+
+    @ViewBuilder
+    private var progressOverlay: some View {
+        if isDownloading {
+            downloadProgressView
+        } else if isUploading {
+            uploadProgressView
+        }
+    }
+
+    private var downloadProgressView: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                ProgressView(value: downloadProgress)
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .scaleEffect(1.5)
+
+                Text("正在下载: \(downloadingFileName)")
+                    .font(.headline)
+                    .foregroundColor(.white)
+
+                Text(String(format: "%.0f%%", downloadProgress * 100))
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+            }
+            .padding(32)
+            .background(Color(.systemGray6).opacity(0.9))
+            .cornerRadius(16)
+        }
+    }
+
+    private var uploadProgressView: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                ProgressView()
+                    .scaleEffect(1.5)
+
+                Text("正在上传文件...")
+                    .font(.headline)
+                    .foregroundColor(.white)
+
+                Text("请稍候")
+                    .font(.subheadline)
+                    .foregroundColor(.white)
+            }
+            .padding(32)
+            .background(Color(.systemGray6).opacity(0.9))
+            .cornerRadius(16)
+        }
+    }
+
     // 路径导航栏
     private var pathNavigationBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -363,6 +336,58 @@ struct FileBrowserView: View {
             currentPath = ""
         }
         loadFiles()
+    }
+
+    // MARK: - 文件行视图
+
+    @ViewBuilder
+    private func fileRowView(for file: FileItem) -> some View {
+        if file.isDirectory {
+            Button(action: {
+                navigateToDirectory(file.path)
+            }) {
+                FileRow(file: file)
+            }
+        } else {
+            NavigationLink(destination: CodeEditorView(
+                owner: repository.ownerName,
+                repo: repository.name,
+                path: file.path,
+                branch: selectedBranch,
+                fileName: file.name
+            )) {
+                FileRow(file: file)
+            }
+            .contextMenu {
+                contextMenuContent(for: file)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func contextMenuContent(for file: FileItem) -> some View {
+        Button(action: {
+            selectedFile = file
+            downloadFile(file)
+        }) {
+            Label("下载文件", systemImage: "arrow.down.circle")
+        }
+
+        Button(action: {
+            if let url = URL(string: file.htmlUrl ?? repository.htmlUrl) {
+                UIApplication.shared.open(url)
+            }
+        }) {
+            Label("在 GitHub 打开", systemImage: "safari")
+        }
+
+        Button(action: {
+            if let url = URL(string: file.downloadUrl ?? "") {
+                UIApplication.shared.open(url)
+            }
+        }) {
+            Label("复制下载链接", systemImage: "link")
+        }
     }
 
     // MARK: - 下载文件
