@@ -33,6 +33,7 @@ struct GitHubUser: Codable, Identifiable {
         if let date = formatter.date(from: createdAt) {
             let displayFormatter = DateFormatter()
             displayFormatter.dateFormat = "yyyy年MM月dd日"
+            displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
             return displayFormatter.string(from: date)
         }
         return createdAt

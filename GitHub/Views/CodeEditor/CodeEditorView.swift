@@ -179,7 +179,7 @@ struct CodeEditorView: View {
             Button("确定") {
                 renameFile()
             }
-            .disabled(newFileName.isEmpty || newFileName == fileName)
+            .disabled(newFileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         } message: {
             Text("当前文件名: \(fileName)\n请输入新的文件名")
         }
@@ -374,17 +374,21 @@ struct CodeEditorView: View {
     // 行号
     private var lineNumbers: some View {
         let lines = codeText.components(separatedBy: .newlines)
-        return VStack(alignment: .trailing, spacing: 0) {
-            ForEach(0..<lines.count, id: \.self) { index in
-                Text("\(index + 1)")
-                    .font(.system(size: fontSize, design: .monospaced))
-                    .foregroundColor(.gray)
-                    .frame(height: fontSize * 1.5)
-                    .padding(.trailing, 8)
+        // 行数过多时使用LazyVStack延迟加载，避免内存暴涨
+        return ScrollView {
+            LazyVStack(alignment: .trailing, spacing: 0) {
+                ForEach(0..<lines.count, id: \.self) { index in
+                    Text("\(index + 1)")
+                        .font(.system(size: fontSize, design: .monospaced))
+                        .foregroundColor(.gray)
+                        .frame(height: fontSize * 1.5)
+                        .padding(.trailing, 8)
+                }
             }
+            .padding(.leading, 12)
+            .background(Color(.systemGray6))
         }
-        .padding(.leading, 12)
-        .background(Color(.systemGray6))
+        .disabled(true)
     }
     
     private var hasChanges: Bool {
@@ -402,8 +406,33 @@ struct CodeEditorView: View {
                 switch result {
                 case .success(let file):
                     fileContent = file
-                    codeText = file.decodedContent
-                    originalContent = codeText
+
+                    // 大文件保护：超过1MB或超过5000行，不在线编辑，只提供下载
+                    let isLargeFile = file.size > 1024 * 1024
+                    let lineCount = file.decodedContent.components(separatedBy: .newlines).count
+                    let isTooManyLines = lineCount > 5000
+
+                    if isLargeFile || isTooManyLines {
+                        // 大文件只显示提示，不加载内容到编辑器
+                        codeText = ""
+                        originalContent = ""
+                        errorMessage = """
+                        文件过大，无法在线编辑。
+
+                        文件大小：\(file.size.formattedFileSize)
+                        行数：\(lineCount) 行
+
+                        请下载文件后在本地编辑，编辑完成后再上传。
+                        """
+                    } else {
+                        codeText = file.decodedContent
+                        originalContent = codeText
+                        // 行数过多时自动隐藏行号，避免性能问题
+                        if lineCount > 2000 {
+                            showLineNumbers = false
+                        }
+                    }
+
                     // 获取文件最后编辑时间
                     loadLastCommit()
                 case .failure(let error):
@@ -459,7 +488,16 @@ struct CodeEditorView: View {
     // MARK: - 重命名文件
 
     private func renameFile() {
-        guard !newFileName.isEmpty, newFileName != fileName else { return }
+        let trimmedName = newFileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            renameErrorMessage = "文件名不能为空"
+            return
+        }
+
+        guard trimmedName != fileName else {
+            renameErrorMessage = "新文件名与原文件名相同，请输入不同的文件名"
+            return
+        }
 
         isRenaming = true
 
@@ -467,7 +505,7 @@ struct CodeEditorView: View {
         let pathComponents = path.components(separatedBy: "/")
         var newPathComponents = pathComponents
         newPathComponents.removeLast()
-        newPathComponents.append(newFileName)
+        newPathComponents.append(trimmedName)
         let newPath = newPathComponents.joined(separator: "/")
 
         GitHubAPI.shared.renameFile(

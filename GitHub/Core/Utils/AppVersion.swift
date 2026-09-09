@@ -171,6 +171,7 @@ struct AppVersion {
         let displayFormatter = DateFormatter()
         displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
         displayFormatter.locale = Locale(identifier: "zh_CN")
+        displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
         return displayFormatter.string(from: date)
     }
 }

@@ -40,6 +40,7 @@ struct Repository: Codable, Identifiable {
         if let date = formatter.date(from: updatedAt) {
             let displayFormatter = DateFormatter()
             displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+            displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
             return displayFormatter.string(from: date)
         }
         return updatedAt

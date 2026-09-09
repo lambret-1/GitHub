@@ -156,7 +156,7 @@ extension CommitPerson {
         if let date = formatter.date(from: date) {
             let displayFormatter = DateFormatter()
             displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-            displayFormatter.timeZone = TimeZone.current
+            displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
             return displayFormatter.string(from: date)
         }
         return date
