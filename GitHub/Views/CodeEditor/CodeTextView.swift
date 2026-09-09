@@ -14,14 +14,15 @@ class CodeEditorTextView: UITextView, UIEditMenuInteractionDelegate {
         super.init(frame: frame, textContainer: textContainer)
         // iOS 16+ 使用 UIEditMenuInteraction 自定义菜单
         if #available(iOS 16.0, *) {
-            self.editMenuInteraction?.delegate = self
+            // 使用 as UITextView 避免与协议方法 editMenuInteraction 命名冲突
+            (self as UITextView).editMenuInteraction?.delegate = self
         }
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         if #available(iOS 16.0, *) {
-            self.editMenuInteraction?.delegate = self
+            (self as UITextView).editMenuInteraction?.delegate = self
         }
     }
 
