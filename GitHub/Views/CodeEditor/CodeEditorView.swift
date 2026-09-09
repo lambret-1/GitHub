@@ -252,15 +252,16 @@ struct CodeEditorView: View {
                     .font(.system(size: 40))
                     .foregroundColor(.blue)
                     .frame(width: 70, height: 70)
-                    .background(Color(.systemGray6))
+                    .background(Color.white)
                     .cornerRadius(35)
 
                 Text("正在下载文件")
                     .font(.headline)
+                    .foregroundColor(.black)
 
                 Text(fileName)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.black)
                     .lineLimit(1)
                     .frame(maxWidth: 250)
 
@@ -270,10 +271,10 @@ struct CodeEditorView: View {
 
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.black)
             }
             .padding(32)
-            .background(Color(.systemBackground))
+            .background(Color.white)
             .cornerRadius(20)
             .shadow(radius: 20)
         }

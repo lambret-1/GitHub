@@ -260,14 +260,15 @@ struct AboutView: View {
             HStack {
                 Text("正在下载更新...")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.black)
                 Spacer()
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.black)
             }
         }
         .padding(.vertical, 4)
+        .background(Color.white)
     }
 
     // MARK: - 下载中全屏覆盖层
@@ -284,18 +285,18 @@ struct AboutView: View {
 
                 Text("正在下载更新...")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
 
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
 
                 Text("下载完成后将自动弹出分享面板")
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.black.opacity(0.7))
             }
             .padding(32)
-            .background(Color(.systemGray6).opacity(0.9))
+            .background(Color.white)
             .cornerRadius(16)
         }
     }

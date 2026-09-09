@@ -599,14 +599,14 @@ struct FileBrowserView: View {
 
                 Text("正在下载: \(downloadingFileName)")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
 
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
             }
             .padding(32)
-            .background(Color(.systemGray6).opacity(0.9))
+            .background(Color.white)
             .cornerRadius(16)
         }
     }
