@@ -55,10 +55,11 @@ class LineNumberLayoutManager: NSLayoutManager {
             }
         }
 
-        // 遍历每一行绘制行号
-        textStorage?.string.enumerateSubstrings(in: charRange, options: [.byLines, .substringNotRequired]) { _, _, _, stop in
+        // 使用NSString的enumerateSubstrings方法，接受NSRange参数
+        let nsString = textStorage?.string as NSString?
+        nsString?.enumerateSubstrings(in: charRange, options: [.byLines, .substringNotRequired]) { _, substringRange, _, stop in
             // 获取当前行的行矩形
-            let lineRect = self.lineRect(forCharacterIndex: charRange.location, in: textContainer)
+            let lineRect = self.lineFragmentRect(forGlyphAt: self.glyphIndex(forCharacterIndex: substringRange.location), effectiveRange: nil)
 
             // 绘制行号
             let lineNumberString = "\(lineNumber)" as NSString
@@ -79,12 +80,5 @@ class LineNumberLayoutManager: NSLayoutManager {
         }
 
         context?.restoreGState()
-    }
-
-    // 获取指定字符索引所在行的矩形
-    private func lineRect(forCharacterIndex charIndex: Int, in textContainer: NSTextContainer) -> CGRect {
-        let glyphRange = glyphRange(forCharacterRange: NSRange(location: charIndex, length: 1), actualCharacterRange: nil)
-        let lineRect = lineFragmentRect(forGlyphAt: glyphRange.location, effectiveRange: nil)
-        return lineRect
     }
 }
