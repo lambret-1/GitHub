@@ -209,7 +209,7 @@ struct AboutView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
                 Text("已是最新版本")
-                    .foregroundColor(.green)
+                    .foregroundColor(.black)
                     .font(.subheadline)
             }
         case .updateAvailable(let release):
@@ -218,16 +218,16 @@ struct AboutView: View {
                     Image(systemName: "exclamationmark.circle.fill")
                         .foregroundColor(.orange)
                     Text("发现新版本: \(release.tagName)")
-                        .foregroundColor(.orange)
+                        .foregroundColor(.black)
                         .font(.subheadline.bold())
                 }
                 Text("发布时间: \(AppVersion.formattedDate(from: release.publishedAt))")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.black)
                 if let body = release.body, !body.isEmpty {
                     Text(body)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.black)
                         .lineLimit(3)
                 }
                 Button(action: {
@@ -252,7 +252,7 @@ struct AboutView: View {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.red)
                 Text("检查失败: \(error.localizedDescription)")
-                    .foregroundColor(.red)
+                    .foregroundColor(.black)
                     .font(.subheadline)
             }
         }

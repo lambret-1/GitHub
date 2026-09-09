@@ -104,6 +104,22 @@ struct ProfileView: View {
                     
                     // 账号设置
                     Section("账号") {
+                        NavigationLink(destination: AccountManagerView()) {
+                            HStack {
+                                Image(systemName: "person.2.circle")
+                                    .foregroundColor(.blue)
+                                    .frame(width: 30)
+                                Text("账号管理")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text("\(AccountManager.shared.accounts.count) 个账号")
+                                    .foregroundColor(.gray)
+                                    .font(.subheadline)
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+
                         Button(action: {
                             if let url = URL(string: user.htmlUrl) {
                                 UIApplication.shared.open(url)

@@ -7,16 +7,16 @@ import UIKit
 // ==============================================================================
 
 class SyntaxHighlighter {
-    // 语法颜色配置（参考GitHub暗色主题配色）
+    // 语法颜色配置（参考GitHub暗色主题配色，加深加饱和）
     struct SyntaxColors {
         static let plain = UIColor.label
-        static let keyword = UIColor(red: 0.8, green: 0.4, blue: 0.9, alpha: 1.0)  // 紫色
-        static let function = UIColor(red: 0.4, green: 0.7, blue: 1.0, alpha: 1.0)  // 蓝色
-        static let string = UIColor(red: 0.4, green: 0.8, blue: 0.5, alpha: 1.0)    // 绿色
-        static let comment = UIColor(red: 0.5, green: 0.6, blue: 0.5, alpha: 1.0)   // 灰绿色
-        static let number = UIColor(red: 1.0, green: 0.7, blue: 0.4, alpha: 1.0)    // 橙色
-        static let type = UIColor(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0)      // 浅蓝色
-        static let operatorSymbol = UIColor(red: 0.9, green: 0.5, blue: 0.5, alpha: 1.0) // 红色
+        static let keyword = UIColor(red: 0.89, green: 0.35, blue: 0.95, alpha: 1.0)  // 深紫色
+        static let function = UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 1.0)    // 深蓝色
+        static let string = UIColor(red: 0.25, green: 0.75, blue: 0.35, alpha: 1.0)   // 深绿色
+        static let comment = UIColor(red: 0.45, green: 0.55, blue: 0.45, alpha: 1.0)  // 深灰绿色
+        static let number = UIColor(red: 1.0, green: 0.6, blue: 0.2, alpha: 1.0)      // 深橙色
+        static let type = UIColor(red: 0.4, green: 0.7, blue: 1.0, alpha: 1.0)        // 中蓝色
+        static let operatorSymbol = UIColor(red: 0.95, green: 0.4, blue: 0.4, alpha: 1.0) // 深红色
     }
 
     // JavaScript/TypeScript 关键字
