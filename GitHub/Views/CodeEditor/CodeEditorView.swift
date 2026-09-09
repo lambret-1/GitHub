@@ -18,7 +18,7 @@ struct CodeEditorView: View {
     @State private var isSaving: Bool = false
     @State private var showSaveSuccess: Bool = false
     @State private var showLineNumbers: Bool = true
-    @State private var fontSize: CGFloat = 11
+    @State private var fontSize: CGFloat = 10
     @State private var showSettings: Bool = false
     @State private var showRenameDialog: Bool = false
     @State private var newFileName: String = ""

@@ -2,8 +2,8 @@ import UIKit
 
 // ==============================================================================
 // LineNumberLayoutManager 自定义行号绘制
-// 功能：通过自定义NSLayoutManager在文本左侧绘制行号，使用enumerateLineFragments精确对齐
-// 关键：使用usedRect（实际使用区域）而非lineRect（包含行间距）来计算行号位置
+// 功能：通过自定义NSLayoutManager在文本左侧绘制行号
+// 关键：考虑textContainerInset，使用lineRect精确计算行号位置，正确处理自动换行
 // ==============================================================================
 
 class LineNumberLayoutManager: NSLayoutManager {
@@ -15,6 +15,8 @@ class LineNumberLayoutManager: NSLayoutManager {
     var lineNumberColor: UIColor = .secondaryLabel
     // 行号背景颜色
     var lineNumberBackgroundColor: UIColor = .systemGray6
+    // textView的textContainerInset，用于计算行号位置偏移
+    var containerInset: UIEdgeInsets = .zero
 
     override func drawBackground(forGlyphRange glyphsToShow: NSRange, at origin: CGPoint) {
         super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
@@ -24,12 +26,14 @@ class LineNumberLayoutManager: NSLayoutManager {
         let context = UIGraphicsGetCurrentContext()
         context?.saveGState()
 
-        // 绘制行号背景（从x=0开始，覆盖整个textView宽度的左侧）
+        // 绘制行号背景（从x=0开始，覆盖整个textView左侧）
+        // 高度需要包含containerInset.top和containerInset.bottom
+        let totalHeight = textContainer.size.height + containerInset.top + containerInset.bottom + 100
         let lineNumberRect = CGRect(
             x: 0,
             y: 0,
             width: lineNumberWidth,
-            height: textContainer.size.height + 100 // 额外高度确保滚动时背景覆盖
+            height: totalHeight
         )
         lineNumberBackgroundColor.setFill()
         context?.fill(lineNumberRect)
@@ -39,7 +43,7 @@ class LineNumberLayoutManager: NSLayoutManager {
             x: lineNumberWidth - 0.5,
             y: 0,
             width: 0.5,
-            height: textContainer.size.height + 100
+            height: totalHeight
         )
         UIColor.separator.setFill()
         context?.fill(separatorRect)
@@ -54,22 +58,24 @@ class LineNumberLayoutManager: NSLayoutManager {
         }
 
         // 使用enumerateLineFragments精确遍历每一行
-        // 关键：使用usedRect（实际使用区域）而非lineRect（包含行间距）来计算行号位置
         enumerateLineFragments(forGlyphRange: glyphsToShow) { lineRect, usedRect, textContainer, glyphRange, stop in
             let charRange = self.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
 
             // 检查这一行是否是新行的开始（不是自动换行的续行）
+            // 关键：检查当前行第一个字符的前一个字符是否是换行符
             var isNewline = true
             if charRange.location > 0 {
                 if let nsString = self.textStorage?.string as NSString? {
                     let prevChar = nsString.character(at: charRange.location - 1)
-                    isNewline = (prevChar == 10) // 10 is newline
+                    // 10是换行符\n，13是回车符\r
+                    isNewline = (prevChar == 10 || prevChar == 13)
                 }
             }
 
             if isNewline {
-                // 绘制行号，使用usedRect精确对齐文本行
-                // usedRect是文本实际使用的区域，不包含行间距，行号与文本精确对齐
+                // 绘制行号，使用lineRect精确计算位置
+                // 关键：行号y坐标 = containerInset.top + lineRect.origin.y + (lineRect.height - stringSize.height) / 2
+                // containerInset.top是textView的顶部内边距，lineRect是相对于textContainer的坐标
                 let lineNumberString = "\(lineNumber)" as NSString
                 let attributes: [NSAttributedString.Key: Any] = [
                     .font: self.lineNumberFont,
@@ -77,11 +83,14 @@ class LineNumberLayoutManager: NSLayoutManager {
                 ]
                 let stringSize = lineNumberString.size(withAttributes: attributes)
 
-                // 关键：使用usedRect.origin.y而非lineRect.origin.y
-                // usedRect是文本实际绘制区域，行号与文本基线精确对齐
+                // 行号x坐标：从行号区域右侧向左对齐
+                let stringX = self.lineNumberWidth - stringSize.width - 6
+                // 行号y坐标：containerInset.top + lineRect.origin.y + 垂直居中偏移
+                let stringY = self.containerInset.top + lineRect.origin.y + (lineRect.height - stringSize.height) / 2
+
                 let stringRect = CGRect(
-                    x: self.lineNumberWidth - stringSize.width - 6,
-                    y: usedRect.origin.y + (usedRect.height - stringSize.height) / 2,
+                    x: stringX,
+                    y: stringY,
                     width: stringSize.width,
                     height: stringSize.height
                 )

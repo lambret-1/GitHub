@@ -44,6 +44,8 @@ struct CodeTextView: UIViewRepresentable {
         // 配置行号LayoutManager
         layoutManager.lineNumberFont = .monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
         layoutManager.lineNumberWidth = showLineNumbers ? 40 : 0
+        // 设置containerInset，用于行号位置计算
+        layoutManager.containerInset = textView.textContainerInset
 
         // 设置初始文本（带语法高亮）
         let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
@@ -71,6 +73,8 @@ struct CodeTextView: UIViewRepresentable {
             layoutManager.lineNumberWidth = showLineNumbers ? 40 : 0
             layoutManager.lineNumberFont = .monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
             textView.textContainerInset = UIEdgeInsets(top: 8, left: showLineNumbers ? 48 : 8, bottom: 8, right: 8)
+            // 更新containerInset，用于行号位置计算
+            layoutManager.containerInset = textView.textContainerInset
             layoutManager.invalidateDisplay(forCharacterRange: NSRange(location: 0, length: textView.text.count))
         }
 
