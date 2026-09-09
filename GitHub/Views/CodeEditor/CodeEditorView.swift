@@ -473,24 +473,6 @@ struct CodeEditorView: View {
 
                 Spacer()
 
-                // 下一个（右侧，右手拇指操作）
-                Button(action: {
-                    if totalMatches > 0 {
-                        currentMatchIndex = (currentMatchIndex + 1) % totalMatches
-                    }
-                }) {
-                    HStack(spacing: 4) {
-                        Text("下一个")
-                            .font(.subheadline)
-                        Image(systemName: "chevron.down")
-                    }
-                    .foregroundColor(.white)
-                    .frame(width: 90, height: 36)
-                    .background(totalMatches > 0 ? Color.blue : Color.gray)
-                    .cornerRadius(8)
-                }
-                .disabled(totalMatches == 0)
-
                 // 上一个（右侧，右手拇指操作）
                 Button(action: {
                     if totalMatches > 0 {
@@ -504,7 +486,25 @@ struct CodeEditorView: View {
                     }
                     .foregroundColor(.white)
                     .frame(width: 90, height: 36)
-                    .background(totalMatches > 0 ? Color.blue : Color.gray)
+                    .background(totalMatches > 0 ? Color(red: 0.35, green: 0.6, blue: 1.0) : Color.gray.opacity(0.5))
+                    .cornerRadius(8)
+                }
+                .disabled(totalMatches == 0)
+
+                // 下一个（右侧，右手拇指操作）
+                Button(action: {
+                    if totalMatches > 0 {
+                        currentMatchIndex = (currentMatchIndex + 1) % totalMatches
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Text("下一个")
+                            .font(.subheadline)
+                        Image(systemName: "chevron.down")
+                    }
+                    .foregroundColor(.white)
+                    .frame(width: 90, height: 36)
+                    .background(totalMatches > 0 ? Color(red: 0.35, green: 0.6, blue: 1.0) : Color.gray.opacity(0.5))
                     .cornerRadius(8)
                 }
                 .disabled(totalMatches == 0)

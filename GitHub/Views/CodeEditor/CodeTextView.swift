@@ -6,16 +6,66 @@ import UIKit
 // 功能：自定义选中文字后的编辑菜单，将"搜索网页"替换为"🔍查找"
 // ==============================================================================
 
-class CodeEditorTextView: UITextView {
+class CodeEditorTextView: UITextView, UIEditMenuInteractionDelegate {
     /// 查找选中文字的回调
     var onLookupSelectedText: ((String) -> Void)?
 
+    override init(frame: CGRect, textContainer: NSTextContainer?) {
+        super.init(frame: frame, textContainer: textContainer)
+        // iOS 16+ 使用 UIEditMenuInteraction 自定义菜单
+        if #available(iOS 16.0, *) {
+            self.editMenuInteraction?.delegate = self
+        }
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        if #available(iOS 16.0, *) {
+            self.editMenuInteraction?.delegate = self
+        }
+    }
+
+    // iOS 15 及以下：使用 canPerformAction 移除"搜索网页"
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         // 移除"搜索网页"选项（私有API _lookup:）
         if action == Selector(("_lookup:")) {
             return false
         }
         return super.canPerformAction(action, withSender: sender)
+    }
+
+    // iOS 16+：使用 UIEditMenuInteractionDelegate 自定义菜单
+    @available(iOS 16.0, *)
+    func editMenuInteraction(_ interaction: UIEditMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIEditMenuConfiguration? {
+        // 获取系统默认菜单
+        let configuration = UIEditMenuConfiguration(identifier: nil, sourcePoint: location)
+        return configuration
+    }
+
+    @available(iOS 16.0, *)
+    func editMenuInteraction(_ interaction: UIEditMenuInteraction, menuFor configuration: UIEditMenuConfiguration, suggestedActions: [UIMenuElement]) -> UIMenu? {
+        // 过滤掉"搜索网页"选项
+        var filteredActions = suggestedActions.filter { action in
+            if let menu = action as? UIMenu {
+                // 过滤掉包含"搜索网页"的子菜单
+                return !menu.children.contains { $0.title == "搜索网页" }
+            }
+            return action.title != "搜索网页"
+        }
+
+        // 添加"🔍查找"菜单项，放在菜单前面（替换"搜索网页"的位置）
+        let lookupAction = UIAction(title: "🔍查找", image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in
+            self?.lookupSelectedText(nil)
+        }
+
+        // 将"🔍查找"插入到菜单的第二个位置（复制之后）
+        if filteredActions.count > 1 {
+            filteredActions.insert(lookupAction, at: 1)
+        } else {
+            filteredActions.append(lookupAction)
+        }
+
+        return UIMenu(children: filteredActions)
     }
 
     /// 自定义查找方法
@@ -83,8 +133,14 @@ struct CodeTextView: UIViewRepresentable {
         textView.keyboardDismissMode = .interactive
 
         // 设置自定义编辑菜单：将"搜索网页"替换为"🔍查找"
-        let lookupMenuItem = UIMenuItem(title: "🔍查找", action: #selector(CodeEditorTextView.lookupSelectedText(_:)))
-        UIMenuController.shared.menuItems = [lookupMenuItem]
+        // iOS 16+ 使用 UIEditMenuInteraction（已在 CodeEditorTextView 的 init 中设置 delegate）
+        // iOS 15 及以下使用 UIMenuController
+        if #available(iOS 16.0, *) {
+            // iOS 16+ 已通过 UIEditMenuInteractionDelegate 自定义菜单
+        } else {
+            let lookupMenuItem = UIMenuItem(title: "🔍查找", action: #selector(CodeEditorTextView.lookupSelectedText(_:)))
+            UIMenuController.shared.menuItems = [lookupMenuItem]
+        }
 
         // 设置查找选中文字回调
         textView.onLookupSelectedText = onLookupSelectedText
