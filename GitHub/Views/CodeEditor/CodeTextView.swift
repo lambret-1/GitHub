@@ -11,8 +11,8 @@ class CodeEditorTextView: UITextView {
     var onLookupSelectedText: ((String) -> Void)?
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        // 移除"搜索网页"选项
-        if action == #selector(UIResponderStandardEditActions.search(_:)) {
+        // 移除"搜索网页"选项（私有API _lookup:）
+        if action == Selector(("_lookup:")) {
             return false
         }
         return super.canPerformAction(action, withSender: sender)

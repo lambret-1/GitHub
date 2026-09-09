@@ -388,6 +388,12 @@ struct CodeEditorView: View {
                     currentMatchIndex = current - 1
                     totalMatches = total
                 },
+                onLookupSelectedText: { selectedText in
+                    // 选中文字后点击编辑菜单中的"🔍查找"，直接查找选中的文字
+                    searchText = selectedText
+                    currentMatchIndex = 0
+                    showSearch = true
+                },
                 searchText: searchText,
                 currentMatchIndex: currentMatchIndex,
                 isSearchActive: showSearch && !searchText.isEmpty,
@@ -395,12 +401,6 @@ struct CodeEditorView: View {
                 onSelectedText: { selectedText in
                     // 获取到选中文字后，自动填入查找框并显示查找栏
                     waitingForSelectedText = false
-                    searchText = selectedText
-                    currentMatchIndex = 0
-                    showSearch = true
-                },
-                onLookupSelectedText: { selectedText in
-                    // 选中文字后点击编辑菜单中的"🔍查找"，直接查找选中的文字
                     searchText = selectedText
                     currentMatchIndex = 0
                     showSearch = true
