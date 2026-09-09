@@ -58,8 +58,10 @@ class LineNumberLayoutManager: NSLayoutManager {
         // 使用NSString的enumerateSubstrings方法，接受NSRange参数
         let nsString = textStorage?.string as NSString?
         nsString?.enumerateSubstrings(in: charRange, options: [.byLines, .substringNotRequired]) { _, substringRange, _, stop in
+            // 获取当前行的glyph范围
+            let glyphRange = self.glyphRange(forCharacterRange: substringRange, actualCharacterRange: nil)
             // 获取当前行的行矩形
-            let lineRect = self.lineFragmentRect(forGlyphAt: self.glyphIndex(forCharacterIndex: substringRange.location), effectiveRange: nil)
+            let lineRect = self.lineFragmentRect(forGlyphAt: glyphRange.location, effectiveRange: nil)
 
             // 绘制行号
             let lineNumberString = "\(lineNumber)" as NSString
