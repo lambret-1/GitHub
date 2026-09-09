@@ -49,33 +49,63 @@ struct FileItem: Codable, Identifiable {
     
     private func iconForFileExtension(_ ext: String) -> String {
         switch ext {
-        case "swift": return "swift"
-        case "js", "jsx", "mjs": return "javascript"
-        case "ts", "tsx": return "typescript"
-        case "py": return "python"
-        case "java": return "java"
-        case "kt", "kts": return "kotlin"
-        case "go": return "go"
-        case "rs": return "rust"
-        case "cpp", "cc", "cxx": return "cplusplus"
-        case "c", "h": return "c"
-        case "m", "mm": return "objectivec"
-        case "rb": return "ruby"
-        case "php": return "php"
-        case "html", "htm": return "html"
-        case "css", "scss", "less": return "css"
-        case "sh", "bash", "zsh": return "terminal"
-        case "dart": return "dart"
-        case "vue": return "vue"
-        case "md", "markdown": return "markdown"
-        case "json": return "json"
-        case "xml", "plist": return "xml"
-        case "yml", "yaml": return "yaml"
-        case "png", "jpg", "jpeg", "gif", "svg", "webp": return "photo"
-        case "pdf": return "pdf"
-        case "zip", "tar", "gz", "rar": return "archive"
-        case "txt": return "text"
-        default: return "doc"
+        // 代码文件 - 使用代码括号图标
+        case "swift", "js", "jsx", "mjs", "ts", "tsx", "py", "java", "kt", "kts", "go", "rs", "cpp", "cc", "cxx", "c", "h", "m", "mm", "rb", "php", "dart", "vue":
+            return "chevron.left.forwardslash.chevron.right"
+        // 网页文件
+        case "html", "htm":
+            return "globe"
+        // 样式文件
+        case "css", "scss", "less":
+            return "paintbrush"
+        // Shell脚本
+        case "sh", "bash", "zsh":
+            return "terminal"
+        // Markdown文件
+        case "md", "markdown":
+            return "text.alignleft"
+        // JSON文件
+        case "json":
+            return "curlybraces"
+        // XML/Plist文件
+        case "xml", "plist":
+            return "doc.text"
+        // YAML文件
+        case "yml", "yaml":
+            return "doc.text"
+        // 配置文件
+        case "mobileconfig", "provisionprofile", "entitlements", "xcconfig", "pbxproj":
+            return "gearshape"
+        // 图片文件
+        case "png", "jpg", "jpeg", "gif", "svg", "webp":
+            return "photo"
+        // PDF文件
+        case "pdf":
+            return "doc.richtext"
+        // 压缩文件
+        case "zip", "tar", "gz", "rar", "7z":
+            return "doc.zipper"
+        // 文本文件
+        case "txt":
+            return "doc.text"
+        // Word文档
+        case "doc", "docx":
+            return "doc.text"
+        // Excel表格
+        case "xls", "xlsx", "csv":
+            return "tablecells"
+        // PPT演示
+        case "ppt", "pptx":
+            return "rectangle.on.rectangle"
+        // 视频文件
+        case "mp4", "mov", "avi", "mkv", "flv":
+            return "film"
+        // 音频文件
+        case "mp3", "wav", "flac", "aac", "ogg":
+            return "music.note"
+        // 默认文档图标
+        default:
+            return "doc"
         }
     }
 }
@@ -152,7 +182,16 @@ extension Int {
 extension CommitPerson {
     var formattedDate: String {
         let formatter = ISO8601DateFormatter()
+        // 先尝试带小数秒的格式
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: date) {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+            displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+            return displayFormatter.string(from: date)
+        }
+        // 再尝试不带小数秒的格式
+        formatter.formatOptions = [.withInternetDateTime]
         if let date = formatter.date(from: date) {
             let displayFormatter = DateFormatter()
             displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
