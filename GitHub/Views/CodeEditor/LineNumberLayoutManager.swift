@@ -66,7 +66,7 @@ class LineNumberLayoutManager: NSLayoutManager {
             }
 
             if isNewline {
-                // 绘制行号，垂直居中对齐
+                // 绘制行号，垂直居中对齐（注意：需要加上origin.y，否则行号会偏移）
                 let lineNumberString = "\(lineNumber)" as NSString
                 let attributes: [NSAttributedString.Key: Any] = [
                     .font: self.lineNumberFont,
@@ -75,7 +75,7 @@ class LineNumberLayoutManager: NSLayoutManager {
                 let stringSize = lineNumberString.size(withAttributes: attributes)
                 let stringRect = CGRect(
                     x: origin.x + self.lineNumberWidth - stringSize.width - 6,
-                    y: lineRect.origin.y + (lineRect.height - stringSize.height) / 2,
+                    y: origin.y + lineRect.origin.y + (lineRect.height - stringSize.height) / 2,
                     width: stringSize.width,
                     height: stringSize.height
                 )
