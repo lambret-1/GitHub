@@ -148,7 +148,7 @@ struct AccountManagerView: View {
                 case .success(let user):
                     // 创建账号
                     let account = GitHubAccount(
-                        id: user.id,
+                        id: String(user.id),
                         username: user.login,
                         token: token,
                         avatarUrl: user.avatarUrl,

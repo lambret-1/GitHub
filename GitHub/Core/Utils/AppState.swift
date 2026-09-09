@@ -38,7 +38,7 @@ class AppState: ObservableObject {
 
                     // 将账号添加到AccountManager
                     let account = GitHubAccount(
-                        id: user.id,
+                        id: String(user.id),
                         username: user.login,
                         token: token,
                         avatarUrl: user.avatarUrl,
