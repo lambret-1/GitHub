@@ -243,6 +243,82 @@ class GitHubAPI {
             }
         }.resume()
     }
+
+    // MARK: - 创建文件夹（通过创建.gitkeep文件实现）
+
+    func createDirectory(owner: String, repo: String, path: String, branch: String = "main", completion: @escaping (Result<Bool, Error>) -> Void) {
+        let gitkeepPath = path.isEmpty ? ".gitkeep" : "\(path)/.gitkeep"
+
+        createFile(owner: owner, repo: repo, path: gitkeepPath, content: "", message: "创建文件夹: \(path)（通过iOS客户端）", branch: branch, completion: completion)
+    }
+
+    // MARK: - 删除文件
+
+    func deleteFile(owner: String, repo: String, path: String, sha: String, message: String, branch: String = "main", completion: @escaping (Result<Bool, Error>) -> Void) {
+        let body: [String: Any] = [
+            "message": message,
+            "sha": sha,
+            "branch": branch
+        ]
+
+        performRequest(url: APIEndpoints.updateFile(owner: owner, repo: repo, path: path).url, method: "DELETE", body: body) { result in
+            switch result {
+            case .success:
+                completion(.success(true))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - 重命名文件（复制内容到新路径+删除旧文件）
+
+    func renameFile(owner: String, repo: String, oldPath: String, newPath: String, branch: String = "main", completion: @escaping (Result<Bool, Error>) -> Void) {
+        // 1. 获取旧文件内容和sha
+        getFileContent(owner: owner, repo: repo, path: oldPath, branch: branch) { [weak self] result in
+            guard let self = self else { return }
+
+            switch result {
+            case .success(let fileContent):
+                // 2. 创建新文件
+                self.createFile(owner: owner, repo: repo, path: newPath, content: fileContent.decodedContent, message: "重命名文件: \(oldPath) → \(newPath)（通过iOS客户端）", branch: branch) { createResult in
+                    switch createResult {
+                    case .success:
+                        // 3. 删除旧文件
+                        self.deleteFile(owner: owner, repo: repo, path: oldPath, sha: fileContent.sha, message: "重命名文件: \(oldPath) → \(newPath)（通过iOS客户端）", branch: branch, completion: completion)
+                    case .failure(let error):
+                        completion(.failure(error))
+                    }
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - 获取文件最后修改时间（通过commits API）
+
+    func getFileLastCommit(owner: String, repo: String, path: String, branch: String = "main", completion: @escaping (Result<CommitInfo, Error>) -> Void) {
+        let url = "https://api.github.com/repos/\(owner)/\(repo)/commits?path=\(path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path)&sha=\(branch)&per_page=1"
+
+        performRequest(url: url, method: "GET", body: nil) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let commits = try JSONDecoder().decode([CommitInfo].self, from: data)
+                    if let commit = commits.first {
+                        completion(.success(commit))
+                    } else {
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "未找到提交记录"])))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
     
     // MARK: - 分支
     

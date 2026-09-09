@@ -26,6 +26,11 @@ struct FileBrowserView: View {
     @State private var selectedFile: FileItem?
     @State private var showUploadSuccess: Bool = false
     @State private var uploadErrorMessage: String?
+    @State private var showCreateFolderDialog: Bool = false
+    @State private var newFolderName: String = ""
+    @State private var isCreatingFolder: Bool = false
+    @State private var showCreateFolderSuccess: Bool = false
+    @State private var createFolderErrorMessage: String?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -68,6 +73,30 @@ struct FileBrowserView: View {
             }
         } message: {
             Text(uploadErrorMessage ?? "未知错误")
+        }
+        .alert("创建文件夹", isPresented: $showCreateFolderDialog) {
+            TextField("文件夹名称", text: $newFolderName)
+            Button("取消", role: .cancel) {}
+            Button("创建") {
+                createFolder()
+            }
+            .disabled(newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } message: {
+            Text("将在 \(currentPath.isEmpty ? "根目录" : currentPath) 下创建文件夹")
+        }
+        .alert("创建成功", isPresented: $showCreateFolderSuccess) {
+            Button("确定") {
+                loadFiles()
+            }
+        } message: {
+            Text("文件夹已成功创建")
+        }
+        .alert("创建失败", isPresented: .constant(createFolderErrorMessage != nil)) {
+            Button("确定", role: .cancel) {
+                createFolderErrorMessage = nil
+            }
+        } message: {
+            Text(createFolderErrorMessage ?? "未知错误")
         }
         .overlay {
             progressOverlay
@@ -172,6 +201,16 @@ struct FileBrowserView: View {
                 Label("上传文件", systemImage: "square.and.arrow.up")
             }
             .disabled(isUploading || isDownloading)
+
+            Button(action: {
+                showCreateFolderDialog = true
+                newFolderName = ""
+            }) {
+                Label("创建文件夹", systemImage: "folder.badge.plus")
+            }
+            .disabled(isCreatingFolder)
+
+            Divider()
 
             Button(action: {
                 showBranchPicker = true
@@ -718,6 +757,34 @@ struct FileBrowserView: View {
             case .failure(let error):
                 self.uploadErrorMessage = "上传失败: \(error.localizedDescription)"
                 completion(false)
+            }
+        }
+    }
+
+    // MARK: - 创建文件夹
+
+    private func createFolder() {
+        let folderName = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !folderName.isEmpty else { return }
+
+        isCreatingFolder = true
+
+        let folderPath = currentPath.isEmpty ? folderName : "\(currentPath)/\(folderName)"
+
+        GitHubAPI.shared.createDirectory(
+            owner: repository.ownerName,
+            repo: repository.name,
+            path: folderPath,
+            branch: selectedBranch
+        ) { result in
+            DispatchQueue.main.async {
+                isCreatingFolder = false
+                switch result {
+                case .success:
+                    showCreateFolderSuccess = true
+                case .failure(let error):
+                    createFolderErrorMessage = "创建失败: \(error.localizedDescription)"
+                }
             }
         }
     }

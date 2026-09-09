@@ -130,3 +130,79 @@ struct BranchCommit: Codable {
     let sha: String
     let url: String
 }
+
+// MARK: - 文件大小格式化扩展
+
+extension Int {
+    var formattedFileSize: String {
+        if self < 1024 {
+            return "\(self) B"
+        } else if self < 1024 * 1024 {
+            return String(format: "%.1f KB", Double(self) / 1024)
+        } else if self < 1024 * 1024 * 1024 {
+            return String(format: "%.1f MB", Double(self) / (1024 * 1024))
+        } else {
+            return String(format: "%.1f GB", Double(self) / (1024 * 1024 * 1024))
+        }
+    }
+}
+
+// MARK: - 提交信息模型
+
+struct CommitInfo: Codable, Identifiable {
+    let sha: String
+    let commit: CommitDetail
+    let htmlUrl: String?
+
+    enum CodingKeys: String, CodingKey {
+        case sha, commit
+        case htmlUrl = "html_url"
+    }
+
+    var id: String { sha }
+}
+
+struct CommitDetail: Codable {
+    let message: String
+    let author: CommitAuthor
+    let committer: CommitAuthor
+}
+
+struct CommitAuthor: Codable {
+    let name: String
+    let email: String
+    let date: String
+
+    var formattedDate: String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: date) {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+            displayFormatter.timeZone = TimeZone.current
+            return displayFormatter.string(from: date)
+        }
+        return date
+    }
+
+    var relativeDate: String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = formatter.date(from: date) else { return formattedDate }
+
+        let now = Date()
+        let interval = now.timeIntervalSince(date)
+
+        if interval < 60 {
+            return "刚刚"
+        } else if interval < 3600 {
+            return "\(Int(interval / 60)) 分钟前"
+        } else if interval < 86400 {
+            return "\(Int(interval / 3600)) 小时前"
+        } else if interval < 2592000 {
+            return "\(Int(interval / 86400)) 天前"
+        } else {
+            return formattedDate
+        }
+    }
+}

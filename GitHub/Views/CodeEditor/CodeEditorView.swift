@@ -20,6 +20,15 @@ struct CodeEditorView: View {
     @State private var showLineNumbers: Bool = true
     @State private var fontSize: CGFloat = 14
     @State private var showSettings: Bool = false
+    @State private var showRenameDialog: Bool = false
+    @State private var newFileName: String = ""
+    @State private var isRenaming: Bool = false
+    @State private var showRenameSuccess: Bool = false
+    @State private var renameErrorMessage: String?
+    @State private var isDownloading: Bool = false
+    @State private var downloadProgress: Double = 0
+    @State private var showCopySuccess: Bool = false
+    @State private var lastCommitInfo: CommitInfo?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -74,42 +83,65 @@ struct CodeEditorView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
+                    // 文件操作
+                    Button(action: {
+                        showRenameDialog = true
+                        newFileName = fileName
+                    }) {
+                        Label("重命名文件", systemImage: "pencil")
+                    }
+
+                    Button(action: {
+                        copyFilePath()
+                    }) {
+                        Label("复制文件路径", systemImage: "doc.on.doc")
+                    }
+
+                    Button(action: {
+                        downloadFile()
+                    }) {
+                        Label("下载该文件", systemImage: "square.and.arrow.down")
+                    }
+
+                    Divider()
+
                     if fileContent?.isTextFile ?? false {
                         Button(action: {
                             isEditing.toggle()
                         }) {
                             Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark" : "pencil")
                         }
-                        
+
                         Button(action: {
                             UIPasteboard.general.string = codeText
                         }) {
                             Label("复制全部内容", systemImage: "doc.on.doc")
                         }
-                        
+
                         Divider()
-                        
+
                         Button(action: {
                             showLineNumbers.toggle()
                         }) {
                             Label(showLineNumbers ? "隐藏行号" : "显示行号", systemImage: "number")
                         }
-                        
+
                         Button(action: {
                             fontSize = max(10, fontSize - 1)
                         }) {
                             Label("减小字号", systemImage: "textformat.size.smaller")
                         }
-                        
+
                         Button(action: {
                             fontSize = min(24, fontSize + 1)
                         }) {
                             Label("增大字号", systemImage: "textformat.size.larger")
                         }
-                    }
-                    
-                    if let htmlUrl = fileContent?.htmlUrl {
+
                         Divider()
+                    }
+
+                    if let htmlUrl = fileContent?.htmlUrl {
                         Button(action: {
                             if let url = URL(string: htmlUrl) {
                                 UIApplication.shared.open(url)
@@ -121,6 +153,7 @@ struct CodeEditorView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
+                .disabled(isRenaming || isDownloading)
             }
         }
         .alert("提交修改", isPresented: $showCommitDialog) {
@@ -140,14 +173,121 @@ struct CodeEditorView: View {
         } message: {
             Text("文件已成功提交到 GitHub 仓库")
         }
+        .alert("重命名文件", isPresented: $showRenameDialog) {
+            TextField("新文件名", text: $newFileName)
+            Button("取消", role: .cancel) {}
+            Button("确定") {
+                renameFile()
+            }
+            .disabled(newFileName.isEmpty || newFileName == fileName)
+        } message: {
+            Text("当前文件名: \(fileName)\n请输入新的文件名")
+        }
+        .alert("重命名成功", isPresented: $showRenameSuccess) {
+            Button("确定") {
+                // 返回上一页
+                NotificationCenter.default.post(name: NSNotification.Name("FileRenamed"), object: nil)
+            }
+        } message: {
+            Text("文件已成功重命名")
+        }
+        .alert("重命名失败", isPresented: .constant(renameErrorMessage != nil)) {
+            Button("确定") {
+                renameErrorMessage = nil
+            }
+        } message: {
+            Text(renameErrorMessage ?? "未知错误")
+        }
+        .alert("复制成功", isPresented: $showCopySuccess) {
+            Button("确定") {}
+        } message: {
+            Text("文件路径已复制到剪贴板")
+        }
+        .overlay {
+            if isDownloading {
+                downloadProgressOverlay
+            }
+        }
         .onAppear {
             loadFile()
         }
     }
+
+    // MARK: - 下载进度覆盖层
+
+    private var downloadProgressOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Image(systemName: "square.and.arrow.down")
+                    .font(.system(size: 40))
+                    .foregroundColor(.blue)
+                    .frame(width: 70, height: 70)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(35)
+
+                Text("正在下载文件")
+                    .font(.headline)
+
+                Text(fileName)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .frame(maxWidth: 250)
+
+                ProgressView(value: downloadProgress)
+                    .progressViewStyle(LinearProgressViewStyle())
+                    .frame(width: 250)
+
+                Text(String(format: "%.0f%%", downloadProgress * 100))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding(32)
+            .background(Color(.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
+        }
+    }
     
-    // 代码编辑区域
+    // MARK: - 文件信息栏
+
+    private var fileInfoBar: some View {
+        HStack(spacing: 12) {
+            // 文件大小
+            if let content = fileContent {
+                Label(content.size.formattedFileSize, systemImage: "doc")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            // 最后编辑时间
+            if let commit = lastCommitInfo {
+                Label(commit.commit.committer.relativeDate, systemImage: "clock")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            } else {
+                Label("加载中...", systemImage: "clock")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .background(Color(.systemGray6))
+    }
+
+    // MARK: - 代码编辑区域
+
     private var codeEditorArea: some View {
         VStack(spacing: 0) {
+            // 文件信息栏
+            fileInfoBar
+
             // 编辑模式提示条
             if isEditing {
                 HStack {
@@ -254,7 +394,8 @@ struct CodeEditorView: View {
     private func loadFile() {
         isLoading = true
         errorMessage = nil
-        
+        lastCommitInfo = nil
+
         GitHubAPI.shared.getFileContent(owner: owner, repo: repo, path: path, branch: branch) { result in
             DispatchQueue.main.async {
                 isLoading = false
@@ -263,8 +404,23 @@ struct CodeEditorView: View {
                     fileContent = file
                     codeText = file.decodedContent
                     originalContent = codeText
+                    // 获取文件最后编辑时间
+                    loadLastCommit()
                 case .failure(let error):
                     errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func loadLastCommit() {
+        GitHubAPI.shared.getFileLastCommit(owner: owner, repo: repo, path: path, branch: branch) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let commit):
+                    lastCommitInfo = commit
+                case .failure:
+                    break
                 }
             }
         }
@@ -276,9 +432,9 @@ struct CodeEditorView: View {
             commitMessage = "Update \(fileName)"
             return
         }
-        
+
         isSaving = true
-        
+
         GitHubAPI.shared.updateFile(
             owner: owner,
             repo: repo,
@@ -295,6 +451,73 @@ struct CodeEditorView: View {
                     showSaveSuccess = true
                 case .failure(let error):
                     errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    // MARK: - 重命名文件
+
+    private func renameFile() {
+        guard !newFileName.isEmpty, newFileName != fileName else { return }
+
+        isRenaming = true
+
+        // 计算新路径
+        let pathComponents = path.components(separatedBy: "/")
+        var newPathComponents = pathComponents
+        newPathComponents.removeLast()
+        newPathComponents.append(newFileName)
+        let newPath = newPathComponents.joined(separator: "/")
+
+        GitHubAPI.shared.renameFile(
+            owner: owner,
+            repo: repo,
+            oldPath: path,
+            newPath: newPath,
+            branch: branch
+        ) { result in
+            DispatchQueue.main.async {
+                isRenaming = false
+                switch result {
+                case .success:
+                    showRenameSuccess = true
+                case .failure(let error):
+                    renameErrorMessage = "重命名失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // MARK: - 复制文件路径
+
+    private func copyFilePath() {
+        UIPasteboard.general.string = path
+        showCopySuccess = true
+    }
+
+    // MARK: - 下载文件
+
+    private func downloadFile() {
+        guard let downloadUrl = fileContent?.downloadUrl else {
+            renameErrorMessage = "该文件不支持下载"
+            return
+        }
+
+        isDownloading = true
+        downloadProgress = 0
+
+        FileDownloadManager.shared.downloadAndShare(
+            from: downloadUrl,
+            fileName: fileName,
+            progress: { progress in
+                self.downloadProgress = progress
+            }
+        ) { result in
+            DispatchQueue.main.async {
+                self.isDownloading = false
+                if case .failure(let error) = result {
+                    self.renameErrorMessage = "下载失败: \(error.localizedDescription)"
                 }
             }
         }
