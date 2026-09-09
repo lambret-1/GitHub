@@ -171,7 +171,9 @@ struct CodeTextView: UIViewRepresentable {
 
         // MARK: - 查找功能
 
-        /// 执行查找（带防抖）
+        /// 执行查找
+        /// 智能判断：如果只是currentIndex变化（上下按钮点击），立即执行；
+        /// 如果搜索文本变化（输入框输入），使用200ms防抖提高输入响应速度
         func performSearch(text searchText: String, currentIndex: Int) {
             // 取消之前的查找任务
             searchWorkItem?.cancel()
@@ -180,13 +182,21 @@ struct CodeTextView: UIViewRepresentable {
             pendingSearchText = searchText
             pendingSearchIndex = currentIndex
 
-            // 延迟200ms执行查找，提高输入框响应速度
-            let workItem = DispatchWorkItem { [weak self] in
-                guard let self = self else { return }
-                self.doPerformSearch(text: self.pendingSearchText, currentIndex: self.pendingSearchIndex)
+            // 判断是否需要防抖：搜索文本变化时使用防抖，只是索引变化时立即执行
+            let needsDebounce = (searchText != currentSearchText)
+
+            if needsDebounce {
+                // 延迟200ms执行查找，提高输入框响应速度（用于输入框输入）
+                let workItem = DispatchWorkItem { [weak self] in
+                    guard let self = self else { return }
+                    self.doPerformSearch(text: self.pendingSearchText, currentIndex: self.pendingSearchIndex)
+                }
+                searchWorkItem = workItem
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: workItem)
+            } else {
+                // 立即执行查找（用于上下按钮点击，只改变当前匹配索引）
+                doPerformSearch(text: searchText, currentIndex: currentIndex)
             }
-            searchWorkItem = workItem
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: workItem)
         }
 
         /// 实际执行查找

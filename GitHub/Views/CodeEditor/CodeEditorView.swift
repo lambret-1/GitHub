@@ -416,33 +416,7 @@ struct CodeEditorView: View {
             }
 
             HStack(spacing: 12) {
-                // 上一个
-                Button(action: {
-                    if totalMatches > 0 {
-                        currentMatchIndex = (currentMatchIndex - 1 + totalMatches) % totalMatches
-                    }
-                }) {
-                    Image(systemName: "chevron.up")
-                        .foregroundColor(.blue)
-                        .frame(width: 30, height: 30)
-                }
-                .disabled(totalMatches == 0)
-
-                // 下一个
-                Button(action: {
-                    if totalMatches > 0 {
-                        currentMatchIndex = (currentMatchIndex + 1) % totalMatches
-                    }
-                }) {
-                    Image(systemName: "chevron.down")
-                        .foregroundColor(.blue)
-                        .frame(width: 30, height: 30)
-                }
-                .disabled(totalMatches == 0)
-
-                Spacer()
-
-                // 关闭查找
+                // 关闭查找（左侧，左手操作）
                 Button(action: {
                     showSearch = false
                     searchText = ""
@@ -451,7 +425,46 @@ struct CodeEditorView: View {
                 }) {
                     Text("完成")
                         .foregroundColor(.blue)
+                        .frame(height: 36)
                 }
+
+                Spacer()
+
+                // 下一个（右侧，右手拇指操作）
+                Button(action: {
+                    if totalMatches > 0 {
+                        currentMatchIndex = (currentMatchIndex + 1) % totalMatches
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Text("下一个")
+                            .font(.subheadline)
+                        Image(systemName: "chevron.down")
+                    }
+                    .foregroundColor(.white)
+                    .frame(width: 90, height: 36)
+                    .background(totalMatches > 0 ? Color.blue : Color.gray)
+                    .cornerRadius(8)
+                }
+                .disabled(totalMatches == 0)
+
+                // 上一个（右侧，右手拇指操作）
+                Button(action: {
+                    if totalMatches > 0 {
+                        currentMatchIndex = (currentMatchIndex - 1 + totalMatches) % totalMatches
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Text("上一个")
+                            .font(.subheadline)
+                        Image(systemName: "chevron.up")
+                    }
+                    .foregroundColor(.white)
+                    .frame(width: 90, height: 36)
+                    .background(totalMatches > 0 ? Color.blue : Color.gray)
+                    .cornerRadius(8)
+                }
+                .disabled(totalMatches == 0)
             }
         }
         .padding(.horizontal, 12)
