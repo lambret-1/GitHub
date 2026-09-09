@@ -27,15 +27,15 @@ readonly COLOR_RESET='\033[0m'
 # 日志函数
 # ------------------------------------------------------------------------------
 log_info() {
-    echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*"
+    echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*" >&2
 }
 
 log_success() {
-    echo -e "${COLOR_GREEN}[SUCCESS]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*"
+    echo -e "${COLOR_GREEN}[SUCCESS]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*" >&2
 }
 
 log_warn() {
-    echo -e "${COLOR_YELLOW}[WARN]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*"
+    echo -e "${COLOR_YELLOW}[WARN]${COLOR_RESET} $(date '+%Y-%m-%d %H:%M:%S') - $*" >&2
 }
 
 log_error() {
@@ -262,7 +262,10 @@ collect_build_env_info() {
     # Xcode版本（如果可用）
     local xcode_version="N/A"
     if command -v xcodebuild &> /dev/null; then
-        xcode_version=$(xcodebuild -version 2>/dev/null | head -1 || echo "N/A")
+        xcode_version=$(xcodebuild -version 2>/dev/null | head -1 || true)
+        if [[ -z "${xcode_version}" ]]; then
+            xcode_version="N/A"
+        fi
     fi
 
     # 输出JSON格式的环境信息
