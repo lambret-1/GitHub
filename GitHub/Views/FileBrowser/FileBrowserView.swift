@@ -14,6 +14,11 @@ struct FileBrowserView: View {
     @State private var showDocumentPicker: Bool = false
     @State private var isUploading: Bool = false
     @State private var uploadProgress: Double = 0
+    @State private var selectedFiles: [URL] = []
+    @State private var showUploadConfirm: Bool = false
+    @State private var currentUploadIndex: Int = 0
+    @State private var totalUploadCount: Int = 0
+    @State private var currentUploadFileName: String = ""
     @State private var isDownloading: Bool = false
     @State private var downloadProgress: Double = 0
     @State private var downloadingFileName: String = ""
@@ -42,9 +47,13 @@ struct FileBrowserView: View {
             CommitsView(owner: repository.ownerName, repo: repository.name)
         }
         .sheet(isPresented: $showDocumentPicker) {
-            DocumentPickerView { url in
-                uploadFile(at: url)
+            DocumentPickerView(allowsMultipleSelection: true) { urls in
+                selectedFiles = urls
+                showUploadConfirm = true
             }
+        }
+        .sheet(isPresented: $showUploadConfirm) {
+            uploadConfirmView
         }
         .alert("上传完成", isPresented: $showUploadSuccess) {
             Button("确定", role: .cancel) {
@@ -188,6 +197,185 @@ struct FileBrowserView: View {
         }
     }
 
+    // MARK: - 确认上传弹窗
+
+    private var uploadConfirmView: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // 头部信息
+                VStack(spacing: 8) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 40))
+                        .foregroundColor(.blue)
+                    Text("确认上传文件")
+                        .font(.headline)
+                    Text("已选择 \(selectedFiles.count) 个文件")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Text("上传到: \(currentPath.isEmpty ? "根目录" : currentPath)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                .padding(.vertical, 16)
+                .padding(.horizontal)
+
+                Divider()
+
+                // 文件列表
+                List {
+                    ForEach(Array(selectedFiles.enumerated()), id: \.element) { index, fileURL in
+                        HStack(spacing: 12) {
+                            // 文件图标
+                            Image(systemName: fileIcon(for: fileURL))
+                                .font(.system(size: 24))
+                                .foregroundColor(fileIconColor(for: fileURL))
+                                .frame(width: 40, height: 40)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+
+                            // 文件信息
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(fileURL.lastPathComponent)
+                                    .font(.subheadline)
+                                    .lineLimit(1)
+                                Text(fileSizeString(for: fileURL))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+
+                            Spacer()
+
+                            // 序号
+                            Text("\(index + 1)")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .frame(width: 24, height: 24)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(12)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .onDelete(perform: removeSelectedFile)
+                }
+                .listStyle(PlainListStyle())
+
+                Divider()
+
+                // 底部按钮
+                VStack(spacing: 12) {
+                    Button(action: {
+                        startUpload()
+                    }) {
+                        HStack {
+                            Image(systemName: "paperplane.fill")
+                            Text("开始上传 (\(selectedFiles.count) 个文件)")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                    }
+                    .disabled(selectedFiles.isEmpty)
+
+                    Button(action: {
+                        showUploadConfirm = false
+                        selectedFiles = []
+                    }) {
+                        Text("取消")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 16)
+                .background(Color(.systemBackground))
+            }
+            .navigationBarHidden(true)
+        }
+    }
+
+    // MARK: - 文件图标
+
+    private func fileIcon(for url: URL) -> String {
+        let ext = url.pathExtension.lowercased()
+        switch ext {
+        case "jpg", "jpeg", "png", "gif", "svg", "webp", "heic":
+            return "photo"
+        case "mp4", "mov", "avi", "mkv", "webm":
+            return "film"
+        case "mp3", "wav", "flac", "aac", "ogg":
+            return "music.note"
+        case "pdf":
+            return "doc.richtext"
+        case "doc", "docx":
+            return "doc.text"
+        case "xls", "xlsx", "csv":
+            return "tablecells"
+        case "ppt", "pptx":
+            return "presentation"
+        case "zip", "rar", "7z", "tar", "gz":
+            return "archivebox"
+        case "swift", "m", "h", "mm", "cpp", "c", "hpp", "java", "py", "js", "ts", "go", "rs", "kt":
+            return "chevron.left.forwardslash.chevron.right"
+        case "txt", "md", "markdown":
+            return "text.alignleft"
+        case "json", "xml", "yaml", "yml":
+            return "curlybraces"
+        case "html", "css":
+            return "globe"
+        case "ipa":
+            return "app"
+        default:
+            return "doc"
+        }
+    }
+
+    private func fileIconColor(for url: URL) -> Color {
+        let ext = url.pathExtension.lowercased()
+        switch ext {
+        case "jpg", "jpeg", "png", "gif", "svg", "webp", "heic":
+            return .purple
+        case "mp4", "mov", "avi", "mkv", "webm":
+            return .pink
+        case "mp3", "wav", "flac", "aac", "ogg":
+            return .red
+        case "pdf":
+            return .red
+        case "doc", "docx":
+            return .blue
+        case "xls", "xlsx", "csv":
+            return .green
+        case "ppt", "pptx":
+            return .orange
+        case "zip", "rar", "7z", "tar", "gz":
+            return .brown
+        case "swift", "m", "h", "mm", "cpp", "c", "hpp", "java", "py", "js", "ts", "go", "rs", "kt":
+            return .orange
+        default:
+            return .gray
+        }
+    }
+
+    private func fileSizeString(for url: URL) -> String {
+        guard let resources = try? url.resourceValues(forKeys: [.fileSizeKey]),
+              let size = resources.fileSize else {
+            return "未知大小"
+        }
+
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useAll]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(size))
+    }
+
+    private func removeSelectedFile(at offsets: IndexSet) {
+        selectedFiles.remove(atOffsets: offsets)
+    }
+
     // MARK: - 进度覆盖层
 
     @ViewBuilder
@@ -228,21 +416,54 @@ struct FileBrowserView: View {
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
 
-            VStack(spacing: 16) {
-                ProgressView()
-                    .scaleEffect(1.5)
+            VStack(spacing: 20) {
+                // 图标
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 40))
+                    .foregroundColor(.blue)
+                    .frame(width: 70, height: 70)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(35)
 
-                Text("正在上传文件...")
+                // 标题
+                Text("正在上传文件")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
 
-                Text("请稍候")
-                    .font(.subheadline)
-                    .foregroundColor(.white)
+                // 当前文件名
+                if !currentUploadFileName.isEmpty {
+                    VStack(spacing: 4) {
+                        Text(currentUploadFileName)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .frame(maxWidth: 250)
+                        Text("第 \(currentUploadIndex + 1) / \(totalUploadCount) 个文件")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+
+                // 进度条
+                VStack(spacing: 8) {
+                    ProgressView(value: uploadProgress)
+                        .progressViewStyle(LinearProgressViewStyle())
+                        .frame(width: 250)
+
+                    Text(String(format: "%.0f%%", uploadProgress * 100))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                // 提示
+                Text("请勿关闭应用")
+                    .font(.caption)
+                    .foregroundColor(.gray)
             }
             .padding(32)
-            .background(Color(.systemGray6).opacity(0.9))
-            .cornerRadius(16)
+            .background(Color(.systemBackground))
+            .cornerRadius(20)
+            .shadow(radius: 20)
         }
     }
 
@@ -426,7 +647,46 @@ struct FileBrowserView: View {
 
     // MARK: - 上传文件
 
-    private func uploadFile(at fileURL: URL) {
+    // MARK: - 开始上传
+
+    private func startUpload() {
+        guard !selectedFiles.isEmpty else { return }
+
+        showUploadConfirm = false
+        isUploading = true
+        uploadProgress = 0
+        currentUploadIndex = 0
+        totalUploadCount = selectedFiles.count
+
+        uploadNextFile()
+    }
+
+    private func uploadNextFile() {
+        guard currentUploadIndex < selectedFiles.count else {
+            // 所有文件上传完成
+            isUploading = false
+            showUploadSuccess = true
+            selectedFiles = []
+            loadFiles()
+            return
+        }
+
+        let fileURL = selectedFiles[currentUploadIndex]
+        currentUploadFileName = fileURL.lastPathComponent
+
+        uploadFile(at: fileURL) { success in
+            if success {
+                self.currentUploadIndex += 1
+                self.uploadProgress = Double(self.currentUploadIndex) / Double(self.totalUploadCount)
+                self.uploadNextFile()
+            } else {
+                // 上传失败，停止后续上传
+                self.isUploading = false
+            }
+        }
+    }
+
+    private func uploadFile(at fileURL: URL, completion: @escaping (Bool) -> Void) {
         // 停止访问安全资源
         let didStartAccessing = fileURL.startAccessingSecurityScopedResource()
         defer {
@@ -437,13 +697,12 @@ struct FileBrowserView: View {
 
         guard let fileData = try? Data(contentsOf: fileURL) else {
             uploadErrorMessage = "无法读取文件内容"
+            completion(false)
             return
         }
 
         let fileName = fileURL.lastPathComponent
         let uploadPath = currentPath.isEmpty ? fileName : "\(currentPath)/\(fileName)"
-
-        isUploading = true
 
         GitHubAPI.shared.uploadFileData(
             owner: repository.ownerName,
@@ -453,13 +712,12 @@ struct FileBrowserView: View {
             message: "上传文件: \(fileName)（通过iOS客户端）",
             branch: selectedBranch
         ) { result in
-            self.isUploading = false
-
             switch result {
             case .success:
-                self.showUploadSuccess = true
+                completion(true)
             case .failure(let error):
                 self.uploadErrorMessage = "上传失败: \(error.localizedDescription)"
+                completion(false)
             }
         }
     }
