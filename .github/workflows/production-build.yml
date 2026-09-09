@@ -367,7 +367,65 @@ jobs:
           path: artifact-metadata.json
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-      # Step 13: 上传编译日志（便于问题排查）
+      # Step 13: 生成Release说明文档
+      - name: 生成Release说明
+        id: release_notes
+        run: |
+          echo "=========================================="
+          echo "生成GitHub Release说明文档..."
+          echo "=========================================="
+
+          cat > release-notes.md << EOF
+          ## 📦 版本 v${{ steps.version.outputs.current_version }}
+
+          ### 构建信息
+          - **构建Commit**: \`${GITHUB_SHA::7}\`
+          - **构建时间**: $(date '+%Y-%m-%d %H:%M:%S %Z')
+          - **Xcode版本**: $(xcodebuild -version | head -1)
+          - **部署目标**: iOS ${{ env.DEPLOYMENT_TARGET }}.0+
+
+          ### 制品校验
+          - **IPA文件名**: ${{ env.IPA_FILE_NAME }}
+          - **SHA256**: \`${{ steps.export_ipa.outputs.ipa_sha256 }}\`
+          - **文件大小**: $(ls -lh ${{ env.IPA_FILE_NAME }} | awk '{print $5}')
+
+          ### 安装说明
+          1. 下载下方的 \`${{ env.IPA_FILE_NAME }}\` 文件
+          2. 使用全能签或其他重签名工具进行本地重签名
+          3. 安装到iOS设备即可使用
+
+          ### 功能特性
+          - Token 安全登录（Keychain 存储）
+          - 仓库列表浏览与搜索
+          - 文件目录浏览
+          - 代码查看与编辑
+          - 个人中心
+          - 版本信息显示与检查更新
+
+          ---
+          *本Release由GitHub Actions自动构建发布*
+          EOF
+
+          echo "::notice::Release说明文档生成完成"
+          cat release-notes.md
+
+      # Step 14: 发布GitHub Release（以版本号命名）
+      - name: 发布GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.current_version }}
+          name: v${{ steps.version.outputs.current_version }}
+          body_path: release-notes.md
+          files: |
+            ${{ env.IPA_FILE_NAME }}
+            artifact-metadata.json
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 15: 上传编译日志（便于问题排查）
       - name: 上传编译日志
         if: always()
         uses: actions/upload-artifact@v4

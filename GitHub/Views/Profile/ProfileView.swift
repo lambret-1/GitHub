@@ -120,7 +120,23 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                         }
-                        
+
+                        NavigationLink(destination: AboutView()) {
+                            HStack {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.blue)
+                                    .frame(width: 30)
+                                Text("关于")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text("v\(AppVersion.currentVersion)")
+                                    .foregroundColor(.gray)
+                                    .font(.subheadline)
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+
                         Button(action: {
                             showLogoutAlert = true
                         }) {
