@@ -80,7 +80,6 @@ struct CodeTextView: UIViewRepresentable {
         textView.smartQuotesType = .no
         textView.smartDashesType = .no
         textView.smartInsertDeleteType = .no
-        textView.textContainerInset = UIEdgeInsets(top: 8, left: showLineNumbers ? 48 : 8, bottom: 8, right: 8)
         textView.backgroundColor = .systemBackground
         textView.alwaysBounceVertical = true
         textView.keyboardDismissMode = .interactive
@@ -95,8 +94,15 @@ struct CodeTextView: UIViewRepresentable {
         textView.onLookupSelectedText = onLookupSelectedText
 
         // 配置行号LayoutManager
-        layoutManager.lineNumberFont = .monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
-        layoutManager.lineNumberWidth = showLineNumbers ? 40 : 0
+        let lineNumberFont = UIFont.monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
+        layoutManager.lineNumberFont = lineNumberFont
+        // 计算自适应行号列宽
+        let calculatedLineNumberWidth = showLineNumbers ? LineNumberLayoutManager.calculateLineNumberWidth(for: text, font: lineNumberFont) : 0
+        // 最小行号列宽为30，最大为80，避免过窄或过宽
+        let clampedLineNumberWidth = min(max(calculatedLineNumberWidth, 30), 80)
+        layoutManager.lineNumberWidth = clampedLineNumberWidth
+        // 设置textContainerInset，左边距 = 行号列宽 + 8pt边距
+        textView.textContainerInset = UIEdgeInsets(top: 8, left: showLineNumbers ? clampedLineNumberWidth + 8 : 8, bottom: 8, right: 8)
         // 设置containerInset，用于行号位置计算
         layoutManager.containerInset = textView.textContainerInset
 
@@ -130,9 +136,15 @@ struct CodeTextView: UIViewRepresentable {
 
         // 更新行号显示
         if let layoutManager = textView.layoutManager as? LineNumberLayoutManager {
-            layoutManager.lineNumberWidth = showLineNumbers ? 40 : 0
-            layoutManager.lineNumberFont = .monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
-            textView.textContainerInset = UIEdgeInsets(top: 8, left: showLineNumbers ? 48 : 8, bottom: 8, right: 8)
+            let lineNumberFont = UIFont.monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
+            layoutManager.lineNumberFont = lineNumberFont
+            // 计算自适应行号列宽
+            let calculatedLineNumberWidth = showLineNumbers ? LineNumberLayoutManager.calculateLineNumberWidth(for: textView.text, font: lineNumberFont) : 0
+            // 最小行号列宽为30，最大为80，避免过窄或过宽
+            let clampedLineNumberWidth = min(max(calculatedLineNumberWidth, 30), 80)
+            layoutManager.lineNumberWidth = clampedLineNumberWidth
+            // 设置textContainerInset，左边距 = 行号列宽 + 8pt边距
+            textView.textContainerInset = UIEdgeInsets(top: 8, left: showLineNumbers ? clampedLineNumberWidth + 8 : 8, bottom: 8, right: 8)
             // 更新containerInset，用于行号位置计算
             layoutManager.containerInset = textView.textContainerInset
             layoutManager.invalidateDisplay(forCharacterRange: NSRange(location: 0, length: textView.text.count))

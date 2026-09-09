@@ -98,6 +98,11 @@ struct CodeEditorView: View {
                     codeEditorArea
                 }
             }
+
+            // 编辑模式底部工具栏（取消和提交修改按钮）
+            if isEditing && (fileContent?.isTextFile ?? false) {
+                editModeBottomBar
+            }
         }
         .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
@@ -355,6 +360,48 @@ struct CodeEditorView: View {
         }
     }
     
+    // MARK: - 编辑模式底部工具栏
+
+    private var editModeBottomBar: some View {
+        HStack(spacing: 12) {
+            Button(action: {
+                codeText = originalContent
+                isEditing = false
+            }) {
+                Text("取消")
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(8)
+            }
+
+            Button(action: {
+                commitMessage = "Update \(fileName)"
+                showCommitDialog = true
+            }) {
+                if isSaving {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                } else {
+                    Text("提交修改")
+                        .fontWeight(.semibold)
+                }
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(Color.black)
+            .cornerRadius(8)
+            .disabled(!hasChanges || isSaving)
+            .opacity((!hasChanges || isSaving) ? 0.5 : 1)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color(.systemGray6))
+        .edgesIgnoringSafeArea(.bottom)
+    }
+
     // MARK: - 文件信息栏
 
     private var fileInfoBar: some View {
@@ -409,43 +456,6 @@ struct CodeEditorView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(Color.blue.opacity(0.1))
-                
-                // 提交按钮
-                HStack(spacing: 12) {
-                    Button(action: {
-                        codeText = originalContent
-                        isEditing = false
-                    }) {
-                        Text("取消")
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 40)
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(8)
-                    }
-                    
-                    Button(action: {
-                        commitMessage = "Update \(fileName)"
-                        showCommitDialog = true
-                    }) {
-                        if isSaving {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        } else {
-                            Text("提交修改")
-                                .fontWeight(.semibold)
-                        }
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 40)
-                    .background(Color.black)
-                    .cornerRadius(8)
-                    .disabled(!hasChanges || isSaving)
-                    .opacity((!hasChanges || isSaving) ? 0.5 : 1)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
             }
 
             // 查找栏

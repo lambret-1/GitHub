@@ -18,6 +18,25 @@ class LineNumberLayoutManager: NSLayoutManager {
     // textView的textContainerInset，用于计算行号位置偏移
     var containerInset: UIEdgeInsets = .zero
 
+    // MARK: - 计算自适应行号列宽
+
+    /// 根据文本内容和字体计算自适应的行号列宽
+    /// - Parameters:
+    ///   - text: 文本内容
+    ///   - font: 行号字体
+    /// - Returns: 自适应的行号列宽
+    static func calculateLineNumberWidth(for text: String, font: UIFont) -> CGFloat {
+        // 计算行数
+        let lineCount = text.components(separatedBy: .newlines).count
+        // 最大行号字符串
+        let maxLineNumber = "\(lineCount)" as NSString
+        // 计算行号字符串宽度
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        let stringWidth = maxLineNumber.size(withAttributes: attributes).width
+        // 行号列宽 = 字符串宽度 + 左右边距（各6pt）+ 分隔线（0.5pt）
+        return stringWidth + 12 + 0.5
+    }
+
     override func drawBackground(forGlyphRange glyphsToShow: NSRange, at origin: CGPoint) {
         super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
 
