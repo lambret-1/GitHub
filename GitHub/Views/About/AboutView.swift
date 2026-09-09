@@ -20,19 +20,12 @@ struct AboutView: View {
             // 应用图标和名称
             Section {
                 VStack(spacing: 12) {
-                    // 应用图标
-                    Image(systemName: "chevron.left.forwardslash.chevron.right")
-                        .font(.system(size: 48))
-                        .foregroundColor(.white)
+                    // 应用图标 - 使用APP图标
+                    Image("AppIcon")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)
-                        .background(
-                            LinearGradient(
-                                gradient: Gradient(colors: [.blue, .purple]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .cornerRadius(18)
                         .shadow(radius: 6)
 
                     // 应用名称

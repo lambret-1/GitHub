@@ -12,13 +12,17 @@ struct LoginView: View {
             VStack(spacing: 30) {
                 // 顶部Logo区域
                 VStack(spacing: 16) {
-                    Image(systemName: "chevron.left.forwardslash.chevron.right")
-                        .font(.system(size: 60))
-                        .foregroundColor(.black)
-                    
-                    Text("GitHub 客户端")
+                    // 使用APP图标
+                    Image("AppIcon")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                        .cornerRadius(16)
+                        .shadow(radius: 5)
+
+                    Text("GitHub 中文客户端")
                         .font(.largeTitle.bold())
-                    
+
                     Text("Token 安全登录 · 代码随时管理")
                         .font(.subheadline)
                         .foregroundColor(.gray)
