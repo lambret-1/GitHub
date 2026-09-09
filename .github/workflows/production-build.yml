@@ -169,6 +169,14 @@ jobs:
           xcodegen generate
 
           echo "=========================================="
+          echo "修复项目格式兼容性（objectVersion降级为60，兼容Xcode 15）..."
+          echo "=========================================="
+          if [ -f "GitHub.xcodeproj/project.pbxproj" ]; then
+            sed -i '' 's/objectVersion = 77;/objectVersion = 60;/g' GitHub.xcodeproj/project.pbxproj
+            echo "::notice::objectVersion已降级为60"
+          fi
+
+          echo "=========================================="
           echo "验证生成的项目文件..."
           echo "=========================================="
           if [ ! -d "GitHub.xcodeproj" ]; then
@@ -177,6 +185,7 @@ jobs:
           fi
           echo "::notice::Xcode项目生成成功"
           ls -la GitHub.xcodeproj/
+          grep "objectVersion" GitHub.xcodeproj/project.pbxproj || true
 
           echo "=========================================="
           echo "验证项目是否可被Xcode读取..."
