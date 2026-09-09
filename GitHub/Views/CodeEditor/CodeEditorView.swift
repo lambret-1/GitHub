@@ -50,6 +50,10 @@ struct CodeEditorView: View {
     @State private var getSelectedTextTrigger: Int = 0
     @State private var showNoSelectionAlert: Bool = false
     @State private var waitingForSelectedText: Bool = false
+
+    // 二次确认状态
+    @State private var showCancelConfirm: Bool = false
+    @State private var showSubmitConfirm: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -105,6 +109,9 @@ struct CodeEditorView: View {
                 editModeBottomBar
             }
         }
+        // 彻底解决键盘跟随问题：整个页面忽略键盘安全区域，不跟随键盘移动
+        // UITextView本身会自动调整contentInset处理键盘遮挡，用户仍可看到编辑内容
+        .ignoresSafeArea(.keyboard)
         .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏系统默认返回按钮，使用自定义返回按钮实现编辑保护
@@ -307,6 +314,26 @@ struct CodeEditorView: View {
         } message: {
             Text("正在编辑文件，请先完成编辑或点击「完成编辑」后再返回")
         }
+        // 取消编辑二次确认
+        .alert("确认取消", isPresented: $showCancelConfirm) {
+            Button("继续编辑", role: .cancel) {}
+            Button("放弃修改", role: .destructive) {
+                codeText = originalContent
+                isEditing = false
+            }
+        } message: {
+            Text("您有未保存的修改，确定要放弃吗？")
+        }
+        // 提交修改二次确认
+        .alert("确认提交", isPresented: $showSubmitConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("确认提交") {
+                commitMessage = "Update \(fileName)"
+                showCommitDialog = true
+            }
+        } message: {
+            Text("确定要提交修改到 GitHub 仓库吗？")
+        }
         .overlay {
             if isDownloading {
                 downloadProgressOverlay
@@ -366,8 +393,14 @@ struct CodeEditorView: View {
     private var editModeBottomBar: some View {
         HStack(spacing: 12) {
             Button(action: {
-                codeText = originalContent
-                isEditing = false
+                // 取消按钮二次确认
+                if hasChanges {
+                    showCancelConfirm = true
+                } else {
+                    // 没有修改，直接取消
+                    codeText = originalContent
+                    isEditing = false
+                }
             }) {
                 Text("取消")
                     .foregroundColor(.red)
@@ -378,8 +411,8 @@ struct CodeEditorView: View {
             }
 
             Button(action: {
-                commitMessage = "Update \(fileName)"
-                showCommitDialog = true
+                // 提交修改按钮二次确认
+                showSubmitConfirm = true
             }) {
                 if isSaving {
                     ProgressView()
