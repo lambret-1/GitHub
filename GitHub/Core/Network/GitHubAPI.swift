@@ -298,14 +298,14 @@ class GitHubAPI {
 
     // MARK: - 获取文件最后修改时间（通过commits API）
 
-    func getFileLastCommit(owner: String, repo: String, path: String, branch: String = "main", completion: @escaping (Result<CommitInfo, Error>) -> Void) {
+    func getFileLastCommit(owner: String, repo: String, path: String, branch: String = "main", completion: @escaping (Result<Commit, Error>) -> Void) {
         let url = "https://api.github.com/repos/\(owner)/\(repo)/commits?path=\(path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path)&sha=\(branch)&per_page=1"
 
         performRequest(url: url, method: "GET", body: nil) { result in
             switch result {
             case .success(let data):
                 do {
-                    let commits = try JSONDecoder().decode([CommitInfo].self, from: data)
+                    let commits = try JSONDecoder().decode([Commit].self, from: data)
                     if let commit = commits.first {
                         completion(.success(commit))
                     } else {

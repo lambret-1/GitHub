@@ -147,32 +147,9 @@ extension Int {
     }
 }
 
-// MARK: - 提交信息模型
+// MARK: - 提交时间格式化扩展
 
-struct CommitInfo: Codable, Identifiable {
-    let sha: String
-    let commit: CommitDetail
-    let htmlUrl: String?
-
-    enum CodingKeys: String, CodingKey {
-        case sha, commit
-        case htmlUrl = "html_url"
-    }
-
-    var id: String { sha }
-}
-
-struct CommitDetail: Codable {
-    let message: String
-    let author: CommitAuthor
-    let committer: CommitAuthor
-}
-
-struct CommitAuthor: Codable {
-    let name: String
-    let email: String
-    let date: String
-
+extension CommitPerson {
     var formattedDate: String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

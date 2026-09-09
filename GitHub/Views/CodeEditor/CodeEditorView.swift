@@ -28,7 +28,7 @@ struct CodeEditorView: View {
     @State private var isDownloading: Bool = false
     @State private var downloadProgress: Double = 0
     @State private var showCopySuccess: Bool = false
-    @State private var lastCommitInfo: CommitInfo?
+    @State private var lastCommitInfo: Commit?
     
     var body: some View {
         VStack(spacing: 0) {
