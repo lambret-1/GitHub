@@ -2,9 +2,9 @@ import SwiftUI
 import UIKit
 
 // ==============================================================================
-// CodeTextView 高性能代码编辑器
-// 功能：基于UITextView+自定义LineNumberLayoutManager，顺畅打开1MB+大文件
-// 优势：原生UITextView内部使用按需加载，内存占用低，滚动流畅
+// CodeTextView 高性能代码编辑器（带语法高亮）
+// 功能：基于UITextView+自定义LineNumberLayoutManager+SyntaxHighlighter
+// 优势：原生UITextView内部使用按需加载，内存占用低，滚动流畅，语法高亮
 // ==============================================================================
 
 struct CodeTextView: UIViewRepresentable {
@@ -45,25 +45,26 @@ struct CodeTextView: UIViewRepresentable {
         layoutManager.lineNumberFont = .monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
         layoutManager.lineNumberWidth = showLineNumbers ? 40 : 0
 
-        // 设置初始文本
-        textView.text = text
+        // 设置初始文本（带语法高亮）
+        let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        let highlightedText = SyntaxHighlighter.highlight(text, font: font)
+        textStorage.setAttributedString(highlightedText)
+
+        // 保存coordinator引用，用于后续更新
+        context.coordinator.textView = textView
+        context.coordinator.fontSize = fontSize
 
         return textView
     }
 
     func updateUIView(_ textView: UITextView, context: Context) {
-        // 只在文本不同时更新，避免循环更新
-        if textView.text != text {
-            let selectedRange = textView.selectedRange
-            textView.text = text
-            textView.selectedRange = selectedRange
-        }
-
         // 更新可编辑状态
         textView.isEditable = isEditable
 
         // 更新字体
-        textView.font = .monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        textView.font = font
+        context.coordinator.fontSize = fontSize
 
         // 更新行号显示
         if let layoutManager = textView.layoutManager as? LineNumberLayoutManager {
@@ -71,6 +72,14 @@ struct CodeTextView: UIViewRepresentable {
             layoutManager.lineNumberFont = .monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
             textView.textContainerInset = UIEdgeInsets(top: 8, left: showLineNumbers ? 48 : 8, bottom: 8, right: 8)
             layoutManager.invalidateDisplay(forCharacterRange: NSRange(location: 0, length: textView.text.count))
+        }
+
+        // 只在外部文本不同时更新（避免循环更新）
+        if textView.text != text && !context.coordinator.isInternalUpdate {
+            let selectedRange = textView.selectedRange
+            let highlightedText = SyntaxHighlighter.highlight(text, font: font)
+            textView.textStorage.setAttributedString(highlightedText)
+            textView.selectedRange = selectedRange
         }
     }
 
@@ -81,6 +90,10 @@ struct CodeTextView: UIViewRepresentable {
     class Coordinator: NSObject, UITextViewDelegate {
         @Binding var text: String
         var onTextChange: ((String) -> Void)?
+        weak var textView: UITextView?
+        var fontSize: CGFloat = 14
+        var isInternalUpdate = false
+        private var highlightWorkItem: DispatchWorkItem?
 
         init(text: Binding<String>, onTextChange: ((String) -> Void)?) {
             _text = text
@@ -88,8 +101,39 @@ struct CodeTextView: UIViewRepresentable {
         }
 
         func textViewDidChange(_ textView: UITextView) {
+            isInternalUpdate = true
             text = textView.text
             onTextChange?(textView.text)
+
+            // 防抖处理：延迟300ms后重新应用语法高亮，避免每次按键都重新高亮
+            highlightWorkItem?.cancel()
+            let workItem = DispatchWorkItem { [weak self] in
+                guard let self = self, let textView = self.textView else { return }
+                self.applySyntaxHighlight(textView: textView)
+            }
+            highlightWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
+
+            // 延迟重置isInternalUpdate
+            DispatchQueue.main.async { [weak self] in
+                self?.isInternalUpdate = false
+            }
+        }
+
+        /// 应用语法高亮
+        private func applySyntaxHighlight(textView: UITextView) {
+            let selectedRange = textView.selectedRange
+            let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+            let currentText = textView.text
+            let highlightedText = SyntaxHighlighter.highlight(currentText, font: font)
+
+            isInternalUpdate = true
+            textView.textStorage.setAttributedString(highlightedText)
+            textView.selectedRange = selectedRange
+
+            DispatchQueue.main.async { [weak self] in
+                self?.isInternalUpdate = false
+            }
         }
     }
 }

@@ -2,7 +2,7 @@ import UIKit
 
 // ==============================================================================
 // LineNumberLayoutManager 自定义行号绘制
-// 功能：通过自定义NSLayoutManager在文本左侧绘制行号，性能远超SwiftUI的ForEach
+// 功能：通过自定义NSLayoutManager在文本左侧绘制行号，使用enumerateLineFragments精确对齐
 // ==============================================================================
 
 class LineNumberLayoutManager: NSLayoutManager {
@@ -43,42 +43,46 @@ class LineNumberLayoutManager: NSLayoutManager {
         UIColor.separator.setFill()
         context?.fill(separatorRect)
 
-        // 绘制行号
+        // 计算起始行号
         let charRange = characterRange(forGlyphRange: glyphsToShow, actualGlyphRange: nil)
         var lineNumber = 1
-
-        // 计算起始行号
         if charRange.location > 0 {
-            let nsString = textStorage?.string as NSString?
-            if let nsString = nsString {
+            if let nsString = textStorage?.string as NSString? {
                 lineNumber = nsString.substring(to: charRange.location).components(separatedBy: .newlines).count
             }
         }
 
-        // 使用NSString的enumerateSubstrings方法，接受NSRange参数
-        let nsString = textStorage?.string as NSString?
-        nsString?.enumerateSubstrings(in: charRange, options: [.byLines, .substringNotRequired]) { _, substringRange, _, stop in
-            // 获取当前行的glyph范围
-            let glyphRange = self.glyphRange(forCharacterRange: substringRange, actualCharacterRange: nil)
-            // 获取当前行的行矩形
-            let lineRect = self.lineFragmentRect(forGlyphAt: glyphRange.location, effectiveRange: nil)
+        // 使用enumerateLineFragments精确遍历每一行，确保行号与文本对齐
+        enumerateLineFragments(forGlyphRange: glyphsToShow) { lineRect, usedRect, textContainer, glyphRange, stop in
+            let charRange = self.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
 
-            // 绘制行号
-            let lineNumberString = "\(lineNumber)" as NSString
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: self.lineNumberFont,
-                .foregroundColor: self.lineNumberColor
-            ]
-            let stringSize = lineNumberString.size(withAttributes: attributes)
-            let stringRect = CGRect(
-                x: origin.x + self.lineNumberWidth - stringSize.width - 6,
-                y: lineRect.origin.y + (lineRect.height - stringSize.height) / 2,
-                width: stringSize.width,
-                height: stringSize.height
-            )
-            lineNumberString.draw(in: stringRect, withAttributes: attributes)
+            // 检查这一行是否是新行的开始（不是自动换行的续行）
+            var isNewline = true
+            if charRange.location > 0 {
+                if let nsString = self.textStorage?.string as NSString? {
+                    let prevChar = nsString.character(at: charRange.location - 1)
+                    isNewline = (prevChar == 10) // 10 is newline
+                }
+            }
 
-            lineNumber += 1
+            if isNewline {
+                // 绘制行号，垂直居中对齐
+                let lineNumberString = "\(lineNumber)" as NSString
+                let attributes: [NSAttributedString.Key: Any] = [
+                    .font: self.lineNumberFont,
+                    .foregroundColor: self.lineNumberColor
+                ]
+                let stringSize = lineNumberString.size(withAttributes: attributes)
+                let stringRect = CGRect(
+                    x: origin.x + self.lineNumberWidth - stringSize.width - 6,
+                    y: lineRect.origin.y + (lineRect.height - stringSize.height) / 2,
+                    width: stringSize.width,
+                    height: stringSize.height
+                )
+                lineNumberString.draw(in: stringRect, withAttributes: attributes)
+
+                lineNumber += 1
+            }
         }
 
         context?.restoreGState()
