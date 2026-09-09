@@ -21,6 +21,8 @@ struct GitHubApp: App {
 }
 
 struct MainTabView: View {
+    @EnvironmentObject var appState: AppState
+    
     var body: some View {
         TabView {
             RepoListView()
@@ -35,6 +37,7 @@ struct MainTabView: View {
                     Text("我的")
                 }
         }
-        .accentColor(.black)
+        // 根据暗黑模式自动切换强调色，浅色模式用黑色，暗黑模式用白色
+        .accentColor(appState.isDarkMode ? .white : .black)
     }
 }
