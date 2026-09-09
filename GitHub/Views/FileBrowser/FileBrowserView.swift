@@ -609,7 +609,7 @@ struct FileBrowserView: View {
             Button(action: {
                 navigateToDirectory(file.path)
             }) {
-                FileRow(file: file)
+                FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
             }
         } else {
             NavigationLink(destination: CodeEditorView(
@@ -619,7 +619,7 @@ struct FileBrowserView: View {
                 branch: selectedBranch,
                 fileName: file.name
             )) {
-                FileRow(file: file)
+                FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
             }
             .contextMenu {
                 contextMenuContent(for: file)
@@ -755,7 +755,7 @@ struct FileBrowserView: View {
             case .success:
                 completion(true)
             case .failure(let error):
-                self.uploadErrorMessage = "上传失败: \(error.localizedDescription)"
+                self.uploadErrorMessage = Self.formatUploadError(error, fileName: fileName)
                 completion(false)
             }
         }
@@ -788,32 +788,84 @@ struct FileBrowserView: View {
             }
         }
     }
+
+    // MARK: - 格式化上传错误信息
+
+    private static func formatUploadError(_ error: Error, fileName: String) -> String {
+        let errorDescription = error.localizedDescription.lowercased()
+
+        if errorDescription.contains("401") || errorDescription.contains("unauthorized") {
+            return "上传失败：Token 无效或已过期，请重新登录后再试"
+        } else if errorDescription.contains("403") || errorDescription.contains("forbidden") {
+            return "上传失败：没有权限上传文件到该仓库，请检查仓库权限设置"
+        } else if errorDescription.contains("404") || errorDescription.contains("not found") {
+            return "上传失败：仓库或分支不存在，请检查仓库地址和分支名称"
+        } else if errorDescription.contains("422") || errorDescription.contains("unprocessable") {
+            return "上传失败：文件名包含非法字符或文件已存在，请修改文件名后再试"
+        } else if errorDescription.contains("500") || errorDescription.contains("server error") {
+            return "上传失败：GitHub 服务器暂时不可用，请稍后再试"
+        } else if errorDescription.contains("network") || errorDescription.contains("timeout") || errorDescription.contains("offline") {
+            return "上传失败：网络连接异常，请检查网络连接后再试"
+        } else if errorDescription.contains("too large") || errorDescription.contains("size limit") {
+            return "上传失败：文件大小超过 GitHub 限制（单个文件最大 100MB）"
+        } else {
+            return "上传「\(fileName)」失败：\(error.localizedDescription)\n\n请检查网络连接和 Token 权限后重试"
+        }
+    }
 }
 
 // MARK: - 文件行
 
 struct FileRow: View {
     let file: FileItem
-    
+    let owner: String
+    let repo: String
+    let branch: String
+
+    @State private var lastCommit: Commit?
+    @State private var isLoadingCommit: Bool = false
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: file.iconName)
                 .foregroundColor(file.isDirectory ? .blue : .gray)
                 .frame(width: 24)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(file.name)
                     .font(.body)
                     .lineLimit(1)
                 if !file.isDirectory {
-                    Text(file.formattedSize)
-                        .font(.caption2)
-                        .foregroundColor(.gray)
+                    HStack(spacing: 8) {
+                        Text(file.formattedSize)
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+
+                        if let commit = lastCommit {
+                            HStack(spacing: 2) {
+                                Image(systemName: "clock")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                                Text(commit.commit.committer.relativeDate)
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                            }
+                        } else if isLoadingCommit {
+                            HStack(spacing: 2) {
+                                Image(systemName: "clock")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray.opacity(0.5))
+                                Text("加载中...")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray.opacity(0.5))
+                            }
+                        }
+                    }
                 }
             }
-            
+
             Spacer()
-            
+
             if file.isDirectory {
                 Image(systemName: "chevron.right")
                     .foregroundColor(.gray)
@@ -821,6 +873,52 @@ struct FileRow: View {
             }
         }
         .padding(.vertical, 4)
+        .onAppear {
+            loadLastCommit()
+        }
+    }
+
+    private func loadLastCommit() {
+        guard file.isFile else { return }
+        guard !isLoadingCommit else { return }
+
+        // 先检查缓存
+        if let cachedCommit = LastCommitCache.shared.getLastCommit(
+            owner: owner,
+            repo: repo,
+            path: file.path,
+            branch: branch
+        ) {
+            lastCommit = cachedCommit
+            return
+        }
+
+        isLoadingCommit = true
+
+        GitHubAPI.shared.getFileLastCommit(
+            owner: owner,
+            repo: repo,
+            path: file.path,
+            branch: branch
+        ) { result in
+            DispatchQueue.main.async {
+                isLoadingCommit = false
+                switch result {
+                case .success(let commit):
+                    lastCommit = commit
+                    // 存入缓存
+                    LastCommitCache.shared.setLastCommit(
+                        commit,
+                        owner: owner,
+                        repo: repo,
+                        path: file.path,
+                        branch: branch
+                    )
+                case .failure:
+                    break
+                }
+            }
+        }
     }
 }
 

@@ -201,7 +201,7 @@ struct CodeEditorView: View {
         .alert("复制成功", isPresented: $showCopySuccess) {
             Button("确定") {}
         } message: {
-            Text("文件路径已复制到剪贴板")
+            Text("文件 Raw 地址已复制到剪贴板")
         }
         .overlay {
             if isDownloading {
@@ -489,10 +489,11 @@ struct CodeEditorView: View {
         }
     }
 
-    // MARK: - 复制文件路径
+    // MARK: - 复制文件Raw地址
 
     private func copyFilePath() {
-        UIPasteboard.general.string = path
+        let rawUrl = "https://raw.githubusercontent.com/\(owner)/\(repo)/\(branch)/\(path)"
+        UIPasteboard.general.string = rawUrl
         showCopySuccess = true
     }
 
