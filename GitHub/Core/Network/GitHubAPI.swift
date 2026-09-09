@@ -175,13 +175,13 @@ class GitHubAPI {
     
     func createFile(owner: String, repo: String, path: String, content: String, message: String, branch: String = "main", completion: @escaping (Result<Bool, Error>) -> Void) {
         let base64Content = content.data(using: .utf8)?.base64EncodedString() ?? ""
-        
+
         let body: [String: Any] = [
             "message": message,
             "content": base64Content,
             "branch": branch
         ]
-        
+
         performRequest(url: APIEndpoints.updateFile(owner: owner, repo: repo, path: path).url, method: "PUT", body: body) { result in
             switch result {
             case .success:
@@ -190,6 +190,58 @@ class GitHubAPI {
                 completion(.failure(error))
             }
         }
+    }
+
+    // MARK: - 上传二进制文件（支持任意文件类型）
+
+    func uploadFileData(owner: String, repo: String, path: String, fileData: Data, message: String, branch: String = "main", completion: @escaping (Result<Bool, Error>) -> Void) {
+        let base64Content = fileData.base64EncodedString()
+
+        let body: [String: Any] = [
+            "message": message,
+            "content": base64Content,
+            "branch": branch
+        ]
+
+        performRequest(url: APIEndpoints.updateFile(owner: owner, repo: repo, path: path).url, method: "PUT", body: body) { result in
+            switch result {
+            case .success:
+                completion(.success(true))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    // MARK: - 下载文件原始数据
+
+    func downloadFileData(url: String, completion: @escaping (Result<Data, Error>) -> Void) {
+        guard let urlObj = URL(string: url) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的下载URL"])))
+            return
+        }
+
+        var request = URLRequest(url: urlObj)
+        request.allHTTPHeaderFields = getHeaders()
+        request.timeoutInterval = 60
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+
+                guard let httpResponse = response as? HTTPURLResponse,
+                      (200...299).contains(httpResponse.statusCode),
+                      let data = data else {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: -2, userInfo: [NSLocalizedDescriptionKey: "文件下载失败"])))
+                    return
+                }
+
+                completion(.success(data))
+            }
+        }.resume()
     }
     
     // MARK: - 分支

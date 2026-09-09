@@ -11,6 +11,18 @@ struct FileBrowserView: View {
     @State private var selectedBranch: String = ""
     @State private var showBranchPicker: Bool = false
     @State private var showCommits: Bool = false
+    @State private var showDocumentPicker: Bool = false
+    @State private var isUploading: Bool = false
+    @State private var uploadProgress: Double = 0
+    @State private var isDownloading: Bool = false
+    @State private var downloadProgress: Double = 0
+    @State private var downloadingFileName: String = ""
+    @State private var showDownloadSuccess: Bool = false
+    @State private var downloadedFileURL: URL?
+    @State private var showActionSheet: Bool = false
+    @State private var selectedFile: FileItem?
+    @State private var showUploadSuccess: Bool = false
+    @State private var uploadErrorMessage: String?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -80,6 +92,30 @@ struct FileBrowserView: View {
                             )) {
                                 FileRow(file: file)
                             }
+                            .contextMenu {
+                                Button(action: {
+                                    selectedFile = file
+                                    downloadFile(file)
+                                }) {
+                                    Label("下载文件", systemImage: "arrow.down.circle")
+                                }
+
+                                Button(action: {
+                                    if let url = URL(string: file.htmlUrl ?? repository.htmlUrl) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }) {
+                                    Label("在 GitHub 打开", systemImage: "safari")
+                                }
+
+                                Button(action: {
+                                    if let url = URL(string: file.downloadUrl ?? "") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }) {
+                                    Label("复制下载链接", systemImage: "link")
+                                }
+                            }
                         }
                     }
                 }
@@ -89,6 +125,19 @@ struct FileBrowserView: View {
         .navigationTitle(repository.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    showDocumentPicker = true
+                }) {
+                    if isUploading {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                .disabled(isUploading || isDownloading)
+            }
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button(action: {
@@ -96,13 +145,13 @@ struct FileBrowserView: View {
                     }) {
                         Label("切换分支: \(selectedBranch)", systemImage: "arrow.triangle.branch")
                     }
-                    
+
                     Button(action: {
                         showCommits = true
                     }) {
                         Label("提交记录", systemImage: "clock.arrow.circlepath")
                     }
-                    
+
                     Button(action: {
                         if let url = URL(string: repository.htmlUrl) {
                             UIApplication.shared.open(url)
@@ -123,6 +172,94 @@ struct FileBrowserView: View {
         }
         .sheet(isPresented: $showCommits) {
             CommitsView(owner: repository.ownerName, repo: repository.name)
+        }
+        .sheet(isPresented: $showDocumentPicker) {
+            DocumentPickerView { url in
+                uploadFile(at: url)
+            }
+        }
+        .alert("下载完成", isPresented: $showDownloadSuccess) {
+            Button("分享文件") {
+                if let fileURL = downloadedFileURL,
+                   let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let viewController = windowScene.windows.first?.rootViewController {
+                    FileDownloadManager.shared.shareFile(at: fileURL, from: viewController)
+                }
+            }
+            Button("保存到文件", role: .default) {
+                if let fileURL = downloadedFileURL,
+                   let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let viewController = windowScene.windows.first?.rootViewController {
+                    FileDownloadManager.shared.exportToFilesApp(at: fileURL, from: viewController)
+                }
+            }
+            Button("确定", role: .cancel) {}
+        } message: {
+            if let fileURL = downloadedFileURL {
+                Text("文件已下载: \(fileURL.lastPathComponent)")
+            }
+        }
+        .alert("上传完成", isPresented: $showUploadSuccess) {
+            Button("确定", role: .cancel) {
+                loadFiles()
+            }
+        } message: {
+            Text("文件已成功上传到仓库")
+        }
+        .alert("上传失败", isPresented: .constant(uploadErrorMessage != nil)) {
+            Button("确定", role: .cancel) {
+                uploadErrorMessage = nil
+            }
+        } message: {
+            Text(uploadErrorMessage ?? "未知错误")
+        }
+        .overlay {
+            if isDownloading {
+                ZStack {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 16) {
+                        ProgressView(value: downloadProgress)
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .scaleEffect(1.5)
+
+                        Text("正在下载: \(downloadingFileName)")
+                            .font(.headline)
+                            .foregroundColor(.white)
+
+                        Text(String(format: "%.0f%%", downloadProgress * 100))
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(32)
+                    .background(Color(.systemGray6).opacity(0.9))
+                    .cornerRadius(16)
+                }
+            }
+
+            if isUploading {
+                ZStack {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+
+                        Text("正在上传文件...")
+                            .font(.headline)
+                            .foregroundColor(.white)
+
+                        Text("请稍候")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(32)
+                    .background(Color(.systemGray6).opacity(0.9))
+                    .cornerRadius(16)
+                }
+            }
         }
         .onAppear {
             if selectedBranch.isEmpty {
@@ -226,6 +363,77 @@ struct FileBrowserView: View {
             currentPath = ""
         }
         loadFiles()
+    }
+
+    // MARK: - 下载文件
+
+    private func downloadFile(_ file: FileItem) {
+        guard let downloadUrl = file.downloadUrl else {
+            errorMessage = "该文件不支持下载"
+            return
+        }
+
+        isDownloading = true
+        downloadProgress = 0
+        downloadingFileName = file.name
+
+        FileDownloadManager.shared.downloadFile(
+            from: downloadUrl,
+            fileName: file.name,
+            progress: { progress in
+                self.downloadProgress = progress
+            }
+        ) { result in
+            self.isDownloading = false
+
+            switch result {
+            case .success(let fileURL):
+                self.downloadedFileURL = fileURL
+                self.showDownloadSuccess = true
+            case .failure(let error):
+                self.errorMessage = "下载失败: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    // MARK: - 上传文件
+
+    private func uploadFile(at fileURL: URL) {
+        // 停止访问安全资源
+        let didStartAccessing = fileURL.startAccessingSecurityScopedResource()
+        defer {
+            if didStartAccessing {
+                fileURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        guard let fileData = try? Data(contentsOf: fileURL) else {
+            uploadErrorMessage = "无法读取文件内容"
+            return
+        }
+
+        let fileName = fileURL.lastPathComponent
+        let uploadPath = currentPath.isEmpty ? fileName : "\(currentPath)/\(fileName)"
+
+        isUploading = true
+
+        GitHubAPI.shared.uploadFileData(
+            owner: repository.ownerName,
+            repo: repository.name,
+            path: uploadPath,
+            fileData: fileData,
+            message: "上传文件: \(fileName)（通过iOS客户端）",
+            branch: selectedBranch
+        ) { result in
+            self.isUploading = false
+
+            switch result {
+            case .success:
+                self.showUploadSuccess = true
+            case .failure(let error):
+                self.uploadErrorMessage = "上传失败: \(error.localizedDescription)"
+            }
+        }
     }
 }
 
