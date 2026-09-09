@@ -103,8 +103,6 @@ struct CodeEditorView: View {
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏系统默认返回按钮，使用自定义返回按钮实现编辑保护
         .navigationBarBackButtonHidden(true)
-        // 编辑模式时隐藏底部Tab栏，禁止切换到"我的"等页面
-        .toolbar(isEditing ? .hidden : .visible, for: .tabBar)
         .toolbar {
             // 自定义返回按钮
             ToolbarItem(placement: .navigationBarLeading) {
@@ -313,6 +311,8 @@ struct CodeEditorView: View {
         }
         // 编辑模式时禁用手势返回
         .background(SwipeBackControlView(enabled: !isEditing))
+        // 编辑模式时隐藏底部Tab栏，禁止切换到"我的"等页面
+        .background(TabBarControlView(visible: !isEditing))
     }
 
     // MARK: - 下载进度覆盖层
@@ -770,6 +770,33 @@ struct SwipeBackControlView: UIViewRepresentable {
                 if let viewController = next as? UIViewController,
                    let navigationController = viewController.navigationController {
                     navigationController.interactivePopGestureRecognizer?.isEnabled = enabled
+                    return
+                }
+                responder = next
+            }
+        }
+    }
+}
+
+// MARK: - 控制Tab栏显示的UIViewRepresentable
+
+/// 用于控制底部Tab栏的显示和隐藏（兼容iOS 15）
+struct TabBarControlView: UIViewRepresentable {
+    let visible: Bool
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            // 递归查找当前视图控制器的tabBarController
+            var responder: UIResponder? = uiView
+            while let next = responder?.next {
+                if let viewController = next as? UIViewController,
+                   let tabBarController = viewController.tabBarController {
+                    tabBarController.tabBar.isHidden = !visible
                     return
                 }
                 responder = next
