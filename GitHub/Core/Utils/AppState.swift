@@ -13,10 +13,22 @@ class AppState: ObservableObject {
     // 暗黑模式状态
     @Published var isDarkMode: Bool = false
     
+    // AccountManager的cancellable，用于监听账号切换
+    private var accountCancellable: AnyCancellable?
+    
     private init() {
         // 从UserDefaults读取暗黑模式设置
         isDarkMode = UserDefaults.standard.bool(forKey: "isDarkMode")
         checkLoginStatus()
+        
+        // 监听AccountManager的currentAccount变化，账号切换时自动加载新用户信息
+        accountCancellable = AccountManager.shared.$currentAccount
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] account in
+                guard let self = self, let account = account else { return }
+                // 账号切换时，自动加载新用户信息
+                self.loadUserInfo()
+            }
     }
     
     /// 切换暗黑模式

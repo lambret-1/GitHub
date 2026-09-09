@@ -100,6 +100,12 @@ struct RepoListView: View {
                 loadRepos()
             }
         }
+        // 监听账号切换，切换后自动重新加载仓库
+        .onChange(of: AccountManager.shared.currentAccount?.id) { _ in
+            repos = []
+            filteredRepos = []
+            loadRepos()
+        }
         .onChange(of: searchText) { _ in
             applyFilter()
         }

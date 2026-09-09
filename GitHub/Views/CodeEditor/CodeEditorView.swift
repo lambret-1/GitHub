@@ -342,6 +342,11 @@ struct CodeEditorView: View {
         .onAppear {
             loadFile()
         }
+        // 监听编辑模式变化，确保手势和Tab栏状态立即更新
+        .onChange(of: isEditing) { _ in
+            // 强制刷新SwipeBackControlView和TabBarControlView
+            // UIViewRepresentable的updateUIView会自动调用
+        }
         // 编辑模式时禁用手势返回
         .background(SwipeBackControlView(enabled: !isEditing))
         // 编辑模式时隐藏底部Tab栏，禁止切换到"我的"等页面
@@ -810,17 +815,20 @@ struct SwipeBackControlView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        DispatchQueue.main.async {
-            // 递归查找当前视图控制器的navigationController
-            var responder: UIResponder? = uiView
-            while let next = responder?.next {
-                if let viewController = next as? UIViewController,
-                   let navigationController = viewController.navigationController {
-                    navigationController.interactivePopGestureRecognizer?.isEnabled = enabled
-                    return
+        // 立即更新手势状态，不使用async延迟
+        // 递归查找当前视图控制器的navigationController
+        var responder: UIResponder? = uiView
+        while let next = responder?.next {
+            if let viewController = next as? UIViewController,
+               let navigationController = viewController.navigationController {
+                navigationController.interactivePopGestureRecognizer?.isEnabled = enabled
+                // 如果是启用手势，同时重置delegate确保手势生效
+                if enabled {
+                    navigationController.interactivePopGestureRecognizer?.delegate = nil
                 }
-                responder = next
+                return
             }
+            responder = next
         }
     }
 }
@@ -837,17 +845,16 @@ struct TabBarControlView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        DispatchQueue.main.async {
-            // 递归查找当前视图控制器的tabBarController
-            var responder: UIResponder? = uiView
-            while let next = responder?.next {
-                if let viewController = next as? UIViewController,
-                   let tabBarController = viewController.tabBarController {
-                    tabBarController.tabBar.isHidden = !visible
-                    return
-                }
-                responder = next
+        // 立即更新Tab栏状态，不使用async延迟
+        // 递归查找当前视图控制器的tabBarController
+        var responder: UIResponder? = uiView
+        while let next = responder?.next {
+            if let viewController = next as? UIViewController,
+               let tabBarController = viewController.tabBarController {
+                tabBarController.tabBar.isHidden = !visible
+                return
             }
+            responder = next
         }
     }
 }
