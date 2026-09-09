@@ -150,7 +150,35 @@ jobs:
           xcodebuild -version
           xcodebuild -showsdks | grep -i iphoneos || true
 
-      # Step 3: 缓存Swift包依赖（性能优化）
+      # Step 3: 安装XcodeGen并生成标准Xcode项目
+      - name: 安装XcodeGen并生成项目
+        run: |
+          echo "=========================================="
+          echo "安装XcodeGen工具..."
+          echo "=========================================="
+          brew install xcodegen || true
+
+          echo "=========================================="
+          echo "删除旧的损坏项目文件..."
+          echo "=========================================="
+          rm -rf GitHub.xcodeproj
+
+          echo "=========================================="
+          echo "使用XcodeGen生成标准Xcode项目..."
+          echo "=========================================="
+          xcodegen generate
+
+          echo "=========================================="
+          echo "验证生成的项目文件..."
+          echo "=========================================="
+          if [ ! -d "GitHub.xcodeproj" ]; then
+            echo "::error::Xcode项目生成失败，GitHub.xcodeproj不存在"
+            exit 1
+          fi
+          echo "::notice::Xcode项目生成成功"
+          ls -la GitHub.xcodeproj/
+
+      # Step 4: 缓存Swift包依赖（性能优化）
       - name: 缓存Swift包依赖
         uses: actions/cache@v4
         with:
@@ -161,7 +189,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-
 
-      # Step 4: 缓存编译产物（性能优化）
+      # Step 5: 缓存编译产物（性能优化）
       - name: 缓存编译产物
         uses: actions/cache@v4
         with:
@@ -170,7 +198,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-xcode-
 
-      # Step 5: 读取当前版本号
+      # Step 6: 读取当前版本号
       - name: 读取当前版本号
         id: version
         run: |
@@ -178,7 +206,7 @@ jobs:
           echo "current_version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
           echo "当前编译版本号: ${CURRENT_VERSION}"
 
-      # Step 6: 执行Xcode编译（未签名，适配全能签导入标准）
+      # Step 7: 执行Xcode编译（未签名，适配全能签导入标准）
       - name: 执行Xcode编译
         id: build
         run: |

@@ -46,7 +46,25 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
           xcodebuild -version
 
-      # Step 3: 缓存Swift包依赖
+      # Step 3: 安装XcodeGen并生成标准Xcode项目
+      - name: 安装XcodeGen并生成项目
+        run: |
+          echo "安装XcodeGen工具..."
+          brew install xcodegen || true
+
+          echo "删除旧的损坏项目文件..."
+          rm -rf GitHub.xcodeproj
+
+          echo "使用XcodeGen生成标准Xcode项目..."
+          xcodegen generate
+
+          if [ ! -d "GitHub.xcodeproj" ]; then
+            echo "::error::Xcode项目生成失败"
+            exit 1
+          fi
+          echo "::notice::Xcode项目生成成功"
+
+      # Step 4: 缓存Swift包依赖
       - name: 缓存Swift包依赖
         uses: actions/cache@v4
         with:
@@ -57,7 +75,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-
 
-      # Step 4: 缓存编译产物
+      # Step 5: 缓存编译产物
       - name: 缓存编译产物
         uses: actions/cache@v4
         with:
