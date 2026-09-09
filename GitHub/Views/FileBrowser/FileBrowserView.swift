@@ -115,16 +115,13 @@ struct FileBrowserView: View {
         } message: {
             Text(createFolderErrorMessage ?? "未知错误")
         }
-        // 新建文件对话框
-        .alert("新建文件", isPresented: $showCreateFileDialog) {
-            TextField("文件名（如：test.swift）", text: $newFileName)
-            Button("取消", role: .cancel) {}
-            Button("创建") {
-                createFile()
+        // 新建文件对话框（使用sheet替代alert，确保创建按钮正常显示）
+        .sheet(isPresented: $showCreateFileDialog) {
+            CreateFileView(currentPath: currentPath) { fileName in
+                createFile(fileName: fileName)
+            } onCancel: {
+                showCreateFileDialog = false
             }
-            .disabled(newFileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        } message: {
-            Text("将在 \(currentPath.isEmpty ? "根目录" : currentPath) 下创建空文件")
         }
         .alert("创建成功", isPresented: $showCreateFileSuccess) {
             Button("确定") {
@@ -943,21 +940,21 @@ struct FileBrowserView: View {
 
     // MARK: - 新建文件
 
-    private func createFile() {
-        let fileName = newFileName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !fileName.isEmpty else { return }
+    private func createFile(fileName: String) {
+        let trimmedFileName = fileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedFileName.isEmpty else { return }
 
         isCreatingFile = true
         showCreateFileDialog = false
 
-        let filePath = currentPath.isEmpty ? fileName : "\(currentPath)/\(fileName)"
+        let filePath = currentPath.isEmpty ? trimmedFileName : "\(currentPath)/\(trimmedFileName)"
 
         GitHubAPI.shared.createFile(
             owner: repository.ownerName,
             repo: repository.name,
             path: filePath,
             content: "",
-            message: "创建文件: \(fileName)",
+            message: "创建文件: \(trimmedFileName)",
             branch: selectedBranch
         ) { result in
             DispatchQueue.main.async {
