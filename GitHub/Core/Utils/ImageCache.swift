@@ -150,7 +150,7 @@ class ImageCache {
 
     func cleanupExpiredCache() {
         DispatchQueue.global(qos: .background).async {
-            guard let fileURLs = try? FileManager.default.contentsOfDirectory(at: self.cacheDirectory, includingPropertiesForKeys: [.modificationDateKey], options: []) else {
+            guard let fileURLs = try? FileManager.default.contentsOfDirectory(at: self.cacheDirectory, includingPropertiesForKeys: [.contentModificationDateKey], options: []) else {
                 return
             }
 
@@ -191,7 +191,7 @@ class ImageCache {
         var totalSize: Int64 = 0
         for fileURL in fileURLs {
             if let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
-               let size = attributes[.fileSize] as? Int64 {
+               let size = attributes[.size] as? Int64 {
                 totalSize += size
             }
         }

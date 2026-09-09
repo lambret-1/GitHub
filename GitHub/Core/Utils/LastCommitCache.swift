@@ -82,7 +82,7 @@ class LastCommitCache {
 
     func cleanupExpiredCache() {
         DispatchQueue.global(qos: .background).async {
-            guard let fileURLs = try? FileManager.default.contentsOfDirectory(at: self.cacheDirectory, includingPropertiesForKeys: [.modificationDateKey], options: []) else {
+            guard let fileURLs = try? FileManager.default.contentsOfDirectory(at: self.cacheDirectory, includingPropertiesForKeys: [.contentModificationDateKey], options: []) else {
                 return
             }
 
