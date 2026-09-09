@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 // ==============================================================================
 // DocumentPickerView 文件选择器
@@ -8,26 +9,39 @@ import UIKit
 
 struct DocumentPickerView: UIViewControllerRepresentable {
     let onPick: (URL) -> Void
+    let onCancel: (() -> Void)?
+
+    init(onPick: @escaping (URL) -> Void, onCancel: (() -> Void)? = nil) {
+        self.onPick = onPick
+        self.onCancel = onCancel
+    }
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.data])
+        // 使用.item类型支持所有文件类型，确保可以选中任意文件
+        let documentPicker = UIDocumentPickerViewController(
+            forOpeningContentTypes: [.item],
+            asCopy: true
+        )
         documentPicker.delegate = context.coordinator
         documentPicker.allowsMultipleSelection = false
         documentPicker.shouldShowFileExtensions = true
+        documentPicker.modalPresentationStyle = .formSheet
         return documentPicker
     }
 
     func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onPick: onPick)
+        Coordinator(onPick: onPick, onCancel: onCancel)
     }
 
     class Coordinator: NSObject, UIDocumentPickerDelegate {
         let onPick: (URL) -> Void
+        let onCancel: (() -> Void)?
 
-        init(onPick: @escaping (URL) -> Void) {
+        init(onPick: @escaping (URL) -> Void, onCancel: (() -> Void)?) {
             self.onPick = onPick
+            self.onCancel = onCancel
         }
 
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
@@ -36,7 +50,7 @@ struct DocumentPickerView: UIViewControllerRepresentable {
         }
 
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-            // 用户取消选择
+            onCancel?()
         }
     }
 }

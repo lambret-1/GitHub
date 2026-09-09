@@ -173,30 +173,20 @@ struct FileBrowserView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
-            uploadButton
-        }
-
         ToolbarItem(placement: .navigationBarTrailing) {
             moreMenu
         }
     }
 
-    private var uploadButton: some View {
-        Button(action: {
-            showDocumentPicker = true
-        }) {
-            if isUploading {
-                ProgressView()
-            } else {
-                Image(systemName: "square.and.arrow.up")
-            }
-        }
-        .disabled(isUploading || isDownloading)
-    }
-
     private var moreMenu: some View {
         Menu {
+            Button(action: {
+                showDocumentPicker = true
+            }) {
+                Label("上传文件", systemImage: "square.and.arrow.up")
+            }
+            .disabled(isUploading || isDownloading)
+
             Button(action: {
                 showBranchPicker = true
             }) {
