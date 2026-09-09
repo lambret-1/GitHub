@@ -333,9 +333,8 @@ struct CommitsView: View {
                                 .lineLimit(2)
                             HStack {
                                 Text(commit.shortSha)
-                                    .font(.caption2)
+                                    .font(.system(.caption2, design: .monospaced))
                                     .foregroundColor(.blue)
-                                    .fontDesign(.monospaced)
                                 Text("·")
                                     .foregroundColor(.gray)
                                 Text(commit.authorName)
