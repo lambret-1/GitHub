@@ -37,6 +37,8 @@ struct CodeEditorView: View {
     @State private var showUnsavedAlert: Bool = false
     // 标记是否保存后自动退出（从"未保存提醒"弹窗点击"保存并离开"时设置）
     @State private var shouldDismissAfterSave: Bool = false
+    // 编辑模式下点击返回的提示
+    @State private var editReturnAlert: Bool = false
 
     // 查找相关状态
     @State private var showSearch: Bool = false
@@ -101,13 +103,16 @@ struct CodeEditorView: View {
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏系统默认返回按钮，使用自定义返回按钮实现编辑保护
         .navigationBarBackButtonHidden(true)
+        // 编辑模式时隐藏底部Tab栏，禁止切换到"我的"等页面
+        .toolbar(isEditing ? .hidden : .visible, for: .tabBar)
         .toolbar {
             // 自定义返回按钮
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(action: {
-                    // 检查是否有未保存的修改
-                    if hasChanges {
-                        showUnsavedAlert = true
+                    // 编辑模式下禁用返回，提示用户
+                    if isEditing {
+                        // 显示提示：正在编辑中
+                        editReturnAlert = true
                     } else {
                         dismiss()
                     }
@@ -116,8 +121,10 @@ struct CodeEditorView: View {
                         Image(systemName: "chevron.left")
                         Text("返回")
                     }
-                    .foregroundColor(.blue)
+                    // 编辑模式时返回按钮变灰
+                    .foregroundColor(isEditing ? .gray : .blue)
                 }
+                .disabled(isEditing)
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -290,6 +297,12 @@ struct CodeEditorView: View {
         } message: {
             Text("当前文件有未保存的修改，确定要离开吗？")
         }
+        // 编辑模式下点击返回的提示
+        .alert("正在编辑中", isPresented: $editReturnAlert) {
+            Button("确定") {}
+        } message: {
+            Text("正在编辑文件，请先完成编辑或点击「完成编辑」后再返回")
+        }
         .overlay {
             if isDownloading {
                 downloadProgressOverlay
@@ -298,6 +311,8 @@ struct CodeEditorView: View {
         .onAppear {
             loadFile()
         }
+        // 编辑模式时禁用手势返回
+        .background(SwipeBackControlView(enabled: !isEditing))
     }
 
     // MARK: - 下载进度覆盖层
@@ -733,5 +748,32 @@ struct CodeEditorView_Previews: PreviewProvider {
             branch: "main",
             fileName: "README.md"
         )
+    }
+}
+
+// MARK: - 禁用手势返回的UIViewRepresentable
+
+/// 用于控制导航控制器的侧滑返回手势
+struct SwipeBackControlView: UIViewRepresentable {
+    let enabled: Bool
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            // 递归查找当前视图控制器的navigationController
+            var responder: UIResponder? = uiView
+            while let next = responder?.next {
+                if let viewController = next as? UIViewController,
+                   let navigationController = viewController.navigationController {
+                    navigationController.interactivePopGestureRecognizer?.isEnabled = enabled
+                    return
+                }
+                responder = next
+            }
+        }
     }
 }
