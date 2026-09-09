@@ -15,6 +15,7 @@ options:
   createIntermediateGroups: true
   developmentLanguage: zh-Hans
   xcodeVersion: "15.0"
+  objectVersion: 60
 
 settings:
   base:
