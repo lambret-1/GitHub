@@ -131,7 +131,10 @@ jobs:
           echo "统计编译警告数量..."
           echo "=========================================="
 
-          WARNING_COUNT=$(grep -c "warning:" build-pr.log || echo 0)
+          WARNING_COUNT=$(grep -c "warning:" build-pr.log || true)
+          if [ -z "${WARNING_COUNT}" ]; then
+            WARNING_COUNT=0
+          fi
           echo "warning_count=${WARNING_COUNT}" >> "$GITHUB_OUTPUT"
           echo "编译警告数量: ${WARNING_COUNT}"
           echo "警告阈值: ${{ env.WARNING_THRESHOLD }}"
@@ -199,7 +202,10 @@ jobs:
           fi
 
           # 统计静态分析发现的问题
-          ANALYZE_ISSUES=$(grep -c "warning:" analyze.log || echo 0)
+          ANALYZE_ISSUES=$(grep -c "warning:" analyze.log || true)
+          if [ -z "${ANALYZE_ISSUES}" ]; then
+            ANALYZE_ISSUES=0
+          fi
           echo "analyze_issues=${ANALYZE_ISSUES}" >> "$GITHUB_OUTPUT"
           echo "静态分析发现问题数: ${ANALYZE_ISSUES}"
 

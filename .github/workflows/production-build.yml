@@ -260,7 +260,10 @@ jobs:
           fi
 
           # 统计编译警告数量（用于质量监控）
-          WARNING_COUNT=$(grep -c "warning:" build.log || echo 0)
+          WARNING_COUNT=$(grep -c "warning:" build.log || true)
+          if [ -z "${WARNING_COUNT}" ]; then
+            WARNING_COUNT=0
+          fi
           echo "warning_count=${WARNING_COUNT}" >> "$GITHUB_OUTPUT"
           echo "::notice::编译完成，警告数量: ${WARNING_COUNT}"
 
