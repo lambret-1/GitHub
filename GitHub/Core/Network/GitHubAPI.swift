@@ -228,7 +228,8 @@ class GitHubAPI {
         request.allHTTPHeaderFields = getHeaders()
         request.timeoutInterval = 60
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        // 使用镜像专用URLSession，允许无效证书（镜像站点可能证书无效）
+        URLSession.mirrorSession.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     completion(.failure(error))

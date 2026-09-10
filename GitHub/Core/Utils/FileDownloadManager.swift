@@ -166,7 +166,7 @@ class FileDownloadManager {
 
 // MARK: - 下载任务代理
 
-private class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
+private class DownloadDelegate: NSObject, URLSessionDownloadDelegate, URLSessionDelegate {
     let progress: ((Double) -> Void)?
     let fileURL: URL
     let completion: (Result<URL, Error>) -> Void
@@ -175,6 +175,18 @@ private class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
         self.progress = progress
         self.fileURL = fileURL
         self.completion = completion
+    }
+
+    // 允许镜像站点的无效证书
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust {
+            if let serverTrust = challenge.protectionSpace.serverTrust {
+                let credential = URLCredential(trust: serverTrust)
+                completionHandler(.useCredential, credential)
+                return
+            }
+        }
+        completionHandler(.performDefaultHandling, nil)
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {

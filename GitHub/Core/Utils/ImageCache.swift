@@ -127,15 +127,22 @@ class ImageCache {
             return
         }
 
+        // 判断是否是GitHub相关URL，如果是则应用镜像加速转换
+        let isGitHubURL = urlString.contains("github.com") || urlString.contains("githubusercontent.com")
+        let convertedURL = isGitHubURL ? AppSettings.shared.convertAvatarURL(urlString) : urlString
+
         // 下载图片
-        guard let url = URL(string: urlString) else {
+        guard let url = URL(string: convertedURL) else {
             DispatchQueue.main.async {
                 completion(nil)
             }
             return
         }
 
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+        // GitHub相关URL使用镜像专用URLSession（允许无效证书），其他URL使用普通URLSession
+        let session = isGitHubURL ? URLSession.mirrorSession : URLSession.shared
+
+        session.dataTask(with: url) { [weak self] data, response, error in
             guard let self = self,
                   let data = data,
                   let image = UIImage(data: data),

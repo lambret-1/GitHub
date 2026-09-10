@@ -1071,19 +1071,7 @@ struct FileBrowserView: View {
             return
         }
 
-        // 使用自定义URLSession配置，提升下载速度
-        let configuration = URLSessionConfiguration.default
-        configuration.requestCachePolicy = .returnCacheDataElseLoad
-        configuration.urlCache = URLCache.shared
-        configuration.timeoutIntervalForRequest = 10
-        configuration.timeoutIntervalForResource = 10
-        // 启用HTTP管道，提升并发性能
-        configuration.httpShouldUsePipelining = true
-        // 启用Cookie接受
-        configuration.httpShouldSetCookies = true
-
-        let session = URLSession(configuration: configuration)
-
+        // 使用镜像专用URLSession，允许无效证书（镜像站点可能证书无效）
         var request = URLRequest(url: urlObj)
         request.timeoutInterval = 10
         request.cachePolicy = .returnCacheDataElseLoad
@@ -1093,7 +1081,7 @@ struct FileBrowserView: View {
         // 启用压缩传输
         request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
 
-        session.dataTask(with: request) { data, response, error in
+        URLSession.mirrorSession.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isLoadingHTML = false
 
@@ -1139,17 +1127,7 @@ struct FileBrowserView: View {
             return
         }
 
-        // 使用自定义URLSession配置，提升下载速度
-        let configuration = URLSessionConfiguration.default
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData // 忽略缓存，强制重新下载
-        configuration.urlCache = URLCache.shared
-        configuration.timeoutIntervalForRequest = 10
-        configuration.timeoutIntervalForResource = 10
-        configuration.httpShouldUsePipelining = true
-        configuration.httpShouldSetCookies = true
-
-        let session = URLSession(configuration: configuration)
-
+        // 使用镜像专用URLSession，允许无效证书（镜像站点可能证书无效）
         var request = URLRequest(url: urlObj)
         request.timeoutInterval = 10
         request.cachePolicy = .reloadIgnoringLocalCacheData // 忽略缓存，强制重新下载
@@ -1158,7 +1136,7 @@ struct FileBrowserView: View {
         }
         request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
 
-        session.dataTask(with: request) { data, response, error in
+        URLSession.mirrorSession.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isLoadingHTML = false
 
