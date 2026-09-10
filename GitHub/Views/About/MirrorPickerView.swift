@@ -14,6 +14,25 @@ struct MirrorPickerView: View {
     var body: some View {
         NavigationView {
             List {
+                // 说明部分
+                Section("使用说明") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("• 镜像加速仅用于文件下载和HTML预览，API请求始终使用官方服务器")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text("• 头像不经过镜像，直接从官方加载")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text("• 部分镜像可能因地区或网络环境不同而无法访问，如遇问题请切换其他镜像")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text("• 如所有镜像都无法访问，请关闭镜像加速使用官方服务器")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.vertical, 4)
+                }
+
                 // 预设镜像列表（只显示非官方镜像，官方镜像相当于关闭加速）
                 Section("推荐镜像") {
                     ForEach(Array(mirrors.enumerated()), id: \.element.id) { index, mirror in

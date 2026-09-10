@@ -125,14 +125,27 @@ class AppSettings: ObservableObject {
     /// 使用域名替换方式转换 URL（kkgithub 类型）
     private func convertWithDomainReplacement(url: String) -> String {
         var converted = url
+
+        // kkgithub 可能只支持 api.kkgithub.com 和 kkgithub.com
+        // 不支持 raw.kkgithub.com 和 avatars.kkgithub.com
+        // 为了避免"未找到主机名"错误，只替换 API 域名和网页域名
+        // raw 文件和头像不进行转换
+
         // 替换 API 域名
-        converted = converted.replacingOccurrences(of: "api.github.com", with: "api.kkgithub.com")
-        // 替换 raw 域名
-        converted = converted.replacingOccurrences(of: "raw.githubusercontent.com", with: "raw.kkgithub.com")
-        // 替换网页域名
-        converted = converted.replacingOccurrences(of: "github.com", with: "kkgithub.com")
-        // 替换头像域名（kkgithub 可能不支持头像，这里先尝试替换）
-        converted = converted.replacingOccurrences(of: "avatars.githubusercontent.com", with: "avatars.kkgithub.com")
+        if converted.contains("api.github.com") {
+            converted = converted.replacingOccurrences(of: "api.github.com", with: "api.kkgithub.com")
+        }
+
+        // 替换网页域名（只替换 github.com，不替换子域名）
+        // 注意：这里需要小心，不要替换已经替换过的 api.kkgithub.com
+        // 同时不要替换 raw.githubusercontent.com 和 avatars.githubusercontent.com
+        if converted.contains("github.com") &&
+           !converted.contains("kkgithub.com") &&
+           !converted.contains("raw.githubusercontent.com") &&
+           !converted.contains("avatars.githubusercontent.com") {
+            converted = converted.replacingOccurrences(of: "github.com", with: "kkgithub.com")
+        }
+
         return converted
     }
 
@@ -143,10 +156,10 @@ class AppSettings: ObservableObject {
 
     /// 转换头像 URL
     func convertAvatarURL(_ url: String) -> String {
-        // 头像域名比较特殊，很多镜像不支持
-        // 这里先尝试转换，如果失败则返回原始 URL
-        let converted = convertURL(url)
-        return converted
+        // 头像域名比较特殊，很多镜像不支持头像代理
+        // 而且头像文件通常较小，直接从官方加载即可
+        // 这里不进行镜像转换，避免出现"未找到主机名"错误
+        return url
     }
 
     /// 转换网页 URL（用于在浏览器中打开）
