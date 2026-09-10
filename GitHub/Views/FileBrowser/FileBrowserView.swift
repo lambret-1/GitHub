@@ -114,6 +114,24 @@ struct FileBrowserView: View {
         .sheet(isPresented: $showUploadConfirm) {
             uploadConfirmView
         }
+        // HTML网页预览加载状态
+        .overlay {
+            if isLoadingHTML {
+                ZStack {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        Text("正在加载网页...")
+                            .foregroundColor(.white)
+                    }
+                    .padding(24)
+                    .background(Color.black.opacity(0.7))
+                    .cornerRadius(12)
+                }
+            }
+        }
         .alert("上传完成", isPresented: $showUploadSuccess) {
             Button("确定", role: .cancel) {
                 loadFiles()
@@ -864,22 +882,56 @@ struct FileBrowserView: View {
     // MARK: - HTML网页预览
 
     private func previewHTMLFile(_ file: FileItem) {
-        guard let downloadUrl = file.downloadUrl else {
-            errorMessage = "该文件不支持预览"
-            return
-        }
-
         isLoadingHTML = true
         htmlPreviewTitle = file.name
 
-        // 下载HTML文件内容
-        GitHubAPI.shared.downloadFileData(url: downloadUrl) { result in
+        // 使用GitHub API的contents端点获取文件内容，比download_url更可靠
+        GitHubAPI.shared.getFileContent(
+            owner: repository.ownerName,
+            repo: repository.name,
+            path: file.path,
+            branch: selectedBranch
+        ) { result in
+            DispatchQueue.main.async {
+                isLoadingHTML = false
+                switch result {
+                case .success(let fileContent):
+                    let content = fileContent.decodedContent
+                    if !content.isEmpty {
+                        htmlPreviewContent = content
+                        showHTMLPreview = true
+                    } else {
+                        // 如果contents端点获取失败，尝试使用download_url
+                        if let downloadUrl = file.downloadUrl {
+                            downloadHTMLFromURL(downloadUrl, fileName: file.name)
+                        } else {
+                            errorMessage = "HTML文件内容为空"
+                        }
+                    }
+                case .failure:
+                    // 如果contents端点失败，尝试使用download_url
+                    if let downloadUrl = file.downloadUrl {
+                        downloadHTMLFromURL(downloadUrl, fileName: file.name)
+                    } else {
+                        errorMessage = "加载HTML文件失败，请重试"
+                    }
+                }
+            }
+        }
+    }
+
+    /// 从下载URL获取HTML内容
+    private func downloadHTMLFromURL(_ url: String, fileName: String) {
+        isLoadingHTML = true
+
+        GitHubAPI.shared.downloadFileData(url: url) { result in
             DispatchQueue.main.async {
                 isLoadingHTML = false
                 switch result {
                 case .success(let data):
                     if let content = String(data: data, encoding: .utf8) {
                         htmlPreviewContent = content
+                        htmlPreviewTitle = fileName
                         showHTMLPreview = true
                     } else {
                         errorMessage = "HTML文件编码不支持"
