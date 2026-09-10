@@ -146,21 +146,11 @@ struct WebView: UIViewRepresentable {
             webView.loadHTMLString(htmlContent, baseURL: nil)
         }
 
-        // 本地HTML内容应该很快渲染完成，延迟0.5秒后强制关闭加载状态
-        // 解决loadHTMLString加载本地内容时didFinish回调可能不触发的问题
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak webView] in
-            guard let webView = webView else { return }
-            // 如果还在加载，再等1秒
-            if webView.isLoading {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak webView] in
-                    guard let webView = webView else { return }
-                    // 最多等待1.5秒，强制关闭加载状态
-                    webView.stopLoading()
-                    self.onLoadingChange?(false)
-                }
-            } else {
-                self.onLoadingChange?(false)
-            }
+        // 本地HTML内容应该很快渲染完成，延迟0.3秒后关闭加载状态
+        // 给WKWebView一点时间渲染基本内容，然后立即显示，不等待外部资源加载完成
+        // 解决loadHTMLString加载本地内容时didFinish回调延迟触发（等待外部资源）的问题
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.onLoadingChange?(false)
         }
     }
 
@@ -186,12 +176,24 @@ struct WebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            // 忽略-999错误（NSURLErrorCancelled，请求被主动取消）
+            let nsError = error as NSError
+            guard nsError.code != NSURLErrorCancelled else {
+                parent.onLoadingChange?(false)
+                return
+            }
             // 页面加载失败
             parent.onLoadingChange?(false)
             parent.onError?(error.localizedDescription)
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            // 忽略-999错误（NSURLErrorCancelled，请求被主动取消）
+            let nsError = error as NSError
+            guard nsError.code != NSURLErrorCancelled else {
+                parent.onLoadingChange?(false)
+                return
+            }
             // 页面加载失败（临时导航）
             parent.onLoadingChange?(false)
             parent.onError?(error.localizedDescription)
