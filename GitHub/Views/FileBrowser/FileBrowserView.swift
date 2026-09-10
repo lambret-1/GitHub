@@ -288,7 +288,14 @@ struct FileBrowserView: View {
                 deleteSelectedFiles()
             }
         } message: {
-            Text("确定要删除选中的 \(selectedFilesForDelete.count) 个文件/文件夹吗？此操作不可撤销。")
+            let selectedItems = files.filter { selectedFilesForDelete.contains($0.path) }
+            let fileCount = selectedItems.filter { $0.isFile }.count
+            let dirCount = selectedItems.filter { $0.isDirectory }.count
+            if dirCount > 0 {
+                Text("确定要删除选中的 \(fileCount) 个文件吗？\n\n注意：选中的 \(dirCount) 个文件夹无法直接删除（GitHub API 限制），将被跳过。如需删除文件夹，请进入文件夹后逐个删除其中的文件。")
+            } else {
+                Text("确定要删除选中的 \(fileCount) 个文件吗？此操作不可撤销。")
+            }
         }
         .overlay {
             progressOverlay
@@ -1346,7 +1353,13 @@ struct FileBrowserView: View {
         isDeleting = true
         showDeleteConfirm = false
 
-        let filesToDelete = files.filter { selectedFilesForDelete.contains($0.path) }
+        let itemsToProcess = files.filter { selectedFilesForDelete.contains($0.path) }
+
+        // 分离文件和文件夹
+        // GitHub API 不支持直接删除文件夹，只能删除文件
+        let filesToDelete = itemsToProcess.filter { $0.isFile }
+        let directoriesToSkip = itemsToProcess.filter { $0.isDirectory }
+
         let group = DispatchGroup()
         var deleteErrors: [String] = []
         var successCount = 0
@@ -1380,12 +1393,23 @@ struct FileBrowserView: View {
             selectedFilesForDelete.removeAll()
             loadFiles()
 
-            if deleteErrors.isEmpty {
-                // 删除成功，可以显示一个提示
-                print("成功删除 \(successCount) 个文件")
-            } else {
-                // 部分删除失败，显示错误信息
-                errorMessage = "部分文件删除失败:\n\(deleteErrors.joined(separator: "\n"))"
+            var messages: [String] = []
+
+            if successCount > 0 {
+                messages.append("成功删除 \(successCount) 个文件")
+            }
+
+            if !directoriesToSkip.isEmpty {
+                let dirNames = directoriesToSkip.map { $0.name }.joined(separator: "、")
+                messages.append("以下文件夹无法直接删除（GitHub API 限制）：\(dirNames)\n如需删除文件夹，请进入文件夹后逐个删除其中的文件")
+            }
+
+            if !deleteErrors.isEmpty {
+                messages.append("部分文件删除失败:\n\(deleteErrors.joined(separator: "\n"))")
+            }
+
+            if !messages.isEmpty {
+                errorMessage = messages.joined(separator: "\n\n")
             }
         }
     }
@@ -1393,6 +1417,13 @@ struct FileBrowserView: View {
     // MARK: - 删除单个文件（contextMenu）
 
     private func deleteSingleFile(_ file: FileItem) {
+        // GitHub API 不支持直接删除文件夹，只能删除文件
+        if file.isDirectory {
+            errorMessage = "无法直接删除文件夹「\(file.name)」（GitHub API 限制）\n如需删除文件夹，请进入文件夹后逐个删除其中的文件"
+            contextMenuDeleteFile = nil
+            return
+        }
+
         isDeletingSingleFile = true
         contextMenuDeleteFile = nil
 
