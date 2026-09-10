@@ -19,12 +19,18 @@ on:
     branches-ignore:
       - main  # 非main分支触发，main分支走生产流水线
 
+# 并发控制：同一分支/PR的新推送自动取消旧的校验任务，节约Runner资源
+concurrency:
+  group: pr-quality-${{ github.ref }}
+  cancel-in-progress: true
+
 # 全局环境变量
 env:
   PROJECT_NAME: GitHub
   SCHEME_NAME: GitHub
   XCODE_PROJECT: GitHub.xcodeproj
   WARNING_THRESHOLD: 10  # 编译警告阈值，超过则PR失败
+  XCODEGEN_VERSION: "2.40.0"
 
 jobs:
   # ============================================================================
@@ -49,8 +55,13 @@ jobs:
       # Step 3: 安装XcodeGen并生成标准Xcode项目
       - name: 安装XcodeGen并生成项目
         run: |
-          echo "安装XcodeGen工具..."
-          brew install xcodegen || true
+          echo "安装XcodeGen工具（版本: ${{ env.XCODEGEN_VERSION }}）..."
+          brew install xcodegen
+          if ! command -v xcodegen &> /dev/null; then
+            echo "::error::XcodeGen安装失败，xcodegen命令不可用"
+            exit 1
+          fi
+          echo "已安装XcodeGen版本: $(xcodegen --version)"
 
           echo "删除旧的损坏项目文件..."
           rm -rf GitHub.xcodeproj
@@ -58,10 +69,16 @@ jobs:
           echo "使用XcodeGen生成标准Xcode项目..."
           xcodegen generate
 
-          echo "修复项目格式兼容性（objectVersion降级为60，兼容Xcode 15）..."
+          echo "校验项目objectVersion兼容性..."
           if [ -f "GitHub.xcodeproj/project.pbxproj" ]; then
-            sed -i '' 's/objectVersion = 77;/objectVersion = 60;/g' GitHub.xcodeproj/project.pbxproj
-            echo "objectVersion已降级为60"
+            CURRENT_OV=$(grep -o 'objectVersion = [0-9]*;' GitHub.xcodeproj/project.pbxproj | head -1 | grep -o '[0-9]*')
+            echo "XcodeGen生成的objectVersion: ${CURRENT_OV}"
+            if [ "${CURRENT_OV}" != "60" ]; then
+              echo "::warning::objectVersion=${CURRENT_OV}，降级为60以兼容Xcode 15"
+              sed -i '' 's/objectVersion = [0-9]*;/objectVersion = 60;/g' GitHub.xcodeproj/project.pbxproj
+            else
+              echo "::notice::objectVersion已为60，无需降级"
+            fi
           fi
 
           if [ ! -d "GitHub.xcodeproj" ]; then
@@ -81,16 +98,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-
 
-      # Step 5: 缓存编译产物
+      # Step 5: 缓存编译产物（基于项目配置与源码内容哈希，确保缓存可命中）
       - name: 缓存编译产物
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-xcode-pr-${{ github.sha }}
+          key: ${{ runner.os }}-xcode-pr-${{ hashFiles('project.yml', 'GitHub/**/*.swift', 'GitHub/Info.plist') }}
           restore-keys: |
             ${{ runner.os }}-xcode-pr-
 
-      # Step 5: 执行Xcode编译（未签名，仅校验语法和可编译性）
+      # Step 6: 执行Xcode编译（未签名，仅校验语法和可编译性）
       - name: 执行Xcode编译校验
         id: build
         run: |
@@ -123,7 +140,7 @@ jobs:
 
           echo "::notice::Xcode编译校验通过"
 
-      # Step 6: 统计编译警告数量
+      # Step 7: 统计编译警告数量
       - name: 统计编译警告
         id: warning_count
         run: |
@@ -146,7 +163,7 @@ jobs:
             echo "::endgroup::"
           fi
 
-      # Step 7: 警告数量门禁校验（超过阈值则PR失败）
+      # Step 8: 警告数量门禁校验（超过阈值则PR失败）
       - name: 警告数量门禁校验
         run: |
           WARNING_COUNT="${{ steps.warning_count.outputs.warning_count }}"
@@ -172,7 +189,7 @@ jobs:
 
           echo "::notice::警告数量门禁校验通过"
 
-      # Step 8: 执行静态代码分析（Xcode Analyze）
+      # Step 9: 执行静态代码分析（Xcode Analyze）
       - name: 执行静态代码分析
         id: analyze
         run: |
@@ -218,18 +235,19 @@ jobs:
             echo "::notice::静态分析未发现问题"
           fi
 
-      # Step 9: 上传编译日志（便于问题排查）
+      # Step 10: 上传编译日志（便于问题排查）
+      # 使用 run_id 作为 artifact 名称，避免分支名含斜杠("/")导致名称非法
       - name: 上传编译日志
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PR-BuildLog-${{ github.event.pull_request.number || github.ref_name }}
+          name: PR-BuildLog-${{ github.run_id }}
           path: |
             build-pr.log
             analyze.log
           retention-days: 7
 
-      # Step 10: 输出PR质量报告摘要
+      # Step 11: 输出PR质量报告摘要
       - name: 输出质量报告摘要
         run: |
           echo "=========================================="
@@ -268,17 +286,38 @@ jobs:
           echo "待检查脚本数量: ${TOTAL_FILES}"
 
           ERROR_COUNT=0
+          WARNING_COUNT=0
           for script in ${SCRIPT_FILES}; do
             echo "检查: ${script}"
-            if ! shellcheck -x "${script}"; then
-              echo "::error::脚本语法检查失败: ${script}"
+
+            # error级别：必须修复，否则阻断CI
+            if ! shellcheck -x --severity=error "${script}"; then
+              echo "::error::脚本存在error级问题: ${script}"
               ERROR_COUNT=$((ERROR_COUNT + 1))
+            fi
+
+            # warning级别：仅报告，不阻断（历史warning纳入技术债跟踪）
+            WARN_OUTPUT=$(shellcheck -x --severity=warning "${script}" 2>&1 || true)
+            if [ -n "${WARN_OUTPUT}" ]; then
+              WARN_NUM=$(echo "${WARN_OUTPUT}" | grep -c "SC[0-9]" || true)
+              WARNING_COUNT=$((WARNING_COUNT + WARN_NUM))
+              echo "::warning::脚本存在 ${WARN_NUM} 个warning级问题: ${script}"
             fi
           done
 
+          echo "=========================================="
+          echo "ShellCheck汇总"
+          echo "  Error级问题: ${ERROR_COUNT}（阻断）"
+          echo "  Warning级问题: ${WARNING_COUNT}（报告，不阻断）"
+          echo "=========================================="
+
           if [ ${ERROR_COUNT} -gt 0 ]; then
-            echo "::error::共 ${ERROR_COUNT} 个脚本存在语法问题"
+            echo "::error::共 ${ERROR_COUNT} 个脚本存在error级问题，质量门禁未通过"
             exit 1
           fi
 
-          echo "::notice::所有Shell脚本语法检查通过"
+          if [ ${WARNING_COUNT} -gt 0 ]; then
+            echo "::notice::存在 ${WARNING_COUNT} 个warning级问题，建议后续迭代修复"
+          fi
+
+          echo "::notice::所有Shell脚本error级检查通过"

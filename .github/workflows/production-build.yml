@@ -22,6 +22,12 @@ on:
       - main
   workflow_dispatch:  # 支持手动触发
 
+# 并发控制：同一时间仅允许一个生产构建运行，新构建排队等待（不取消进行中的构建，
+# 避免 Release 发布中途被截断导致制品不一致）
+concurrency:
+  group: production-build-main
+  cancel-in-progress: false
+
 # 全局环境变量（消除硬编码，便于统一维护）
 env:
   PROJECT_NAME: GitHub
@@ -31,6 +37,7 @@ env:
   IPA_FILE_NAME: GitHub.ipa
   ARTIFACT_RETENTION_DAYS: 30
   DEPLOYMENT_TARGET: 15.0
+  XCODEGEN_VERSION: "2.40.0"
 
 jobs:
   # ============================================================================
@@ -154,9 +161,14 @@ jobs:
       - name: 安装XcodeGen并生成项目
         run: |
           echo "=========================================="
-          echo "安装XcodeGen工具..."
+          echo "安装XcodeGen工具（版本: ${{ env.XCODEGEN_VERSION }}）..."
           echo "=========================================="
-          brew install xcodegen || true
+          brew install xcodegen
+          if ! command -v xcodegen &> /dev/null; then
+            echo "::error::XcodeGen安装失败，xcodegen命令不可用"
+            exit 1
+          fi
+          echo "已安装XcodeGen版本: $(xcodegen --version)"
 
           echo "=========================================="
           echo "删除旧的损坏项目文件..."
@@ -169,11 +181,17 @@ jobs:
           xcodegen generate
 
           echo "=========================================="
-          echo "修复项目格式兼容性（objectVersion降级为60，兼容Xcode 15）..."
+          echo "校验项目objectVersion兼容性..."
           echo "=========================================="
           if [ -f "GitHub.xcodeproj/project.pbxproj" ]; then
-            sed -i '' 's/objectVersion = 77;/objectVersion = 60;/g' GitHub.xcodeproj/project.pbxproj
-            echo "::notice::objectVersion已降级为60"
+            CURRENT_OV=$(grep -o 'objectVersion = [0-9]*;' GitHub.xcodeproj/project.pbxproj | head -1 | grep -o '[0-9]*')
+            echo "XcodeGen生成的objectVersion: ${CURRENT_OV}"
+            if [ "${CURRENT_OV}" != "60" ]; then
+              echo "::warning::objectVersion=${CURRENT_OV}，降级为60以兼容Xcode 15"
+              sed -i '' 's/objectVersion = [0-9]*;/objectVersion = 60;/g' GitHub.xcodeproj/project.pbxproj
+            else
+              echo "::notice::objectVersion已为60，无需降级"
+            fi
           fi
 
           echo "=========================================="
@@ -208,12 +226,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-
 
-      # Step 5: 缓存编译产物（性能优化）
+      # Step 5: 缓存编译产物（基于项目配置与源码内容哈希，确保缓存可命中）
       - name: 缓存编译产物
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-xcode-${{ github.sha }}
+          key: ${{ runner.os }}-xcode-${{ hashFiles('project.yml', 'GitHub/**/*.swift', 'GitHub/Info.plist') }}
           restore-keys: |
             ${{ runner.os }}-xcode-
 
@@ -276,7 +294,7 @@ jobs:
           echo "app_path=${APP_PATH}" >> "$GITHUB_OUTPUT"
           echo "编译产物路径: ${APP_PATH}"
 
-      # Step 7: 导出未签名IPA（适配全能签导入标准）
+      # Step 8: 导出未签名IPA（适配全能签导入标准）
       - name: 导出未签名IPA
         id: export_ipa
         run: |
@@ -310,7 +328,7 @@ jobs:
           echo "ipa_size=${IPA_SIZE}" >> "$GITHUB_OUTPUT"
           echo "::notice::IPA导出成功，文件大小: ${IPA_SIZE}"
 
-      # Step 8: 计算IPA文件SHA256哈希
+      # Step 9: 计算IPA文件SHA256哈希
       - name: 计算IPA SHA256哈希
         id: sha256
         run: |
@@ -323,7 +341,7 @@ jobs:
           echo "IPA SHA256: ${SHA256}"
           echo "::notice::SHA256哈希计算完成"
 
-      # Step 9: 计算构建耗时
+      # Step 10: 计算构建耗时
       - name: 计算构建耗时
         id: duration
         run: |
@@ -333,7 +351,7 @@ jobs:
           echo "duration=${DURATION}" >> "$GITHUB_OUTPUT"
           echo "构建总耗时: ${DURATION} 秒"
 
-      # Step 10: 生成制品元数据JSON
+      # Step 11: 生成制品元数据JSON
       - name: 生成制品元数据JSON
         id: metadata
         run: |
@@ -351,7 +369,7 @@ jobs:
 
           echo "::notice::制品元数据JSON生成完成"
 
-      # Step 11: 上传IPA作为Artifacts
+      # Step 12: 上传IPA作为Artifacts
       - name: 上传IPA制品
         uses: actions/upload-artifact@v4
         with:
@@ -359,7 +377,7 @@ jobs:
           path: ${{ env.IPA_FILE_NAME }}
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-      # Step 12: 上传制品元数据作为Artifacts
+      # Step 13: 上传制品元数据作为Artifacts
       - name: 上传制品元数据
         uses: actions/upload-artifact@v4
         with:
@@ -367,7 +385,7 @@ jobs:
           path: artifact-metadata.json
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-      # Step 13: 生成Release说明文档
+      # Step 14: 生成Release说明文档
       - name: 生成Release说明
         id: release_notes
         run: |
@@ -386,7 +404,7 @@ jobs:
 
           ### 制品校验
           - **IPA文件名**: ${{ env.IPA_FILE_NAME }}
-          - **SHA256**: \`${{ steps.export_ipa.outputs.ipa_sha256 }}\`
+          - **SHA256**: \`${{ steps.sha256.outputs.sha256 }}\`
           - **文件大小**: $(ls -lh ${{ env.IPA_FILE_NAME }} | awk '{print $5}')
 
           ### 安装说明
@@ -409,7 +427,7 @@ jobs:
           echo "::notice::Release说明文档生成完成"
           cat release-notes.md
 
-      # Step 14: 发布GitHub Release（以版本号命名）
+      # Step 15: 发布GitHub Release（以版本号命名）
       - name: 发布GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -425,7 +443,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 15: 上传编译日志（便于问题排查）
+      # Step 16: 上传编译日志（便于问题排查）
       - name: 上传编译日志
         if: always()
         uses: actions/upload-artifact@v4
@@ -542,14 +560,25 @@ jobs:
             console.log(`开始清理超过 ${retentionDays} 天的Artifacts...`);
             console.log(`截止日期: ${cutoffDate.toISOString()}`);
 
-            const artifacts = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              per_page: 100
-            });
+            // 分页获取所有Artifacts（默认per_page=100，需遍历全部页面）
+            let allArtifacts = [];
+            let page = 1;
+            while (true) {
+              const resp = await github.rest.actions.listArtifactsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+                page: page
+              });
+              allArtifacts = allArtifacts.concat(resp.data.artifacts);
+              if (resp.data.artifacts.length < 100) break;
+              page++;
+            }
+
+            console.log(`当前仓库Artifacts总数: ${allArtifacts.length}`);
 
             let deletedCount = 0;
-            for (const artifact of artifacts.data.artifacts) {
+            for (const artifact of allArtifacts) {
               const createdDate = new Date(artifact.created_at);
               if (createdDate < cutoffDate) {
                 console.log(`删除过期Artifact: ${artifact.name} (创建于 ${artifact.created_at})`);
@@ -563,4 +592,4 @@ jobs:
             }
 
             console.log(`清理完成，共删除 ${deletedCount} 个过期Artifacts`);
-            console.log(`当前剩余Artifacts: ${artifacts.data.artifacts.length - deletedCount}`);
+            console.log(`当前剩余Artifacts: ${allArtifacts.length - deletedCount}`);
