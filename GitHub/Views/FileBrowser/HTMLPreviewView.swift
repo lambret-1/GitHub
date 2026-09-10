@@ -40,8 +40,17 @@ struct HTMLPreviewView: View {
                 .padding()
                 Spacer()
             } else {
-                WebView(htmlContent: htmlContent, baseURL: baseURL)
-                    .edgesIgnoringSafeArea(.bottom)
+                WebView(
+                    htmlContent: htmlContent,
+                    baseURL: baseURL,
+                    onLoadingChange: { loading in
+                        isLoading = loading
+                    },
+                    onError: { error in
+                        errorMessage = error
+                    }
+                )
+                .edgesIgnoringSafeArea(.bottom)
             }
         }
         .navigationTitle(title)
@@ -54,6 +63,8 @@ struct HTMLPreviewView: View {
 struct WebView: UIViewRepresentable {
     let htmlContent: String
     let baseURL: URL?
+    var onLoadingChange: ((Bool) -> Void)?
+    var onError: ((String) -> Void)?
 
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView()
@@ -82,12 +93,25 @@ struct WebView: UIViewRepresentable {
             self.parent = parent
         }
 
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            parent.onLoadingChange?(true)
+        }
+
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             // 页面加载完成
+            parent.onLoadingChange?(false)
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             // 页面加载失败
+            parent.onLoadingChange?(false)
+            parent.onError?(error.localizedDescription)
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            // 页面加载失败（临时导航）
+            parent.onLoadingChange?(false)
+            parent.onError?(error.localizedDescription)
         }
     }
 }
