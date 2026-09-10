@@ -910,9 +910,8 @@ struct FileBrowserView: View {
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
-                guard let self = self else { return }
                 self.isLoadingHTML = false
 
                 if let error = error {
