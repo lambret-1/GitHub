@@ -46,7 +46,10 @@ struct CachedImageView: View {
     private func loadImage() {
         guard !urlString.isEmpty else { return }
 
-        // 先检查缓存
+        // 应用镜像加速转换（头像URL）
+        let convertedURL = AppSettings.shared.convertAvatarURL(urlString)
+
+        // 先检查缓存（使用原始URL作为缓存键，避免镜像切换后缓存失效）
         if let cachedImage = ImageCache.shared.getImage(for: urlString) {
             image = cachedImage
             return
@@ -54,8 +57,8 @@ struct CachedImageView: View {
 
         isLoading = true
 
-        // 下载并缓存图片
-        ImageCache.shared.loadImage(from: urlString) { downloadedImage in
+        // 下载并缓存图片（使用转换后的URL下载，但用原始URL作为缓存键）
+        ImageCache.shared.loadImage(from: convertedURL, cacheKey: urlString) { downloadedImage in
             DispatchQueue.main.async {
                 isLoading = false
                 if let downloadedImage = downloadedImage {

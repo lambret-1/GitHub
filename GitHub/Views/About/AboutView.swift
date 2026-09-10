@@ -192,7 +192,9 @@ struct AboutView: View {
 
     private func linkRow(icon: String, color: Color, title: String, url: String) -> some View {
         Button(action: {
-            if let url = URL(string: url) {
+            // 应用镜像加速转换
+            let convertedURL = AppSettings.shared.convertWebURL(url)
+            if let url = URL(string: convertedURL) {
                 UIApplication.shared.open(url)
             }
         }) {

@@ -110,8 +110,17 @@ class ImageCache {
     // MARK: - 下载并缓存图片
 
     func loadImage(from urlString: String, completion: @escaping (UIImage?) -> Void) {
-        // 先检查缓存
-        if let cachedImage = getImage(for: urlString) {
+        loadImage(from: urlString, cacheKey: urlString, completion: completion)
+    }
+
+    /// 下载并缓存图片（支持自定义缓存键）
+    /// - Parameters:
+    ///   - urlString: 下载URL
+    ///   - cacheKey: 缓存键（用于镜像加速场景，使用原始URL作为缓存键）
+    ///   - completion: 完成回调
+    func loadImage(from urlString: String, cacheKey: String, completion: @escaping (UIImage?) -> Void) {
+        // 先检查缓存（使用自定义缓存键）
+        if let cachedImage = getImage(for: cacheKey) {
             DispatchQueue.main.async {
                 completion(cachedImage)
             }
@@ -137,8 +146,8 @@ class ImageCache {
                 return
             }
 
-            // 存入缓存
-            self.setImage(image, for: urlString)
+            // 存入缓存（使用自定义缓存键）
+            self.setImage(image, for: cacheKey)
 
             DispatchQueue.main.async {
                 completion(image)

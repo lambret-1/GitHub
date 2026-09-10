@@ -548,7 +548,9 @@ struct FileBrowserView: View {
             .disabled(isDeleteMode)
 
             Button(action: {
-                if let url = URL(string: repository.htmlUrl) {
+                // 应用镜像加速转换
+                let convertedURL = AppSettings.shared.convertWebURL(repository.htmlUrl)
+                if let url = URL(string: convertedURL) {
                     UIApplication.shared.open(url)
                 }
             }) {
@@ -1001,7 +1003,10 @@ struct FileBrowserView: View {
         }
 
         Button(action: {
-            if let url = URL(string: file.htmlUrl ?? repository.htmlUrl) {
+            // 应用镜像加速转换
+            let originalURL = file.htmlUrl ?? repository.htmlUrl
+            let convertedURL = AppSettings.shared.convertWebURL(originalURL)
+            if let url = URL(string: convertedURL) {
                 UIApplication.shared.open(url)
             }
         }) {
@@ -1056,8 +1061,11 @@ struct FileBrowserView: View {
         htmlPreviewTitle = fileName
         htmlPreviewError = nil
 
+        // 应用镜像加速转换
+        let convertedURL = AppSettings.shared.convertDownloadURL(url)
+
         // 添加超时处理，确保请求不会一直挂起（10秒超时）
-        guard let urlObj = URL(string: url) else {
+        guard let urlObj = URL(string: convertedURL) else {
             isLoadingHTML = false
             htmlPreviewError = "无效的下载链接"
             return
@@ -1122,7 +1130,10 @@ struct FileBrowserView: View {
         htmlPreviewTitle = fileName
         htmlPreviewError = nil
 
-        guard let urlObj = URL(string: url) else {
+        // 应用镜像加速转换
+        let convertedURL = AppSettings.shared.convertDownloadURL(url)
+
+        guard let urlObj = URL(string: convertedURL) else {
             isLoadingHTML = false
             htmlPreviewError = "无效的下载链接"
             return

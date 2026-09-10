@@ -57,6 +57,86 @@ class AppSettings {
         currentMirror.url
     }
 
+    // MARK: - URL 镜像转换
+
+    /// 将 GitHub 相关 URL 转换为镜像 URL
+    /// - Parameter url: 原始 GitHub URL
+    /// - Returns: 转换后的镜像 URL，如果未开启镜像加速则返回原始 URL
+    func convertURL(_ url: String) -> String {
+        // 未开启镜像加速，直接返回原始 URL
+        guard useMirrorAcceleration else { return url }
+
+        let mirror = currentMirror
+
+        // 根据不同镜像类型使用不同的转换方式
+        if mirror.url.contains("mirror.ghproxy.com") || mirror.url.contains("gh-proxy.com") {
+            // ghproxy / gh-proxy 类型：镜像前缀 + 原始URL
+            return convertWithProxyPrefix(url: url, mirrorURL: mirror.url)
+        } else if mirror.url.contains("kkgithub.com") {
+            // kkgithub 类型：域名替换
+            return convertWithDomainReplacement(url: url)
+        } else if let customURL = customMirrorURL, !customURL.isEmpty {
+            // 自定义镜像：尝试使用代理前缀方式
+            return convertWithProxyPrefix(url: url, mirrorURL: customURL)
+        }
+
+        // 其他情况，尝试通用代理前缀方式
+        return convertWithProxyPrefix(url: url, mirrorURL: mirror.url)
+    }
+
+    /// 使用代理前缀方式转换 URL
+    private func convertWithProxyPrefix(url: String, mirrorURL: String) -> String {
+        // 从镜像 URL 中提取代理前缀（去掉 /https://api.github.com 部分）
+        let proxyPrefix: String
+        if let range = mirrorURL.range(of: "/https://") {
+            proxyPrefix = String(mirrorURL[..<range.lowerBound])
+        } else if let range = mirrorURL.range(of: "/http://") {
+            proxyPrefix = String(mirrorURL[..<range.lowerBound])
+        } else {
+            // 无法提取代理前缀，直接返回原始 URL
+            return url
+        }
+
+        // 只转换 GitHub 相关域名
+        if url.contains("github.com") || url.contains("githubusercontent.com") {
+            return "\(proxyPrefix)/\(url)"
+        }
+
+        return url
+    }
+
+    /// 使用域名替换方式转换 URL（kkgithub 类型）
+    private func convertWithDomainReplacement(url: String) -> String {
+        var converted = url
+        // 替换 API 域名
+        converted = converted.replacingOccurrences(of: "api.github.com", with: "api.kkgithub.com")
+        // 替换 raw 域名
+        converted = converted.replacingOccurrences(of: "raw.githubusercontent.com", with: "raw.kkgithub.com")
+        // 替换网页域名
+        converted = converted.replacingOccurrences(of: "github.com", with: "kkgithub.com")
+        // 替换头像域名（kkgithub 可能不支持头像，这里先尝试替换）
+        converted = converted.replacingOccurrences(of: "avatars.githubusercontent.com", with: "avatars.kkgithub.com")
+        return converted
+    }
+
+    /// 转换文件下载 URL（raw.githubusercontent.com）
+    func convertDownloadURL(_ url: String) -> String {
+        convertURL(url)
+    }
+
+    /// 转换头像 URL
+    func convertAvatarURL(_ url: String) -> String {
+        // 头像域名比较特殊，很多镜像不支持
+        // 这里先尝试转换，如果失败则返回原始 URL
+        let converted = convertURL(url)
+        return converted
+    }
+
+    /// 转换网页 URL（用于在浏览器中打开）
+    func convertWebURL(_ url: String) -> String {
+        convertURL(url)
+    }
+
     private init() {
         self.useMirrorAcceleration = defaults.bool(forKey: Keys.useMirrorAcceleration)
         self.customMirrorURL = defaults.string(forKey: Keys.customMirrorURL)

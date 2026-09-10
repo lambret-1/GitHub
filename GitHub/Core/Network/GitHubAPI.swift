@@ -216,7 +216,10 @@ class GitHubAPI {
     // MARK: - 下载文件原始数据
 
     func downloadFileData(url: String, completion: @escaping (Result<Data, Error>) -> Void) {
-        guard let urlObj = URL(string: url) else {
+        // 应用镜像加速转换
+        let convertedURL = AppSettings.shared.convertDownloadURL(url)
+
+        guard let urlObj = URL(string: convertedURL) else {
             completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的下载URL"])))
             return
         }
