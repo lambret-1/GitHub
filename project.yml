@@ -41,6 +41,7 @@ targets:
       - path: GitHub
         excludes:
           - "Preview Content"
+          - "**/README.md"
       - path: GitHub/Preview Content
         type: folder
         optional: true
