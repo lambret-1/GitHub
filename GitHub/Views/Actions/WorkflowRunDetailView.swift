@@ -274,11 +274,9 @@ struct JobRow: View {
 
                 // 运行时长和 Runner
                 HStack(spacing: 8) {
-                    if let duration = job.durationDisplay {
-                        Text(duration)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
+                    Text(job.durationDisplay)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
 
                     if let runner = job.runnerName {
                         Text("· \(runner)")
@@ -344,11 +342,9 @@ struct JobLogView: View {
                                         .font(.system(size: 10))
                                         .lineLimit(1)
                                         .frame(width: 80)
-                                    if let duration = step.durationDisplay {
-                                        Text(duration)
-                                            .font(.system(size: 9))
-                                            .foregroundColor(.secondary)
-                                    }
+                                    Text(step.durationDisplay)
+                                        .font(.system(size: 9))
+                                        .foregroundColor(.secondary)
                                 }
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 8)

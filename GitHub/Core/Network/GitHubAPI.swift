@@ -501,10 +501,13 @@ class GitHubAPI {
     /// 触发工作流运行（workflow_dispatch）
     func triggerWorkflowDispatch(owner: String, repo: String, workflowId: Int, ref: String = "main", inputs: [String: String] = [:], completion: @escaping (Result<Bool, Error>) -> Void) {
         let url = APIEndpoints.workflowDispatch(owner: owner, repo: repo, workflowId: workflowId).url
-        var request = URLRequest(url: URL(string: url)!)
+        guard let urlObj = URL(string: url) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+        var request = URLRequest(url: urlObj)
         request.httpMethod = "POST"
-        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.allHTTPHeaderFields = getHeaders()
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         var body: [String: Any] = ["ref": ref]
@@ -537,10 +540,13 @@ class GitHubAPI {
     /// 取消工作流运行
     func cancelWorkflowRun(owner: String, repo: String, runId: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
         let url = APIEndpoints.cancelWorkflowRun(owner: owner, repo: repo, runId: runId).url
-        var request = URLRequest(url: URL(string: url)!)
+        guard let urlObj = URL(string: url) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+        var request = URLRequest(url: urlObj)
         request.httpMethod = "POST"
-        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.allHTTPHeaderFields = getHeaders()
 
         URLSession.shared.dataTask(with: request) { _, response, error in
             if let error = error {
@@ -560,10 +566,13 @@ class GitHubAPI {
     /// 重新运行工作流
     func rerunWorkflowRun(owner: String, repo: String, runId: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
         let url = APIEndpoints.rerunWorkflowRun(owner: owner, repo: repo, runId: runId).url
-        var request = URLRequest(url: URL(string: url)!)
+        guard let urlObj = URL(string: url) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+        var request = URLRequest(url: urlObj)
         request.httpMethod = "POST"
-        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.allHTTPHeaderFields = getHeaders()
 
         URLSession.shared.dataTask(with: request) { _, response, error in
             if let error = error {
