@@ -30,7 +30,6 @@ struct AdvancedFilterView: View {
                         onApply()
                         presentationMode.wrappedValue.dismiss()
                     }
-                    .fontWeight(.bold)
                 }
             }
         }
@@ -53,6 +52,40 @@ struct AdvancedFilterView: View {
             userNumericSection
             userDateSection
         }
+    }
+
+    // MARK: - 辅助方法
+
+    private func optionalIntBinding(_ value: Binding<Int?>, defaultValue: Int = 0) -> Binding<Int> {
+        return Binding<Int>(
+            get: { value.wrappedValue ?? defaultValue },
+            set: { newValue in
+                value.wrappedValue = newValue == defaultValue ? nil : newValue
+            }
+        )
+    }
+
+    private func optionalStringBinding(_ value: Binding<String?>) -> Binding<String> {
+        return Binding<String>(
+            get: { value.wrappedValue ?? "" },
+            set: { newValue in
+                value.wrappedValue = newValue.isEmpty ? nil : newValue
+            }
+        )
+    }
+
+    private func triStateBinding(_ value: Binding<Bool?>) -> Binding<Int> {
+        return Binding<Int>(
+            get: {
+                if let v = value.wrappedValue {
+                    return v ? 1 : 0
+                }
+                return 2
+            },
+            set: { newValue in
+                value.wrappedValue = newValue == 2 ? nil : (newValue == 1)
+            }
+        )
     }
 }
 
@@ -80,12 +113,7 @@ extension AdvancedFilterView {
         HStack {
             Text("归档状态")
             Spacer()
-            Picker("归档状态", selection: Binding(
-                get: { repoFilter.isArchived ?? 2 },
-                set: { newValue in
-                    repoFilter.isArchived = (newValue == 2 ? nil : (newValue == 1))
-                }
-            )) {
+            Picker("归档状态", selection: triStateBinding($repoFilter.isArchived)) {
                 Text("不限").tag(2)
                 Text("仅已归档").tag(1)
                 Text("仅未归档").tag(0)
@@ -98,12 +126,7 @@ extension AdvancedFilterView {
         HStack {
             Text("模板仓库")
             Spacer()
-            Picker("模板仓库", selection: Binding(
-                get: { repoFilter.isTemplate ?? 2 },
-                set: { newValue in
-                    repoFilter.isTemplate = (newValue == 2 ? nil : (newValue == 1))
-                }
-            )) {
+            Picker("模板仓库", selection: triStateBinding($repoFilter.isTemplate)) {
                 Text("不限").tag(2)
                 Text("仅模板").tag(1)
                 Text("非模板").tag(0)
@@ -150,12 +173,9 @@ extension AdvancedFilterView {
     private var topicInput: some View {
         HStack {
             Text("主题")
-            TextField("如: ios, swiftui", text: Binding(
-                get: { repoFilter.topic ?? "" },
-                set: { repoFilter.topic = $0.isEmpty ? nil : $0 }
-            ))
-            .multilineTextAlignment(.trailing)
-            .autocapitalization(.none)
+            TextField("如: ios, swiftui", text: optionalStringBinding($repoFilter.topic))
+                .multilineTextAlignment(.trailing)
+                .autocapitalization(.none)
         }
     }
 
@@ -179,24 +199,18 @@ extension AdvancedFilterView {
     private var userInput: some View {
         HStack {
             Text("用户")
-            TextField("用户名", text: Binding(
-                get: { repoFilter.user ?? "" },
-                set: { repoFilter.user = $0.isEmpty ? nil : $0 }
-            ))
-            .multilineTextAlignment(.trailing)
-            .autocapitalization(.none)
+            TextField("用户名", text: optionalStringBinding($repoFilter.user))
+                .multilineTextAlignment(.trailing)
+                .autocapitalization(.none)
         }
     }
 
     private var orgInput: some View {
         HStack {
             Text("组织")
-            TextField("组织名", text: Binding(
-                get: { repoFilter.org ?? "" },
-                set: { repoFilter.org = $0.isEmpty ? nil : $0 }
-            ))
-            .multilineTextAlignment(.trailing)
-            .autocapitalization(.none)
+            TextField("组织名", text: optionalStringBinding($repoFilter.org))
+                .multilineTextAlignment(.trailing)
+                .autocapitalization(.none)
         }
     }
 
@@ -212,10 +226,7 @@ extension AdvancedFilterView {
         HStack {
             Text("最少 Star 数")
             Spacer()
-            Picker("Star 数", selection: Binding(
-                get: { repoFilter.minStars ?? 0 },
-                set: { repoFilter.minStars = $0 == 0 ? nil : $0 }
-            )) {
+            Picker("Star 数", selection: optionalIntBinding($repoFilter.minStars)) {
                 ForEach(FilterOptions.starOptions, id: \.self) { value in
                     Text(value == 0 ? "不限" : ">= \(value)").tag(value)
                 }
@@ -228,10 +239,7 @@ extension AdvancedFilterView {
         HStack {
             Text("最少 Fork 数")
             Spacer()
-            Picker("Fork 数", selection: Binding(
-                get: { repoFilter.minForks ?? 0 },
-                set: { repoFilter.minForks = $0 == 0 ? nil : $0 }
-            )) {
+            Picker("Fork 数", selection: optionalIntBinding($repoFilter.minForks)) {
                 ForEach(FilterOptions.forkOptions, id: \.self) { value in
                     Text(value == 0 ? "不限" : ">= \(value)").tag(value)
                 }
@@ -244,10 +252,7 @@ extension AdvancedFilterView {
         HStack {
             Text("最小大小(KB)")
             Spacer()
-            Picker("大小", selection: Binding(
-                get: { repoFilter.minSizeKB ?? 0 },
-                set: { repoFilter.minSizeKB = $0 == 0 ? nil : $0 }
-            )) {
+            Picker("大小", selection: optionalIntBinding($repoFilter.minSizeKB)) {
                 Text("不限").tag(0)
                 Text(">= 1 KB").tag(1)
                 Text(">= 10 KB").tag(10)
@@ -352,11 +357,8 @@ extension AdvancedFilterView {
     private var locationInput: some View {
         HStack {
             Text("位置")
-            TextField("如: Beijing, China", text: Binding(
-                get: { userFilter.location ?? "" },
-                set: { userFilter.location = $0.isEmpty ? nil : $0 }
-            ))
-            .multilineTextAlignment(.trailing)
+            TextField("如: Beijing, China", text: optionalStringBinding($userFilter.location))
+                .multilineTextAlignment(.trailing)
         }
     }
 
@@ -382,10 +384,7 @@ extension AdvancedFilterView {
         HStack {
             Text("最少仓库数")
             Spacer()
-            Picker("仓库数", selection: Binding(
-                get: { userFilter.minRepos ?? 0 },
-                set: { userFilter.minRepos = $0 == 0 ? nil : $0 }
-            )) {
+            Picker("仓库数", selection: optionalIntBinding($userFilter.minRepos)) {
                 ForEach(FilterOptions.repoOptions, id: \.self) { value in
                     Text(value == 0 ? "不限" : ">= \(value)").tag(value)
                 }
@@ -398,10 +397,7 @@ extension AdvancedFilterView {
         HStack {
             Text("最少关注者")
             Spacer()
-            Picker("关注者", selection: Binding(
-                get: { userFilter.minFollowers ?? 0 },
-                set: { userFilter.minFollowers = $0 == 0 ? nil : $0 }
-            )) {
+            Picker("关注者", selection: optionalIntBinding($userFilter.minFollowers)) {
                 ForEach(FilterOptions.followerOptions, id: \.self) { value in
                     Text(value == 0 ? "不限" : ">= \(value)").tag(value)
                 }
@@ -414,10 +410,7 @@ extension AdvancedFilterView {
         HStack {
             Text("最少关注数")
             Spacer()
-            Picker("关注数", selection: Binding(
-                get: { userFilter.minFollowing ?? 0 },
-                set: { userFilter.minFollowing = $0 == 0 ? nil : $0 }
-            )) {
+            Picker("关注数", selection: optionalIntBinding($userFilter.minFollowing)) {
                 ForEach(FilterOptions.followerOptions, id: \.self) { value in
                     Text(value == 0 ? "不限" : ">= \(value)").tag(value)
                 }
