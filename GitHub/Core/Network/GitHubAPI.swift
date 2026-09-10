@@ -111,6 +111,22 @@ class GitHubAPI {
             }
         }
     }
+
+    func searchUsers(query: String, page: Int = 1, completion: @escaping (Result<[GitHubUser], Error>) -> Void) {
+        performRequest(url: APIEndpoints.searchUsers(query: query, page: page).url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let searchResult = try JSONDecoder().decode(SearchResult<GitHubUser>.self, from: data)
+                    completion(.success(searchResult.items))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
     
     // MARK: - 文件内容
     

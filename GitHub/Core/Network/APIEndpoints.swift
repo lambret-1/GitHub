@@ -13,6 +13,7 @@ enum APIEndpoints {
     case repoBranches(owner: String, repo: String)
     case commits(owner: String, repo: String, path: String?)
     case searchRepos(query: String, page: Int)
+    case searchUsers(query: String, page: Int)
 
     var url: String {
         switch self {
@@ -37,6 +38,9 @@ enum APIEndpoints {
         case .searchRepos(let query, let page):
             let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
             return "\(APIEndpoints.baseURL)/search/repositories?q=\(encodedQuery)&page=\(page)&per_page=30&sort=stars"
+        case .searchUsers(let query, let page):
+            let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+            return "\(APIEndpoints.baseURL)/search/users?q=\(encodedQuery)&page=\(page)&per_page=30&sort=followers"
         }
     }
 }

@@ -8,6 +8,7 @@ struct RepoListView: View {
     @State private var isLoading: Bool = true
     @State private var errorMessage: String?
     @State private var selectedFilter: FilterType = .all
+    @State private var showSearchView: Bool = false
     
     enum FilterType: String, CaseIterable {
         case all = "全部"
@@ -87,12 +88,23 @@ struct RepoListView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        loadRepos()
-                    }) {
-                        Image(systemName: "arrow.clockwise")
+                    HStack(spacing: 16) {
+                        Button(action: {
+                            showSearchView = true
+                        }) {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        Button(action: {
+                            loadRepos()
+                        }) {
+                            Image(systemName: "arrow.clockwise")
+                        }
                     }
                 }
+            }
+            .sheet(isPresented: $showSearchView) {
+                SearchView()
+                    .environmentObject(appState)
             }
         }
         .onAppear {
