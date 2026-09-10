@@ -18,7 +18,7 @@ struct AboutView: View {
     // 镜像加速相关状态
     @State private var useMirrorAcceleration: Bool = AppSettings.shared.useMirrorAcceleration
     @State private var showMirrorPicker: Bool = false
-    @State private var selectedMirrorIndex: Int = 0
+    @ObservedObject private var appSettings = AppSettings.shared
 
     var body: some View {
         List {
@@ -79,7 +79,7 @@ struct AboutView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("当前镜像")
                                     .foregroundColor(.primary)
-                                Text(AppSettings.shared.currentMirror.name)
+                                Text(appSettings.currentMirror.name)
                                     .font(.caption)
                                     .foregroundColor(.gray)
                             }
@@ -178,8 +178,15 @@ struct AboutView: View {
         // 镜像选择器
         .sheet(isPresented: $showMirrorPicker) {
             MirrorPickerView { selectedMirror in
-                // 设置自定义镜像URL
-                AppSettings.shared.customMirrorURL = selectedMirror.url
+                // 检查是否是预设镜像
+                if let index = AppSettings.shared.presetMirrors.firstIndex(where: { $0.url == selectedMirror.url }) {
+                    // 预设镜像：设置 selectedMirrorIndex，清除 customMirrorURL
+                    AppSettings.shared.selectedMirrorIndex = index
+                    AppSettings.shared.customMirrorURL = nil
+                } else {
+                    // 自定义镜像：设置 customMirrorURL
+                    AppSettings.shared.customMirrorURL = selectedMirror.url
+                }
                 // 确保镜像加速开启
                 if !AppSettings.shared.useMirrorAcceleration {
                     AppSettings.shared.useMirrorAcceleration = true

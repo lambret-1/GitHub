@@ -1,9 +1,10 @@
 import Foundation
+import Combine
 
 // MARK: - 应用设置管理器
 
 /// 应用设置管理器，用于保存和读取用户设置
-class AppSettings {
+class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
     private let defaults = UserDefaults.standard
@@ -12,6 +13,7 @@ class AppSettings {
     private enum Keys {
         static let useMirrorAcceleration = "useMirrorAcceleration"
         static let customMirrorURL = "customMirrorURL"
+        static let selectedMirrorIndex = "selectedMirrorIndex"
     }
 
     // 镜像加速相关设置
@@ -29,6 +31,16 @@ class AppSettings {
         }
     }
 
+    // 用户选择的预设镜像索引（1=ghproxy, 2=gh-proxy, 3=kkgithub）
+    // 0=官方API（未开启镜像加速时使用）
+    var selectedMirrorIndex: Int {
+        didSet {
+            defaults.set(selectedMirrorIndex, forKey: Keys.selectedMirrorIndex)
+            // 发送设置变更通知
+            NotificationCenter.default.post(name: .appSettingsDidChange, object: nil)
+        }
+    }
+
     // 预设的镜像地址列表
     let presetMirrors: [MirrorOption] = [
         MirrorOption(name: "官方 API", url: "https://api.github.com", isOfficial: true),
@@ -40,12 +52,17 @@ class AppSettings {
     // 当前选中的镜像
     var currentMirror: MirrorOption {
         if useMirrorAcceleration {
-            // 如果有自定义镜像URL，使用自定义的
+            // 如果有自定义镜像URL且不是预设镜像，使用自定义的
             if let customURL = customMirrorURL, !customURL.isEmpty {
+                // 检查是否是预设镜像
+                if let index = presetMirrors.firstIndex(where: { $0.url == customURL }) {
+                    return presetMirrors[index]
+                }
                 return MirrorOption(name: "自定义镜像", url: customURL, isOfficial: false)
             }
-            // 否则使用第一个预设镜像（ghproxy）
-            return presetMirrors[1]
+            // 否则使用用户选择的预设镜像
+            let index = max(1, min(selectedMirrorIndex, presetMirrors.count - 1))
+            return presetMirrors[index]
         } else {
             // 使用官方 API
             return presetMirrors[0]
@@ -140,6 +157,9 @@ class AppSettings {
     private init() {
         self.useMirrorAcceleration = defaults.bool(forKey: Keys.useMirrorAcceleration)
         self.customMirrorURL = defaults.string(forKey: Keys.customMirrorURL)
+        // 默认选择 ghproxy 镜像（索引1）
+        let savedIndex = defaults.integer(forKey: Keys.selectedMirrorIndex)
+        self.selectedMirrorIndex = savedIndex > 0 ? savedIndex : 1
     }
 }
 
