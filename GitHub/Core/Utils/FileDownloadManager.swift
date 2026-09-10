@@ -17,16 +17,20 @@ class FileDownloadManager {
     /// - Parameters:
     ///   - url: 文件下载URL
     ///   - fileName: 保存的文件名
+    ///   - useMirror: 是否使用镜像加速（默认true，更新下载应设为false）
     ///   - progress: 下载进度回调（0.0 ~ 1.0）
     ///   - completion: 完成回调，返回本地文件URL
     func downloadFile(
         from url: String,
         fileName: String,
+        useMirror: Bool = true,
         progress: ((Double) -> Void)? = nil,
         completion: @escaping (Result<URL, Error>) -> Void
     ) {
-        // 应用镜像加速转换
-        let convertedURL = AppSettings.shared.convertDownloadURL(url)
+        // 根据参数决定是否应用镜像加速转换
+        // 注意：GitHub Releases的下载URL涉及重定向，镜像无法正确代理
+        // 所以更新下载应该设置useMirror=false，直接从官方下载
+        let convertedURL = useMirror ? AppSettings.shared.convertDownloadURL(url) : url
 
         guard let urlObj = URL(string: convertedURL) else {
             completion(.failure(NSError(domain: "FileDownloadManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的下载URL"])))
@@ -45,7 +49,9 @@ class FileDownloadManager {
         let session = URLSession(configuration: config, delegate: DownloadDelegate(progress: progress, fileURL: fileURL, completion: completion), delegateQueue: .main)
 
         var request = URLRequest(url: urlObj)
-        if let token = TokenKeychain.shared.getToken() {
+        // 注意：GitHub Releases的下载URL是公开的，不需要认证
+        // 只有仓库内的文件下载才需要认证
+        if useMirror, let token = TokenKeychain.shared.getToken() {
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -73,15 +79,17 @@ class FileDownloadManager {
     /// - Parameters:
     ///   - url: 文件下载URL
     ///   - fileName: 保存的文件名
+    ///   - useMirror: 是否使用镜像加速（默认true，更新下载应设为false）
     ///   - progress: 下载进度回调
     ///   - completion: 完成回调
     func downloadAndShare(
         from url: String,
         fileName: String,
+        useMirror: Bool = true,
         progress: ((Double) -> Void)? = nil,
         completion: ((Result<Void, Error>) -> Void)? = nil
     ) {
-        downloadFile(from: url, fileName: fileName, progress: progress) { result in
+        downloadFile(from: url, fileName: fileName, useMirror: useMirror, progress: progress) { result in
             switch result {
             case .success(let fileURL):
                 DispatchQueue.main.async {
