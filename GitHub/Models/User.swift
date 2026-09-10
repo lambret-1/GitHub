@@ -9,11 +9,11 @@ struct GitHubUser: Codable, Identifiable {
     let company: String?
     let location: String?
     let blog: String?
-    let publicRepos: Int
-    let followers: Int
-    let following: Int
+    let publicRepos: Int?
+    let followers: Int?
+    let following: Int?
     let htmlUrl: String
-    let createdAt: String
+    let createdAt: String?
     
     enum CodingKeys: String, CodingKey {
         case id, login, name, bio, company, location, blog
@@ -29,6 +29,7 @@ struct GitHubUser: Codable, Identifiable {
     }
     
     var formattedDate: String {
+        guard let createdAt = createdAt else { return "未知" }
         let formatter = ISO8601DateFormatter()
         if let date = formatter.date(from: createdAt) {
             let displayFormatter = DateFormatter()

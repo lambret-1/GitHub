@@ -6,15 +6,15 @@ struct Repository: Codable, Identifiable {
     let fullName: String
     let description: String?
     let language: String?
-    let stargazersCount: Int
-    let forksCount: Int
-    let watchersCount: Int
-    let openIssuesCount: Int
+    let stargazersCount: Int?
+    let forksCount: Int?
+    let watchersCount: Int?
+    let openIssuesCount: Int?
     let isPrivate: Bool
     let htmlUrl: String
-    let defaultBranch: String
-    let updatedAt: String
-    let createdAt: String
+    let defaultBranch: String?
+    let updatedAt: String?
+    let createdAt: String?
     let owner: RepositoryOwner
     
     enum CodingKeys: String, CodingKey {
@@ -36,6 +36,7 @@ struct Repository: Codable, Identifiable {
     }
     
     var formattedUpdateTime: String {
+        guard let updatedAt = updatedAt else { return "未知" }
         let formatter = ISO8601DateFormatter()
         if let date = formatter.date(from: updatedAt) {
             let displayFormatter = DateFormatter()

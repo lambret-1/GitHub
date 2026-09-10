@@ -217,10 +217,10 @@ struct RepoRow: View {
             }
             
             HStack(spacing: 16) {
-                Label("\(repo.stargazersCount)", systemImage: "star.fill")
+                Label("\(repo.stargazersCount ?? 0)", systemImage: "star.fill")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                Label("\(repo.forksCount)", systemImage: "tuningfork")
+                Label("\(repo.forksCount ?? 0)", systemImage: "tuningfork")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()

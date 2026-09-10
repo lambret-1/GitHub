@@ -177,7 +177,7 @@ struct SearchView: View {
                                     owner: item.repository.ownerName,
                                     repo: item.repository.name,
                                     path: item.path,
-                                    branch: item.repository.defaultBranch,
+                                    branch: item.repository.defaultBranch ?? "main",
                                     fileName: item.name
                                 )) {
                                     CodeSearchRow(item: item)
