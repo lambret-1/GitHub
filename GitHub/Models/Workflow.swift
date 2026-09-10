@@ -73,7 +73,6 @@ struct WorkflowRun: Codable, Identifiable {
     let cancelUrl: String
     let rerunUrl: String
     let headCommit: HeadCommit?
-    let repository: Repository?
     let actor: Actor?
 
     enum CodingKeys: String, CodingKey {
@@ -94,7 +93,6 @@ struct WorkflowRun: Codable, Identifiable {
         case cancelUrl = "cancel_url"
         case rerunUrl = "rerun_url"
         case headCommit = "head_commit"
-        case repository
         case actor
     }
 
