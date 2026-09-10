@@ -199,8 +199,8 @@ struct HeadCommit: Codable {
     let treeId: String
     let message: String
     let timestamp: String
-    let author: CommitAuthor?
-    let committer: CommitAuthor?
+    let author: WorkflowCommitAuthor?
+    let committer: WorkflowCommitAuthor?
 
     enum CodingKeys: String, CodingKey {
         case id, message, timestamp, author, committer
@@ -210,7 +210,7 @@ struct HeadCommit: Codable {
 
 // MARK: - 提交作者
 
-struct CommitAuthor: Codable {
+struct WorkflowCommitAuthor: Codable {
     let name: String
     let email: String
     let username: String?
