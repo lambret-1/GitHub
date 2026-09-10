@@ -96,8 +96,16 @@ class GitHubAPI {
         }
     }
     
-    func searchRepos(query: String, page: Int = 1, completion: @escaping (Result<[Repository], Error>) -> Void) {
-        performRequest(url: APIEndpoints.searchRepos(query: query, page: page).url) { result in
+    func searchRepos(query: String, page: Int = 1, sort: String = "", completion: @escaping (Result<[Repository], Error>) -> Void) {
+        let url: String
+        if sort.isEmpty {
+            url = APIEndpoints.searchRepos(query: query, page: page).url
+        } else {
+            let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+            url = "\(APIEndpoints.baseURL)/search/repositories?q=\(encodedQuery)&page=\(page)&per_page=30&sort=\(sort)"
+        }
+
+        performRequest(url: url) { result in
             switch result {
             case .success(let data):
                 do {
@@ -112,8 +120,16 @@ class GitHubAPI {
         }
     }
 
-    func searchUsers(query: String, page: Int = 1, completion: @escaping (Result<[GitHubUser], Error>) -> Void) {
-        performRequest(url: APIEndpoints.searchUsers(query: query, page: page).url) { result in
+    func searchUsers(query: String, page: Int = 1, sort: String = "", completion: @escaping (Result<[GitHubUser], Error>) -> Void) {
+        let url: String
+        if sort.isEmpty {
+            url = APIEndpoints.searchUsers(query: query, page: page).url
+        } else {
+            let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+            url = "\(APIEndpoints.baseURL)/search/users?q=\(encodedQuery)&page=\(page)&per_page=30&sort=\(sort)"
+        }
+
+        performRequest(url: url) { result in
             switch result {
             case .success(let data):
                 do {

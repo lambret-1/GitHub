@@ -12,6 +12,8 @@ struct SearchView: View {
     @State private var errorMessage: String?
     @State private var currentPage: Int = 1
     @State private var hasMoreResults: Bool = true
+    @State private var showAdvancedFilter: Bool = false
+    @State private var filterConfig: FilterConfiguration = FilterConfiguration()
 
     enum SearchTab: String, CaseIterable {
         case repositories = "仓库"
@@ -21,12 +23,70 @@ struct SearchView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // 搜索栏
-                SearchBar(text: $searchText, placeholder: "搜索仓库或用户", onSearchButtonClicked: {
-                    performSearch()
-                })
+                // 搜索栏 + 筛选按钮
+                HStack(spacing: 8) {
+                    SearchBar(text: $searchText, placeholder: "搜索仓库或用户", onSearchButtonClicked: {
+                        performSearch()
+                    })
+
+                    // 高级筛选按钮
+                    Button(action: {
+                        showAdvancedFilter = true
+                    }) {
+                        ZStack {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 18))
+                                .foregroundColor(filterConfig.hasActiveFilters ? .blue : .gray)
+
+                            // 激活筛选条件数量角标
+                            if filterConfig.hasActiveFilters {
+                                Text("●")
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.blue)
+                                    .offset(x: 10, y: -8)
+                            }
+                        }
+                        .frame(width: 32, height: 32)
+                    }
+                }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
+
+                // 当前激活的筛选条件标签
+                if filterConfig.hasActiveFilters {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            Text("筛选:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            // 显示激活的筛选条件
+                            ForEach(activeFilterTags, id: \.self) { tag in
+                                Text(tag)
+                                    .font(.caption)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.blue.opacity(0.1))
+                                    .foregroundColor(.blue)
+                                    .cornerRadius(4)
+                            }
+
+                            // 清除所有筛选按钮
+                            Button(action: {
+                                filterConfig.reset()
+                                if !searchText.isEmpty {
+                                    performSearch()
+                                }
+                            }) {
+                                Text("清除")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.bottom, 4)
+                }
 
                 // 标签页切换
                 Picker("搜索类型", selection: $selectedTab) {
@@ -115,20 +175,65 @@ struct SearchView: View {
             .navigationTitle("搜索")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .sheet(isPresented: $showAdvancedFilter) {
+            AdvancedFilterView(
+                searchType: $selectedTab,
+                filterConfig: $filterConfig
+            ) { config in
+                filterConfig = config
+                if !searchText.isEmpty {
+                    performSearch()
+                }
+            }
+        }
+    }
+
+    // MARK: - 激活的筛选条件标签
+
+    private var activeFilterTags: [String] {
+        var tags: [String] = []
+
+        if selectedTab == .repositories {
+            if !filterConfig.language.isEmpty { tags.append("语言:\(filterConfig.language)") }
+            if !filterConfig.minStars.isEmpty { tags.append("Star>=\(filterConfig.minStars)") }
+            if !filterConfig.maxStars.isEmpty { tags.append("Star<=\(filterConfig.maxStars)") }
+            if !filterConfig.minForks.isEmpty { tags.append("Fork>=\(filterConfig.minForks)") }
+            if !filterConfig.maxForks.isEmpty { tags.append("Fork<=\(filterConfig.maxForks)") }
+            if !filterConfig.license.isEmpty { tags.append("许可证:\(filterConfig.license)") }
+            if filterConfig.hasIssues { tags.append("有议题") }
+            if filterConfig.hasWiki { tags.append("有Wiki") }
+            if filterConfig.hasProjects { tags.append("有项目") }
+            if filterConfig.archived { tags.append("已归档") }
+            if !filterConfig.repoType.isEmpty { tags.append("类型:\(filterConfig.repoType)") }
+            if !filterConfig.topics.isEmpty { tags.append("主题") }
+        } else {
+            if !filterConfig.userType.isEmpty { tags.append("类型:\(filterConfig.userType)") }
+            if !filterConfig.minRepos.isEmpty { tags.append("仓库>=\(filterConfig.minRepos)") }
+            if !filterConfig.maxRepos.isEmpty { tags.append("仓库<=\(filterConfig.maxRepos)") }
+            if !filterConfig.minFollowers.isEmpty { tags.append("关注者>=\(filterConfig.minFollowers)") }
+            if !filterConfig.maxFollowers.isEmpty { tags.append("关注者<=\(filterConfig.maxFollowers)") }
+            if !filterConfig.location.isEmpty { tags.append("位置:\(filterConfig.location)") }
+            if filterConfig.isHireable { tags.append("可雇佣") }
+        }
+
+        return tags
     }
 
     // MARK: - 搜索方法
 
     private func performSearch() {
-        guard !searchText.isEmpty else { return }
+        guard !searchText.isEmpty || filterConfig.hasActiveFilters else { return }
 
         isLoading = true
         errorMessage = nil
         currentPage = 1
         hasMoreResults = true
 
+        // 使用筛选配置构建查询
+        let query = filterConfig.buildQuery(baseQuery: searchText)
+
         if selectedTab == .repositories {
-            GitHubAPI.shared.searchRepos(query: searchText, page: currentPage) { result in
+            GitHubAPI.shared.searchRepos(query: query, page: currentPage, sort: filterConfig.getSortParameter()) { result in
                 DispatchQueue.main.async {
                     isLoading = false
                     switch result {
@@ -141,7 +246,7 @@ struct SearchView: View {
                 }
             }
         } else {
-            GitHubAPI.shared.searchUsers(query: searchText, page: currentPage) { result in
+            GitHubAPI.shared.searchUsers(query: query, page: currentPage, sort: filterConfig.getSortParameter()) { result in
                 DispatchQueue.main.async {
                     isLoading = false
                     switch result {
@@ -160,8 +265,11 @@ struct SearchView: View {
         currentPage += 1
         isLoading = true
 
+        // 使用筛选配置构建查询
+        let query = filterConfig.buildQuery(baseQuery: searchText)
+
         if selectedTab == .repositories {
-            GitHubAPI.shared.searchRepos(query: searchText, page: currentPage) { result in
+            GitHubAPI.shared.searchRepos(query: query, page: currentPage, sort: filterConfig.getSortParameter()) { result in
                 DispatchQueue.main.async {
                     isLoading = false
                     switch result {
@@ -174,7 +282,7 @@ struct SearchView: View {
                 }
             }
         } else {
-            GitHubAPI.shared.searchUsers(query: searchText, page: currentPage) { result in
+            GitHubAPI.shared.searchUsers(query: query, page: currentPage, sort: filterConfig.getSortParameter()) { result in
                 DispatchQueue.main.async {
                     isLoading = false
                     switch result {
