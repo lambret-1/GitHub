@@ -957,22 +957,36 @@ struct FileBrowserView: View {
         htmlPreviewTitle = fileName
         htmlPreviewError = nil
 
-        // 添加超时处理，确保请求不会一直挂起（15秒超时）
+        // 添加超时处理，确保请求不会一直挂起（10秒超时）
         guard let urlObj = URL(string: url) else {
             isLoadingHTML = false
             htmlPreviewError = "无效的下载链接"
             return
         }
 
+        // 使用自定义URLSession配置，提升下载速度
+        let configuration = URLSessionConfiguration.default
+        configuration.requestCachePolicy = .returnCacheDataElseLoad
+        configuration.urlCache = URLCache.shared
+        configuration.timeoutIntervalForRequest = 10
+        configuration.timeoutIntervalForResource = 10
+        // 启用HTTP管道，提升并发性能
+        configuration.httpShouldUsePipelining = true
+        // 启用Cookie接受
+        configuration.httpShouldSetCookies = true
+
+        let session = URLSession(configuration: configuration)
+
         var request = URLRequest(url: urlObj)
-        request.timeoutInterval = 15
-        // 启用缓存策略，优先使用缓存
+        request.timeoutInterval = 10
         request.cachePolicy = .returnCacheDataElseLoad
         if let token = TokenKeychain.shared.getToken() {
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
         }
+        // 启用压缩传输
+        request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        session.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isLoadingHTML = false
 

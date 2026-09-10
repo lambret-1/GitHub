@@ -102,10 +102,20 @@ struct WebView: UIViewRepresentable {
         // 允许内联媒体播放
         configuration.allowsInlineMediaPlayback = true
 
-        // 优化渲染性能
+        // 忽略视口缩放限制，提升渲染性能
+        configuration.ignoresViewportScaleLimits = true
+
+        // 优化首屏渲染性能
         if #available(iOS 15.0, *) {
             // iOS 15+ 可以使用更高效的渲染模式
         }
+
+        let preferences = WKPreferences()
+        preferences.javaScriptEnabled = true
+        preferences.javaScriptCanOpenWindowsAutomatically = true
+        // 最小化字体大小，提升渲染速度
+        preferences.minimumFontSize = 0
+        configuration.preferences = preferences
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -114,8 +124,9 @@ struct WebView: UIViewRepresentable {
         webView.backgroundColor = .clear
         webView.scrollView.bounces = true
         webView.scrollView.alwaysBounceVertical = true
-        webView.configuration.preferences.javaScriptEnabled = true
-        webView.configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
+        // 优化滚动性能
+        webView.scrollView.decelerationRate = .normal
+        webView.scrollView.isScrollEnabled = true
 
         return webView
     }
@@ -135,12 +146,20 @@ struct WebView: UIViewRepresentable {
             webView.loadHTMLString(htmlContent, baseURL: nil)
         }
 
-        // 安全超时：如果5秒后还在加载，强制关闭加载状态
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak webView] in
+        // 本地HTML内容应该很快渲染完成，延迟0.5秒后强制关闭加载状态
+        // 解决loadHTMLString加载本地内容时didFinish回调可能不触发的问题
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak webView] in
             guard let webView = webView else { return }
+            // 如果还在加载，再等1秒
             if webView.isLoading {
-                // 仍然在加载，可能是网络资源加载慢，不强制关闭
-                // 但至少确保onLoadingChange被调用过
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak webView] in
+                    guard let webView = webView else { return }
+                    // 最多等待1.5秒，强制关闭加载状态
+                    webView.stopLoading()
+                    self.onLoadingChange?(false)
+                }
+            } else {
+                self.onLoadingChange?(false)
             }
         }
     }
