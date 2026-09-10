@@ -421,13 +421,13 @@ struct AboutView: View {
         isDownloadingUpdate = true
         downloadProgress = 0
 
-        // 注意：更新下载不使用镜像加速
-        // 因为GitHub Releases的下载URL涉及重定向，镜像无法正确代理
-        // 会导致下载的是HTML重定向页面（只有166字节），而不是真正的IPA文件
+        // 更新下载使用镜像加速
+        // 公共镜像站（清华、中科大等）可以用于下载Release文件
+        // 注意：公共镜像站只镜像了部分热门项目，如果镜像下载失败会自动报错
         FileDownloadManager.shared.downloadAndShare(
             from: asset.browserDownloadUrl,
             fileName: asset.name,
-            useMirror: false,
+            useMirror: true,
             progress: { progress in
                 self.downloadProgress = progress
             }

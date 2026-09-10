@@ -42,11 +42,15 @@ class AppSettings: ObservableObject {
     }
 
     // 预设的镜像地址列表
+    // 注意：这些公共镜像站主要用于下载热门开源项目的Release文件
+    // 它们只镜像了部分热门项目，不一定包含所有项目
+    // 如果需要代理所有GitHub请求，请使用自定义镜像（如gh-proxy.com类型的代理）
     let presetMirrors: [MirrorOption] = [
         MirrorOption(name: "官方 API", url: "https://api.github.com", isOfficial: true),
-        MirrorOption(name: "ghproxy 镜像", url: "https://mirror.ghproxy.com/https://api.github.com", isOfficial: false),
-        MirrorOption(name: "gh-proxy 镜像", url: "https://gh-proxy.com/https://api.github.com", isOfficial: false),
-        MirrorOption(name: "kkgithub 镜像", url: "https://api.kkgithub.com", isOfficial: false)
+        MirrorOption(name: "清华大学镜像", url: "https://mirrors.tuna.tsinghua.edu.cn/github-release", isOfficial: false),
+        MirrorOption(name: "中科大镜像", url: "https://mirrors.ustc.edu.cn/github-release", isOfficial: false),
+        MirrorOption(name: "华为云镜像", url: "https://mirrors.huaweicloud.com/repo", isOfficial: false),
+        MirrorOption(name: "阿里云镜像", url: "https://developer.aliyun.com/mirror", isOfficial: false)
     ]
 
     // 当前选中的镜像
@@ -85,20 +89,61 @@ class AppSettings: ObservableObject {
 
         let mirror = currentMirror
 
-        // 根据不同镜像类型使用不同的转换方式
-        if mirror.url.contains("mirror.ghproxy.com") || mirror.url.contains("gh-proxy.com") {
-            // ghproxy / gh-proxy 类型：镜像前缀 + 原始URL
-            return convertWithProxyPrefix(url: url, mirrorURL: mirror.url)
-        } else if mirror.url.contains("kkgithub.com") {
-            // kkgithub 类型：域名替换
-            return convertWithDomainReplacement(url: url)
-        } else if let customURL = customMirrorURL, !customURL.isEmpty {
-            // 自定义镜像：尝试使用代理前缀方式
+        // 判断是否是公共镜像站（清华大学、中科大、华为云、阿里云）
+        let isPublicMirror = mirror.url.contains("mirrors.tuna.tsinghua.edu.cn") ||
+                             mirror.url.contains("mirrors.ustc.edu.cn") ||
+                             mirror.url.contains("mirrors.huaweicloud.com") ||
+                             mirror.url.contains("developer.aliyun.com")
+
+        if isPublicMirror {
+            // 公共镜像站只支持 Release 下载
+            // 对于 raw 文件、HTML 预览等，直接返回原始 URL（使用官方服务器）
+            if isReleaseDownloadURL(url) {
+                return convertReleaseURLToPublicMirror(url: url, mirrorURL: mirror.url)
+            }
+            return url
+        }
+
+        // 自定义镜像：尝试使用代理前缀方式
+        // 代理型镜像（如 gh-proxy.com）可以代理所有 GitHub 请求
+        if let customURL = customMirrorURL, !customURL.isEmpty {
             return convertWithProxyPrefix(url: url, mirrorURL: customURL)
         }
 
-        // 其他情况，尝试通用代理前缀方式
-        return convertWithProxyPrefix(url: url, mirrorURL: mirror.url)
+        // 其他情况，直接返回原始 URL
+        return url
+    }
+
+    /// 判断是否是 Release 下载 URL
+    private func isReleaseDownloadURL(_ url: String) -> Bool {
+        // Release 下载 URL 格式：https://github.com/owner/repo/releases/download/version/file
+        return url.contains("github.com") && url.contains("/releases/download/")
+    }
+
+    /// 将 Release 下载 URL 转换为公共镜像站 URL
+    private func convertReleaseURLToPublicMirror(url: String, mirrorURL: String) -> String {
+        // 原始 URL 格式：https://github.com/owner/repo/releases/download/version/file.ipa
+        // 目标 URL 格式：https://mirrors.tuna.tsinghua.edu.cn/github-release/owner/repo/version/file.ipa
+
+        // 提取 owner/repo/version/file 部分
+        guard let range = url.range(of: "github.com/") else { return url }
+        let pathPart = String(url[range.upperBound...])
+
+        // pathPart 格式：owner/repo/releases/download/version/file.ipa
+        // 需要转换为：owner/repo/version/file.ipa
+        let components = pathPart.components(separatedBy: "/")
+        guard components.count >= 6 else { return url }
+
+        let owner = components[0]
+        let repo = components[1]
+        // components[2] = "releases"
+        // components[3] = "download"
+        let version = components[4]
+        let fileName = components[5...].joined(separator: "/")
+
+        // 构建镜像 URL
+        let mirrorBase = mirrorURL.hasSuffix("/") ? String(mirrorURL.dropLast()) : mirrorURL
+        return "\(mirrorBase)/\(owner)/\(repo)/\(version)/\(fileName)"
     }
 
     /// 使用代理前缀方式转换 URL
@@ -110,8 +155,8 @@ class AppSettings: ObservableObject {
         } else if let range = mirrorURL.range(of: "/http://") {
             proxyPrefix = String(mirrorURL[..<range.lowerBound])
         } else {
-            // 无法提取代理前缀，直接返回原始 URL
-            return url
+            // 如果镜像 URL 不包含 /https://，则整个 URL 作为代理前缀
+            proxyPrefix = mirrorURL.hasSuffix("/") ? String(mirrorURL.dropLast()) : mirrorURL
         }
 
         // 只转换 GitHub 相关域名
@@ -120,33 +165,6 @@ class AppSettings: ObservableObject {
         }
 
         return url
-    }
-
-    /// 使用域名替换方式转换 URL（kkgithub 类型）
-    private func convertWithDomainReplacement(url: String) -> String {
-        var converted = url
-
-        // kkgithub 可能只支持 api.kkgithub.com 和 kkgithub.com
-        // 不支持 raw.kkgithub.com 和 avatars.kkgithub.com
-        // 为了避免"未找到主机名"错误，只替换 API 域名和网页域名
-        // raw 文件和头像不进行转换
-
-        // 替换 API 域名
-        if converted.contains("api.github.com") {
-            converted = converted.replacingOccurrences(of: "api.github.com", with: "api.kkgithub.com")
-        }
-
-        // 替换网页域名（只替换 github.com，不替换子域名）
-        // 注意：这里需要小心，不要替换已经替换过的 api.kkgithub.com
-        // 同时不要替换 raw.githubusercontent.com 和 avatars.githubusercontent.com
-        if converted.contains("github.com") &&
-           !converted.contains("kkgithub.com") &&
-           !converted.contains("raw.githubusercontent.com") &&
-           !converted.contains("avatars.githubusercontent.com") {
-            converted = converted.replacingOccurrences(of: "github.com", with: "kkgithub.com")
-        }
-
-        return converted
     }
 
     /// 转换文件下载 URL（raw.githubusercontent.com）

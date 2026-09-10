@@ -17,16 +17,22 @@ struct MirrorPickerView: View {
                 // 说明部分
                 Section("使用说明") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("• 镜像加速仅用于文件下载和HTML预览，API请求始终使用官方服务器")
+                        Text("• 公共镜像站（清华、中科大、华为云、阿里云）仅用于下载热门开源项目的Release文件")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text("• 公共镜像站只镜像了部分热门项目，不一定包含所有项目，如无法下载请使用官方服务器")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text("• 文件下载、HTML预览等操作在使用公共镜像站时仍走官方服务器")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text("• 如需代理所有GitHub请求，请添加自定义镜像（如gh-proxy.com类型的代理）")
                             .font(.caption)
                             .foregroundColor(.gray)
                         Text("• 头像不经过镜像，直接从官方加载")
                             .font(.caption)
                             .foregroundColor(.gray)
-                        Text("• 部分镜像可能因地区或网络环境不同而无法访问，如遇问题请切换其他镜像")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        Text("• 如所有镜像都无法访问，请关闭镜像加速使用官方服务器")
+                        Text("• API请求始终使用官方服务器，确保账号安全")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
@@ -34,7 +40,7 @@ struct MirrorPickerView: View {
                 }
 
                 // 预设镜像列表（只显示非官方镜像，官方镜像相当于关闭加速）
-                Section("推荐镜像") {
+                Section("公共镜像站") {
                     ForEach(Array(mirrors.enumerated()), id: \.element.id) { index, mirror in
                         // 只显示非官方镜像（索引大于0）
                         if index > 0 {
@@ -64,9 +70,34 @@ struct MirrorPickerView: View {
 
                 // 自定义镜像
                 Section("自定义镜像") {
+                    // 显示已添加的自定义镜像
+                    if let customURL = AppSettings.shared.customMirrorURL, !customURL.isEmpty {
+                        Button(action: {
+                            let mirror = MirrorOption(name: "自定义镜像", url: customURL, isOfficial: false)
+                            onSelect(mirror)
+                        }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("自定义镜像")
+                                        .foregroundColor(.primary)
+                                    Text(customURL)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                        .lineLimit(1)
+                                }
+                                Spacer()
+                                // 显示当前选中的勾选标记
+                                if AppSettings.shared.currentMirror.url == customURL {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
+                    }
+
                     if showCustomInput {
                         VStack(spacing: 12) {
-                            TextField("输入镜像 API 地址", text: $customURL)
+                            TextField("输入镜像代理地址（如 https://gh-proxy.com）", text: $customURL)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .autocapitalization(.none)
                                 .disableAutocorrection(true)
@@ -80,9 +111,9 @@ struct MirrorPickerView: View {
 
                                 Spacer()
 
-                                Button("使用") {
+                                Button("添加并使用") {
                                     if !customURL.isEmpty {
-                                        let mirror = MirrorOption(name: "自定义", url: customURL, isOfficial: false)
+                                        let mirror = MirrorOption(name: "自定义镜像", url: customURL, isOfficial: false)
                                         onSelect(mirror)
                                     }
                                 }
