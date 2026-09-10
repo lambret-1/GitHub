@@ -15,6 +15,11 @@ struct AboutView: View {
     @State private var downloadErrorMessage: String?
     @State private var showDownloadError = false
 
+    // 镜像加速相关状态
+    @State private var useMirrorAcceleration: Bool = AppSettings.shared.useMirrorAcceleration
+    @State private var showMirrorPicker: Bool = false
+    @State private var selectedMirrorIndex: Int = 0
+
     var body: some View {
         List {
             // 应用图标和名称
@@ -39,6 +44,51 @@ struct AboutView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
+            }
+
+            // 镜像加速设置
+            Section("网络设置") {
+                // 镜像加速开关
+                Toggle(isOn: $useMirrorAcceleration) {
+                    HStack {
+                        Image(systemName: "bolt.fill")
+                            .foregroundColor(.yellow)
+                            .frame(width: 30)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("镜像加速")
+                                .foregroundColor(.primary)
+                            Text("国内访问 GitHub 加速")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                .onChange(of: useMirrorAcceleration) { newValue in
+                    AppSettings.shared.useMirrorAcceleration = newValue
+                }
+
+                // 当前镜像信息
+                if useMirrorAcceleration {
+                    Button(action: {
+                        showMirrorPicker = true
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("当前镜像")
+                                    .foregroundColor(.primary)
+                                Text(AppSettings.shared.currentMirror.name)
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
             }
 
             // 版本信息
@@ -107,6 +157,19 @@ struct AboutView: View {
         .overlay {
             if isDownloadingUpdate {
                 downloadingOverlay
+            }
+        }
+        // 镜像选择器
+        .sheet(isPresented: $showMirrorPicker) {
+            MirrorPickerView { selectedMirror in
+                // 设置自定义镜像URL
+                AppSettings.shared.customMirrorURL = selectedMirror.url
+                // 确保镜像加速开启
+                if !AppSettings.shared.useMirrorAcceleration {
+                    AppSettings.shared.useMirrorAcceleration = true
+                    useMirrorAcceleration = true
+                }
+                showMirrorPicker = false
             }
         }
     }

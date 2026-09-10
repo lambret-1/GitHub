@@ -330,7 +330,8 @@ struct FileBrowserView: View {
                     repo: repository.name,
                     path: filePath,
                     branch: selectedBranch,
-                    fileName: fileName
+                    fileName: fileName,
+                    autoEnterEditMode: true // 自动进入编辑模式
                 )
             }
         }, isActive: $navigateToEditorFromContextMenu) {

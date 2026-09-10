@@ -6,6 +6,8 @@ struct CodeEditorView: View {
     let path: String
     let branch: String
     let fileName: String
+    // 是否自动进入编辑模式（用于contextMenu中"编辑文件"跳转）
+    var autoEnterEditMode: Bool = false
 
     // 用于退出页面
     @Environment(\.dismiss) private var dismiss
@@ -660,6 +662,11 @@ struct CodeEditorView: View {
                     fileContent = file
                     codeText = file.decodedContent
                     originalContent = codeText
+
+                    // 如果设置了自动进入编辑模式，则在文件加载成功后自动进入编辑状态
+                    if autoEnterEditMode {
+                        isEditing = true
+                    }
 
                     // 获取文件最后编辑时间
                     loadLastCommit()

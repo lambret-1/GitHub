@@ -1,8 +1,11 @@
 import Foundation
 
 enum APIEndpoints {
-    static let baseURL = "https://api.github.com"
-    
+    // 动态获取当前 API 基础 URL（支持镜像加速）
+    static var baseURL: String {
+        AppSettings.shared.currentBaseURL
+    }
+
     case user
     case userRepos(page: Int, perPage: Int)
     case repoContent(owner: String, repo: String, path: String, branch: String)
@@ -10,7 +13,7 @@ enum APIEndpoints {
     case repoBranches(owner: String, repo: String)
     case commits(owner: String, repo: String, path: String?)
     case searchRepos(query: String, page: Int)
-    
+
     var url: String {
         switch self {
         case .user:
