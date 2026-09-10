@@ -1,442 +1,436 @@
 import SwiftUI
 
-// MARK: - 高级筛选面板（可视化查询构造器）
+// MARK: - 高级筛选面板
 
 struct AdvancedFilterView: View {
+    @Binding var repoFilter: RepoFilterState
+    @Binding var userFilter: UserFilterState
+    let selectedTab: SearchView.SearchTab
+    var onApply: () -> Void
+    var onReset: () -> Void
+
     @Environment(\.presentationMode) private var presentationMode
-    @Binding var searchType: SearchView.SearchTab
-    @Binding var filterConfig: FilterConfiguration
-    var onApply: (FilterConfiguration) -> Void
 
     var body: some View {
         NavigationView {
             Form {
-                if searchType == .repositories {
-                    repositoryFilterSection
+                if selectedTab == .repositories {
+                    repoFilterSections
                 } else {
-                    userFilterSection
-                }
-
-                // 预览生成的查询语句
-                Section("查询预览") {
-                    Text(filterConfig.buildQuery())
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(.secondary)
-                        .textSelection(.enabled)
-                }
-
-                // 重置按钮
-                Section {
-                    Button(action: {
-                        filterConfig.reset()
-                    }) {
-                        HStack {
-                            Spacer()
-                            Text("重置所有筛选条件")
-                                .foregroundColor(.red)
-                            Spacer()
-                        }
-                    }
+                    userFilterSections
                 }
             }
             .navigationTitle("高级筛选")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
-                        presentationMode.wrappedValue.dismiss()
+                    Button("重置") {
+                        onReset()
                     }
+                    .foregroundColor(.red)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("应用") {
-                        onApply(filterConfig)
+                        onApply()
                         presentationMode.wrappedValue.dismiss()
                     }
-                    .fontWeight(.bold)
+                    .bold()
                 }
             }
         }
     }
 
-    // MARK: - 仓库筛选条件
+    // MARK: - 仓库筛选部分
 
-    private var repositoryFilterSection: some View {
+    private var repoFilterSections: some View {
         Group {
-            // 语言筛选
-            Section("语言") {
-                Picker("编程语言", selection: $filterConfig.language) {
-                    Text("全部").tag("")
-                    ForEach(CommonLanguages.all, id: \.self) { lang in
-                        Text(lang).tag(lang)
-                    }
-                }
-            }
-
-            // Star 数量
-            Section("Star 数量") {
-                HStack {
-                    Text("最少")
-                    Spacer()
-                    TextField("0", text: $filterConfig.minStars)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-                HStack {
-                    Text("最多")
-                    Spacer()
-                    TextField("不限", text: $filterConfig.maxStars)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-            }
-
-            // Fork 数量
-            Section("Fork 数量") {
-                HStack {
-                    Text("最少")
-                    Spacer()
-                    TextField("0", text: $filterConfig.minForks)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-                HStack {
-                    Text("最多")
-                    Spacer()
-                    TextField("不限", text: $filterConfig.maxForks)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                }
-            }
-
-            // 时间筛选
-            Section("创建时间") {
-                DatePicker("从", selection: $filterConfig.createdFrom, displayedComponents: .date)
-                DatePicker("到", selection: $filterConfig.createdTo, displayedComponents: .date)
-            }
-
-            Section("更新时间") {
-                DatePicker("从", selection: $filterConfig.pushedFrom, displayedComponents: .date)
-                DatePicker("到", selection: $filterConfig.pushedTo, displayedComponents: .date)
-            }
-
-            // 许可证
-            Section("许可证") {
-                Picker("许可证类型", selection: $filterConfig.license) {
-                    Text("全部").tag("")
-                    ForEach(CommonLicenses.all, id: \.self) { license in
-                        Text(license).tag(license)
-                    }
-                }
+            // 搜索范围
+            Section("搜索范围") {
+                Toggle("仓库名称", isOn: $repoFilter.searchInName)
+                Toggle("仓库描述", isOn: $repoFilter.searchInDescription)
+                Toggle("README 文件", isOn: $repoFilter.searchInReadme)
             }
 
             // 仓库属性
             Section("仓库属性") {
-                Toggle("有议题 (Issues)", isOn: $filterConfig.hasIssues)
-                Toggle("有 Wiki", isOn: $filterConfig.hasWiki)
-                Toggle("有项目 (Projects)", isOn: $filterConfig.hasProjects)
-                Toggle("已归档", isOn: $filterConfig.archived)
-            }
+                Toggle("仅公开仓库", isOn: $repoFilter.isPublic)
+                Toggle("仅私有仓库", isOn: $repoFilter.isPrivate)
 
-            // 仓库类型
-            Section("仓库类型") {
-                Picker("类型", selection: $filterConfig.repoType) {
-                    Text("全部").tag("")
-                    Text("公开").tag("public")
-                    Text("私有").tag("private")
-                    Text("Fork").tag("fork")
-                    Text("源仓库").tag("source")
+                HStack {
+                    Text("归档状态")
+                    Spacer()
+                    Picker("归档状态", selection: Binding(
+                        get: { repoFilter.isArchived ?? 2 as Int? },
+                        set: { newValue in
+                            repoFilter.isArchived = (newValue == 2 ? nil : (newValue == 1))
+                        }
+                    )) {
+                        Text("不限").tag(2 as Int?)
+                        Text("仅已归档").tag(1 as Int?)
+                        Text("仅未归档").tag(0 as Int?)
+                    }
+                    .pickerStyle(MenuPickerStyle())
                 }
-                .pickerStyle(.menu)
+
+                HStack {
+                    Text("模板仓库")
+                    Spacer()
+                    Picker("模板仓库", selection: Binding(
+                        get: { repoFilter.isTemplate ?? 2 as Int? },
+                        set: { newValue in
+                            repoFilter.isTemplate = (newValue == 2 ? nil : (newValue == 1))
+                        }
+                    )) {
+                        Text("不限").tag(2 as Int?)
+                        Text("仅模板").tag(1 as Int?)
+                        Text("非模板").tag(0 as Int?)
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                }
             }
 
-            // 主题标签
-            Section("主题标签 (Topics)") {
-                TextField("输入主题标签，用逗号分隔", text: $filterConfig.topics)
+            // 编程语言
+            Section("编程语言") {
+                NavigationLink(destination: LanguagePickerView(selectedLanguage: $repoFilter.language)) {
+                    HStack {
+                        Text("语言")
+                        Spacer()
+                        if let language = repoFilter.language {
+                            Text(language).foregroundColor(.secondary)
+                        } else {
+                            Text("不限").foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
+
+            // 主题和许可证
+            Section("主题与许可证") {
+                HStack {
+                    Text("主题")
+                    TextField("如: ios, swiftui", text: Binding(
+                        get: { repoFilter.topic ?? "" },
+                        set: { repoFilter.topic = $0.isEmpty ? nil : $0 }
+                    ))
+                    .multilineTextAlignment(.trailing)
                     .autocapitalization(.none)
-                    .disableAutocorrection(true)
+                }
+
+                NavigationLink(destination: LicensePickerView(selectedLicense: $repoFilter.license)) {
+                    HStack {
+                        Text("许可证")
+                        Spacer()
+                        if let license = repoFilter.license {
+                            Text(license.uppercased()).foregroundColor(.secondary)
+                        } else {
+                            Text("不限").foregroundColor(.gray)
+                        }
+                    }
+                }
             }
 
-            // 排序方式
-            Section("排序方式") {
-                Picker("排序", selection: $filterConfig.sortBy) {
-                    Text("最佳匹配").tag("")
-                    Text("Star 数").tag("stars")
-                    Text("Fork 数").tag("forks")
-                    Text("更新时间").tag("updated")
+            // 所有者
+            Section("所有者") {
+                HStack {
+                    Text("用户")
+                    TextField("用户名", text: Binding(
+                        get: { repoFilter.user ?? "" },
+                        set: { repoFilter.user = $0.isEmpty ? nil : $0 }
+                    ))
+                    .multilineTextAlignment(.trailing)
+                    .autocapitalization(.none)
                 }
-                .pickerStyle(.menu)
+                HStack {
+                    Text("组织")
+                    TextField("组织名", text: Binding(
+                        get: { repoFilter.org ?? "" },
+                        set: { repoFilter.org = $0.isEmpty ? nil : $0 }
+                    ))
+                    .multilineTextAlignment(.trailing)
+                    .autocapitalization(.none)
+                }
+            }
+
+            // 数值范围
+            Section("数值范围") {
+                HStack {
+                    Text("最少 Star 数")
+                    Spacer()
+                    Picker("Star 数", selection: Binding(
+                        get: { repoFilter.minStars ?? 0 },
+                        set: { repoFilter.minStars = $0 == 0 ? nil : $0 }
+                    )) {
+                        ForEach(FilterOptions.starOptions, id: \.self) { value in
+                            Text(value == 0 ? "不限" : ">= \(value)").tag(value)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                }
+
+                HStack {
+                    Text("最少 Fork 数")
+                    Spacer()
+                    Picker("Fork 数", selection: Binding(
+                        get: { repoFilter.minForks ?? 0 },
+                        set: { repoFilter.minForks = $0 == 0 ? nil : $0 }
+                    )) {
+                        ForEach(FilterOptions.forkOptions, id: \.self) { value in
+                            Text(value == 0 ? "不限" : ">= \(value)").tag(value)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                }
+
+                HStack {
+                    Text("最小大小(KB)")
+                    Spacer()
+                    Picker("大小", selection: Binding(
+                        get: { repoFilter.minSizeKB ?? 0 },
+                        set: { repoFilter.minSizeKB = $0 == 0 ? nil : $0 }
+                    )) {
+                        Text("不限").tag(0)
+                        Text(">= 1 KB").tag(1)
+                        Text(">= 10 KB").tag(10)
+                        Text(">= 100 KB").tag(100)
+                        Text(">= 1 MB").tag(1024)
+                        Text(">= 10 MB").tag(10240)
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                }
+            }
+
+            // 时间范围
+            Section("时间范围") {
+                DatePicker("创建时间不早于", selection: Binding(
+                    get: { repoFilter.createdAfter ?? Date() },
+                    set: { repoFilter.createdAfter = $0 }
+                ), displayedComponents: .date)
+                .onAppear {
+                    if repoFilter.createdAfter == nil {
+                        repoFilter.createdAfter = Calendar.current.date(byAdding: .year, value: -1, to: Date())
+                    }
+                }
+
+                Button("清除创建时间筛选") {
+                    repoFilter.createdAfter = nil
+                }
+                .foregroundColor(.red)
+                .disabled(repoFilter.createdAfter == nil)
+
+                DatePicker("最近推送不早于", selection: Binding(
+                    get: { repoFilter.pushedAfter ?? Date() },
+                    set: { repoFilter.pushedAfter = $0 }
+                ), displayedComponents: .date)
+                .onAppear {
+                    if repoFilter.pushedAfter == nil {
+                        repoFilter.pushedAfter = Calendar.current.date(byAdding: .month, value: -3, to: Date())
+                    }
+                }
+
+                Button("清除推送时间筛选") {
+                    repoFilter.pushedAfter = nil
+                }
+                .foregroundColor(.red)
+                .disabled(repoFilter.pushedAfter == nil)
             }
         }
     }
 
-    // MARK: - 用户筛选条件
+    // MARK: - 用户筛选部分
 
-    private var userFilterSection: some View {
+    private var userFilterSections: some View {
         Group {
+            // 搜索范围
+            Section("搜索范围") {
+                Toggle("用户名", isOn: $userFilter.searchInLogin)
+                Toggle("全名", isOn: $userFilter.searchInFullName)
+                Toggle("邮箱", isOn: $userFilter.searchInEmail)
+            }
+
             // 用户类型
             Section("用户类型") {
-                Picker("类型", selection: $filterConfig.userType) {
-                    Text("全部").tag("")
-                    Text("个人用户").tag("user")
-                    Text("组织").tag("org")
+                Picker("类型", selection: Binding(
+                    get: { userFilter.userType?.rawValue ?? "不限" },
+                    set: { newValue in
+                        userFilter.userType = newValue == "不限" ? nil : UserFilterState.UserType(rawValue: newValue)
+                    }
+                )) {
+                    Text("不限").tag("不限")
+                    Text("仅用户").tag("用户")
+                    Text("仅组织").tag("组织")
                 }
-                .pickerStyle(.menu)
+                .pickerStyle(SegmentedPickerStyle())
             }
 
-            // 仓库数量
-            Section("仓库数量") {
+            // 位置和语言
+            Section("位置与语言") {
                 HStack {
-                    Text("最少")
-                    Spacer()
-                    TextField("0", text: $filterConfig.minRepos)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
+                    Text("位置")
+                    TextField("如: Beijing, China", text: Binding(
+                        get: { userFilter.location ?? "" },
+                        set: { userFilter.location = $0.isEmpty ? nil : $0 }
+                    ))
+                    .multilineTextAlignment(.trailing)
                 }
+
+                NavigationLink(destination: LanguagePickerView(selectedLanguage: $userFilter.language)) {
+                    HStack {
+                        Text("主要语言")
+                        Spacer()
+                        if let language = userFilter.language {
+                            Text(language).foregroundColor(.secondary)
+                        } else {
+                            Text("不限").foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
+
+            // 数值范围
+            Section("数值范围") {
                 HStack {
-                    Text("最多")
+                    Text("最少仓库数")
                     Spacer()
-                    TextField("不限", text: $filterConfig.maxRepos)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
+                    Picker("仓库数", selection: Binding(
+                        get: { userFilter.minRepos ?? 0 },
+                        set: { userFilter.minRepos = $0 == 0 ? nil : $0 }
+                    )) {
+                        ForEach(FilterOptions.repoOptions, id: \.self) { value in
+                            Text(value == 0 ? "不限" : ">= \(value)").tag(value)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
                 }
-            }
 
-            // 关注者数量
-            Section("关注者数量") {
                 HStack {
-                    Text("最少")
+                    Text("最少关注者")
                     Spacer()
-                    TextField("0", text: $filterConfig.minFollowers)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
+                    Picker("关注者", selection: Binding(
+                        get: { userFilter.minFollowers ?? 0 },
+                        set: { userFilter.minFollowers = $0 == 0 ? nil : $0 }
+                    )) {
+                        ForEach(FilterOptions.followerOptions, id: \.self) { value in
+                            Text(value == 0 ? "不限" : ">= \(value)").tag(value)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
                 }
+
                 HStack {
-                    Text("最多")
+                    Text("最少关注数")
                     Spacer()
-                    TextField("不限", text: $filterConfig.maxFollowers)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
+                    Picker("关注数", selection: Binding(
+                        get: { userFilter.minFollowing ?? 0 },
+                        set: { userFilter.minFollowing = $0 == 0 ? nil : $0 }
+                    )) {
+                        ForEach(FilterOptions.followerOptions, id: \.self) { value in
+                            Text(value == 0 ? "不限" : ">= \(value)").tag(value)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
                 }
             }
 
-            // 位置
-            Section("位置") {
-                TextField("输入位置，如：Beijing、China", text: $filterConfig.location)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-            }
-
-            // 创建时间
-            Section("创建时间") {
-                DatePicker("从", selection: $filterConfig.userCreatedFrom, displayedComponents: .date)
-                DatePicker("到", selection: $filterConfig.userCreatedTo, displayedComponents: .date)
-            }
-
-            // 用户属性
-            Section("用户属性") {
-                Toggle("可雇佣 (Hireable)", isOn: $filterConfig.isHireable)
-            }
-
-            // 排序方式
-            Section("排序方式") {
-                Picker("排序", selection: $filterConfig.userSortBy) {
-                    Text("最佳匹配").tag("")
-                    Text("关注者数").tag("followers")
-                    Text("仓库数").tag("repositories")
-                    Text("加入时间").tag("joined")
+            // 时间范围
+            Section("时间范围") {
+                DatePicker("注册时间不早于", selection: Binding(
+                    get: { userFilter.createdAfter ?? Date() },
+                    set: { userFilter.createdAfter = $0 }
+                ), displayedComponents: .date)
+                .onAppear {
+                    if userFilter.createdAfter == nil {
+                        userFilter.createdAfter = Calendar.current.date(byAdding: .year, value: -1, to: Date())
+                    }
                 }
-                .pickerStyle(.menu)
+
+                Button("清除注册时间筛选") {
+                    userFilter.createdAfter = nil
+                }
+                .foregroundColor(.red)
+                .disabled(userFilter.createdAfter == nil)
             }
         }
     }
 }
 
-// MARK: - 筛选配置模型
+// MARK: - 语言选择器
 
-struct FilterConfiguration {
-    // 仓库筛选
-    var language: String = ""
-    var minStars: String = ""
-    var maxStars: String = ""
-    var minForks: String = ""
-    var maxForks: String = ""
-    var createdFrom: Date = Date()
-    var createdTo: Date = Date()
-    var pushedFrom: Date = Date()
-    var pushedTo: Date = Date()
-    var license: String = ""
-    var hasIssues: Bool = false
-    var hasWiki: Bool = false
-    var hasProjects: Bool = false
-    var archived: Bool = false
-    var repoType: String = ""
-    var topics: String = ""
-    var sortBy: String = ""
+struct LanguagePickerView: View {
+    @Binding var selectedLanguage: String?
+    @Environment(\.presentationMode) private var presentationMode
 
-    // 用户筛选
-    var userType: String = ""
-    var minRepos: String = ""
-    var maxRepos: String = ""
-    var minFollowers: String = ""
-    var maxFollowers: String = ""
-    var location: String = ""
-    var userCreatedFrom: Date = Date()
-    var userCreatedTo: Date = Date()
-    var isHireable: Bool = false
-    var userSortBy: String = ""
+    var body: some View {
+        List {
+            Button(action: {
+                selectedLanguage = nil
+                presentationMode.wrappedValue.dismiss()
+            }) {
+                HStack {
+                    Text("不限")
+                    Spacer()
+                    if selectedLanguage == nil {
+                        Image(systemName: "checkmark").foregroundColor(.blue)
+                    }
+                }
+            }
 
-    // 标记是否使用了创建/更新时间筛选
-    var useCreatedRange: Bool = false
-    var usePushedRange: Bool = false
-    var useUserCreatedRange: Bool = false
-
-    mutating func reset() {
-        self = FilterConfiguration()
-    }
-
-    func buildQuery(baseQuery: String = "") -> String {
-        var parts: [String] = []
-
-        if !baseQuery.isEmpty {
-            parts.append(baseQuery)
-        }
-
-        // 仓库筛选
-        if !language.isEmpty {
-            parts.append("language:\(language)")
-        }
-        if !minStars.isEmpty {
-            parts.append("stars:>=\(minStars)")
-        }
-        if !maxStars.isEmpty {
-            parts.append("stars:<=\(maxStars)")
-        }
-        if !minForks.isEmpty {
-            parts.append("forks:>=\(minForks)")
-        }
-        if !maxForks.isEmpty {
-            parts.append("forks:<=\(maxForks)")
-        }
-        if useCreatedRange {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            parts.append("created:\(formatter.string(from: createdFrom))..\(formatter.string(from: createdTo))")
-        }
-        if usePushedRange {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            parts.append("pushed:\(formatter.string(from: pushedFrom))..\(formatter.string(from: pushedTo))")
-        }
-        if !license.isEmpty {
-            parts.append("license:\(license)")
-        }
-        if hasIssues {
-            parts.append("has:issues")
-        }
-        if hasWiki {
-            parts.append("has:wiki")
-        }
-        if hasProjects {
-            parts.append("has:projects")
-        }
-        if archived {
-            parts.append("archived:true")
-        }
-        if !repoType.isEmpty {
-            parts.append("type:\(repoType)")
-        }
-        if !topics.isEmpty {
-            let topicList = topics.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-            for topic in topicList {
-                parts.append("topic:\(topic)")
+            ForEach(FilterOptions.languages, id: \.self) { language in
+                Button(action: {
+                    selectedLanguage = language
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    HStack {
+                        Text(language)
+                        Spacer()
+                        if selectedLanguage == language {
+                            Image(systemName: "checkmark").foregroundColor(.blue)
+                        }
+                    }
+                }
             }
         }
-
-        // 用户筛选
-        if !userType.isEmpty {
-            parts.append("type:\(userType)")
-        }
-        if !minRepos.isEmpty {
-            parts.append("repos:>=\(minRepos)")
-        }
-        if !maxRepos.isEmpty {
-            parts.append("repos:<=\(maxRepos)")
-        }
-        if !minFollowers.isEmpty {
-            parts.append("followers:>=\(minFollowers)")
-        }
-        if !maxFollowers.isEmpty {
-            parts.append("followers:<=\(maxFollowers)")
-        }
-        if !location.isEmpty {
-            parts.append("location:\(location)")
-        }
-        if useUserCreatedRange {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            parts.append("created:\(formatter.string(from: userCreatedFrom))..\(formatter.string(from: userCreatedTo))")
-        }
-        if isHireable {
-            parts.append("is:hireable")
-        }
-
-        return parts.joined(separator: " ")
-    }
-
-    func getSortParameter() -> String {
-        if !sortBy.isEmpty {
-            return sortBy
-        }
-        if !userSortBy.isEmpty {
-            return userSortBy
-        }
-        return ""
-    }
-
-    var hasActiveFilters: Bool {
-        return !language.isEmpty ||
-               !minStars.isEmpty || !maxStars.isEmpty ||
-               !minForks.isEmpty || !maxForks.isEmpty ||
-               !license.isEmpty || hasIssues || hasWiki || hasProjects ||
-               archived || !repoType.isEmpty || !topics.isEmpty ||
-               !userType.isEmpty || !minRepos.isEmpty || !maxRepos.isEmpty ||
-               !minFollowers.isEmpty || !maxFollowers.isEmpty ||
-               !location.isEmpty || isHireable || useCreatedRange ||
-               usePushedRange || useUserCreatedRange
+        .navigationTitle("选择语言")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-// MARK: - 常用语言列表
+// MARK: - 许可证选择器
 
-enum CommonLanguages {
-    static let all: [String] = [
-        "Swift", "Objective-C", "JavaScript", "TypeScript", "Python", "Java", "Kotlin",
-        "Go", "Rust", "C", "C++", "C#", "Ruby", "PHP", "Dart", "Flutter",
-        "HTML", "CSS", "SCSS", "Shell", "Bash", "PowerShell",
-        "SQL", "MySQL", "PostgreSQL", "MongoDB", "Redis",
-        "Dockerfile", "Makefile", "CMake", "Gradle",
-        "Markdown", "JSON", "XML", "YAML", "TOML",
-        "Vue", "React", "Angular", "Svelte",
-        "Node.js", "Deno", "Bun",
-        "Lua", "Perl", "R", "Scala", "Clojure", "Elixir", "Haskell", "Erlang"
-    ]
-}
+struct LicensePickerView: View {
+    @Binding var selectedLicense: String?
+    @Environment(\.presentationMode) private var presentationMode
 
-// MARK: - 常用许可证列表
+    var body: some View {
+        List {
+            Button(action: {
+                selectedLicense = nil
+                presentationMode.wrappedValue.dismiss()
+            }) {
+                HStack {
+                    Text("不限")
+                    Spacer()
+                    if selectedLicense == nil {
+                        Image(systemName: "checkmark").foregroundColor(.blue)
+                    }
+                }
+            }
 
-enum CommonLicenses {
-    static let all: [String] = [
-        "mit", "apache-2.0", "gpl-3.0", "gpl-2.0", "lgpl-3.0", "lgpl-2.1",
-        "bsd-3-clause", "bsd-2-clause", "mpl-2.0", "agpl-3.0",
-        "unlicense", "cc0-1.0", "epl-2.0", "epl-1.0",
-        "artistic-2.0", "isc", "zlib", "wtfpl"
-    ]
+            ForEach(FilterOptions.licenses, id: \.self) { license in
+                Button(action: {
+                    selectedLicense = license
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    HStack {
+                        Text(license.uppercased())
+                        Spacer()
+                        if selectedLicense == license {
+                            Image(systemName: "checkmark").foregroundColor(.blue)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("选择许可证")
+        .navigationBarTitleDisplayMode(.inline)
+    }
 }

@@ -13,7 +13,8 @@ struct SearchView: View {
     @State private var currentPage: Int = 1
     @State private var hasMoreResults: Bool = true
     @State private var showAdvancedFilter: Bool = false
-    @State private var filterConfig: FilterConfiguration = FilterConfiguration()
+    @State private var repoFilter: RepoFilterState = RepoFilterState()
+    @State private var userFilter: UserFilterState = UserFilterState()
 
     enum SearchTab: String, CaseIterable {
         case repositories = "仓库"
@@ -36,10 +37,10 @@ struct SearchView: View {
                         ZStack {
                             Image(systemName: "slider.horizontal.3")
                                 .font(.system(size: 18))
-                                .foregroundColor(filterConfig.hasActiveFilters ? .blue : .gray)
+                                .foregroundColor(hasActiveFilters ? .blue : .gray)
 
                             // 激活筛选条件数量角标
-                            if filterConfig.hasActiveFilters {
+                            if hasActiveFilters {
                                 Text("●")
                                     .font(.system(size: 8))
                                     .foregroundColor(.blue)
@@ -53,7 +54,7 @@ struct SearchView: View {
                 .padding(.vertical, 8)
 
                 // 当前激活的筛选条件标签
-                if filterConfig.hasActiveFilters {
+                if hasActiveFilters {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
                             Text("筛选:")
@@ -73,7 +74,7 @@ struct SearchView: View {
 
                             // 清除所有筛选按钮
                             Button(action: {
-                                filterConfig.reset()
+                                resetFilters()
                                 if !searchText.isEmpty {
                                     performSearch()
                                 }
@@ -177,14 +178,32 @@ struct SearchView: View {
         }
         .sheet(isPresented: $showAdvancedFilter) {
             AdvancedFilterView(
-                searchType: $selectedTab,
-                filterConfig: $filterConfig
-            ) { config in
-                filterConfig = config
-                if !searchText.isEmpty {
-                    performSearch()
+                repoFilter: $repoFilter,
+                userFilter: $userFilter,
+                selectedTab: selectedTab,
+                onApply: {
+                    if !searchText.isEmpty {
+                        performSearch()
+                    }
+                },
+                onReset: {
+                    resetFilters()
                 }
-            }
+            )
+        }
+    }
+
+    // MARK: - 辅助属性和方法
+
+    private var hasActiveFilters: Bool {
+        return selectedTab == .repositories ? repoFilter.hasFilters : userFilter.hasFilters
+    }
+
+    private func resetFilters() {
+        if selectedTab == .repositories {
+            repoFilter.reset()
+        } else {
+            userFilter.reset()
         }
     }
 
@@ -194,26 +213,42 @@ struct SearchView: View {
         var tags: [String] = []
 
         if selectedTab == .repositories {
-            if !filterConfig.language.isEmpty { tags.append("语言:\(filterConfig.language)") }
-            if !filterConfig.minStars.isEmpty { tags.append("Star>=\(filterConfig.minStars)") }
-            if !filterConfig.maxStars.isEmpty { tags.append("Star<=\(filterConfig.maxStars)") }
-            if !filterConfig.minForks.isEmpty { tags.append("Fork>=\(filterConfig.minForks)") }
-            if !filterConfig.maxForks.isEmpty { tags.append("Fork<=\(filterConfig.maxForks)") }
-            if !filterConfig.license.isEmpty { tags.append("许可证:\(filterConfig.license)") }
-            if filterConfig.hasIssues { tags.append("有议题") }
-            if filterConfig.hasWiki { tags.append("有Wiki") }
-            if filterConfig.hasProjects { tags.append("有项目") }
-            if filterConfig.archived { tags.append("已归档") }
-            if !filterConfig.repoType.isEmpty { tags.append("类型:\(filterConfig.repoType)") }
-            if !filterConfig.topics.isEmpty { tags.append("主题") }
+            if !repoFilter.searchInName || !repoFilter.searchInDescription || repoFilter.searchInReadme {
+                var scopes: [String] = []
+                if repoFilter.searchInName { scopes.append("名称") }
+                if repoFilter.searchInDescription { scopes.append("描述") }
+                if repoFilter.searchInReadme { scopes.append("README") }
+                tags.append("范围:\(scopes.joined(separator: "+"))")
+            }
+            if repoFilter.isPublic { tags.append("公开") }
+            if repoFilter.isPrivate { tags.append("私有") }
+            if let archived = repoFilter.isArchived { tags.append(archived ? "已归档" : "未归档") }
+            if let template = repoFilter.isTemplate { tags.append(template ? "模板" : "非模板") }
+            if let language = repoFilter.language { tags.append("语言:\(language)") }
+            if let topic = repoFilter.topic { tags.append("主题:\(topic)") }
+            if let license = repoFilter.license { tags.append("许可证:\(license.uppercased())") }
+            if let user = repoFilter.user { tags.append("用户:\(user)") }
+            if let org = repoFilter.org { tags.append("组织:\(org)") }
+            if let minStars = repoFilter.minStars { tags.append("Star>=\(minStars)") }
+            if let minForks = repoFilter.minForks { tags.append("Fork>=\(minForks)") }
+            if let minSizeKB = repoFilter.minSizeKB { tags.append("大小>=\(minSizeKB)KB") }
+            if repoFilter.createdAfter != nil { tags.append("创建时间") }
+            if repoFilter.pushedAfter != nil { tags.append("推送时间") }
         } else {
-            if !filterConfig.userType.isEmpty { tags.append("类型:\(filterConfig.userType)") }
-            if !filterConfig.minRepos.isEmpty { tags.append("仓库>=\(filterConfig.minRepos)") }
-            if !filterConfig.maxRepos.isEmpty { tags.append("仓库<=\(filterConfig.maxRepos)") }
-            if !filterConfig.minFollowers.isEmpty { tags.append("关注者>=\(filterConfig.minFollowers)") }
-            if !filterConfig.maxFollowers.isEmpty { tags.append("关注者<=\(filterConfig.maxFollowers)") }
-            if !filterConfig.location.isEmpty { tags.append("位置:\(filterConfig.location)") }
-            if filterConfig.isHireable { tags.append("可雇佣") }
+            if !userFilter.searchInLogin || !userFilter.searchInFullName || userFilter.searchInEmail {
+                var scopes: [String] = []
+                if userFilter.searchInLogin { scopes.append("用户名") }
+                if userFilter.searchInFullName { scopes.append("全名") }
+                if userFilter.searchInEmail { scopes.append("邮箱") }
+                tags.append("范围:\(scopes.joined(separator: "+"))")
+            }
+            if let userType = userFilter.userType { tags.append("类型:\(userType.rawValue)") }
+            if let location = userFilter.location { tags.append("位置:\(location)") }
+            if let language = userFilter.language { tags.append("语言:\(language)") }
+            if let minRepos = userFilter.minRepos { tags.append("仓库>=\(minRepos)") }
+            if let minFollowers = userFilter.minFollowers { tags.append("关注者>=\(minFollowers)") }
+            if let minFollowing = userFilter.minFollowing { tags.append("关注>=\(minFollowing)") }
+            if userFilter.createdAfter != nil { tags.append("注册时间") }
         }
 
         return tags
@@ -222,7 +257,7 @@ struct SearchView: View {
     // MARK: - 搜索方法
 
     private func performSearch() {
-        guard !searchText.isEmpty || filterConfig.hasActiveFilters else { return }
+        guard !searchText.isEmpty || hasActiveFilters else { return }
 
         isLoading = true
         errorMessage = nil
@@ -230,10 +265,12 @@ struct SearchView: View {
         hasMoreResults = true
 
         // 使用筛选配置构建查询
-        let query = filterConfig.buildQuery(baseQuery: searchText)
+        let query = selectedTab == .repositories ?
+            repoFilter.buildQuery(baseQuery: searchText) :
+            userFilter.buildQuery(baseQuery: searchText)
 
         if selectedTab == .repositories {
-            GitHubAPI.shared.searchRepos(query: query, page: currentPage, sort: filterConfig.getSortParameter()) { result in
+            GitHubAPI.shared.searchRepos(query: query, page: currentPage) { result in
                 DispatchQueue.main.async {
                     isLoading = false
                     switch result {
@@ -246,7 +283,7 @@ struct SearchView: View {
                 }
             }
         } else {
-            GitHubAPI.shared.searchUsers(query: query, page: currentPage, sort: filterConfig.getSortParameter()) { result in
+            GitHubAPI.shared.searchUsers(query: query, page: currentPage) { result in
                 DispatchQueue.main.async {
                     isLoading = false
                     switch result {
@@ -266,10 +303,12 @@ struct SearchView: View {
         isLoading = true
 
         // 使用筛选配置构建查询
-        let query = filterConfig.buildQuery(baseQuery: searchText)
+        let query = selectedTab == .repositories ?
+            repoFilter.buildQuery(baseQuery: searchText) :
+            userFilter.buildQuery(baseQuery: searchText)
 
         if selectedTab == .repositories {
-            GitHubAPI.shared.searchRepos(query: query, page: currentPage, sort: filterConfig.getSortParameter()) { result in
+            GitHubAPI.shared.searchRepos(query: query, page: currentPage) { result in
                 DispatchQueue.main.async {
                     isLoading = false
                     switch result {
@@ -282,7 +321,7 @@ struct SearchView: View {
                 }
             }
         } else {
-            GitHubAPI.shared.searchUsers(query: query, page: currentPage, sort: filterConfig.getSortParameter()) { result in
+            GitHubAPI.shared.searchUsers(query: query, page: currentPage) { result in
                 DispatchQueue.main.async {
                     isLoading = false
                     switch result {
