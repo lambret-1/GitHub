@@ -88,6 +88,22 @@ struct AboutView: View {
                                 .foregroundColor(.gray)
                         }
                     }
+
+                    // 安全说明
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "lock.shield")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                            Text("账号安全保护")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                        Text("API 请求（账号、仓库、文件读写）始终使用官方服务器，仅文件下载、网页预览、头像加载使用镜像加速，确保账号信息安全。")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.top, 4)
                 }
             }
 

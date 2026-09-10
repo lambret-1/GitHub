@@ -90,10 +90,19 @@ struct MirrorPickerView: View {
                 // 说明
                 Section("说明") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("镜像加速用于解决国内访问 GitHub API 缓慢的问题。")
+                        HStack(spacing: 4) {
+                            Image(systemName: "lock.shield.fill")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                            Text("账号安全保护（重要）")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                                .bold()
+                        }
+                        Text("API 请求（账号信息、仓库列表、文件读写等需要认证的操作）始终使用 GitHub 官方服务器，不经过镜像，确保您的账号信息和私有仓库安全。")
                             .font(.caption)
                             .foregroundColor(.gray)
-                        Text("开启后，所有 API 请求将通过镜像服务器转发。")
+                        Text("镜像加速仅用于：文件下载、HTML 网页预览、头像加载、浏览器打开 GitHub 页面等公开资源。")
                             .font(.caption)
                             .foregroundColor(.gray)
                         Text("如果某个镜像无法使用，请切换到其他镜像或关闭加速。")

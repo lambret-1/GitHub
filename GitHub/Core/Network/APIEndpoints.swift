@@ -1,10 +1,10 @@
 import Foundation
 
 enum APIEndpoints {
-    // 动态获取当前 API 基础 URL（支持镜像加速）
-    static var baseURL: String {
-        AppSettings.shared.currentBaseURL
-    }
+    // API 请求始终使用官方 API 地址
+    // 重要：不使用镜像加速，避免镜像服务器缓存其他用户的认证响应，导致账号信息泄露
+    // 镜像加速仅用于文件下载、网页预览、头像加载等公开资源
+    static let baseURL = "https://api.github.com"
 
     case user
     case userRepos(page: Int, perPage: Int)
