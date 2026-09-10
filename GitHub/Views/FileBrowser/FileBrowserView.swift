@@ -114,6 +114,12 @@ struct FileBrowserView: View {
     @State private var showContextMenuDeleteConfirm: Bool = false
     @State private var isDeletingSingleFile: Bool = false
 
+    // contextMenu重命名文件相关状态
+    @State private var contextMenuRenameFile: FileItem?
+    @State private var showContextMenuRename: Bool = false
+    @State private var newFileName: String = ""
+    @State private var isRenamingFile: Bool = false
+
     // HTML网页预览相关状态
     @State private var showHTMLPreview: Bool = false
     @State private var htmlPreviewContent: String = ""
@@ -174,6 +180,47 @@ struct FileBrowserView: View {
             BranchPickerView(branches: branches, selectedBranch: $selectedBranch) {
                 loadFiles()
                 showBranchPicker = false
+            }
+        }
+        // 重命名文件sheet
+        .sheet(isPresented: $showContextMenuRename) {
+            NavigationView {
+                Form {
+                    Section("文件名") {
+                        TextField("输入新的文件名", text: $newFileName)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                    }
+                    Section {
+                        Button(action: {
+                            if let file = contextMenuRenameFile {
+                                renameFile(file, newName: newFileName)
+                            }
+                        }) {
+                            HStack {
+                                Spacer()
+                                if isRenamingFile {
+                                    ProgressView()
+                                } else {
+                                    Text("确认重命名")
+                                        .foregroundColor(.blue)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .disabled(newFileName.isEmpty || isRenamingFile)
+                    }
+                }
+                .navigationTitle("重命名文件")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("取消") {
+                            showContextMenuRename = false
+                            contextMenuRenameFile = nil
+                        }
+                    }
+                }
             }
         }
         .sheet(isPresented: $showCommits) {
@@ -993,6 +1040,17 @@ struct FileBrowserView: View {
             Label("编辑文件", systemImage: "pencil")
         }
 
+        // 重命名文件选项（仅文件类型，文件夹不支持）
+        if file.isFile {
+            Button(action: {
+                contextMenuRenameFile = file
+                newFileName = file.name
+                showContextMenuRename = true
+            }) {
+                Label("重命名", systemImage: "pencil.line")
+            }
+        }
+
         // HTML文件显示网页预览选项
         if file.name.lowercased().hasSuffix(".html") || file.name.lowercased().hasSuffix(".htm") {
             Button(action: {
@@ -1444,6 +1502,61 @@ struct FileBrowserView: View {
                 case .failure(let error):
                     // 删除失败，显示错误信息
                     errorMessage = "删除文件失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // MARK: - 重命名文件（contextMenu）
+
+    private func renameFile(_ file: FileItem, newName: String) {
+        // 检查新文件名是否为空
+        guard !newName.isEmpty else {
+            errorMessage = "文件名不能为空"
+            return
+        }
+
+        // 检查新文件名是否与旧文件名相同
+        guard newName != file.name else {
+            errorMessage = "新文件名与原文件名相同"
+            return
+        }
+
+        isRenamingFile = true
+
+        // 计算新文件的路径（替换文件名部分，保留目录路径）
+        let oldPath = file.path
+        let newPath: String
+        if oldPath.contains("/") {
+            // 文件在子目录中，替换最后一个路径组件
+            let components = oldPath.components(separatedBy: "/")
+            var newComponents = components
+            newComponents[newComponents.count - 1] = newName
+            newPath = newComponents.joined(separator: "/")
+        } else {
+            // 文件在根目录
+            newPath = newName
+        }
+
+        GitHubAPI.shared.renameFile(
+            owner: repository.ownerName,
+            repo: repository.name,
+            oldPath: oldPath,
+            newPath: newPath,
+            branch: selectedBranch
+        ) { result in
+            DispatchQueue.main.async {
+                isRenamingFile = false
+                showContextMenuRename = false
+                contextMenuRenameFile = nil
+
+                switch result {
+                case .success:
+                    // 重命名成功，刷新文件列表
+                    loadFiles()
+                case .failure(let error):
+                    // 重命名失败，显示错误信息
+                    errorMessage = "重命名文件失败: \(error.localizedDescription)"
                 }
             }
         }
