@@ -136,40 +136,8 @@ struct FileBrowserView: View {
         .toolbar {
             toolbarContent
         }
-        // 隐藏的NavigationLink，用于创建文件成功后跳转到编辑状态
-        .background(
-            NavigationLink(destination: Group {
-                if let filePath = newlyCreatedFilePath {
-                    CodeEditorView(
-                        owner: repository.ownerName,
-                        repo: repository.name,
-                        path: filePath,
-                        branch: selectedBranch,
-                        fileName: (filePath as NSString).lastPathComponent
-                    )
-                }
-            }, isActive: $navigateToEditor) {
-                EmptyView()
-            }
-            .hidden()
-        )
-        // 隐藏的NavigationLink，用于contextMenu中编辑文件跳转
-        .background(
-            NavigationLink(destination: Group {
-                if let filePath = contextMenuEditFilePath, let fileName = contextMenuEditFileName {
-                    CodeEditorView(
-                        owner: repository.ownerName,
-                        repo: repository.name,
-                        path: filePath,
-                        branch: selectedBranch,
-                        fileName: fileName
-                    )
-                }
-            }, isActive: $navigateToEditorFromContextMenu) {
-                EmptyView()
-            }
-            .hidden()
-        )
+        // 隐藏的NavigationLink（拆分成单独属性，简化body表达式，避免类型检查超时）
+        .background(hiddenNavigationLinks)
         // HTML网页预览使用sheet，确保内容正确传递
         .sheet(isPresented: $showHTMLPreview) {
             NavigationView {
@@ -334,6 +302,43 @@ struct FileBrowserView: View {
         }
     }
     
+    // MARK: - 隐藏的导航链接（拆分成单独属性，避免body表达式过于复杂导致类型检查超时）
+
+    @ViewBuilder
+    private var hiddenNavigationLinks: some View {
+        // 隐藏的NavigationLink，用于创建文件成功后跳转到编辑状态
+        NavigationLink(destination: Group {
+            if let filePath = newlyCreatedFilePath {
+                CodeEditorView(
+                    owner: repository.ownerName,
+                    repo: repository.name,
+                    path: filePath,
+                    branch: selectedBranch,
+                    fileName: (filePath as NSString).lastPathComponent
+                )
+            }
+        }, isActive: $navigateToEditor) {
+            EmptyView()
+        }
+        .hidden()
+
+        // 隐藏的NavigationLink，用于contextMenu中编辑文件跳转
+        NavigationLink(destination: Group {
+            if let filePath = contextMenuEditFilePath, let fileName = contextMenuEditFileName {
+                CodeEditorView(
+                    owner: repository.ownerName,
+                    repo: repository.name,
+                    path: filePath,
+                    branch: selectedBranch,
+                    fileName: fileName
+                )
+            }
+        }, isActive: $navigateToEditorFromContextMenu) {
+            EmptyView()
+        }
+        .hidden()
+    }
+
     // MARK: - 文件列表内容
 
     @ViewBuilder
