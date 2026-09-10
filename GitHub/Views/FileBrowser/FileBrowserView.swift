@@ -48,6 +48,12 @@ struct FileBrowserView: View {
     // 新创建文件路径，用于跳转到编辑状态
     @State private var newlyCreatedFilePath: String?
     @State private var navigateToEditor: Bool = false
+
+    // HTML网页预览相关状态
+    @State private var showHTMLPreview: Bool = false
+    @State private var htmlPreviewContent: String = ""
+    @State private var htmlPreviewTitle: String = ""
+    @State private var isLoadingHTML: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -76,6 +82,16 @@ struct FileBrowserView: View {
                     )
                 }
             }, isActive: $navigateToEditor) {
+                EmptyView()
+            }
+            .hidden()
+        )
+        // 隐藏的NavigationLink，用于HTML网页预览
+        .background(
+            NavigationLink(destination: HTMLPreviewView(
+                htmlContent: htmlPreviewContent,
+                title: htmlPreviewTitle
+            ), isActive: $showHTMLPreview) {
                 EmptyView()
             }
             .hidden()
@@ -812,6 +828,15 @@ struct FileBrowserView: View {
 
     @ViewBuilder
     private func contextMenuContent(for file: FileItem) -> some View {
+        // HTML文件显示网页预览选项
+        if file.name.lowercased().hasSuffix(".html") || file.name.lowercased().hasSuffix(".htm") {
+            Button(action: {
+                previewHTMLFile(file)
+            }) {
+                Label("网页预览", systemImage: "globe")
+            }
+        }
+
         Button(action: {
             selectedFile = file
             downloadFile(file)
@@ -829,10 +854,40 @@ struct FileBrowserView: View {
 
         Button(action: {
             if let url = URL(string: file.downloadUrl ?? "") {
-                UIApplication.shared.open(url)
+                UIPasteboard.general.string = url.absoluteString
             }
         }) {
             Label("复制下载链接", systemImage: "link")
+        }
+    }
+
+    // MARK: - HTML网页预览
+
+    private func previewHTMLFile(_ file: FileItem) {
+        guard let downloadUrl = file.downloadUrl else {
+            errorMessage = "该文件不支持预览"
+            return
+        }
+
+        isLoadingHTML = true
+        htmlPreviewTitle = file.name
+
+        // 下载HTML文件内容
+        GitHubAPI.shared.downloadFileData(url: downloadUrl) { result in
+            DispatchQueue.main.async {
+                isLoadingHTML = false
+                switch result {
+                case .success(let data):
+                    if let content = String(data: data, encoding: .utf8) {
+                        htmlPreviewContent = content
+                        showHTMLPreview = true
+                    } else {
+                        errorMessage = "HTML文件编码不支持"
+                    }
+                case .failure(let error):
+                    errorMessage = "加载HTML文件失败：\(error.localizedDescription)"
+                }
+            }
         }
     }
 
