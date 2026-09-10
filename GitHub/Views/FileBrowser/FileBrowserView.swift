@@ -154,29 +154,7 @@ struct FileBrowserView: View {
         // 隐藏的NavigationLink（拆分成单独属性，简化body表达式，避免类型检查超时）
         .background(hiddenNavigationLinks)
         // HTML网页预览使用sheet，确保内容正确传递
-        .sheet(isPresented: $showHTMLPreview) {
-            NavigationView {
-                HTMLPreviewView(
-                    htmlContent: htmlPreviewContent,
-                    title: htmlPreviewTitle,
-                    onRefresh: {
-                        // 刷新网页：清除缓存，重新下载
-                        let currentURL = htmlPreviewURL
-                        let currentTitle = htmlPreviewTitle
-                        HTMLCache.shared.removeContent(for: currentURL)
-                        // 重新下载HTML内容
-                        downloadHTMLFromURLForRefresh(currentURL, fileName: currentTitle)
-                    }
-                )
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("完成") {
-                            showHTMLPreview = false
-                        }
-                    }
-                }
-            }
-        }
+        .sheet(isPresented: $showHTMLPreview, content: htmlPreviewSheet)
         // HTML加载失败提示
         .alert("加载失败", isPresented: .constant(htmlPreviewError != nil)) {
             Button("确定") {
@@ -591,6 +569,34 @@ struct FileBrowserView: View {
             moreMenu
         }
     }
+
+    // MARK: - HTML预览Sheet（拆分成单独属性，简化body表达式，避免类型检查超时）
+
+    private func htmlPreviewSheet() -> some View {
+        NavigationView {
+            HTMLPreviewView(
+                htmlContent: htmlPreviewContent,
+                title: htmlPreviewTitle,
+                onRefresh: {
+                    // 刷新网页：清除缓存，重新下载
+                    let currentURL = htmlPreviewURL
+                    let currentTitle = htmlPreviewTitle
+                    HTMLCache.shared.removeContent(for: currentURL)
+                    // 重新下载HTML内容
+                    downloadHTMLFromURLForRefresh(currentURL, fileName: currentTitle)
+                }
+            )
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        showHTMLPreview = false
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - 更多菜单
 
     private var moreMenu: some View {
         Menu {

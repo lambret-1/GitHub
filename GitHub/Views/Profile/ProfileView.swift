@@ -59,9 +59,9 @@ struct ProfileView: View {
                             
                             // 统计数据
                             HStack(spacing: 30) {
-                                StatView(number: user.publicRepos, label: "仓库")
-                                StatView(number: user.followers, label: "粉丝")
-                                StatView(number: user.following, label: "关注")
+                                StatView(number: user.publicRepos ?? 0, label: "仓库")
+                                StatView(number: user.followers ?? 0, label: "粉丝")
+                                StatView(number: user.following ?? 0, label: "关注")
                             }
                             .padding(.top, 8)
                         }
