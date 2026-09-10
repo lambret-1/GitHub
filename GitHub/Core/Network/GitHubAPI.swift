@@ -125,7 +125,7 @@ class GitHubAPI {
                 } else {
                     // 检测401未授权错误：token失效或权限不足
                     if httpResponse.statusCode == 401 {
-                        handleUnauthorizedError()
+                        self.handleUnauthorizedError()
                         completion(.failure(NSError(domain: "GitHubAPI", code: 401, userInfo: [NSLocalizedDescriptionKey: "登录已过期，请重新登录"])))
                         return
                     }
