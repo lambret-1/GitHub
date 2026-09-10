@@ -14,6 +14,7 @@ enum APIEndpoints {
     case commits(owner: String, repo: String, path: String?)
     case searchRepos(query: String, page: Int)
     case searchUsers(query: String, page: Int)
+    case searchCode(query: String, page: Int)
 
     // MARK: - GitHub Actions 相关端点
     case workflows(owner: String, repo: String)
@@ -58,6 +59,9 @@ enum APIEndpoints {
         case .searchUsers(let query, let page):
             let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
             return "\(APIEndpoints.baseURL)/search/users?q=\(encodedQuery)&page=\(page)&per_page=30&sort=followers"
+        case .searchCode(let query, let page):
+            let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+            return "\(APIEndpoints.baseURL)/search/code?q=\(encodedQuery)&page=\(page)&per_page=30"
 
         // MARK: - GitHub Actions 相关端点实现
         case .workflows(let owner, let repo):

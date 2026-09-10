@@ -223,6 +223,25 @@ class GitHubAPI {
             }
         }
     }
+
+    /// 搜索代码
+    func searchCode(query: String, page: Int = 1, completion: @escaping (Result<[CodeSearchItem], Error>) -> Void) {
+        let url = APIEndpoints.searchCode(query: query, page: page).url
+
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let searchResult = try JSONDecoder().decode(CodeSearchResult.self, from: data)
+                    completion(.success(searchResult.items))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
     
     // MARK: - 文件内容
     

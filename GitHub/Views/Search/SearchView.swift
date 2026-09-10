@@ -8,6 +8,7 @@ struct SearchView: View {
     @State private var selectedTab: SearchTab = .repositories
     @State private var repos: [Repository] = []
     @State private var users: [GitHubUser] = []
+    @State private var codeResults: [CodeSearchItem] = []
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
     @State private var currentPage: Int = 1
@@ -19,6 +20,7 @@ struct SearchView: View {
     enum SearchTab: String, CaseIterable {
         case repositories = "仓库"
         case users = "用户"
+        case code = "代码"
     }
 
     var body: some View {
@@ -26,7 +28,7 @@ struct SearchView: View {
             VStack(spacing: 0) {
                 // 搜索栏 + 筛选按钮
                 HStack(spacing: 8) {
-                    SearchBar(text: $searchText, placeholder: "搜索仓库或用户", onSearchButtonClicked: {
+                    SearchBar(text: $searchText, placeholder: "搜索仓库、用户或代码", onSearchButtonClicked: {
                         performSearch()
                     })
 
@@ -154,11 +156,34 @@ struct SearchView: View {
                                     Spacer()
                                 }
                             }
-                        } else {
+                        } else if selectedTab == .users {
                             ForEach(users) { user in
                                 UserRow(user: user)
                             }
                             if hasMoreResults && !users.isEmpty {
+                                HStack {
+                                    Spacer()
+                                    Button("加载更多") {
+                                        loadMore()
+                                    }
+                                    .foregroundColor(.blue)
+                                    Spacer()
+                                }
+                            }
+                        } else {
+                            // 代码搜索结果
+                            ForEach(codeResults) { item in
+                                NavigationLink(destination: CodeEditorView(
+                                    owner: item.repository.ownerName,
+                                    repo: item.repository.name,
+                                    path: item.path,
+                                    branch: item.repository.defaultBranch,
+                                    fileName: item.name
+                                )) {
+                                    CodeSearchRow(item: item)
+                                }
+                            }
+                            if hasMoreResults && !codeResults.isEmpty {
                                 HStack {
                                     Spacer()
                                     Button("加载更多") {
@@ -265,9 +290,14 @@ struct SearchView: View {
         hasMoreResults = true
 
         // 使用筛选配置构建查询
-        let query = selectedTab == .repositories ?
-            repoFilter.buildQuery(baseQuery: searchText) :
-            userFilter.buildQuery(baseQuery: searchText)
+        let query: String
+        if selectedTab == .repositories {
+            query = repoFilter.buildQuery(baseQuery: searchText)
+        } else if selectedTab == .users {
+            query = userFilter.buildQuery(baseQuery: searchText)
+        } else {
+            query = searchText
+        }
 
         if selectedTab == .repositories {
             GitHubAPI.shared.searchRepos(query: query, page: currentPage) { result in
@@ -282,7 +312,7 @@ struct SearchView: View {
                     }
                 }
             }
-        } else {
+        } else if selectedTab == .users {
             GitHubAPI.shared.searchUsers(query: query, page: currentPage) { result in
                 DispatchQueue.main.async {
                     isLoading = false
@@ -290,6 +320,20 @@ struct SearchView: View {
                     case .success(let users):
                         self.users = users
                         self.hasMoreResults = users.count >= 30
+                    case .failure(let error):
+                        self.errorMessage = "搜索失败: \(error.localizedDescription)"
+                    }
+                }
+            }
+        } else {
+            // 代码搜索
+            GitHubAPI.shared.searchCode(query: query, page: currentPage) { result in
+                DispatchQueue.main.async {
+                    isLoading = false
+                    switch result {
+                    case .success(let codeResults):
+                        self.codeResults = codeResults
+                        self.hasMoreResults = codeResults.count >= 30
                     case .failure(let error):
                         self.errorMessage = "搜索失败: \(error.localizedDescription)"
                     }
@@ -303,9 +347,14 @@ struct SearchView: View {
         isLoading = true
 
         // 使用筛选配置构建查询
-        let query = selectedTab == .repositories ?
-            repoFilter.buildQuery(baseQuery: searchText) :
-            userFilter.buildQuery(baseQuery: searchText)
+        let query: String
+        if selectedTab == .repositories {
+            query = repoFilter.buildQuery(baseQuery: searchText)
+        } else if selectedTab == .users {
+            query = userFilter.buildQuery(baseQuery: searchText)
+        } else {
+            query = searchText
+        }
 
         if selectedTab == .repositories {
             GitHubAPI.shared.searchRepos(query: query, page: currentPage) { result in
@@ -320,7 +369,7 @@ struct SearchView: View {
                     }
                 }
             }
-        } else {
+        } else if selectedTab == .users {
             GitHubAPI.shared.searchUsers(query: query, page: currentPage) { result in
                 DispatchQueue.main.async {
                     isLoading = false
@@ -328,6 +377,20 @@ struct SearchView: View {
                     case .success(let users):
                         self.users.append(contentsOf: users)
                         self.hasMoreResults = users.count >= 30
+                    case .failure(let error):
+                        self.errorMessage = "加载更多失败: \(error.localizedDescription)"
+                    }
+                }
+            }
+        } else {
+            // 代码搜索加载更多
+            GitHubAPI.shared.searchCode(query: query, page: currentPage) { result in
+                DispatchQueue.main.async {
+                    isLoading = false
+                    switch result {
+                    case .success(let codeResults):
+                        self.codeResults.append(contentsOf: codeResults)
+                        self.hasMoreResults = codeResults.count >= 30
                     case .failure(let error):
                         self.errorMessage = "加载更多失败: \(error.localizedDescription)"
                     }
@@ -405,5 +468,81 @@ struct UserRow: View {
             }
         }
         .padding(.vertical, 8)
+    }
+}
+
+// MARK: - 代码搜索结果行
+
+struct CodeSearchRow: View {
+    let item: CodeSearchItem
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // 文件图标
+            Image(systemName: fileIconName)
+                .font(.system(size: 24))
+                .foregroundColor(.blue)
+                .frame(width: 40, height: 40)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
+
+            // 文件信息
+            VStack(alignment: .leading, spacing: 4) {
+                // 文件名
+                Text(item.name)
+                    .font(.headline)
+                    .lineLimit(1)
+
+                // 文件路径
+                Text(item.path)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+
+                // 仓库信息
+                HStack(spacing: 4) {
+                    Image(systemName: "folder.fill")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                    Text("\(item.repository.ownerName)/\(item.repository.name)")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                }
+            }
+
+            Spacer()
+
+            // 箭头
+            Image(systemName: "chevron.right")
+                .foregroundColor(.gray)
+                .font(.caption)
+        }
+        .padding(.vertical, 8)
+    }
+
+    /// 根据文件扩展名获取图标名称
+    private var fileIconName: String {
+        let ext = (item.name as NSString).pathExtension.lowercased()
+        switch ext {
+        case "swift": return "swift"
+        case "js", "jsx": return "javascript"
+        case "ts", "tsx": return "chevron.left.forwardslash.chevron.right"
+        case "py": return "python"
+        case "java": return "cup.and.saucer"
+        case "go": return "g.circle"
+        case "rb": return "ruby"
+        case "php": return "php"
+        case "html", "htm": return "chevron.left.forwardslash.chevron.right"
+        case "css", "scss", "less": return "paintbrush"
+        case "json", "xml", "yml", "yaml": return "list.bullet"
+        case "md", "markdown": return "doc.text"
+        case "sh", "bash": return "terminal"
+        case "c", "h", "cpp", "hpp": return "c.square"
+        case "rs": return "r.square"
+        case "dart": return "dart"
+        case "vue": return "v.square"
+        case "sql": return "database"
+        default: return "doc.text"
+        }
     }
 }
