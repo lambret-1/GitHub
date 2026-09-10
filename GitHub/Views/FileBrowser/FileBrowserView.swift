@@ -485,10 +485,11 @@ struct FileBrowserView: View {
     // 异步加载文件，用于下拉刷新
     private func loadFilesAsync() async {
         await withCheckedContinuation { continuation in
-            loadFiles()
-            // 延迟一点时间，让刷新动画更自然
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                continuation.resume()
+            loadFiles {
+                // 最小延迟确保刷新动画流畅
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    continuation.resume()
+                }
             }
         }
     }
@@ -948,7 +949,7 @@ struct FileBrowserView: View {
         .background(Color(.systemGray6))
     }
     
-    private func loadFiles() {
+    private func loadFiles(completion: (() -> Void)? = nil) {
         isLoading = true
         errorMessage = nil
         
@@ -966,6 +967,7 @@ struct FileBrowserView: View {
                 case .failure(let error):
                     errorMessage = error.localizedDescription
                 }
+                completion?()
             }
         }
     }

@@ -80,7 +80,7 @@ struct RepoListView: View {
                     }
                     .listStyle(PlainListStyle())
                     .refreshable {
-                        loadRepos()
+                        await loadReposAsync()
                     }
                 }
             }
@@ -123,7 +123,7 @@ struct RepoListView: View {
         }
     }
     
-    private func loadRepos() {
+    private func loadRepos(completion: (() -> Void)? = nil) {
         isLoading = true
         errorMessage = nil
         
@@ -136,6 +136,19 @@ struct RepoListView: View {
                     applyFilter()
                 case .failure(let error):
                     errorMessage = error.localizedDescription
+                }
+                completion?()
+            }
+        }
+    }
+
+    // 异步加载仓库，用于下拉刷新
+    private func loadReposAsync() async {
+        await withCheckedContinuation { continuation in
+            loadRepos {
+                // 最小延迟确保刷新动画流畅
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    continuation.resume()
                 }
             }
         }

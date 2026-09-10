@@ -115,7 +115,7 @@ struct ActionsListView: View {
                 .refreshable {
                     currentPage = 1
                     hasMoreRuns = true
-                    loadRuns()
+                    await loadRunsAsync()
                 }
             }
         }
@@ -163,7 +163,7 @@ struct ActionsListView: View {
                 }
                 .listStyle(PlainListStyle())
                 .refreshable {
-                    loadWorkflows()
+                    await loadWorkflowsAsync()
                 }
             }
         }
@@ -171,7 +171,7 @@ struct ActionsListView: View {
 
     // MARK: - 数据加载
 
-    private func loadWorkflows() {
+    private func loadWorkflows(completion: (() -> Void)? = nil) {
         isLoadingWorkflows = true
         errorMessage = nil
 
@@ -184,11 +184,12 @@ struct ActionsListView: View {
                 case .failure(let error):
                     self.errorMessage = "加载工作流失败: \(error.localizedDescription)"
                 }
+                completion?()
             }
         }
     }
 
-    private func loadRuns() {
+    private func loadRuns(completion: (() -> Void)? = nil) {
         isLoadingRuns = true
         errorMessage = nil
 
@@ -202,6 +203,7 @@ struct ActionsListView: View {
                 case .failure(let error):
                     self.errorMessage = "加载运行记录失败: \(error.localizedDescription)"
                 }
+                completion?()
             }
         }
     }
@@ -236,6 +238,30 @@ struct ActionsListView: View {
                     loadRuns()
                 case .failure(let error):
                     errorMessage = "触发工作流失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // MARK: - 异步加载方法（用于下拉刷新）
+
+    private func loadRunsAsync() async {
+        await withCheckedContinuation { continuation in
+            loadRuns {
+                // 最小延迟确保刷新动画流畅
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    private func loadWorkflowsAsync() async {
+        await withCheckedContinuation { continuation in
+            loadWorkflows {
+                // 最小延迟确保刷新动画流畅
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    continuation.resume()
                 }
             }
         }

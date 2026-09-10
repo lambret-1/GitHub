@@ -144,8 +144,7 @@ struct WorkflowRunDetailView: View {
         }
         .refreshable {
             isRefreshing = true
-            loadJobs()
-            refreshRun()
+            await refreshAllAsync()
         }
         .alert("取消运行", isPresented: $showCancelAlert) {
             Button("取消运行", role: .destructive) {
@@ -191,7 +190,7 @@ struct WorkflowRunDetailView: View {
 
     // MARK: - 数据加载
 
-    private func loadJobs() {
+    private func loadJobs(completion: (() -> Void)? = nil) {
         isLoadingJobs = true
         errorMessage = nil
 
@@ -205,11 +204,12 @@ struct WorkflowRunDetailView: View {
                 case .failure(let error):
                     self.errorMessage = "加载作业失败: \(error.localizedDescription)"
                 }
+                completion?()
             }
         }
     }
 
-    private func refreshRun() {
+    private func refreshRun(completion: (() -> Void)? = nil) {
         GitHubAPI.shared.getWorkflowRun(owner: owner, repo: repo, runId: run.id) { result in
             DispatchQueue.main.async {
                 switch result {
@@ -218,6 +218,7 @@ struct WorkflowRunDetailView: View {
                 case .failure:
                     break
                 }
+                completion?()
             }
         }
     }
@@ -247,6 +248,33 @@ struct WorkflowRunDetailView: View {
                     loadJobs()
                 case .failure(let error):
                     errorMessage = "重新运行失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // MARK: - 异步刷新方法（用于下拉刷新）
+
+    private func refreshAllAsync() async {
+        await withCheckedContinuation { continuation in
+            // 使用 DispatchGroup 等待两个请求都完成
+            let group = DispatchGroup()
+
+            group.enter()
+            loadJobs {
+                group.leave()
+            }
+
+            group.enter()
+            refreshRun {
+                group.leave()
+            }
+
+            // 所有请求完成后，最小延迟确保刷新动画流畅
+            group.notify(queue: .main) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    isRefreshing = false
+                    continuation.resume()
                 }
             }
         }
