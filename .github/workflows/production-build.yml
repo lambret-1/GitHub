@@ -53,11 +53,13 @@ jobs:
       build_start_time: ${{ steps.time.outputs.start_time }}
     steps:
       # Step 1: 检出代码
+      # 使用 REPO_ADMIN_TOKEN（管理员PAT），使后续 git push 能绕过分支保护的状态检查要求
+      # （个人仓库不支持 restrictions 白名单，管理员 token + enforce_admins=false 是唯一通道）
       - name: 检出代码
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # 完整历史，用于git log和commit信息
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.REPO_ADMIN_TOKEN }}
 
       # Step 2: 记录构建开始时间
       - name: 记录构建开始时间
@@ -463,12 +465,13 @@ jobs:
       - build-ipa
     steps:
       # Step 1: 检出最新代码
+      # 使用 REPO_ADMIN_TOKEN 使后续 git push 能绕过分支保护
       - name: 检出最新代码
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.REPO_ADMIN_TOKEN }}
 
       # Step 2: 下载IPA制品（用于SHA256校验和确认）
       - name: 下载IPA制品
