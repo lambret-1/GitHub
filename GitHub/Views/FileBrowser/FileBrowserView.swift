@@ -11,7 +11,7 @@ class HTMLCache {
         let timestamp: Date
     }
 
-    private var cache: [String: CacheEntry] = [:]
+    var cache: [String: CacheEntry] = [:]
     private let cacheQueue = DispatchQueue(label: "com.github.htmlcache", attributes: .concurrent)
     private let cacheValidity: TimeInterval = 300 // 缓存有效期5分钟
 
@@ -57,85 +57,85 @@ class HTMLCache {
 
 struct FileBrowserView: View {
     let repository: Repository
-    @State private var files: [FileItem] = []
-    @State private var currentPath: String = ""
-    @State private var pathStack: [String] = []
-    @State private var isLoading: Bool = true
-    @State private var errorMessage: String?
-    @State private var branches: [Branch] = []
-    @State private var selectedBranch: String = ""
-    @State private var showBranchPicker: Bool = false
-    @State private var showCommits: Bool = false
-    @State private var showActions: Bool = false
-    @State private var showDocumentPicker: Bool = false
-    @State private var isUploading: Bool = false
-    @State private var uploadProgress: Double = 0
-    @State private var selectedFiles: [URL] = []
-    @State private var showUploadConfirm: Bool = false
-    @State private var currentUploadIndex: Int = 0
-    @State private var totalUploadCount: Int = 0
-    @State private var currentUploadFileName: String = ""
-    @State private var isDownloading: Bool = false
-    @State private var downloadProgress: Double = 0
-    @State private var downloadingFileName: String = ""
-    @State private var showActionSheet: Bool = false
-    @State private var selectedFile: FileItem?
-    @State private var showUploadSuccess: Bool = false
-    @State private var uploadErrorMessage: String?
-    @State private var showCreateFolderDialog: Bool = false
-    @State private var newFolderName: String = ""
-    @State private var isCreatingFolder: Bool = false
-    @State private var showCreateFolderSuccess: Bool = false
-    @State private var createFolderErrorMessage: String?
+    @State var files: [FileItem] = []
+    @State var currentPath: String = ""
+    @State var pathStack: [String] = []
+    @State var isLoading: Bool = true
+    @State var errorMessage: String?
+    @State var branches: [Branch] = []
+    @State var selectedBranch: String = ""
+    @State var showBranchPicker: Bool = false
+    @State var showCommits: Bool = false
+    @State var showActions: Bool = false
+    @State var showDocumentPicker: Bool = false
+    @State var isUploading: Bool = false
+    @State var uploadProgress: Double = 0
+    @State var selectedFiles: [URL] = []
+    @State var showUploadConfirm: Bool = false
+    @State var currentUploadIndex: Int = 0
+    @State var totalUploadCount: Int = 0
+    @State var currentUploadFileName: String = ""
+    @State var isDownloading: Bool = false
+    @State var downloadProgress: Double = 0
+    @State var downloadingFileName: String = ""
+    @State var showActionSheet: Bool = false
+    @State var selectedFile: FileItem?
+    @State var showUploadSuccess: Bool = false
+    @State var uploadErrorMessage: String?
+    @State var showCreateFolderDialog: Bool = false
+    @State var newFolderName: String = ""
+    @State var isCreatingFolder: Bool = false
+    @State var showCreateFolderSuccess: Bool = false
+    @State var createFolderErrorMessage: String?
 
     // 新建文件相关状态
-    @State private var showCreateFileDialog: Bool = false
-    @State private var newFileName: String = ""
-    @State private var isCreatingFile: Bool = false
-    @State private var showCreateFileSuccess: Bool = false
-    @State private var createFileErrorMessage: String?
+    @State var showCreateFileDialog: Bool = false
+    @State var newFileName: String = ""
+    @State var isCreatingFile: Bool = false
+    @State var showCreateFileSuccess: Bool = false
+    @State var createFileErrorMessage: String?
 
     // 删除文件相关状态
-    @State private var isDeleteMode: Bool = false
-    @State private var selectedFilesForDelete: Set<String> = []
-    @State private var isDeleting: Bool = false
-    @State private var showDeleteConfirm: Bool = false
+    @State var isDeleteMode: Bool = false
+    @State var selectedFilesForDelete: Set<String> = []
+    @State var isDeleting: Bool = false
+    @State var showDeleteConfirm: Bool = false
 
     // 新创建文件路径，用于跳转到编辑状态
-    @State private var newlyCreatedFilePath: String?
-    @State private var navigateToEditor: Bool = false
+    @State var newlyCreatedFilePath: String?
+    @State var navigateToEditor: Bool = false
 
     // contextMenu编辑文件相关状态
-    @State private var contextMenuEditFilePath: String?
-    @State private var contextMenuEditFileName: String?
-    @State private var navigateToEditorFromContextMenu: Bool = false
+    @State var contextMenuEditFilePath: String?
+    @State var contextMenuEditFileName: String?
+    @State var navigateToEditorFromContextMenu: Bool = false
 
     // contextMenu删除单个文件相关状态
-    @State private var contextMenuDeleteFile: FileItem?
-    @State private var showContextMenuDeleteConfirm: Bool = false
-    @State private var isDeletingSingleFile: Bool = false
+    @State var contextMenuDeleteFile: FileItem?
+    @State var showContextMenuDeleteConfirm: Bool = false
+    @State var isDeletingSingleFile: Bool = false
 
     // contextMenu重命名文件相关状态
-    @State private var contextMenuRenameFile: FileItem?
-    @State private var showContextMenuRename: Bool = false
-    @State private var renameNewFileName: String = ""
-    @State private var isRenamingFile: Bool = false
+    @State var contextMenuRenameFile: FileItem?
+    @State var showContextMenuRename: Bool = false
+    @State var renameNewFileName: String = ""
+    @State var isRenamingFile: Bool = false
 
     // HTML网页预览相关状态
-    @State private var showHTMLPreview: Bool = false
-    @State private var htmlPreviewContent: String = ""
-    @State private var htmlPreviewTitle: String = ""
-    @State private var isLoadingHTML: Bool = false
-    @State private var htmlPreviewError: String?
-    @State private var htmlPreviewURL: String = "" // 保存当前预览的URL，用于刷新
+    @State var showHTMLPreview: Bool = false
+    @State var htmlPreviewContent: String = ""
+    @State var htmlPreviewTitle: String = ""
+    @State var isLoadingHTML: Bool = false
+    @State var htmlPreviewError: String?
+    @State var htmlPreviewURL: String = "" // 保存当前预览的URL，用于刷新
 
     // 仓库交互相关状态（星标、Fork）
-    @State private var isStarred: Bool = false
-    @State private var isCheckingStar: Bool = false
-    @State private var isStarring: Bool = false
-    @State private var isForking: Bool = false
-    @State private var showOperationMessage: Bool = false
-    @State private var operationMessage: String = ""
+    @State var isStarred: Bool = false
+    @State var isCheckingStar: Bool = false
+    @State var isStarring: Bool = false
+    @State var isForking: Bool = false
+    @State var showOperationMessage: Bool = false
+    @State var operationMessage: String = ""
     
     var body: some View {
         mainContent
@@ -143,7 +143,7 @@ struct FileBrowserView: View {
 
     // MARK: - 主要内容（拆分成单独属性，避免body表达式过于复杂导致类型检查超时）
 
-    private var mainContent: some View {
+    var mainContent: some View {
         baseView
             .modifier(FileBrowserHTMLSheetsModifier(view: self))
             .modifier(FileBrowserBranchAndRenameSheetsModifier(view: self))
@@ -155,7 +155,7 @@ struct FileBrowserView: View {
 
     // MARK: - 基础视图（拆分成单独属性，避免类型检查超时）
 
-    private var baseView: some View {
+    var baseView: some View {
         VStack(spacing: 0) {
             pathNavigationBar
             fileListContent
@@ -208,7 +208,7 @@ struct FileBrowserView: View {
     // MARK: - 隐藏的导航链接（拆分成单独属性，避免body表达式过于复杂导致类型检查超时）
 
     @ViewBuilder
-    private var hiddenNavigationLinks: some View {
+    var hiddenNavigationLinks: some View {
         // 隐藏的NavigationLink，用于创建文件成功后跳转到编辑状态
         NavigationLink(destination: Group {
             if let filePath = newlyCreatedFilePath {
@@ -255,7 +255,7 @@ struct FileBrowserView: View {
     // MARK: - 文件列表内容
 
     @ViewBuilder
-    private var fileListContent: some View {
+    var fileListContent: some View {
         if isLoading {
             loadingView
         } else if let error = errorMessage {
@@ -267,7 +267,7 @@ struct FileBrowserView: View {
         }
     }
 
-    private var loadingView: some View {
+    var loadingView: some View {
         VStack {
             Spacer()
             ProgressView("加载中...")
@@ -275,7 +275,7 @@ struct FileBrowserView: View {
         }
     }
 
-    private func errorView(error: String) -> some View {
+    func errorView(error: String) -> some View {
         VStack(spacing: 16) {
             Spacer()
             Image(systemName: "exclamationmark.triangle")
@@ -293,7 +293,7 @@ struct FileBrowserView: View {
         .padding()
     }
 
-    private var emptyView: some View {
+    var emptyView: some View {
         VStack(spacing: 12) {
             Spacer()
             Image(systemName: "folder")
@@ -305,7 +305,7 @@ struct FileBrowserView: View {
         }
     }
 
-    private var fileListView: some View {
+    var fileListView: some View {
         List {
             if !pathStack.isEmpty || !currentPath.isEmpty {
                 Button(action: navigateUp) {
@@ -331,7 +331,7 @@ struct FileBrowserView: View {
     }
 
     // 异步加载文件，用于下拉刷新
-    private func loadFilesAsync() async {
+    func loadFilesAsync() async {
         await withCheckedContinuation { continuation in
             loadFiles {
                 // 最小延迟确保刷新动画流畅
@@ -344,7 +344,7 @@ struct FileBrowserView: View {
 
     // MARK: - 删除模式底部操作栏
 
-    private var deleteActionBar: some View {
+    var deleteActionBar: some View {
         VStack(spacing: 0) {
             Divider()
             HStack(spacing: 12) {
@@ -404,7 +404,7 @@ struct FileBrowserView: View {
     // MARK: - 工具栏内容
 
     @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
+    var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             moreMenu
         }
@@ -412,7 +412,7 @@ struct FileBrowserView: View {
 
     // MARK: - HTML预览Sheet（拆分成单独属性，简化body表达式，避免类型检查超时）
 
-    private func htmlPreviewSheet() -> some View {
+    func htmlPreviewSheet() -> some View {
         NavigationView {
             HTMLPreviewView(
                 htmlContent: htmlPreviewContent,
@@ -438,7 +438,7 @@ struct FileBrowserView: View {
 
     // MARK: - 重命名文件Sheet（拆分成单独属性，简化body表达式，避免类型检查超时）
 
-    private func renameFileSheet() -> some View {
+    func renameFileSheet() -> some View {
         NavigationView {
             Form {
                 Section("文件名") {
@@ -481,7 +481,7 @@ struct FileBrowserView: View {
 
     // MARK: - 更多菜单
 
-    private var moreMenu: some View {
+    var moreMenu: some View {
         Menu {
             if isOwnRepository {
                 // 自己的仓库：显示文件操作相关功能
@@ -582,7 +582,7 @@ struct FileBrowserView: View {
 
     // MARK: - 确认上传弹窗
 
-    private var uploadConfirmView: some View {
+    var uploadConfirmView: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // 头部信息
@@ -683,7 +683,7 @@ struct FileBrowserView: View {
 
     // MARK: - 文件图标
 
-    private func fileIcon(for url: URL) -> String {
+    func fileIcon(for url: URL) -> String {
         let ext = url.pathExtension.lowercased()
         switch ext {
         case "jpg", "jpeg", "png", "gif", "svg", "webp", "heic":
@@ -717,7 +717,7 @@ struct FileBrowserView: View {
         }
     }
 
-    private func fileIconColor(for url: URL) -> Color {
+    func fileIconColor(for url: URL) -> Color {
         let ext = url.pathExtension.lowercased()
         switch ext {
         case "jpg", "jpeg", "png", "gif", "svg", "webp", "heic":
@@ -743,7 +743,7 @@ struct FileBrowserView: View {
         }
     }
 
-    private func fileSizeString(for url: URL) -> String {
+    func fileSizeString(for url: URL) -> String {
         guard let resources = try? url.resourceValues(forKeys: [.fileSizeKey]),
               let size = resources.fileSize else {
             return "未知大小"
@@ -755,14 +755,14 @@ struct FileBrowserView: View {
         return formatter.string(fromByteCount: Int64(size))
     }
 
-    private func removeSelectedFile(at offsets: IndexSet) {
+    func removeSelectedFile(at offsets: IndexSet) {
         selectedFiles.remove(atOffsets: offsets)
     }
 
     // MARK: - 进度覆盖层
 
     @ViewBuilder
-    private var progressOverlay: some View {
+    var progressOverlay: some View {
         if isDownloading {
             downloadProgressView
         } else if isUploading {
@@ -770,7 +770,7 @@ struct FileBrowserView: View {
         }
     }
 
-    private var downloadProgressView: some View {
+    var downloadProgressView: some View {
         ZStack {
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
@@ -794,7 +794,7 @@ struct FileBrowserView: View {
         }
     }
 
-    private var uploadProgressView: some View {
+    var uploadProgressView: some View {
         ZStack {
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
@@ -851,7 +851,7 @@ struct FileBrowserView: View {
     }
 
     // 路径导航栏
-    private var pathNavigationBar: some View {
+    var pathNavigationBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
                 Button(action: {
@@ -898,7 +898,7 @@ struct FileBrowserView: View {
     // MARK: - 仓库权限判断
 
     /// 判断当前仓库是否是用户自己的仓库
-    private var isOwnRepository: Bool {
+    var isOwnRepository: Bool {
         guard let currentUsername = AccountManager.shared.currentAccount?.username else {
             return false
         }
@@ -908,7 +908,7 @@ struct FileBrowserView: View {
     // MARK: - 星标相关方法
 
     /// 检查仓库是否已被星标
-    private func checkStarredStatus() {
+    func checkStarredStatus() {
         guard !isOwnRepository else { return }
         isCheckingStar = true
         GitHubAPI.shared.checkStarred(owner: repository.ownerName, repo: repository.name) { result in
@@ -925,7 +925,7 @@ struct FileBrowserView: View {
     }
 
     /// 切换星标状态
-    private func toggleStar() {
+    func toggleStar() {
         if isStarred {
             unstarRepository()
         } else {
@@ -934,7 +934,7 @@ struct FileBrowserView: View {
     }
 
     /// 星标仓库
-    private func starRepository() {
+    func starRepository() {
         isStarring = true
         GitHubAPI.shared.starRepository(owner: repository.ownerName, repo: repository.name) { result in
             DispatchQueue.main.async {
@@ -951,7 +951,7 @@ struct FileBrowserView: View {
     }
 
     /// 取消星标仓库
-    private func unstarRepository() {
+    func unstarRepository() {
         isStarring = true
         GitHubAPI.shared.unstarRepository(owner: repository.ownerName, repo: repository.name) { result in
             DispatchQueue.main.async {
@@ -970,7 +970,7 @@ struct FileBrowserView: View {
     // MARK: - Fork 相关方法
 
     /// Fork 仓库
-    private func forkRepository() {
+    func forkRepository() {
         isForking = true
         GitHubAPI.shared.forkRepository(owner: repository.ownerName, repo: repository.name) { result in
             DispatchQueue.main.async {
@@ -988,7 +988,7 @@ struct FileBrowserView: View {
     // MARK: - 复制仓库地址
 
     /// 复制仓库地址到剪贴板
-    private func copyRepositoryURL() {
+    func copyRepositoryURL() {
         let repoURL = "https://github.com/\(repository.ownerName)/\(repository.name)"
         UIPasteboard.general.string = repoURL
         showMessage("仓库地址已复制")
@@ -997,7 +997,7 @@ struct FileBrowserView: View {
     // MARK: - 提示消息
 
     /// 显示操作提示消息
-    private func showMessage(_ message: String) {
+    func showMessage(_ message: String) {
         operationMessage = message
         showOperationMessage = true
         // 3秒后自动隐藏
@@ -1006,7 +1006,7 @@ struct FileBrowserView: View {
         }
     }
 
-    private func loadFiles(completion: (() -> Void)? = nil) {
+    func loadFiles(completion: (() -> Void)? = nil) {
         isLoading = true
         errorMessage = nil
         
@@ -1029,7 +1029,7 @@ struct FileBrowserView: View {
         }
     }
     
-    private func loadBranches() {
+    func loadBranches() {
         GitHubAPI.shared.getBranches(owner: repository.ownerName, repo: repository.name) { result in
             DispatchQueue.main.async {
                 switch result {
@@ -1042,13 +1042,13 @@ struct FileBrowserView: View {
         }
     }
     
-    private func navigateToDirectory(_ path: String) {
+    func navigateToDirectory(_ path: String) {
         pathStack.append(currentPath)
         currentPath = path
         loadFiles()
     }
     
-    private func navigateUp() {
+    func navigateUp() {
         if let previousPath = pathStack.popLast() {
             currentPath = previousPath
         } else {
@@ -1060,7 +1060,7 @@ struct FileBrowserView: View {
     // MARK: - 文件行视图
 
     @ViewBuilder
-    private func fileRowView(for file: FileItem) -> some View {
+    func fileRowView(for file: FileItem) -> some View {
         // 删除模式：显示复选框，点击切换选择状态
         if isDeleteMode {
             Button(action: {
@@ -1097,7 +1097,7 @@ struct FileBrowserView: View {
     }
 
     // 切换文件选择状态
-    private func toggleFileSelection(_ file: FileItem) {
+    func toggleFileSelection(_ file: FileItem) {
         if selectedFilesForDelete.contains(file.path) {
             selectedFilesForDelete.remove(file.path)
         } else {
@@ -1106,7 +1106,7 @@ struct FileBrowserView: View {
     }
 
     @ViewBuilder
-    private func contextMenuContent(for file: FileItem) -> some View {
+    func contextMenuContent(for file: FileItem) -> some View {
         // 编辑文件选项
         Button(action: {
             contextMenuEditFilePath = file.path
@@ -1174,7 +1174,7 @@ struct FileBrowserView: View {
 
     // MARK: - HTML网页预览
 
-    private func previewHTMLFile(_ file: FileItem) {
+    func previewHTMLFile(_ file: FileItem) {
         // 优先使用download_url下载文件内容
         if let downloadUrl = file.downloadUrl, !downloadUrl.isEmpty {
             downloadHTMLFromURL(downloadUrl, fileName: file.name)
@@ -1186,7 +1186,7 @@ struct FileBrowserView: View {
     }
 
     /// 从下载URL获取HTML内容
-    private func downloadHTMLFromURL(_ url: String, fileName: String) {
+    func downloadHTMLFromURL(_ url: String, fileName: String) {
         // 保存当前预览的URL，用于刷新
         htmlPreviewURL = url
 
@@ -1253,7 +1253,7 @@ struct FileBrowserView: View {
     }
 
     /// 刷新时重新下载HTML内容（不检查缓存，直接下载）
-    private func downloadHTMLFromURLForRefresh(_ url: String, fileName: String) {
+    func downloadHTMLFromURLForRefresh(_ url: String, fileName: String) {
         // 不检查缓存，直接下载
         isLoadingHTML = true
         htmlPreviewTitle = fileName
@@ -1309,7 +1309,7 @@ struct FileBrowserView: View {
 
     // MARK: - 下载文件
 
-    private func downloadFile(_ file: FileItem) {
+    func downloadFile(_ file: FileItem) {
         guard let downloadUrl = file.downloadUrl else {
             errorMessage = "该文件不支持下载"
             return
@@ -1342,7 +1342,7 @@ struct FileBrowserView: View {
 
     // MARK: - 开始上传
 
-    private func startUpload() {
+    func startUpload() {
         guard !selectedFiles.isEmpty else { return }
 
         showUploadConfirm = false
@@ -1354,7 +1354,7 @@ struct FileBrowserView: View {
         uploadNextFile()
     }
 
-    private func uploadNextFile() {
+    func uploadNextFile() {
         guard currentUploadIndex < selectedFiles.count else {
             // 所有文件上传完成
             isUploading = false
@@ -1379,7 +1379,7 @@ struct FileBrowserView: View {
         }
     }
 
-    private func uploadFile(at fileURL: URL, completion: @escaping (Bool) -> Void) {
+    func uploadFile(at fileURL: URL, completion: @escaping (Bool) -> Void) {
         // 停止访问安全资源
         let didStartAccessing = fileURL.startAccessingSecurityScopedResource()
         defer {
@@ -1417,7 +1417,7 @@ struct FileBrowserView: View {
 
     // MARK: - 创建文件夹
 
-    private func createFolder(folderName: String) {
+    func createFolder(folderName: String) {
         let trimmedFolderName = folderName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedFolderName.isEmpty else { return }
 
@@ -1446,7 +1446,7 @@ struct FileBrowserView: View {
 
     // MARK: - 新建文件
 
-    private func createFile(fileName: String) {
+    func createFile(fileName: String) {
         let trimmedFileName = fileName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedFileName.isEmpty else { return }
 
@@ -1481,7 +1481,7 @@ struct FileBrowserView: View {
 
     // MARK: - 删除选中文件
 
-    private func deleteSelectedFiles() {
+    func deleteSelectedFiles() {
         guard !selectedFilesForDelete.isEmpty else { return }
 
         isDeleting = true
@@ -1550,7 +1550,7 @@ struct FileBrowserView: View {
 
     // MARK: - 删除单个文件（contextMenu）
 
-    private func deleteSingleFile(_ file: FileItem) {
+    func deleteSingleFile(_ file: FileItem) {
         // GitHub API 不支持直接删除文件夹，只能删除文件
         if file.isDirectory {
             errorMessage = "无法直接删除文件夹「\(file.name)」（GitHub API 限制）\n如需删除文件夹，请进入文件夹后逐个删除其中的文件"
@@ -1585,7 +1585,7 @@ struct FileBrowserView: View {
 
     // MARK: - 重命名文件（contextMenu）
 
-    private func renameFile(_ file: FileItem, newName: String) {
+    func renameFile(_ file: FileItem, newName: String) {
         // 检查新文件名是否为空
         guard !newName.isEmpty else {
             errorMessage = "文件名不能为空"
@@ -1671,8 +1671,8 @@ struct FileRow: View {
     let repo: String
     let branch: String
 
-    @State private var lastCommit: Commit?
-    @State private var isLoadingCommit: Bool = false
+    @State var lastCommit: Commit?
+    @State var isLoadingCommit: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1727,7 +1727,7 @@ struct FileRow: View {
         }
     }
 
-    private func loadLastCommit() {
+    func loadLastCommit() {
         guard file.isFile else { return }
         guard !isLoadingCommit else { return }
 
@@ -1821,9 +1821,9 @@ struct BranchPickerView: View {
 struct CommitsView: View {
     let owner: String
     let repo: String
-    @State private var commits: [Commit] = []
-    @State private var isLoading: Bool = true
-    @State private var errorMessage: String?
+    @State var commits: [Commit] = []
+    @State var isLoading: Bool = true
+    @State var errorMessage: String?
     
     var body: some View {
         NavigationView {
@@ -1873,7 +1873,7 @@ struct CommitsView: View {
         }
     }
     
-    private func loadCommits() {
+    func loadCommits() {
         GitHubAPI.shared.getCommits(owner: owner, repo: repo) { result in
             DispatchQueue.main.async {
                 isLoading = false
