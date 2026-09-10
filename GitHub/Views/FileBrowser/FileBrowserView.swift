@@ -117,7 +117,7 @@ struct FileBrowserView: View {
     // contextMenu重命名文件相关状态
     @State private var contextMenuRenameFile: FileItem?
     @State private var showContextMenuRename: Bool = false
-    @State private var newFileName: String = ""
+    @State private var renameNewFileName: String = ""
     @State private var isRenamingFile: Bool = false
 
     // HTML网页预览相关状态
@@ -187,14 +187,14 @@ struct FileBrowserView: View {
             NavigationView {
                 Form {
                     Section("文件名") {
-                        TextField("输入新的文件名", text: $newFileName)
+                        TextField("输入新的文件名", text: $renameNewFileName)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                     }
                     Section {
                         Button(action: {
                             if let file = contextMenuRenameFile {
-                                renameFile(file, newName: newFileName)
+                                renameFile(file, newName: renameNewFileName)
                             }
                         }) {
                             HStack {
@@ -208,7 +208,7 @@ struct FileBrowserView: View {
                                 Spacer()
                             }
                         }
-                        .disabled(newFileName.isEmpty || isRenamingFile)
+                        .disabled(renameNewFileName.isEmpty || isRenamingFile)
                     }
                 }
                 .navigationTitle("重命名文件")
@@ -1044,7 +1044,7 @@ struct FileBrowserView: View {
         if file.isFile {
             Button(action: {
                 contextMenuRenameFile = file
-                newFileName = file.name
+                renameNewFileName = file.name
                 showContextMenuRename = true
             }) {
                 Label("重命名", systemImage: "pencil.line")
