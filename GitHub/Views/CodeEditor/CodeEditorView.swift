@@ -59,51 +59,7 @@ struct CodeEditorView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            if isLoading {
-                Spacer()
-                ProgressView("加载文件中...")
-                Spacer()
-            } else if let error = errorMessage {
-                Spacer()
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundColor(.orange)
-                    Text(error)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                    Button("重试") {
-                        loadFile()
-                    }
-                    .buttonStyle(.bordered)
-                }
-                .padding()
-                Spacer()
-            } else if let content = fileContent {
-                if !content.isTextFile {
-                    // 二进制文件提示
-                    Spacer()
-                    VStack(spacing: 16) {
-                        Image(systemName: "doc")
-                            .font(.largeTitle)
-                            .foregroundColor(.gray)
-                        Text("此文件为二进制文件，无法在线编辑")
-                            .foregroundColor(.secondary)
-                        if let downloadUrl = content.downloadUrl {
-                            Button("下载文件") {
-                                if let url = URL(string: downloadUrl) {
-                                    UIApplication.shared.open(url)
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                    }
-                    Spacer()
-                } else {
-                    // 代码编辑器
-                    codeEditorArea
-                }
-            }
+            contentView
         }
         // 编辑模式底部工具栏使用overlay，确保不跟随键盘移动
         .overlay(alignment: .bottom) {
@@ -488,6 +444,74 @@ struct CodeEditorView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
         .background(Color(.systemGray6))
+    }
+
+    // MARK: - 内容区域（拆分复杂表达式，解决编译器类型检查超时）
+
+    private var contentView: some View {
+        Group {
+            if isLoading {
+                loadingView
+            } else if let error = errorMessage {
+                errorView(error: error)
+            } else if let content = fileContent {
+                if !content.isTextFile {
+                    binaryFileView(content: content)
+                } else {
+                    codeEditorArea
+                }
+            }
+        }
+    }
+
+    private var loadingView: some View {
+        VStack {
+            Spacer()
+            ProgressView("加载文件中...")
+            Spacer()
+        }
+    }
+
+    private func errorView(error: String) -> some View {
+        VStack {
+            Spacer()
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.largeTitle)
+                    .foregroundColor(.orange)
+                Text(error)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Button("重试") {
+                    loadFile()
+                }
+                .buttonStyle(.bordered)
+            }
+            .padding()
+            Spacer()
+        }
+    }
+
+    private func binaryFileView(content: FileContent) -> some View {
+        VStack {
+            Spacer()
+            VStack(spacing: 16) {
+                Image(systemName: "doc")
+                    .font(.largeTitle)
+                    .foregroundColor(.gray)
+                Text("此文件为二进制文件，无法在线编辑")
+                    .foregroundColor(.secondary)
+                if let downloadUrl = content.downloadUrl {
+                    Button("下载文件") {
+                        if let url = URL(string: downloadUrl) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            Spacer()
+        }
     }
 
     // MARK: - 代码编辑区域
