@@ -138,6 +138,12 @@ struct FileBrowserView: View {
     @State private var operationMessage: String = ""
     
     var body: some View {
+        mainContent
+    }
+
+    // MARK: - 主要内容（拆分成单独属性，避免body表达式过于复杂导致类型检查超时）
+
+    private var mainContent: some View {
         VStack(spacing: 0) {
             pathNavigationBar
             fileListContent
