@@ -198,7 +198,8 @@ struct UserRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // 头像
-            CachedImageView(urlString: user.avatarUrl, size: CGSize(width: 48, height: 48))
+            CachedImageView(urlString: user.avatarUrl)
+                .frame(width: 48, height: 48)
                 .clipShape(Circle())
 
             // 用户信息
