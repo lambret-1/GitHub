@@ -145,7 +145,12 @@ struct FileBrowserView: View {
 
     private var mainContent: some View {
         baseView
-            .modifier(FileBrowserSheetsModifier(view: self))
+            .modifier(FileBrowserHTMLSheetsModifier(view: self))
+            .modifier(FileBrowserBranchAndRenameSheetsModifier(view: self))
+            .modifier(FileBrowserUploadSheetsModifier(view: self))
+            .modifier(FileBrowserCreateFolderSheetsModifier(view: self))
+            .modifier(FileBrowserCreateFileSheetsModifier(view: self))
+            .modifier(FileBrowserDeleteSheetsModifier(view: self))
     }
 
     // MARK: - 基础视图（拆分成单独属性，避免类型检查超时）
@@ -171,7 +176,7 @@ struct FileBrowserView: View {
         }
         .onAppear {
             if selectedBranch.isEmpty {
-                selectedBranch = repository.defaultBranch
+                selectedBranch = repository.defaultBranch ?? "main"
             }
             loadBranches()
             loadFiles()
@@ -1896,9 +1901,9 @@ struct FileBrowserView_Previews: PreviewProvider {
     }
 }
 
-// MARK: - Sheet和Alert修饰符（拆分成单独文件，避免类型检查超时）
+// MARK: - Sheet和Alert修饰符（拆分成多个小修饰符，避免类型检查超时）
 
-private struct FileBrowserSheetsModifier: ViewModifier {
+private struct FileBrowserHTMLSheetsModifier: ViewModifier {
     let view: FileBrowserView
 
     func body(content: Content) -> some View {
@@ -1911,6 +1916,14 @@ private struct FileBrowserSheetsModifier: ViewModifier {
             } message: {
                 Text(view.htmlPreviewError ?? "未知错误")
             }
+    }
+}
+
+private struct FileBrowserBranchAndRenameSheetsModifier: ViewModifier {
+    let view: FileBrowserView
+
+    func body(content: Content) -> some View {
+        content
             .sheet(isPresented: view.$showBranchPicker) {
                 BranchPickerView(branches: view.branches, selectedBranch: view.$selectedBranch) {
                     view.loadFiles()
@@ -1921,6 +1934,14 @@ private struct FileBrowserSheetsModifier: ViewModifier {
             .sheet(isPresented: view.$showCommits) {
                 CommitsView(owner: view.repository.ownerName, repo: view.repository.name)
             }
+    }
+}
+
+private struct FileBrowserUploadSheetsModifier: ViewModifier {
+    let view: FileBrowserView
+
+    func body(content: Content) -> some View {
+        content
             .sheet(isPresented: view.$showDocumentPicker) {
                 DocumentPickerView(allowsMultipleSelection: true) { urls in
                     view.selectedFiles = urls
@@ -1944,6 +1965,14 @@ private struct FileBrowserSheetsModifier: ViewModifier {
             } message: {
                 Text(view.uploadErrorMessage ?? "未知错误")
             }
+    }
+}
+
+private struct FileBrowserCreateFolderSheetsModifier: ViewModifier {
+    let view: FileBrowserView
+
+    func body(content: Content) -> some View {
+        content
             .sheet(isPresented: view.$showCreateFolderDialog) {
                 CreateFolderView(currentPath: view.currentPath) { folderName in
                     view.createFolder(folderName: folderName)
@@ -1965,6 +1994,14 @@ private struct FileBrowserSheetsModifier: ViewModifier {
             } message: {
                 Text(view.createFolderErrorMessage ?? "未知错误")
             }
+    }
+}
+
+private struct FileBrowserCreateFileSheetsModifier: ViewModifier {
+    let view: FileBrowserView
+
+    func body(content: Content) -> some View {
+        content
             .sheet(isPresented: view.$showCreateFileDialog) {
                 CreateFileView(currentPath: view.currentPath) { fileName in
                     view.createFile(fileName: fileName)
@@ -1979,6 +2016,21 @@ private struct FileBrowserSheetsModifier: ViewModifier {
             } message: {
                 Text("文件已成功创建")
             }
+            .alert("创建失败", isPresented: .constant(view.createFileErrorMessage != nil)) {
+                Button("确定", role: .cancel) {
+                    view.createFileErrorMessage = nil
+                }
+            } message: {
+                Text(view.createFileErrorMessage ?? "未知错误")
+            }
+    }
+}
+
+private struct FileBrowserDeleteSheetsModifier: ViewModifier {
+    let view: FileBrowserView
+
+    func body(content: Content) -> some View {
+        content
             .alert("确认删除", isPresented: view.$showContextMenuDeleteConfirm) {
                 Button("取消", role: .cancel) {
                     view.contextMenuDeleteFile = nil
@@ -1994,13 +2046,6 @@ private struct FileBrowserSheetsModifier: ViewModifier {
                 } else {
                     Text("确定要删除该文件吗？此操作不可撤销。")
                 }
-            }
-            .alert("创建失败", isPresented: .constant(view.createFileErrorMessage != nil)) {
-                Button("确定", role: .cancel) {
-                    view.createFileErrorMessage = nil
-                }
-            } message: {
-                Text(view.createFileErrorMessage ?? "未知错误")
             }
             .alert("确认删除", isPresented: view.$showDeleteConfirm) {
                 Button("取消", role: .cancel) {}
