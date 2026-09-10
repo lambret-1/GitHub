@@ -11,14 +11,17 @@ struct HTMLPreviewView: View {
     let htmlContent: String
     let title: String
     let baseURL: URL?
+    var onRefresh: (() -> Void)?
 
     @State private var isLoading: Bool = true
     @State private var errorMessage: String?
+    @State private var webViewKey: UUID = UUID() // 用于强制刷新WebView
 
-    init(htmlContent: String, title: String, baseURL: URL? = nil) {
+    init(htmlContent: String, title: String, baseURL: URL? = nil, onRefresh: (() -> Void)? = nil) {
         self.htmlContent = htmlContent
         self.title = title
         self.baseURL = baseURL
+        self.onRefresh = onRefresh
     }
 
     var body: some View {
@@ -39,6 +42,7 @@ struct HTMLPreviewView: View {
                     }
                 }
             )
+            .id(webViewKey) // 使用id强制刷新WebView
             .edgesIgnoringSafeArea(.bottom)
 
             // 加载指示器叠加在WebView上面
@@ -75,6 +79,22 @@ struct HTMLPreviewView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // 顶部工具栏左侧刷新按钮
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    // 刷新网页
+                    isLoading = true
+                    errorMessage = nil
+                    webViewKey = UUID() // 强制刷新WebView
+                    // 调用外部刷新回调，重新下载HTML内容
+                    onRefresh?()
+                }) {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundColor(.blue)
+                }
+            }
+        }
     }
 }
 

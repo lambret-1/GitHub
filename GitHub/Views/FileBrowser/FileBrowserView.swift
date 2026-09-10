@@ -6,20 +6,39 @@ import SwiftUI
 class HTMLCache {
     static let shared = HTMLCache()
 
-    private var cache: [String: String] = [:]
+    private struct CacheEntry {
+        let content: String
+        let timestamp: Date
+    }
+
+    private var cache: [String: CacheEntry] = [:]
     private let cacheQueue = DispatchQueue(label: "com.github.htmlcache", attributes: .concurrent)
+    private let cacheValidity: TimeInterval = 300 // 缓存有效期5分钟
 
     private init() {}
 
     func getContent(for key: String) -> String? {
         cacheQueue.sync {
-            cache[key]
+            guard let entry = cache[key] else { return nil }
+            // 检查缓存是否过期
+            guard Date().timeIntervalSince(entry.timestamp) < cacheValidity else {
+                // 缓存过期，移除
+                cacheQueue.async(flags: .barrier) {
+                    self.cache.removeValue(forKey: key)
+                }
+                return nil
+            }
+            // 检查内容是否为空
+            guard !entry.content.isEmpty else { return nil }
+            return entry.content
         }
     }
 
     func setContent(_ content: String, for key: String) {
+        // 空内容不缓存
+        guard !content.isEmpty else { return }
         cacheQueue.async(flags: .barrier) {
-            self.cache[key] = content
+            self.cache[key] = CacheEntry(content: content, timestamp: Date())
         }
     }
 
@@ -91,6 +110,7 @@ struct FileBrowserView: View {
     @State private var htmlPreviewTitle: String = ""
     @State private var isLoadingHTML: Bool = false
     @State private var htmlPreviewError: String?
+    @State private var htmlPreviewURL: String = "" // 保存当前预览的URL，用于刷新
     
     var body: some View {
         VStack(spacing: 0) {
@@ -128,7 +148,15 @@ struct FileBrowserView: View {
             NavigationView {
                 HTMLPreviewView(
                     htmlContent: htmlPreviewContent,
-                    title: htmlPreviewTitle
+                    title: htmlPreviewTitle,
+                    onRefresh: {
+                        // 刷新网页：清除缓存，重新下载
+                        let currentURL = htmlPreviewURL
+                        let currentTitle = htmlPreviewTitle
+                        HTMLCache.shared.removeContent(for: currentURL)
+                        // 重新下载HTML内容
+                        downloadHTMLFromURLForRefresh(currentURL, fileName: currentTitle)
+                    }
                 )
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -945,6 +973,9 @@ struct FileBrowserView: View {
 
     /// 从下载URL获取HTML内容
     private func downloadHTMLFromURL(_ url: String, fileName: String) {
+        // 保存当前预览的URL，用于刷新
+        htmlPreviewURL = url
+
         // 先检查缓存
         if let cachedContent = HTMLCache.shared.getContent(for: url) {
             htmlPreviewContent = cachedContent
@@ -1009,6 +1040,68 @@ struct FileBrowserView: View {
                     HTMLCache.shared.setContent(content, for: url)
                     self.htmlPreviewContent = content
                     self.showHTMLPreview = true
+                } else {
+                    self.htmlPreviewError = "HTML文件编码不支持"
+                }
+            }
+        }.resume()
+    }
+
+    /// 刷新时重新下载HTML内容（不检查缓存，直接下载）
+    private func downloadHTMLFromURLForRefresh(_ url: String, fileName: String) {
+        // 不检查缓存，直接下载
+        isLoadingHTML = true
+        htmlPreviewTitle = fileName
+        htmlPreviewError = nil
+
+        guard let urlObj = URL(string: url) else {
+            isLoadingHTML = false
+            htmlPreviewError = "无效的下载链接"
+            return
+        }
+
+        // 使用自定义URLSession配置，提升下载速度
+        let configuration = URLSessionConfiguration.default
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData // 忽略缓存，强制重新下载
+        configuration.urlCache = URLCache.shared
+        configuration.timeoutIntervalForRequest = 10
+        configuration.timeoutIntervalForResource = 10
+        configuration.httpShouldUsePipelining = true
+        configuration.httpShouldSetCookies = true
+
+        let session = URLSession(configuration: configuration)
+
+        var request = URLRequest(url: urlObj)
+        request.timeoutInterval = 10
+        request.cachePolicy = .reloadIgnoringLocalCacheData // 忽略缓存，强制重新下载
+        if let token = TokenKeychain.shared.getToken() {
+            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        }
+        request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
+
+        session.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                self.isLoadingHTML = false
+
+                if let error = error {
+                    self.htmlPreviewError = "刷新失败：\(error.localizedDescription)"
+                    return
+                }
+
+                guard let httpResponse = response as? HTTPURLResponse,
+                      (200...299).contains(httpResponse.statusCode),
+                      let data = data else {
+                    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                    self.htmlPreviewError = "刷新失败：服务器返回错误 \(statusCode)"
+                    return
+                }
+
+                // 尝试UTF8解码
+                if let content = String(data: data, encoding: .utf8) {
+                    // 缓存内容
+                    HTMLCache.shared.setContent(content, for: url)
+                    // 更新当前预览内容（不重新打开页面）
+                    self.htmlPreviewContent = content
                 } else {
                     self.htmlPreviewError = "HTML文件编码不支持"
                 }
