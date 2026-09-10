@@ -146,6 +146,12 @@ struct FileContent: Codable {
         let textExtensions = ["txt", "md", "markdown", "swift", "js", "jsx", "ts", "tsx", "py", "java", "kt", "go", "rs", "cpp", "c", "h", "m", "mm", "rb", "php", "html", "htm", "css", "scss", "less", "sh", "bash", "zsh", "dart", "vue", "json", "xml", "plist", "yml", "yaml", "toml", "ini", "cfg", "conf", "log", "csv", "sql", "r", "scala", "clj", "ex", "exs", "erl", "hs", "lua", "pl", "pm", "rmd", "tex", "bib", "sty", "dockerfile", "makefile", "cmake", "gradle", "podfile", "cartfile", "package", "gemfile", "requirements", "pipfile", "lock", "env", "gitignore", "gitattributes", "editorconfig", "eslintrc", "prettierrc", "babelrc", "tsconfig", "jsconfig", "webpack", "rollup", "vite", "jest", "mocha", "karma", "protractor", "cypress", "playwright", "storybook", "readme", "changelog", "license", "contributing", "code_of_conduct", "security", "authors", "thanks", "acknowledgments", "notice", "third_party", "notices", "mobileconfig", "provisionprofile", "mobileprovision", "ics", "webarchive", "strings", "entitlements", "xcconfig", "pbxproj", "xcscheme", "xcworkspacedata", "storyboard", "xib", "intentdefinition", "metal", "shader", "glsl", "vert", "frag", "geom", "comp", "svg", "bat", "cmd", "ps1", "psm1", "psd1", "reg", "inf", "xcprivacy", "resign", "cert", "crt", "cer", "pem", "key", "csr", "p7b", "p7c", "p7m", "p7s", "p7r", "pkcs7", "pkcs8", "pkcs1", "der", "asn1", "p10", "crl", "ocsp", "spc", "sst", "stl", "ca-bundle", "ca-certificates", "truststore", "jks", "keystore", "p12", "pfx", "pvk", "pkcs12"]
         return textExtensions.contains(fileExtension) || fileExtension.isEmpty
     }
+
+    /// 判断是否为图片文件
+    var isImageFile: Bool {
+        let imageExtensions = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff", "tif", "ico", "heic", "heif", "avif"]
+        return imageExtensions.contains(fileExtension)
+    }
 }
 
 struct Branch: Codable, Identifiable {

@@ -56,6 +56,15 @@ struct CodeEditorView: View {
     // 二次确认状态
     @State private var showCancelConfirm: Bool = false
     @State private var showSubmitConfirm: Bool = false
+
+    // 图片预览相关状态
+    @State private var previewImage: UIImage?
+    @State private var isLoadingImage: Bool = false
+    @State private var imageLoadError: String?
+    @State private var imageScale: CGFloat = 1.0
+    @State private var imageOffset: CGSize = .zero
+    // 图片加载任务，用于在页面消失时取消
+    @State private var imageLoadTask: URLSessionDataTask?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -302,6 +311,15 @@ struct CodeEditorView: View {
         }
         // 页面消失时强制恢复TabBar显示，防止编辑模式下返回导致TabBar一直隐藏
         .onDisappear {
+            // 取消正在进行的图片加载任务，避免回调访问已销毁的视图
+            imageLoadTask?.cancel()
+            imageLoadTask = nil
+
+            // 清理图片相关状态，释放内存
+            previewImage = nil
+            isLoadingImage = false
+            imageLoadError = nil
+
             // 延迟一帧执行，确保视图层级还在
             DispatchQueue.main.async {
                 // 递归查找并恢复TabBar显示
@@ -455,9 +473,14 @@ struct CodeEditorView: View {
             } else if let error = errorMessage {
                 errorView(error: error)
             } else if let content = fileContent {
-                if !content.isTextFile {
+                if content.isImageFile {
+                    // 图片文件：显示图片预览
+                    imagePreviewView(content: content)
+                } else if !content.isTextFile {
+                    // 其他二进制文件：显示二进制文件提示
                     binaryFileView(content: content)
                 } else {
+                    // 文本文件：显示代码编辑器
                     codeEditorArea
                 }
             }
@@ -512,6 +535,117 @@ struct CodeEditorView: View {
             }
             Spacer()
         }
+    }
+
+    // MARK: - 图片预览区域
+
+    private func imagePreviewView(content: FileContent) -> some View {
+        GeometryReader { geometry in
+            ZStack {
+                if isLoadingImage {
+                    // 加载中
+                    VStack(spacing: 16) {
+                        ProgressView("加载图片中...")
+                        Text(fileName)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let error = imageLoadError {
+                    // 加载失败
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.largeTitle)
+                            .foregroundColor(.orange)
+                        Text(error)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button("重试") {
+                            loadImage(from: content.downloadUrl)
+                        }
+                        .buttonStyle(.bordered)
+                        if let downloadUrl = content.downloadUrl {
+                            Button("下载文件") {
+                                if let url = URL(string: downloadUrl) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let image = previewImage {
+                    // 图片预览（支持缩放和平移）
+                    ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: geometry.size.width * imageScale, height: geometry.size.height * imageScale)
+                            .gesture(
+                                MagnificationGesture()
+                                    .onChanged { value in
+                                        imageScale = max(1.0, min(5.0, value))
+                                    }
+                            )
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // 双击重置缩放
+                    .onTapGesture(count: 2) {
+                        withAnimation {
+                            imageScale = 1.0
+                        }
+                    }
+                }
+            }
+            .onAppear {
+                // 视图出现时加载图片
+                if previewImage == nil && !isLoadingImage {
+                    loadImage(from: content.downloadUrl)
+                }
+            }
+        }
+    }
+
+    /// 从URL加载图片
+    private func loadImage(from urlString: String?) {
+        guard let urlString = urlString, let url = URL(string: urlString) else {
+            imageLoadError = "无效的图片地址"
+            return
+        }
+
+        // 取消之前的加载任务
+        imageLoadTask?.cancel()
+
+        isLoadingImage = true
+        imageLoadError = nil
+
+        // 使用URLSession加载图片数据
+        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isLoadingImage = false
+                self.imageLoadTask = nil
+
+                if let error = error {
+                    // 如果是取消错误，忽略
+                    if (error as NSError).code == NSURLErrorCancelled {
+                        return
+                    }
+                    self.imageLoadError = "加载失败: \(error.localizedDescription)"
+                    return
+                }
+
+                guard let data = data, let image = UIImage(data: data) else {
+                    self.imageLoadError = "图片数据无效或格式不支持"
+                    return
+                }
+
+                self.previewImage = image
+            }
+        }
+        imageLoadTask = task
+        task.resume()
     }
 
     // MARK: - 代码编辑区域
@@ -923,12 +1057,7 @@ struct TabBarControlView: UIViewRepresentable {
 
     class Coordinator {
         weak var tabBarController: UITabBarController?
-
-        deinit {
-            // 视图销毁时强制恢复TabBar显示，防止TabBar一直隐藏
-            DispatchQueue.main.async {
-                self.tabBarController?.tabBar.isHidden = false
-            }
-        }
+        // 注意：不在deinit中执行任何操作，避免在对象销毁时访问self导致闪退
+        // TabBar的恢复依赖CodeEditorView的onDisappear来完成
     }
 }
