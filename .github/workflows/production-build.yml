@@ -129,7 +129,7 @@ jobs:
             NEW_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${{ env.INFO_PLIST_PATH }}")
             COMMIT_SHORT=$(git rev-parse --short HEAD)
             BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-            git commit -m "chore(release): 版本号自动递增至 v${NEW_VERSION}" -m "触发Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME} | 触发方式: GitHub Actions 生产构建流水线"
+            git commit -m "chore(release): 版本号自动递增至 v${NEW_VERSION} [skip ci]" -m "触发Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME} | 触发方式: GitHub Actions 生产构建流水线"
             git push origin main
             echo "::notice::版本变更已提交并推送到 main 分支"
           fi
@@ -536,7 +536,7 @@ jobs:
             COMMIT_SHORT="${{ needs.version-bump.outputs.git_commit_short }}"
             IPA_SHA256="${{ needs.build-ipa.outputs.ipa_sha256 }}"
             BUILD_DURATION="${{ needs.build-ipa.outputs.build_duration }}"
-            git commit -m "docs(changelog): 追加 v${VERSION_NEW} 更新日志" -m "版本: v${VERSION_NEW} | Commit: ${COMMIT_SHORT} | SHA256: ${IPA_SHA256} | 构建耗时: ${BUILD_DURATION} 秒"
+            git commit -m "docs(changelog): 追加 v${VERSION_NEW} 更新日志 [skip ci]" -m "版本: v${VERSION_NEW} | Commit: ${COMMIT_SHORT} | SHA256: ${IPA_SHA256} | 构建耗时: ${BUILD_DURATION} 秒"
             git push origin main
             echo "::notice::README变更已提交并推送到 main 分支"
           fi
