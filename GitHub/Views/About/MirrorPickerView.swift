@@ -17,26 +17,26 @@ struct MirrorPickerView: View {
                 // 预设镜像列表（只显示非官方镜像，官方镜像相当于关闭加速）
                 Section("推荐镜像") {
                     ForEach(Array(mirrors.enumerated()), id: \.element.id) { index, mirror in
-                        // 跳过官方镜像（索引0）
-                        guard index > 0 else { return }
-
-                        Button(action: {
-                            onSelect(mirror)
-                        }) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(mirror.name)
-                                        .foregroundColor(.primary)
-                                    Text(mirror.url)
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                        .lineLimit(1)
-                                }
-                                Spacer()
-                                // 显示当前选中的勾选标记
-                                if AppSettings.shared.currentMirror.url == mirror.url {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+                        // 只显示非官方镜像（索引大于0）
+                        if index > 0 {
+                            Button(action: {
+                                onSelect(mirror)
+                            }) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(mirror.name)
+                                            .foregroundColor(.primary)
+                                        Text(mirror.url)
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
+                                    // 显示当前选中的勾选标记
+                                    if AppSettings.shared.currentMirror.url == mirror.url {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.blue)
+                                    }
                                 }
                             }
                         }
