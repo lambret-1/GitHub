@@ -52,7 +52,7 @@ struct AdvancedFilterView: View {
                         onApply(filterConfig)
                         presentationMode.wrappedValue.dismiss()
                     }
-                    .bold()
+                    .fontWeight(.bold)
                 }
             }
         }
