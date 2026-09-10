@@ -176,46 +176,7 @@ struct FileBrowserView: View {
             }
         }
         // 重命名文件sheet
-        .sheet(isPresented: $showContextMenuRename) {
-            NavigationView {
-                Form {
-                    Section("文件名") {
-                        TextField("输入新的文件名", text: $renameNewFileName)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                    }
-                    Section {
-                        Button(action: {
-                            if let file = contextMenuRenameFile {
-                                renameFile(file, newName: renameNewFileName)
-                            }
-                        }) {
-                            HStack {
-                                Spacer()
-                                if isRenamingFile {
-                                    ProgressView()
-                                } else {
-                                    Text("确认重命名")
-                                        .foregroundColor(.blue)
-                                }
-                                Spacer()
-                            }
-                        }
-                        .disabled(renameNewFileName.isEmpty || isRenamingFile)
-                    }
-                }
-                .navigationTitle("重命名文件")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("取消") {
-                            showContextMenuRename = false
-                            contextMenuRenameFile = nil
-                        }
-                    }
-                }
-            }
-        }
+        .sheet(isPresented: $showContextMenuRename, content: renameFileSheet)
         .sheet(isPresented: $showCommits) {
             CommitsView(owner: repository.ownerName, repo: repository.name)
         }
@@ -596,6 +557,49 @@ struct FileBrowserView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("完成") {
                         showHTMLPreview = false
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - 重命名文件Sheet（拆分成单独属性，简化body表达式，避免类型检查超时）
+
+    private func renameFileSheet() -> some View {
+        NavigationView {
+            Form {
+                Section("文件名") {
+                    TextField("输入新的文件名", text: $renameNewFileName)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                }
+                Section {
+                    Button(action: {
+                        if let file = contextMenuRenameFile {
+                            renameFile(file, newName: renameNewFileName)
+                        }
+                    }) {
+                        HStack {
+                            Spacer()
+                            if isRenamingFile {
+                                ProgressView()
+                            } else {
+                                Text("确认重命名")
+                                    .foregroundColor(.blue)
+                            }
+                            Spacer()
+                        }
+                    }
+                    .disabled(renameNewFileName.isEmpty || isRenamingFile)
+                }
+            }
+            .navigationTitle("重命名文件")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") {
+                        showContextMenuRename = false
+                        contextMenuRenameFile = nil
                     }
                 }
             }
