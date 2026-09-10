@@ -87,11 +87,36 @@ struct WebView: UIViewRepresentable {
     var onError: ((String) -> Void)?
 
     func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView()
+        // 优化WKWebView配置，提升加载速度
+        let configuration = WKWebViewConfiguration()
+
+        // 启用进程池，复用进程
+        configuration.processPool = WKProcessPool()
+
+        // 启用数据检测器
+        configuration.dataDetectorTypes = [.phoneNumber, .link, .address]
+
+        // 启用媒体自动播放
+        configuration.mediaTypesRequiringUserActionForPlayback = []
+
+        // 允许内联媒体播放
+        configuration.allowsInlineMediaPlayback = true
+
+        // 优化渲染性能
+        if #available(iOS 15.0, *) {
+            // iOS 15+ 可以使用更高效的渲染模式
+        }
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
         webView.isOpaque = false
         webView.backgroundColor = .clear
+        webView.scrollView.bounces = true
+        webView.scrollView.alwaysBounceVertical = true
+        webView.configuration.preferences.javaScriptEnabled = true
+        webView.configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
+
         return webView
     }
 

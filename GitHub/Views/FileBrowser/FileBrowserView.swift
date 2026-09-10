@@ -1,5 +1,41 @@
 import SwiftUI
 
+// MARK: - HTML内容缓存
+
+/// HTML内容缓存，避免重复下载
+class HTMLCache {
+    static let shared = HTMLCache()
+
+    private var cache: [String: String] = [:]
+    private let cacheQueue = DispatchQueue(label: "com.github.htmlcache", attributes: .concurrent)
+
+    private init() {}
+
+    func getContent(for key: String) -> String? {
+        cacheQueue.sync {
+            cache[key]
+        }
+    }
+
+    func setContent(_ content: String, for key: String) {
+        cacheQueue.async(flags: .barrier) {
+            self.cache[key] = content
+        }
+    }
+
+    func removeContent(for key: String) {
+        cacheQueue.async(flags: .barrier) {
+            self.cache.removeValue(forKey: key)
+        }
+    }
+
+    func clearCache() {
+        cacheQueue.async(flags: .barrier) {
+            self.cache.removeAll()
+        }
+    }
+}
+
 struct FileBrowserView: View {
     let repository: Repository
     @State private var files: [FileItem] = []
@@ -909,6 +945,14 @@ struct FileBrowserView: View {
 
     /// 从下载URL获取HTML内容
     private func downloadHTMLFromURL(_ url: String, fileName: String) {
+        // 先检查缓存
+        if let cachedContent = HTMLCache.shared.getContent(for: url) {
+            htmlPreviewContent = cachedContent
+            htmlPreviewTitle = fileName
+            showHTMLPreview = true
+            return
+        }
+
         isLoadingHTML = true
         htmlPreviewTitle = fileName
         htmlPreviewError = nil
@@ -922,6 +966,8 @@ struct FileBrowserView: View {
 
         var request = URLRequest(url: urlObj)
         request.timeoutInterval = 15
+        // 启用缓存策略，优先使用缓存
+        request.cachePolicy = .returnCacheDataElseLoad
         if let token = TokenKeychain.shared.getToken() {
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
         }
@@ -945,6 +991,8 @@ struct FileBrowserView: View {
 
                 // 尝试UTF8解码
                 if let content = String(data: data, encoding: .utf8) {
+                    // 缓存内容
+                    HTMLCache.shared.setContent(content, for: url)
                     self.htmlPreviewContent = content
                     self.showHTMLPreview = true
                 } else {
