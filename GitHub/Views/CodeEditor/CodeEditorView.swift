@@ -344,6 +344,24 @@ struct CodeEditorView: View {
         .onAppear {
             loadFile()
         }
+        // 页面消失时强制恢复TabBar显示，防止编辑模式下返回导致TabBar一直隐藏
+        .onDisappear {
+            // 延迟一帧执行，确保视图层级还在
+            DispatchQueue.main.async {
+                // 递归查找并恢复TabBar显示
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let window = windowScene.windows.first {
+                    var responder: UIResponder? = window.rootViewController
+                    while let next = responder {
+                        if let tabBarController = next as? UITabBarController {
+                            tabBarController.tabBar.isHidden = false
+                            break
+                        }
+                        responder = next.next
+                    }
+                }
+            }
+        }
         // 监听编辑模式变化，确保手势和Tab栏状态立即更新
         .onChange(of: isEditing) { _ in
             // 强制刷新SwipeBackControlView和TabBarControlView
@@ -846,6 +864,10 @@ struct SwipeBackControlView: UIViewRepresentable {
 struct TabBarControlView: UIViewRepresentable {
     let visible: Bool
 
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         return view
@@ -854,14 +876,35 @@ struct TabBarControlView: UIViewRepresentable {
     func updateUIView(_ uiView: UIView, context: Context) {
         // 立即更新Tab栏状态，不使用async延迟
         // 递归查找当前视图控制器的tabBarController
-        var responder: UIResponder? = uiView
+        let tabBarController = findTabBarController(from: uiView)
+        tabBarController?.tabBar.isHidden = !visible
+        // 保存当前的tabBarController引用，用于在视图销毁时恢复
+        context.coordinator.tabBarController = tabBarController
+    }
+
+    /// 递归查找当前视图控制器的tabBarController
+    private func findTabBarController(from view: UIView) -> UITabBarController? {
+        var responder: UIResponder? = view
         while let next = responder?.next {
             if let viewController = next as? UIViewController,
                let tabBarController = viewController.tabBarController {
-                tabBarController.tabBar.isHidden = !visible
-                return
+                return tabBarController
             }
             responder = next
+        }
+        return nil
+    }
+
+    // MARK: - Coordinator
+
+    class Coordinator {
+        weak var tabBarController: UITabBarController?
+
+        deinit {
+            // 视图销毁时强制恢复TabBar显示，防止TabBar一直隐藏
+            DispatchQueue.main.async {
+                self.tabBarController?.tabBar.isHidden = false
+            }
         }
     }
 }
