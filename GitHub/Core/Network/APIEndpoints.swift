@@ -26,6 +26,12 @@ enum APIEndpoints {
     case cancelWorkflowRun(owner: String, repo: String, runId: Int)
     case rerunWorkflowRun(owner: String, repo: String, runId: Int)
 
+    // MARK: - 仓库交互相关端点
+    case checkStarred(owner: String, repo: String)
+    case starRepository(owner: String, repo: String)
+    case unstarRepository(owner: String, repo: String)
+    case forkRepository(owner: String, repo: String)
+
     var url: String {
         switch self {
         case .user:
@@ -72,6 +78,16 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/cancel"
         case .rerunWorkflowRun(let owner, let repo, let runId):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/rerun"
+
+        // MARK: - 仓库交互相关端点实现
+        case .checkStarred(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/user/starred/\(owner)/\(repo)"
+        case .starRepository(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/user/starred/\(owner)/\(repo)"
+        case .unstarRepository(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/user/starred/\(owner)/\(repo)"
+        case .forkRepository(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/forks"
         }
     }
 }

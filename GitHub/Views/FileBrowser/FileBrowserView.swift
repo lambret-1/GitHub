@@ -128,6 +128,14 @@ struct FileBrowserView: View {
     @State private var isLoadingHTML: Bool = false
     @State private var htmlPreviewError: String?
     @State private var htmlPreviewURL: String = "" // 保存当前预览的URL，用于刷新
+
+    // 仓库交互相关状态（星标、Fork）
+    @State private var isStarred: Bool = false
+    @State private var isCheckingStar: Bool = false
+    @State private var isStarring: Bool = false
+    @State private var isForking: Bool = false
+    @State private var showOperationMessage: Bool = false
+    @State private var operationMessage: String = ""
     
     var body: some View {
         VStack(spacing: 0) {
@@ -354,7 +362,29 @@ struct FileBrowserView: View {
             }
             loadBranches()
             loadFiles()
+            // 检查星标状态（仅别人的仓库）
+            if !isOwnRepository {
+                checkStarredStatus()
+            }
         }
+        // 操作提示消息
+        .overlay(
+            VStack {
+                if showOperationMessage {
+                    Text(operationMessage)
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.black.opacity(0.8))
+                        .cornerRadius(8)
+                        .padding(.top, 20)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .animation(.easeInOut, value: showOperationMessage)
+                }
+                Spacer()
+            }
+        )
     }
     
     // MARK: - 隐藏的导航链接（拆分成单独属性，避免body表达式过于复杂导致类型检查超时）
@@ -564,40 +594,67 @@ struct FileBrowserView: View {
 
     private var moreMenu: some View {
         Menu {
-            Button(action: {
-                showDocumentPicker = true
-            }) {
-                Label("上传文件", systemImage: "square.and.arrow.up")
+            if isOwnRepository {
+                // 自己的仓库：显示文件操作相关功能
+                Button(action: {
+                    showDocumentPicker = true
+                }) {
+                    Label("上传文件", systemImage: "square.and.arrow.up")
+                }
+                .disabled(isUploading || isDownloading || isDeleteMode)
+
+                Button(action: {
+                    showCreateFileDialog = true
+                    newFileName = ""
+                }) {
+                    Label("新建文件", systemImage: "doc.badge.plus")
+                }
+                .disabled(isCreatingFile || isDeleteMode)
+
+                Button(action: {
+                    showCreateFolderDialog = true
+                    newFolderName = ""
+                }) {
+                    Label("创建文件夹", systemImage: "folder.badge.plus")
+                }
+                .disabled(isCreatingFolder || isDeleteMode)
+
+                Divider()
+
+                Button(action: {
+                    isDeleteMode.toggle()
+                    selectedFilesForDelete.removeAll()
+                }) {
+                    Label(isDeleteMode ? "取消删除" : "删除文件", systemImage: isDeleteMode ? "xmark.circle" : "trash")
+                }
+
+                Divider()
+            } else {
+                // 别人的仓库：显示仓库交互相关功能
+                Button(action: {
+                    toggleStar()
+                }) {
+                    Label(isStarred ? "取消星标" : "添加星标", systemImage: isStarred ? "star.fill" : "star")
+                }
+                .disabled(isStarring || isCheckingStar)
+
+                Button(action: {
+                    forkRepository()
+                }) {
+                    Label("Fork 仓库", systemImage: "arrow.triangle.branch")
+                }
+                .disabled(isForking)
+
+                Button(action: {
+                    copyRepositoryURL()
+                }) {
+                    Label("复制仓库地址", systemImage: "link")
+                }
+
+                Divider()
             }
-            .disabled(isUploading || isDownloading || isDeleteMode)
 
-            Button(action: {
-                showCreateFileDialog = true
-                newFileName = ""
-            }) {
-                Label("新建文件", systemImage: "doc.badge.plus")
-            }
-            .disabled(isCreatingFile || isDeleteMode)
-
-            Button(action: {
-                showCreateFolderDialog = true
-                newFolderName = ""
-            }) {
-                Label("创建文件夹", systemImage: "folder.badge.plus")
-            }
-            .disabled(isCreatingFolder || isDeleteMode)
-
-            Divider()
-
-            Button(action: {
-                isDeleteMode.toggle()
-                selectedFilesForDelete.removeAll()
-            }) {
-                Label(isDeleteMode ? "取消删除" : "删除文件", systemImage: isDeleteMode ? "xmark.circle" : "trash")
-            }
-
-            Divider()
-
+            // 通用功能（自己和别人的仓库都显示）
             Button(action: {
                 showBranchPicker = true
             }) {
@@ -948,7 +1005,118 @@ struct FileBrowserView: View {
         }
         .background(Color(.systemGray6))
     }
-    
+
+    // MARK: - 仓库权限判断
+
+    /// 判断当前仓库是否是用户自己的仓库
+    private var isOwnRepository: Bool {
+        guard let currentUsername = AccountManager.shared.currentAccount?.username else {
+            return false
+        }
+        return repository.ownerName.lowercased() == currentUsername.lowercased()
+    }
+
+    // MARK: - 星标相关方法
+
+    /// 检查仓库是否已被星标
+    private func checkStarredStatus() {
+        guard !isOwnRepository else { return }
+        isCheckingStar = true
+        GitHubAPI.shared.checkStarred(owner: repository.ownerName, repo: repository.name) { result in
+            DispatchQueue.main.async {
+                isCheckingStar = false
+                switch result {
+                case .success(let starred):
+                    isStarred = starred
+                case .failure:
+                    break
+                }
+            }
+        }
+    }
+
+    /// 切换星标状态
+    private func toggleStar() {
+        if isStarred {
+            unstarRepository()
+        } else {
+            starRepository()
+        }
+    }
+
+    /// 星标仓库
+    private func starRepository() {
+        isStarring = true
+        GitHubAPI.shared.starRepository(owner: repository.ownerName, repo: repository.name) { result in
+            DispatchQueue.main.async {
+                isStarring = false
+                switch result {
+                case .success:
+                    isStarred = true
+                    showMessage("已添加星标")
+                case .failure(let error):
+                    showMessage("星标失败: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    /// 取消星标仓库
+    private func unstarRepository() {
+        isStarring = true
+        GitHubAPI.shared.unstarRepository(owner: repository.ownerName, repo: repository.name) { result in
+            DispatchQueue.main.async {
+                isStarring = false
+                switch result {
+                case .success:
+                    isStarred = false
+                    showMessage("已取消星标")
+                case .failure(let error):
+                    showMessage("取消星标失败: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    // MARK: - Fork 相关方法
+
+    /// Fork 仓库
+    private func forkRepository() {
+        isForking = true
+        GitHubAPI.shared.forkRepository(owner: repository.ownerName, repo: repository.name) { result in
+            DispatchQueue.main.async {
+                isForking = false
+                switch result {
+                case .success:
+                    showMessage("Fork 成功，已在您的账户下创建副本")
+                case .failure(let error):
+                    showMessage("Fork 失败: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    // MARK: - 复制仓库地址
+
+    /// 复制仓库地址到剪贴板
+    private func copyRepositoryURL() {
+        let repoURL = "https://github.com/\(repository.ownerName)/\(repository.name)"
+        UIPasteboard.general.string = repoURL
+        showMessage("仓库地址已复制")
+    }
+
+    // MARK: - 提示消息
+
+    /// 显示操作提示消息
+    private func showMessage(_ message: String) {
+        operationMessage = message
+        showOperationMessage = true
+        // 3秒后自动隐藏
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            showOperationMessage = false
+        }
+    }
+
     private func loadFiles(completion: (() -> Void)? = nil) {
         isLoading = true
         errorMessage = nil

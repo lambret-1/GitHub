@@ -588,6 +588,115 @@ class GitHubAPI {
             }
         }.resume()
     }
+
+    // MARK: - 仓库交互相关 API
+
+    /// 检查仓库是否已被星标
+    func checkStarred(owner: String, repo: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.checkStarred(owner: owner, repo: repo).url
+        guard let urlObj = URL(string: url) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+        var request = URLRequest(url: urlObj)
+        request.httpMethod = "GET"
+        request.allHTTPHeaderFields = getHeaders()
+
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 204 {
+                    completion(.success(true)) // 已星标
+                } else if httpResponse.statusCode == 404 {
+                    completion(.success(false)) // 未星标
+                } else {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "检查星标状态失败，状态码: \(httpResponse.statusCode)"])))
+                }
+            }
+        }.resume()
+    }
+
+    /// 星标仓库
+    func starRepository(owner: String, repo: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.starRepository(owner: owner, repo: repo).url
+        guard let urlObj = URL(string: url) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+        var request = URLRequest(url: urlObj)
+        request.httpMethod = "PUT"
+        request.allHTTPHeaderFields = getHeaders()
+
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            if let httpResponse = response as? HTTPURLResponse,
+               (200...299).contains(httpResponse.statusCode) {
+                completion(.success(true))
+            } else {
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                completion(.failure(NSError(domain: "GitHubAPI", code: statusCode, userInfo: [NSLocalizedDescriptionKey: "星标仓库失败，状态码: \(statusCode)"])))
+            }
+        }.resume()
+    }
+
+    /// 取消星标仓库
+    func unstarRepository(owner: String, repo: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.unstarRepository(owner: owner, repo: repo).url
+        guard let urlObj = URL(string: url) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+        var request = URLRequest(url: urlObj)
+        request.httpMethod = "DELETE"
+        request.allHTTPHeaderFields = getHeaders()
+
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            if let httpResponse = response as? HTTPURLResponse,
+               (200...299).contains(httpResponse.statusCode) {
+                completion(.success(true))
+            } else {
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                completion(.failure(NSError(domain: "GitHubAPI", code: statusCode, userInfo: [NSLocalizedDescriptionKey: "取消星标失败，状态码: \(statusCode)"])))
+            }
+        }.resume()
+    }
+
+    /// Fork 仓库
+    func forkRepository(owner: String, repo: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.forkRepository(owner: owner, repo: repo).url
+        guard let urlObj = URL(string: url) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+        var request = URLRequest(url: urlObj)
+        request.httpMethod = "POST"
+        request.allHTTPHeaderFields = getHeaders()
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            if let httpResponse = response as? HTTPURLResponse,
+               (200...299).contains(httpResponse.statusCode) {
+                completion(.success(true))
+            } else {
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                completion(.failure(NSError(domain: "GitHubAPI", code: statusCode, userInfo: [NSLocalizedDescriptionKey: "Fork仓库失败，状态码: \(statusCode)"])))
+            }
+        }.resume()
+    }
 }
 
 // MARK: - 搜索结果包装
