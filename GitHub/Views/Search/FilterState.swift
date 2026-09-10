@@ -12,30 +12,30 @@ struct RepoFilterState: Codable {
     // 仓库属性
     var isPublic: Bool = false
     var isPrivate: Bool = false
-    var isArchived: Bool? = nil // nil=不限, true=仅已归档, false=仅未归档
-    var isTemplate: Bool? = nil
+    var isArchived: Bool? // nil=不限, true=仅已归档, false=仅未归档
+    var isTemplate: Bool?
 
     // 语言
-    var language: String? = nil
+    var language: String?
 
     // 主题
-    var topic: String? = nil
+    var topic: String?
 
     // 许可证
-    var license: String? = nil
+    var license: String?
 
     // 所有者
-    var user: String? = nil
-    var org: String? = nil
+    var user: String?
+    var org: String?
 
     // 数值范围
-    var minStars: Int? = nil
-    var minForks: Int? = nil
-    var minSizeKB: Int? = nil
+    var minStars: Int?
+    var minForks: Int?
+    var minSizeKB: Int?
 
     // 时间范围
-    var createdAfter: Date? = nil
-    var pushedAfter: Date? = nil
+    var createdAfter: Date?
+    var pushedAfter: Date?
 
     init() {}
 
@@ -155,7 +155,7 @@ struct UserFilterState: Codable {
     var searchInEmail: Bool = false
 
     // 用户类型
-    var userType: UserType? = nil // nil=不限, .user=仅用户, .org=仅组织
+    var userType: UserType? // nil=不限, .user=仅用户, .org=仅组织
 
     enum UserType: String, Codable, CaseIterable {
         case user = "用户"
@@ -163,18 +163,18 @@ struct UserFilterState: Codable {
     }
 
     // 位置
-    var location: String? = nil
+    var location: String?
 
     // 语言
-    var language: String? = nil
+    var language: String?
 
     // 数值范围
-    var minRepos: Int? = nil
-    var minFollowers: Int? = nil
-    var minFollowing: Int? = nil
+    var minRepos: Int?
+    var minFollowers: Int?
+    var minFollowing: Int?
 
     // 时间范围
-    var createdAfter: Date? = nil
+    var createdAfter: Date?
 
     init() {}
 

@@ -238,7 +238,7 @@ struct RepoRow: View {
 struct SearchBar: UIViewRepresentable {
     @Binding var text: String
     var placeholder: String
-    var onSearchButtonClicked: (() -> Void)? = nil
+    var onSearchButtonClicked: (() -> Void)?
 
     class Coordinator: NSObject, UISearchBarDelegate {
         @Binding var text: String

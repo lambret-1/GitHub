@@ -77,7 +77,7 @@ class LineNumberLayoutManager: NSLayoutManager {
         }
 
         // 使用enumerateLineFragments精确遍历每一行
-        enumerateLineFragments(forGlyphRange: glyphsToShow) { lineRect, usedRect, textContainer, glyphRange, stop in
+        enumerateLineFragments(forGlyphRange: glyphsToShow) { lineRect, _, _, glyphRange, _ in
             let charRange = self.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
 
             // 检查这一行是否是新行的开始（不是自动换行的续行）

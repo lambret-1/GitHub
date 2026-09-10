@@ -621,7 +621,7 @@ struct CodeEditorView: View {
         imageLoadError = nil
 
         // 使用URLSession加载图片数据
-        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+        let task = URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.isLoadingImage = false

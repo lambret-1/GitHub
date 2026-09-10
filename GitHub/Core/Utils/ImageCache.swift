@@ -137,7 +137,7 @@ class ImageCache {
         }
 
         // 使用普通URLSession加载头像
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
             guard let self = self,
                   let data = data,
                   let image = UIImage(data: data),
