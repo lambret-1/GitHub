@@ -104,6 +104,16 @@ struct FileBrowserView: View {
     @State private var newlyCreatedFilePath: String?
     @State private var navigateToEditor: Bool = false
 
+    // contextMenu编辑文件相关状态
+    @State private var contextMenuEditFilePath: String?
+    @State private var contextMenuEditFileName: String?
+    @State private var navigateToEditorFromContextMenu: Bool = false
+
+    // contextMenu删除单个文件相关状态
+    @State private var contextMenuDeleteFile: FileItem?
+    @State private var showContextMenuDeleteConfirm: Bool = false
+    @State private var isDeletingSingleFile: Bool = false
+
     // HTML网页预览相关状态
     @State private var showHTMLPreview: Bool = false
     @State private var htmlPreviewContent: String = ""
@@ -139,6 +149,23 @@ struct FileBrowserView: View {
                     )
                 }
             }, isActive: $navigateToEditor) {
+                EmptyView()
+            }
+            .hidden()
+        )
+        // 隐藏的NavigationLink，用于contextMenu中编辑文件跳转
+        .background(
+            NavigationLink(destination: Group {
+                if let filePath = contextMenuEditFilePath, let fileName = contextMenuEditFileName {
+                    CodeEditorView(
+                        owner: repository.ownerName,
+                        repo: repository.name,
+                        path: filePath,
+                        branch: selectedBranch,
+                        fileName: fileName
+                    )
+                }
+            }, isActive: $navigateToEditorFromContextMenu) {
                 EmptyView()
             }
             .hidden()
@@ -261,6 +288,23 @@ struct FileBrowserView: View {
             }
         } message: {
             Text("文件已成功创建")
+        }
+        // contextMenu单个文件删除确认弹窗（二次确认）
+        .alert("确认删除", isPresented: $showContextMenuDeleteConfirm) {
+            Button("取消", role: .cancel) {
+                contextMenuDeleteFile = nil
+            }
+            Button("删除", role: .destructive) {
+                if let file = contextMenuDeleteFile {
+                    deleteSingleFile(file)
+                }
+            }
+        } message: {
+            if let file = contextMenuDeleteFile {
+                Text("确定要删除文件「\(file.name)」吗？此操作不可撤销。")
+            } else {
+                Text("确定要删除该文件吗？此操作不可撤销。")
+            }
         }
         .alert("创建失败", isPresented: .constant(createFileErrorMessage != nil)) {
             Button("确定", role: .cancel) {
@@ -925,6 +969,15 @@ struct FileBrowserView: View {
 
     @ViewBuilder
     private func contextMenuContent(for file: FileItem) -> some View {
+        // 编辑文件选项
+        Button(action: {
+            contextMenuEditFilePath = file.path
+            contextMenuEditFileName = file.name
+            navigateToEditorFromContextMenu = true
+        }) {
+            Label("编辑文件", systemImage: "pencil")
+        }
+
         // HTML文件显示网页预览选项
         if file.name.lowercased().hasSuffix(".html") || file.name.lowercased().hasSuffix(".htm") {
             Button(action: {
@@ -956,6 +1009,15 @@ struct FileBrowserView: View {
         }) {
             Label("复制下载链接", systemImage: "link")
         }
+
+        // 删除选项（红色字体）
+        Button(action: {
+            contextMenuDeleteFile = file
+            showContextMenuDeleteConfirm = true
+        }) {
+            Label("删除", systemImage: "trash")
+        }
+        .foregroundColor(.red)
     }
 
     // MARK: - HTML网页预览
@@ -1329,6 +1391,34 @@ struct FileBrowserView: View {
             } else {
                 // 部分删除失败，显示错误信息
                 errorMessage = "部分文件删除失败:\n\(deleteErrors.joined(separator: "\n"))"
+            }
+        }
+    }
+
+    // MARK: - 删除单个文件（contextMenu）
+
+    private func deleteSingleFile(_ file: FileItem) {
+        isDeletingSingleFile = true
+        contextMenuDeleteFile = nil
+
+        GitHubAPI.shared.deleteFile(
+            owner: repository.ownerName,
+            repo: repository.name,
+            path: file.path,
+            sha: file.sha,
+            message: "删除文件: \(file.name)",
+            branch: selectedBranch
+        ) { result in
+            DispatchQueue.main.async {
+                isDeletingSingleFile = false
+                switch result {
+                case .success:
+                    // 删除成功，刷新文件列表
+                    loadFiles()
+                case .failure(let error):
+                    // 删除失败，显示错误信息
+                    errorMessage = "删除文件失败: \(error.localizedDescription)"
+                }
             }
         }
     }
