@@ -144,6 +144,13 @@ struct FileBrowserView: View {
     // MARK: - 主要内容（拆分成单独属性，避免body表达式过于复杂导致类型检查超时）
 
     private var mainContent: some View {
+        baseView
+            .modifier(FileBrowserSheetsModifier(view: self))
+    }
+
+    // MARK: - 基础视图（拆分成单独属性，避免类型检查超时）
+
+    private var baseView: some View {
         VStack(spacing: 0) {
             pathNavigationBar
             fileListContent
@@ -159,145 +166,6 @@ struct FileBrowserView: View {
         }
         // 隐藏的NavigationLink（拆分成单独属性，简化body表达式，避免类型检查超时）
         .background(hiddenNavigationLinks)
-        // HTML网页预览使用sheet，确保内容正确传递
-        .sheet(isPresented: $showHTMLPreview, content: htmlPreviewSheet)
-        // HTML加载失败提示
-        .alert("加载失败", isPresented: .constant(htmlPreviewError != nil)) {
-            Button("确定") {
-                htmlPreviewError = nil
-            }
-        } message: {
-            Text(htmlPreviewError ?? "未知错误")
-        }
-        .sheet(isPresented: $showBranchPicker) {
-            BranchPickerView(branches: branches, selectedBranch: $selectedBranch) {
-                loadFiles()
-                showBranchPicker = false
-            }
-        }
-        // 重命名文件sheet
-        .sheet(isPresented: $showContextMenuRename, content: renameFileSheet)
-        .sheet(isPresented: $showCommits) {
-            CommitsView(owner: repository.ownerName, repo: repository.name)
-        }
-        .sheet(isPresented: $showDocumentPicker) {
-            DocumentPickerView(allowsMultipleSelection: true) { urls in
-                selectedFiles = urls
-                showUploadConfirm = true
-            }
-        }
-        .sheet(isPresented: $showUploadConfirm) {
-            uploadConfirmView
-        }
-        // HTML网页预览加载状态
-        .overlay {
-            if isLoadingHTML {
-                ZStack {
-                    Color.black.opacity(0.4)
-                        .ignoresSafeArea()
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        Text("正在加载网页...")
-                            .foregroundColor(.white)
-                    }
-                    .padding(24)
-                    .background(Color.black.opacity(0.7))
-                    .cornerRadius(12)
-                }
-            }
-        }
-        .alert("上传完成", isPresented: $showUploadSuccess) {
-            Button("确定", role: .cancel) {
-                loadFiles()
-            }
-        } message: {
-            Text("文件已成功上传到仓库")
-        }
-        .alert("上传失败", isPresented: .constant(uploadErrorMessage != nil)) {
-            Button("确定", role: .cancel) {
-                uploadErrorMessage = nil
-            }
-        } message: {
-            Text(uploadErrorMessage ?? "未知错误")
-        }
-        // 创建文件夹对话框（使用sheet替代alert，确保创建按钮正常显示）
-        .sheet(isPresented: $showCreateFolderDialog) {
-            CreateFolderView(currentPath: currentPath) { folderName in
-                createFolder(folderName: folderName)
-            } onCancel: {
-                showCreateFolderDialog = false
-            }
-        }
-        .alert("创建成功", isPresented: $showCreateFolderSuccess) {
-            Button("确定") {
-                loadFiles()
-            }
-        } message: {
-            Text("文件夹已成功创建")
-        }
-        .alert("创建失败", isPresented: .constant(createFolderErrorMessage != nil)) {
-            Button("确定", role: .cancel) {
-                createFolderErrorMessage = nil
-            }
-        } message: {
-            Text(createFolderErrorMessage ?? "未知错误")
-        }
-        // 新建文件对话框（使用sheet替代alert，确保创建按钮正常显示）
-        .sheet(isPresented: $showCreateFileDialog) {
-            CreateFileView(currentPath: currentPath) { fileName in
-                createFile(fileName: fileName)
-            } onCancel: {
-                showCreateFileDialog = false
-            }
-        }
-        .alert("创建成功", isPresented: $showCreateFileSuccess) {
-            Button("确定") {
-                loadFiles()
-            }
-        } message: {
-            Text("文件已成功创建")
-        }
-        // contextMenu单个文件删除确认弹窗（二次确认）
-        .alert("确认删除", isPresented: $showContextMenuDeleteConfirm) {
-            Button("取消", role: .cancel) {
-                contextMenuDeleteFile = nil
-            }
-            Button("删除", role: .destructive) {
-                if let file = contextMenuDeleteFile {
-                    deleteSingleFile(file)
-                }
-            }
-        } message: {
-            if let file = contextMenuDeleteFile {
-                Text("确定要删除文件「\(file.name)」吗？此操作不可撤销。")
-            } else {
-                Text("确定要删除该文件吗？此操作不可撤销。")
-            }
-        }
-        .alert("创建失败", isPresented: .constant(createFileErrorMessage != nil)) {
-            Button("确定", role: .cancel) {
-                createFileErrorMessage = nil
-            }
-        } message: {
-            Text(createFileErrorMessage ?? "未知错误")
-        }
-        // 删除确认对话框
-        .alert("确认删除", isPresented: $showDeleteConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("删除", role: .destructive) {
-                deleteSelectedFiles()
-            }
-        } message: {
-            let selectedItems = files.filter { selectedFilesForDelete.contains($0.path) }
-            let fileCount = selectedItems.filter { $0.isFile }.count
-            let dirCount = selectedItems.filter { $0.isDirectory }.count
-            if dirCount > 0 {
-                Text("确定要删除选中的 \(fileCount) 个文件吗？\n\n注意：选中的 \(dirCount) 个文件夹无法直接删除（GitHub API 限制），将被跳过。如需删除文件夹，请进入文件夹后逐个删除其中的文件。")
-            } else {
-                Text("确定要删除选中的 \(fileCount) 个文件吗？此操作不可撤销。")
-            }
-        }
         .overlay {
             progressOverlay
         }
@@ -2025,5 +1893,129 @@ struct FileBrowserView_Previews: PreviewProvider {
             defaultBranch: "main", updatedAt: "", createdAt: "",
             owner: RepositoryOwner(login: "test", id: 1, avatarUrl: "")
         ))
+    }
+}
+
+// MARK: - Sheet和Alert修饰符（拆分成单独文件，避免类型检查超时）
+
+private struct FileBrowserSheetsModifier: ViewModifier {
+    let view: FileBrowserView
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: view.$showHTMLPreview, content: view.htmlPreviewSheet)
+            .alert("加载失败", isPresented: .constant(view.htmlPreviewError != nil)) {
+                Button("确定") {
+                    view.htmlPreviewError = nil
+                }
+            } message: {
+                Text(view.htmlPreviewError ?? "未知错误")
+            }
+            .sheet(isPresented: view.$showBranchPicker) {
+                BranchPickerView(branches: view.branches, selectedBranch: view.$selectedBranch) {
+                    view.loadFiles()
+                    view.showBranchPicker = false
+                }
+            }
+            .sheet(isPresented: view.$showContextMenuRename, content: view.renameFileSheet)
+            .sheet(isPresented: view.$showCommits) {
+                CommitsView(owner: view.repository.ownerName, repo: view.repository.name)
+            }
+            .sheet(isPresented: view.$showDocumentPicker) {
+                DocumentPickerView(allowsMultipleSelection: true) { urls in
+                    view.selectedFiles = urls
+                    view.showUploadConfirm = true
+                }
+            }
+            .sheet(isPresented: view.$showUploadConfirm) {
+                view.uploadConfirmView
+            }
+            .alert("上传完成", isPresented: view.$showUploadSuccess) {
+                Button("确定", role: .cancel) {
+                    view.loadFiles()
+                }
+            } message: {
+                Text("文件已成功上传到仓库")
+            }
+            .alert("上传失败", isPresented: .constant(view.uploadErrorMessage != nil)) {
+                Button("确定", role: .cancel) {
+                    view.uploadErrorMessage = nil
+                }
+            } message: {
+                Text(view.uploadErrorMessage ?? "未知错误")
+            }
+            .sheet(isPresented: view.$showCreateFolderDialog) {
+                CreateFolderView(currentPath: view.currentPath) { folderName in
+                    view.createFolder(folderName: folderName)
+                } onCancel: {
+                    view.showCreateFolderDialog = false
+                }
+            }
+            .alert("创建成功", isPresented: view.$showCreateFolderSuccess) {
+                Button("确定") {
+                    view.loadFiles()
+                }
+            } message: {
+                Text("文件夹已成功创建")
+            }
+            .alert("创建失败", isPresented: .constant(view.createFolderErrorMessage != nil)) {
+                Button("确定", role: .cancel) {
+                    view.createFolderErrorMessage = nil
+                }
+            } message: {
+                Text(view.createFolderErrorMessage ?? "未知错误")
+            }
+            .sheet(isPresented: view.$showCreateFileDialog) {
+                CreateFileView(currentPath: view.currentPath) { fileName in
+                    view.createFile(fileName: fileName)
+                } onCancel: {
+                    view.showCreateFileDialog = false
+                }
+            }
+            .alert("创建成功", isPresented: view.$showCreateFileSuccess) {
+                Button("确定") {
+                    view.loadFiles()
+                }
+            } message: {
+                Text("文件已成功创建")
+            }
+            .alert("确认删除", isPresented: view.$showContextMenuDeleteConfirm) {
+                Button("取消", role: .cancel) {
+                    view.contextMenuDeleteFile = nil
+                }
+                Button("删除", role: .destructive) {
+                    if let file = view.contextMenuDeleteFile {
+                        view.deleteSingleFile(file)
+                    }
+                }
+            } message: {
+                if let file = view.contextMenuDeleteFile {
+                    Text("确定要删除文件「\(file.name)」吗？此操作不可撤销。")
+                } else {
+                    Text("确定要删除该文件吗？此操作不可撤销。")
+                }
+            }
+            .alert("创建失败", isPresented: .constant(view.createFileErrorMessage != nil)) {
+                Button("确定", role: .cancel) {
+                    view.createFileErrorMessage = nil
+                }
+            } message: {
+                Text(view.createFileErrorMessage ?? "未知错误")
+            }
+            .alert("确认删除", isPresented: view.$showDeleteConfirm) {
+                Button("取消", role: .cancel) {}
+                Button("删除", role: .destructive) {
+                    view.deleteSelectedFiles()
+                }
+            } message: {
+                let selectedItems = view.files.filter { view.selectedFilesForDelete.contains($0.path) }
+                let fileCount = selectedItems.filter { $0.isFile }.count
+                let dirCount = selectedItems.filter { $0.isDirectory }.count
+                if dirCount > 0 {
+                    Text("确定要删除选中的 \(fileCount) 个文件吗？\n\n注意：选中的 \(dirCount) 个文件夹无法直接删除（GitHub API 限制），将被跳过。如需删除文件夹，请进入文件夹后逐个删除其中的文件。")
+                } else {
+                    Text("确定要删除选中的 \(fileCount) 个文件吗？此操作不可撤销。")
+                }
+            }
     }
 }
