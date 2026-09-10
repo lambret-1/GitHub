@@ -66,6 +66,7 @@ struct FileBrowserView: View {
     @State private var selectedBranch: String = ""
     @State private var showBranchPicker: Bool = false
     @State private var showCommits: Bool = false
+    @State private var showActions: Bool = false
     @State private var showDocumentPicker: Bool = false
     @State private var isUploading: Bool = false
     @State private var uploadProgress: Double = 0
@@ -392,6 +393,15 @@ struct FileBrowserView: View {
             EmptyView()
         }
         .hidden()
+
+        // 隐藏的NavigationLink，用于Actions页面跳转
+        NavigationLink(destination: ActionsListView(
+            owner: repository.ownerName,
+            repo: repository.name
+        ), isActive: $showActions) {
+            EmptyView()
+        }
+        .hidden()
     }
 
     // MARK: - 文件列表内容
@@ -598,6 +608,13 @@ struct FileBrowserView: View {
                 showCommits = true
             }) {
                 Label("提交记录", systemImage: "clock.arrow.circlepath")
+            }
+            .disabled(isDeleteMode)
+
+            Button(action: {
+                showActions = true
+            }) {
+                Label("Actions", systemImage: "bolt.fill")
             }
             .disabled(isDeleteMode)
 

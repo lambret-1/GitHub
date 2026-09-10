@@ -391,6 +391,194 @@ class GitHubAPI {
             }
         }
     }
+
+    // MARK: - GitHub Actions 相关 API
+
+    /// 获取仓库的工作流列表
+    func getWorkflows(owner: String, repo: String, completion: @escaping (Result<[Workflow], Error>) -> Void) {
+        performRequest(url: APIEndpoints.workflows(owner: owner, repo: repo).url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let response = try JSONDecoder().decode(WorkflowsResponse.self, from: data)
+                    completion(.success(response.workflows))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取仓库的所有工作流运行记录
+    func getWorkflowRuns(owner: String, repo: String, page: Int = 1, perPage: Int = 30, completion: @escaping (Result<[WorkflowRun], Error>) -> Void) {
+        let url = APIEndpoints.workflowRuns(owner: owner, repo: repo, page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let response = try JSONDecoder().decode(WorkflowRunsResponse.self, from: data)
+                    completion(.success(response.workflowRuns))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取指定工作流的运行记录
+    func getWorkflowRunsForWorkflow(owner: String, repo: String, workflowId: Int, page: Int = 1, perPage: Int = 30, completion: @escaping (Result<[WorkflowRun], Error>) -> Void) {
+        let url = APIEndpoints.workflowRunsForWorkflow(owner: owner, repo: repo, workflowId: workflowId, page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let response = try JSONDecoder().decode(WorkflowRunsResponse.self, from: data)
+                    completion(.success(response.workflowRuns))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取单个工作流运行详情
+    func getWorkflowRun(owner: String, repo: String, runId: Int, completion: @escaping (Result<WorkflowRun, Error>) -> Void) {
+        performRequest(url: APIEndpoints.workflowRun(owner: owner, repo: repo, runId: runId).url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let run = try JSONDecoder().decode(WorkflowRun.self, from: data)
+                    completion(.success(run))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取工作流运行的作业列表
+    func getWorkflowJobs(owner: String, repo: String, runId: Int, completion: @escaping (Result<[WorkflowJob], Error>) -> Void) {
+        performRequest(url: APIEndpoints.workflowJobs(owner: owner, repo: repo, runId: runId).url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let response = try JSONDecoder().decode(WorkflowJobsResponse.self, from: data)
+                    completion(.success(response.jobs))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取作业日志（纯文本）
+    func getJobLogs(owner: String, repo: String, jobId: Int, completion: @escaping (Result<String, Error>) -> Void) {
+        let url = APIEndpoints.jobLogs(owner: owner, repo: repo, jobId: jobId).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                if let logs = String(data: data, encoding: .utf8) {
+                    completion(.success(logs))
+                } else {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败"])))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 触发工作流运行（workflow_dispatch）
+    func triggerWorkflowDispatch(owner: String, repo: String, workflowId: Int, ref: String = "main", inputs: [String: String] = [:], completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.workflowDispatch(owner: owner, repo: repo, workflowId: workflowId).url
+        var request = URLRequest(url: URL(string: url)!)
+        request.httpMethod = "POST"
+        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        var body: [String: Any] = ["ref": ref]
+        if !inputs.isEmpty {
+            body["inputs"] = inputs
+        }
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            completion(.failure(error))
+            return
+        }
+
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            if let httpResponse = response as? HTTPURLResponse,
+               (200...299).contains(httpResponse.statusCode) {
+                completion(.success(true))
+            } else {
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                completion(.failure(NSError(domain: "GitHubAPI", code: statusCode, userInfo: [NSLocalizedDescriptionKey: "触发工作流失败，状态码: \(statusCode)"])))
+            }
+        }.resume()
+    }
+
+    /// 取消工作流运行
+    func cancelWorkflowRun(owner: String, repo: String, runId: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.cancelWorkflowRun(owner: owner, repo: repo, runId: runId).url
+        var request = URLRequest(url: URL(string: url)!)
+        request.httpMethod = "POST"
+        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            if let httpResponse = response as? HTTPURLResponse,
+               (200...299).contains(httpResponse.statusCode) {
+                completion(.success(true))
+            } else {
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                completion(.failure(NSError(domain: "GitHubAPI", code: statusCode, userInfo: [NSLocalizedDescriptionKey: "取消运行失败，状态码: \(statusCode)"])))
+            }
+        }.resume()
+    }
+
+    /// 重新运行工作流
+    func rerunWorkflowRun(owner: String, repo: String, runId: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.rerunWorkflowRun(owner: owner, repo: repo, runId: runId).url
+        var request = URLRequest(url: URL(string: url)!)
+        request.httpMethod = "POST"
+        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            if let httpResponse = response as? HTTPURLResponse,
+               (200...299).contains(httpResponse.statusCode) {
+                completion(.success(true))
+            } else {
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                completion(.failure(NSError(domain: "GitHubAPI", code: statusCode, userInfo: [NSLocalizedDescriptionKey: "重新运行失败，状态码: \(statusCode)"])))
+            }
+        }.resume()
+    }
 }
 
 // MARK: - 搜索结果包装

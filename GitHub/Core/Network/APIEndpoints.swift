@@ -15,6 +15,17 @@ enum APIEndpoints {
     case searchRepos(query: String, page: Int)
     case searchUsers(query: String, page: Int)
 
+    // MARK: - GitHub Actions 相关端点
+    case workflows(owner: String, repo: String)
+    case workflowRuns(owner: String, repo: String, page: Int, perPage: Int)
+    case workflowRunsForWorkflow(owner: String, repo: String, workflowId: Int, page: Int, perPage: Int)
+    case workflowRun(owner: String, repo: String, runId: Int)
+    case workflowJobs(owner: String, repo: String, runId: Int)
+    case jobLogs(owner: String, repo: String, jobId: Int)
+    case workflowDispatch(owner: String, repo: String, workflowId: Int)
+    case cancelWorkflowRun(owner: String, repo: String, runId: Int)
+    case rerunWorkflowRun(owner: String, repo: String, runId: Int)
+
     var url: String {
         switch self {
         case .user:
@@ -41,6 +52,26 @@ enum APIEndpoints {
         case .searchUsers(let query, let page):
             let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
             return "\(APIEndpoints.baseURL)/search/users?q=\(encodedQuery)&page=\(page)&per_page=30&sort=followers"
+
+        // MARK: - GitHub Actions 相关端点实现
+        case .workflows(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/workflows"
+        case .workflowRuns(let owner, let repo, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs?page=\(page)&per_page=\(perPage)"
+        case .workflowRunsForWorkflow(let owner, let repo, let workflowId, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/workflows/\(workflowId)/runs?page=\(page)&per_page=\(perPage)"
+        case .workflowRun(let owner, let repo, let runId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)"
+        case .workflowJobs(let owner, let repo, let runId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/jobs"
+        case .jobLogs(let owner, let repo, let jobId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/jobs/\(jobId)/logs"
+        case .workflowDispatch(let owner, let repo, let workflowId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/workflows/\(workflowId)/dispatches"
+        case .cancelWorkflowRun(let owner, let repo, let runId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/cancel"
+        case .rerunWorkflowRun(let owner, let repo, let runId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/rerun"
         }
     }
 }
