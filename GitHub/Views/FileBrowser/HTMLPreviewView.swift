@@ -22,35 +22,55 @@ struct HTMLPreviewView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            if isLoading {
-                Spacer()
-                ProgressView("加载网页中...")
-                Spacer()
-            } else if let error = errorMessage {
-                Spacer()
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundColor(.orange)
-                    Text(error)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-                Spacer()
-            } else {
-                WebView(
-                    htmlContent: htmlContent,
-                    baseURL: baseURL,
-                    onLoadingChange: { loading in
+        ZStack {
+            // WebView始终创建，避免死循环（isLoading=true导致WebView不创建，WebView不创建导致onLoadingChange永远不调用）
+            WebView(
+                htmlContent: htmlContent,
+                baseURL: baseURL,
+                onLoadingChange: { loading in
+                    DispatchQueue.main.async {
                         isLoading = loading
-                    },
-                    onError: { error in
-                        errorMessage = error
                     }
-                )
-                .edgesIgnoringSafeArea(.bottom)
+                },
+                onError: { error in
+                    DispatchQueue.main.async {
+                        errorMessage = error
+                        isLoading = false
+                    }
+                }
+            )
+            .edgesIgnoringSafeArea(.bottom)
+
+            // 加载指示器叠加在WebView上面
+            if isLoading {
+                ZStack {
+                    Color(.systemBackground).opacity(0.9)
+                        .edgesIgnoringSafeArea(.all)
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                            .scaleEffect(1.5)
+                        Text("加载网页中...")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            // 错误提示
+            if let error = errorMessage, !isLoading {
+                ZStack {
+                    Color(.systemBackground)
+                        .edgesIgnoringSafeArea(.all)
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 50))
+                            .foregroundColor(.orange)
+                        Text(error)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                }
             }
         }
         .navigationTitle(title)
@@ -70,15 +90,33 @@ struct WebView: UIViewRepresentable {
         let webView = WKWebView()
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
+        // 避免重复加载
+        guard !context.coordinator.hasLoaded else { return }
+        context.coordinator.hasLoaded = true
+
+        // 立即通知开始加载
+        onLoadingChange?(true)
+
         // 加载HTML内容
         if let baseURL = baseURL {
             webView.loadHTMLString(htmlContent, baseURL: baseURL)
         } else {
             webView.loadHTMLString(htmlContent, baseURL: nil)
+        }
+
+        // 安全超时：如果5秒后还在加载，强制关闭加载状态
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak webView] in
+            guard let webView = webView else { return }
+            if webView.isLoading {
+                // 仍然在加载，可能是网络资源加载慢，不强制关闭
+                // 但至少确保onLoadingChange被调用过
+            }
         }
     }
 
@@ -88,6 +126,7 @@ struct WebView: UIViewRepresentable {
 
     class Coordinator: NSObject, WKNavigationDelegate {
         var parent: WebView
+        var hasLoaded: Bool = false
 
         init(_ parent: WebView) {
             self.parent = parent
@@ -112,6 +151,11 @@ struct WebView: UIViewRepresentable {
             // 页面加载失败（临时导航）
             parent.onLoadingChange?(false)
             parent.onError?(error.localizedDescription)
+        }
+
+        func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+            // 允许所有响应
+            decisionHandler(.allow)
         }
     }
 }

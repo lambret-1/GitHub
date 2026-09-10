@@ -54,6 +54,7 @@ struct FileBrowserView: View {
     @State private var htmlPreviewContent: String = ""
     @State private var htmlPreviewTitle: String = ""
     @State private var isLoadingHTML: Bool = false
+    @State private var htmlPreviewError: String?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -86,16 +87,30 @@ struct FileBrowserView: View {
             }
             .hidden()
         )
-        // 隐藏的NavigationLink，用于HTML网页预览
-        .background(
-            NavigationLink(destination: HTMLPreviewView(
-                htmlContent: htmlPreviewContent,
-                title: htmlPreviewTitle
-            ), isActive: $showHTMLPreview) {
-                EmptyView()
+        // HTML网页预览使用sheet，确保内容正确传递
+        .sheet(isPresented: $showHTMLPreview) {
+            NavigationView {
+                HTMLPreviewView(
+                    htmlContent: htmlPreviewContent,
+                    title: htmlPreviewTitle
+                )
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("完成") {
+                            showHTMLPreview = false
+                        }
+                    }
+                }
             }
-            .hidden()
-        )
+        }
+        // HTML加载失败提示
+        .alert("加载失败", isPresented: .constant(htmlPreviewError != nil)) {
+            Button("确定") {
+                htmlPreviewError = nil
+            }
+        } message: {
+            Text(htmlPreviewError ?? "未知错误")
+        }
         .sheet(isPresented: $showBranchPicker) {
             BranchPickerView(branches: branches, selectedBranch: $selectedBranch) {
                 loadFiles()
@@ -896,11 +911,12 @@ struct FileBrowserView: View {
     private func downloadHTMLFromURL(_ url: String, fileName: String) {
         isLoadingHTML = true
         htmlPreviewTitle = fileName
+        htmlPreviewError = nil
 
         // 添加超时处理，确保请求不会一直挂起（15秒超时）
         guard let urlObj = URL(string: url) else {
             isLoadingHTML = false
-            errorMessage = "无效的下载链接"
+            htmlPreviewError = "无效的下载链接"
             return
         }
 
@@ -915,14 +931,15 @@ struct FileBrowserView: View {
                 self.isLoadingHTML = false
 
                 if let error = error {
-                    self.errorMessage = "加载失败：\(error.localizedDescription)"
+                    self.htmlPreviewError = "加载失败：\(error.localizedDescription)"
                     return
                 }
 
                 guard let httpResponse = response as? HTTPURLResponse,
                       (200...299).contains(httpResponse.statusCode),
                       let data = data else {
-                    self.errorMessage = "加载失败：服务器返回错误"
+                    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+                    self.htmlPreviewError = "加载失败：服务器返回错误 \(statusCode)"
                     return
                 }
 
@@ -931,7 +948,7 @@ struct FileBrowserView: View {
                     self.htmlPreviewContent = content
                     self.showHTMLPreview = true
                 } else {
-                    self.errorMessage = "HTML文件编码不支持"
+                    self.htmlPreviewError = "HTML文件编码不支持"
                 }
             }
         }.resume()
