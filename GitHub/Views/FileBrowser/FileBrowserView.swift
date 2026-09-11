@@ -815,6 +815,8 @@ struct FileBrowserView: View {
                     }
                 }
             }
+            // 确保sheet正确继承暗黑模式颜色方案
+            .preferredColorScheme(appState.isDarkMode ? .dark : .light)
         }
     }
 
@@ -2740,6 +2742,8 @@ struct BranchPickerView: View {
                             }
                         }
                     }
+                    // 确保sheet正确继承暗黑模式颜色方案
+                    .preferredColorScheme(appState.isDarkMode ? .dark : .light)
                 }
             }
             // 重命名分支弹窗（使用sheet确保重命名按钮正常显示）
@@ -2780,6 +2784,8 @@ struct BranchPickerView: View {
                             }
                         }
                     }
+                    // 确保sheet正确继承暗黑模式颜色方案
+                    .preferredColorScheme(appState.isDarkMode ? .dark : .light)
                 }
             }
             // 删除分支确认弹窗

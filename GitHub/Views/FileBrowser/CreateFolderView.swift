@@ -10,6 +10,7 @@ struct CreateFolderView: View {
     @State private var folderName: String = ""
     @State private var isCreating: Bool = false
     @State private var errorMessage: String?
+    @EnvironmentObject private var appState: AppState
     var onCreate: (String) -> Void
     var onCancel: () -> Void
 
@@ -100,6 +101,8 @@ struct CreateFolderView: View {
                 .padding(.bottom, 20)
             }
             .navigationBarHidden(true)
+            // 确保sheet正确继承暗黑模式颜色方案
+            .preferredColorScheme(appState.isDarkMode ? .dark : .light)
         }
     }
 

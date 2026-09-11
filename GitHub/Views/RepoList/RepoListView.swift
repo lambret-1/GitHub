@@ -266,6 +266,8 @@ struct RepoListView: View {
                             .disabled(createRepoName.isEmpty || isCreatingRepo)
                         }
                     }
+                    // 确保sheet正确继承暗黑模式颜色方案
+                    .preferredColorScheme(appState.isDarkMode ? .dark : .light)
                 }
             }
         }
