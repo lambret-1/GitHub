@@ -143,6 +143,12 @@ struct FileBrowserView: View {
     @State var isLoadingReadme: Bool = false
     @State var readmeError: String?
 
+    // MARK: - 下载ZIP相关状态
+    @State var isDownloadingZip: Bool = false
+    @State var zipDownloadProgress: Double = 0
+    @State var showZipDownloadAlert: Bool = false
+    @State var zipDownloadMessage: String = ""
+
     var body: some View {
         mainContent
     }
@@ -209,6 +215,33 @@ struct FileBrowserView: View {
                 Spacer()
             }
         )
+        // 下载ZIP进度遮罩
+        .overlay(
+            Group {
+                if isDownloadingZip {
+                    VStack(spacing: 16) {
+                        ProgressView(value: zipDownloadProgress)
+                            .progressViewStyle(LinearProgressViewStyle())
+                            .frame(width: 200)
+                        Text(zipDownloadMessage)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(24)
+                    .background(Color(.systemBackground).opacity(0.95))
+                    .cornerRadius(12)
+                    .shadow(radius: 8)
+                }
+            }
+        )
+        // 下载ZIP结果弹窗
+        .alert("下载提示", isPresented: $showZipDownloadAlert) {
+            Button("确定", role: .cancel) {
+                showZipDownloadAlert = false
+            }
+        } message: {
+            Text(zipDownloadMessage)
+        }
     }
     
     // MARK: - 隐藏的导航链接（拆分成单独属性，避免body表达式过于复杂导致类型检查超时）
@@ -606,6 +639,13 @@ struct FileBrowserView: View {
                 Label("Actions", systemImage: "bolt.fill")
             }
             .disabled(isDeleteMode)
+
+            Button(action: {
+                downloadRepositoryZip()
+            }) {
+                Label("下载仓库 ZIP", systemImage: "square.and.arrow.down")
+            }
+            .disabled(isDeleteMode || isDownloadingZip)
 
             Button(action: {
                 // 应用镜像加速转换
@@ -1100,6 +1140,109 @@ struct FileBrowserView: View {
                     }
                 }
             }
+        }
+    }
+
+    // MARK: - 下载仓库ZIP
+
+    func downloadRepositoryZip() {
+        isDownloadingZip = true
+        zipDownloadProgress = 0
+        zipDownloadMessage = "正在准备下载..."
+
+        let branch = selectedBranch.isEmpty ? "main" : selectedBranch
+        // 使用GitHub官方zipball API，支持镜像加速
+        let apiUrl = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/zipball/\(branch)"
+        // 应用镜像加速转换（如果开启了镜像加速）
+        let downloadUrl = AppSettings.shared.convertDownloadURL(apiUrl)
+
+        guard let url = URL(string: downloadUrl) else {
+            isDownloadingZip = false
+            zipDownloadMessage = "下载链接无效"
+            showZipDownloadAlert = true
+            return
+        }
+
+        var request = URLRequest(url: url)
+        if let token = TokenKeychain.shared.getToken() {
+            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        }
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
+
+        let config = URLSessionConfiguration.default
+        let session = URLSession(configuration: config, delegate: ZipDownloadDelegate(view: self), delegateQueue: nil)
+
+        let task = session.downloadTask(with: request)
+        task.resume()
+    }
+
+    // ZIP下载完成处理
+    func handleZipDownloadFinished(location: URL, response: URLResponse?) {
+        DispatchQueue.main.async {
+            isDownloadingZip = false
+
+            // 检查HTTP状态码
+            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+                zipDownloadMessage = "下载失败：服务器返回错误 \(httpResponse.statusCode)"
+                showZipDownloadAlert = true
+                return
+            }
+
+            // 生成文件名：仓库名-分支名.zip
+            let branch = selectedBranch.isEmpty ? "main" : selectedBranch
+            let fileName = "\(repository.name)-\(branch).zip"
+
+            // 移动到临时目录
+            let tempDir = FileManager.default.temporaryDirectory
+            let destinationURL = tempDir.appendingPathComponent(fileName)
+
+            do {
+                if FileManager.default.fileExists(atPath: destinationURL.path) {
+                    try FileManager.default.removeItem(at: destinationURL)
+                }
+                try FileManager.default.moveItem(at: location, to: destinationURL)
+
+                // 使用iOS原生分享功能
+                let activityVC = UIActivityViewController(activityItems: [destinationURL], applicationActivities: nil)
+                activityVC.completionWithItemsHandler = { _, _, _, _ in
+                    // 分享完成后清理临时文件
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                        try? FileManager.default.removeItem(at: destinationURL)
+                    }
+                }
+
+                // 找到当前窗口的根视图控制器
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let rootVC = windowScene.windows.first?.rootViewController {
+                    // 找到最顶层的视图控制器
+                    var topVC = rootVC
+                    while let presentedVC = topVC.presentedViewController {
+                        topVC = presentedVC
+                    }
+                    topVC.present(activityVC, animated: true)
+                }
+
+                zipDownloadMessage = "下载完成，已打开分享面板"
+                showZipDownloadAlert = true
+            } catch {
+                zipDownloadMessage = "保存文件失败：\(error.localizedDescription)"
+                showZipDownloadAlert = true
+            }
+        }
+    }
+
+    func handleZipDownloadProgress(progress: Double) {
+        DispatchQueue.main.async {
+            zipDownloadProgress = progress
+            zipDownloadMessage = "正在下载... \(Int(progress * 100))%"
+        }
+    }
+
+    func handleZipDownloadError(error: Error) {
+        DispatchQueue.main.async {
+            isDownloadingZip = false
+            zipDownloadMessage = "下载失败：\(error.localizedDescription)"
+            showZipDownloadAlert = true
         }
     }
 
@@ -1845,6 +1988,36 @@ struct FileRow: View {
     }
 }
 
+// MARK: - ZIP下载代理
+
+class ZipDownloadDelegate: NSObject, URLSessionDownloadDelegate {
+    weak var view: FileBrowserView?
+
+    init(view: FileBrowserView) {
+        self.view = view
+    }
+
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        view?.handleZipDownloadFinished(location: location, response: downloadTask.response)
+    }
+
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        if totalBytesExpectedToWrite > 0 {
+            let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+            view?.handleZipDownloadProgress(progress: progress)
+        }
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error = error {
+            // 忽略取消错误
+            if (error as NSError).code != NSURLErrorCancelled {
+                view?.handleZipDownloadError(error: error)
+            }
+        }
+    }
+}
+
 // MARK: - 分支选择器
 
 struct BranchPickerView: View {
@@ -1852,32 +2025,81 @@ struct BranchPickerView: View {
     @Binding var selectedBranch: String
     let onSelect: () -> Void
     @Environment(\.presentationMode) var presentationMode
-    
+    @State private var searchText: String = ""
+
+    // 过滤后的分支列表
+    private var filteredBranches: [Branch] {
+        if searchText.isEmpty {
+            return branches
+        }
+        return branches.filter { branch in
+            branch.name.lowercased().contains(searchText.lowercased())
+        }
+    }
+
     var body: some View {
         NavigationView {
-            List(branches) { branch in
-                Button(action: {
-                    selectedBranch = branch.name
-                    onSelect()
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.triangle.branch")
-                            .foregroundColor(.purple)
-                        Text(branch.name)
-                            .foregroundColor(.primary)
-                        Spacer()
-                        if selectedBranch == branch.name {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.blue)
-                        }
-                        if branch.protected {
-                            Image(systemName: "lock.fill")
-                                .foregroundColor(.orange)
+            VStack(spacing: 0) {
+                // 搜索框
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.gray)
+                    TextField("搜索分支...", text: $searchText)
+                        .textFieldStyle(PlainTextFieldStyle())
+                    if !searchText.isEmpty {
+                        Button(action: {
+                            searchText = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.gray)
                         }
                     }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+
+                // 分支列表
+                List {
+                    if filteredBranches.isEmpty {
+                        HStack {
+                            Spacer()
+                            Text("未找到匹配的分支")
+                                .foregroundColor(.secondary)
+                                .padding()
+                            Spacer()
+                        }
+                    } else {
+                        ForEach(filteredBranches) { branch in
+                            Button(action: {
+                                selectedBranch = branch.name
+                                onSelect()
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.triangle.branch")
+                                        .foregroundColor(.purple)
+                                    Text(branch.name)
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                    if selectedBranch == branch.name {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.blue)
+                                    }
+                                    if branch.protected {
+                                        Image(systemName: "lock.fill")
+                                            .foregroundColor(.orange)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .listStyle(PlainListStyle())
             }
-            .navigationTitle("选择分支")
+            .navigationTitle("选择分支（共\(branches.count)个）")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
