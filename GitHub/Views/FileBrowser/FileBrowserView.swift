@@ -713,9 +713,28 @@ struct FileBrowserView: View {
 
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
-        // 移除导航栏中的三个点菜单，代码按钮已显示三个点菜单内容
+        // 原三个点菜单位置：显示仓库所有者头像和用户名
         ToolbarItem(placement: .navigationBarTrailing) {
-            EmptyView()
+            HStack(spacing: 8) {
+                // 仓库所有者头像
+                AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(.gray)
+                }
+                .frame(width: 28, height: 28)
+                .clipShape(Circle())
+
+                // 仓库所有者用户名
+                Text(repository.ownerName)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+            }
         }
     }
 
