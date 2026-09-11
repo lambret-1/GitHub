@@ -1991,7 +1991,7 @@ struct FileRow: View {
 // MARK: - ZIP下载代理
 
 class ZipDownloadDelegate: NSObject, URLSessionDownloadDelegate {
-    weak var view: FileBrowserView?
+    var view: FileBrowserView?
 
     init(view: FileBrowserView) {
         self.view = view
