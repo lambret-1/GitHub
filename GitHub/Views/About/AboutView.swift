@@ -6,6 +6,7 @@ import SwiftUI
 // ==============================================================================
 
 struct AboutView: View {
+    @EnvironmentObject var appState: AppState
     @State private var isCheckingUpdate = false
     @State private var isDownloadingUpdate = false
     @State private var downloadProgress: Double = 0
