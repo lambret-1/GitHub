@@ -21,7 +21,6 @@ struct ReadmeView: View {
     let branch: String
 
     @EnvironmentObject var appState: AppState
-    @State private var isCopied: Bool = false
     @State private var renderedHTML: String?
     @State private var isRendering: Bool = true
     @State private var renderError: String?
@@ -41,19 +40,6 @@ struct ReadmeView: View {
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
 
                 Spacer()
-
-                // 复制按钮
-                Button(action: {
-                    UIPasteboard.general.string = markdownContent
-                    isCopied = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        isCopied = false
-                    }
-                }) {
-                    Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
-                        .font(.system(size: 14))
-                        .foregroundColor(isCopied ? .green : .blue)
-                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
