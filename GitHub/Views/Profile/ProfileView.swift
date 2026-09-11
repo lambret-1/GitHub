@@ -252,7 +252,7 @@ struct ProfileView: View {
                 }
             } message: {
                 if let release = latestRelease {
-                    Text("新版本 \(release.tagName)\n发布时间: \(AppVersion.formattedDate(from: release.publishedAt))\n\n\(release.body ?? "暂无更新说明")\n\n下载完成后将自动弹出分享面板，可选择全能签等签名工具进行安装")
+                    Text("新版本 \(release.tagName) 已发布，点击立即下载，下载完成后将自动弹出分享面板进行安装。")
                 }
             }
             // 下载失败alert
