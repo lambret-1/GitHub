@@ -356,6 +356,16 @@ struct CodeSnippetView: View {
 
     @ViewBuilder
     private func highlightedCode(_ code: String) -> some View {
+        let parts = calculateHighlightedParts(code)
+        Group {
+            ForEach(Array(parts.enumerated()), id: \.offset) { _, part in
+                part
+            }
+        }
+    }
+
+    // 计算高亮文本片段（在ViewBuilder之外执行，避免控制流语句错误）
+    private func calculateHighlightedParts(_ code: String) -> [AnyView] {
         let lowercasedCode = code.lowercased()
         let lowercasedQuery = searchQuery.lowercased()
         let codeFont = Font.system(size: 11, design: .monospaced)
@@ -390,12 +400,7 @@ struct CodeSnippetView: View {
             parts.append(AnyView(Text(remainingText).font(codeFont)))
         }
 
-        // 使用Group组合所有部分
-        Group {
-            ForEach(Array(parts.enumerated()), id: \.offset) { _, part in
-                part
-            }
-        }
+        return parts
     }
 
     // MARK: - 加载文件内容
