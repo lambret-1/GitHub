@@ -44,6 +44,7 @@ class GitHubAPI {
         var request = URLRequest(url: urlObj)
         request.httpMethod = method
         request.allHTTPHeaderFields = getHeaders()
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData // 禁用缓存，确保每次刷新都获取最新数据
 
         if let body = body {
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -80,12 +81,19 @@ class GitHubAPI {
 
     private func getHeaders() -> [String: String] {
         guard let token = TokenKeychain.shared.getToken() else {
-            return [:]
+            return [
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": "GitHub-iOS-Client",
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache"
+            ]
         }
         return [
             "Authorization": "token \(token)",
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "GitHub-iOS-Client"
+            "User-Agent": "GitHub-iOS-Client",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache"
         ]
     }
     
@@ -98,6 +106,7 @@ class GitHubAPI {
         var request = URLRequest(url: urlObj)
         request.httpMethod = method
         request.allHTTPHeaderFields = getHeaders()
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData // 禁用缓存，确保每次刷新都获取最新数据
         
         if let body = body {
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -215,6 +224,7 @@ class GitHubAPI {
 
         var request = URLRequest(url: urlObj)
         request.allHTTPHeaderFields = getHeaders()
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData // 禁用缓存，确保每次刷新都获取最新数据
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
@@ -461,6 +471,7 @@ class GitHubAPI {
         var request = URLRequest(url: urlObj)
         request.allHTTPHeaderFields = getHeaders()
         request.timeoutInterval = 60
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData // 禁用缓存，确保每次刷新都获取最新数据
 
         // 使用镜像专用URLSession，允许无效证书（镜像站点可能证书无效）
         URLSession.mirrorSession.dataTask(with: request) { data, response, error in
@@ -767,6 +778,7 @@ class GitHubAPI {
         request.httpMethod = "POST"
         request.allHTTPHeaderFields = getHeaders()
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData // 禁用缓存，确保每次刷新都获取最新数据
 
         var body: [String: Any] = ["ref": ref]
         if !inputs.isEmpty {
@@ -819,6 +831,7 @@ class GitHubAPI {
         var request = URLRequest(url: urlObj)
         request.httpMethod = "GET"
         request.allHTTPHeaderFields = getHeaders()
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData // 禁用缓存，确保每次刷新都获取最新数据
 
         URLSession.shared.dataTask(with: request) { _, response, error in
             DispatchQueue.main.async {
