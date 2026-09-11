@@ -153,6 +153,11 @@ struct FileBrowserView: View {
     @State var latestCommit: Commit?
     @State var isLoadingLatestCommit: Bool = false
 
+    // MARK: - 文件点击导航（移除NavigationLink的>符号）
+    @State var selectedFilePath: String?
+    @State var selectedFileName: String?
+    @State var navigateToFileEditor: Bool = false
+
     var body: some View {
         mainContent
     }
@@ -318,6 +323,22 @@ struct FileBrowserView: View {
             owner: repository.ownerName,
             repo: repository.name
         ), isActive: $showActions) {
+            EmptyView()
+        }
+        .hidden()
+
+        // 隐藏的NavigationLink，用于文件点击后跳转到代码编辑器（移除NavigationLink的>符号）
+        NavigationLink(destination: Group {
+            if let filePath = selectedFilePath, let fileName = selectedFileName {
+                CodeEditorView(
+                    owner: repository.ownerName,
+                    repo: repository.name,
+                    path: filePath,
+                    branch: selectedBranch,
+                    fileName: fileName
+                )
+            }
+        }, isActive: $navigateToFileEditor) {
             EmptyView()
         }
         .hidden()
@@ -1444,15 +1465,14 @@ struct FileBrowserView: View {
                 FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
             }
         } else {
-            NavigationLink(destination: CodeEditorView(
-                owner: repository.ownerName,
-                repo: repository.name,
-                path: file.path,
-                branch: selectedBranch,
-                fileName: file.name
-            )) {
+            Button(action: {
+                selectedFilePath = file.path
+                selectedFileName = file.name
+                navigateToFileEditor = true
+            }) {
                 FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
             }
+            .buttonStyle(PlainButtonStyle())
             .contextMenu {
                 contextMenuContent(for: file)
             }

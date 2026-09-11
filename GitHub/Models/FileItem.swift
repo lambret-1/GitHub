@@ -216,15 +216,17 @@ extension CommitPerson {
         let interval = now.timeIntervalSince(date)
 
         if interval < 60 {
-            return "刚刚"
+            return "1 分钟前"
         } else if interval < 3600 {
             return "\(Int(interval / 60)) 分钟前"
         } else if interval < 86400 {
             return "\(Int(interval / 3600)) 小时前"
         } else if interval < 2592000 {
             return "\(Int(interval / 86400)) 天前"
+        } else if interval < 31536000 {
+            return "\(Int(interval / 2592000)) 个月前"
         } else {
-            return formattedDate
+            return "\(Int(interval / 31536000)) 年前"
         }
     }
 }
