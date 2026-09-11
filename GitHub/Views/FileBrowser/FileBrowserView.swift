@@ -169,14 +169,42 @@ struct FileBrowserView: View {
 
     var baseView: some View {
         VStack(spacing: 0) {
-            pathNavigationBar
+            // 仓库头部（复刻GitHub网页布局）
+            RepoHeaderView(
+                repository: repository,
+                isStarred: isStarred,
+                isCheckingStar: isCheckingStar,
+                isStarring: isStarring,
+                isForking: isForking,
+                onToggleStar: toggleStar,
+                onFork: forkRepository
+            )
+            .environmentObject(appState)
+
+            // 分支栏（复刻GitHub网页布局）
+            BranchBarView(
+                branches: branches,
+                selectedBranch: $selectedBranch,
+                onBranchChange: {
+                    loadFiles()
+                },
+                onDownloadZip: downloadRepositoryZip
+            )
+            .environmentObject(appState)
+
+            // 路径导航栏（仅子目录显示）
+            if !currentPath.isEmpty {
+                pathNavigationBar
+            }
+
             fileListContent
+
             // 删除模式底部操作栏
             if isDeleteMode {
                 deleteActionBar
             }
         }
-        .navigationTitle(repository.name)
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             toolbarContent
