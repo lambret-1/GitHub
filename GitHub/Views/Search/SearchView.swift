@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SearchView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss // 用于关闭全屏搜索页面
     @State private var searchText: String = ""
     @State private var selectedTab: SearchTab = .repositories
     @State private var repos: [Repository] = []
@@ -223,6 +224,13 @@ struct SearchView: View {
             }
             .navigationTitle("搜索")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("关闭") {
+                        dismiss()
+                    }
+                }
+            }
         }
         .sheet(isPresented: $showAdvancedFilter) {
             AdvancedFilterView(

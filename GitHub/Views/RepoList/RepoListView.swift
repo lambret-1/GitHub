@@ -102,7 +102,7 @@ struct RepoListView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showSearchView) {
+            .fullScreenCover(isPresented: $showSearchView) {
                 SearchView()
                     .environmentObject(appState)
             }
