@@ -346,7 +346,6 @@ struct CodeSnippetView: View {
             // 代码内容（高亮关键词）
             ScrollView(.horizontal, showsIndicators: false) {
                 highlightedCode(snippet.code)
-                    .font(.system(size: 11, design: .monospaced))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
             }
@@ -355,24 +354,31 @@ struct CodeSnippetView: View {
 
     // MARK: - 高亮关键词
 
-    private func highlightedCode(_ code: String) -> Text {
-        var result = Text("")
+    @ViewBuilder
+    private func highlightedCode(_ code: String) -> some View {
         let lowercasedCode = code.lowercased()
         let lowercasedQuery = searchQuery.lowercased()
+        let codeFont = Font.system(size: 11, design: .monospaced)
 
         var searchRange = lowercasedCode.startIndex..<lowercasedCode.endIndex
+        var parts: [AnyView] = []
 
         while let range = lowercasedCode.range(of: lowercasedQuery, range: searchRange) {
             // 添加关键词之前的文本
             let beforeText = String(code[searchRange.lowerBound..<range.lowerBound])
-            result = result + Text(beforeText)
+            if !beforeText.isEmpty {
+                parts.append(AnyView(Text(beforeText).font(codeFont)))
+            }
 
             // 添加高亮的关键词
             let keyword = String(code[range])
-            result = result + Text(keyword)
-                .background(Color.yellow.opacity(0.5))
-                .foregroundColor(.red)
-                .fontWeight(.bold)
+            parts.append(AnyView(
+                Text(keyword)
+                    .font(codeFont)
+                    .background(Color.yellow.opacity(0.5))
+                    .foregroundColor(.red)
+                    .fontWeight(.bold)
+            ))
 
             // 继续搜索剩余部分
             searchRange = range.upperBound..<lowercasedCode.endIndex
@@ -380,9 +386,16 @@ struct CodeSnippetView: View {
 
         // 添加最后剩余的文本
         let remainingText = String(code[searchRange])
-        result = result + Text(remainingText)
+        if !remainingText.isEmpty {
+            parts.append(AnyView(Text(remainingText).font(codeFont)))
+        }
 
-        return result
+        // 使用Group组合所有部分
+        Group {
+            ForEach(Array(parts.enumerated()), id: \.offset) { _, part in
+                part
+            }
+        }
     }
 
     // MARK: - 加载文件内容
