@@ -356,7 +356,7 @@ struct FileBrowserView: View {
                     Spacer()
                 }
             } else if let readmeContent = readmeContent {
-                ReadmeView(markdownContent: readmeContent, owner: repository.ownerName, repo: repository.name)
+                ReadmeView(markdownContent: readmeContent, owner: repository.ownerName, repo: repository.name, branch: selectedBranch.isEmpty ? "main" : selectedBranch)
                     .environmentObject(appState)
                     .listRowInsets(EdgeInsets())
             } else if let readmeError = readmeError {

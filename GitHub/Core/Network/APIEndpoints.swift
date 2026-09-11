@@ -10,6 +10,7 @@ enum APIEndpoints {
     case userRepos(page: Int, perPage: Int)
     case repository(owner: String, repo: String)
     case readme(owner: String, repo: String, branch: String?)
+    case markdown
     case repoContent(owner: String, repo: String, path: String, branch: String)
     case updateFile(owner: String, repo: String, path: String)
     case repoBranches(owner: String, repo: String)
@@ -48,6 +49,8 @@ enum APIEndpoints {
                 return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/readme?ref=\(branch)"
             }
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/readme"
+        case .markdown:
+            return "\(APIEndpoints.baseURL)/markdown"
         case .repoContent(let owner, let repo, let path, let branch):
             let encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/contents/\(encodedPath)?ref=\(branch)"

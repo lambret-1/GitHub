@@ -233,6 +233,34 @@ class GitHubAPI {
         }.resume()
     }
 
+    /// 使用GitHub官方Markdown API渲染Markdown文本（与GitHub网页显示完全一致）
+    /// - Parameters:
+    ///   - markdown: Markdown原文
+    ///   - context: 仓库上下文（owner/repo），用于解析相对链接
+    ///   - completion: 渲染后的HTML
+    func renderMarkdown(markdown: String, context: String? = nil, completion: @escaping (Result<String, Error>) -> Void) {
+        var body: [String: Any] = [
+            "text": markdown,
+            "mode": "gfm"
+        ]
+        if let context = context {
+            body["context"] = context
+        }
+
+        performRequest(url: APIEndpoints.markdown.url, method: "POST", body: body) { result in
+            switch result {
+            case .success(let data):
+                if let html = String(data: data, encoding: .utf8) {
+                    completion(.success(html))
+                } else {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无法解析Markdown渲染结果"])))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     // MARK: - 仓库列表
     
     func getUserRepos(page: Int = 1, perPage: Int = 100, completion: @escaping (Result<[Repository], Error>) -> Void) {
