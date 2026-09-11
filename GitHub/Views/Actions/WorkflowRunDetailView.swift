@@ -81,8 +81,8 @@ struct WorkflowRunDetailView: View {
                             .background(Color(run.statusColor).opacity(0.1))
                             .cornerRadius(8)
 
-                        // 失败时显示退出码（点击跳转到失败日志）
-                        if run.conclusion == "failure", let failedJob = jobs.first(where: { $0.conclusion == "failure" }), let exitCode = failedJob.exitCode {
+                        // 失败时显示退出码或查看日志按钮（点击跳转到失败日志）
+                        if run.conclusion == "failure", let failedJob = jobs.first(where: { $0.conclusion == "failure" }) {
                             Button(action: {
                                 self.failedJob = failedJob
                                 self.showFailedJobLog = true
@@ -90,9 +90,15 @@ struct WorkflowRunDetailView: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .font(.caption)
-                                    Text("退出码: \(exitCode)")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
+                                    if let exitCode = failedJob.exitCode {
+                                        Text("退出码: \(exitCode)")
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                    } else {
+                                        Text("查看失败日志")
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                    }
                                     Image(systemName: "chevron.right")
                                         .font(.caption2)
                                 }
