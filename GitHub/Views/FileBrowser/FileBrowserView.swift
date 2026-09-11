@@ -135,6 +135,7 @@ struct FileBrowserView: View {
     @State var isCheckingStar: Bool = false
     @State var isStarring: Bool = false
     @State var isForking: Bool = false
+    @State var showForkConfirm: Bool = false // 复刻二次确认弹窗
     @State var showOperationMessage: Bool = false
     @State var operationMessage: String = ""
 
@@ -1313,15 +1314,21 @@ struct FileBrowserView: View {
 
     /// Fork 仓库
     func forkRepository() {
+        // 复刻二次确认：先显示确认弹窗，用户确认后再执行复刻
+        showForkConfirm = true
+    }
+
+    /// 实际执行复刻操作（用户确认后调用）
+    func performFork() {
         isForking = true
         GitHubAPI.shared.forkRepository(owner: repository.ownerName, repo: repository.name) { result in
             DispatchQueue.main.async {
                 isForking = false
                 switch result {
                 case .success:
-                    showMessage("Fork 成功，已在您的账户下创建副本")
+                    showMessage("复刻成功，已在您的账户下创建副本")
                 case .failure(let error):
-                    showMessage("Fork 失败: \(error.localizedDescription)")
+                    showMessage("复刻失败: \(error.localizedDescription)")
                 }
             }
         }
@@ -2597,6 +2604,15 @@ private struct FileBrowserDeleteSheetsModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            // 复刻二次确认弹窗
+            .alert("确认复刻", isPresented: view.$showForkConfirm) {
+                Button("取消", role: .cancel) {}
+                Button("复刻", role: .destructive) {
+                    view.performFork()
+                }
+            } message: {
+                Text("确定要复刻仓库「\(view.repository.ownerName)/\(view.repository.name)」吗？复刻后将在您的账户下创建一个副本。")
+            }
             .alert("确认删除", isPresented: view.$showContextMenuDeleteConfirm) {
                 Button("取消", role: .cancel) {
                     view.contextMenuDeleteFile = nil

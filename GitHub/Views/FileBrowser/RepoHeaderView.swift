@@ -82,7 +82,7 @@ struct RepoHeaderView: View {
                             .font(.system(size: 13))
                         Text("关注")
                             .font(.system(size: 13, weight: .medium))
-                        Text("\(repository.watchersCount ?? 0)")
+                        Text(formatCount(repository.watchersCount ?? 0))
                             .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
@@ -106,7 +106,7 @@ struct RepoHeaderView: View {
                             .font(.system(size: 13))
                         Text("复刻")
                             .font(.system(size: 13, weight: .medium))
-                        Text("\(repository.forksCount ?? 0)")
+                        Text(formatCount(repository.forksCount ?? 0))
                             .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
@@ -132,7 +132,7 @@ struct RepoHeaderView: View {
                             .foregroundColor(isStarred ? .yellow : (appState.isDarkMode ? .white : .primary))
                         Text(isStarred ? "已标星" : "标星")
                             .font(.system(size: 13, weight: .medium))
-                        Text("\(repository.stargazersCount ?? 0)")
+                        Text(formatCount(repository.stargazersCount ?? 0))
                             .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
@@ -191,6 +191,17 @@ struct RepoHeaderView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(appState.isDarkMode ? Color(red: 0.08, green: 0.08, blue: 0.08) : Color(red: 0.98, green: 0.98, blue: 0.98))
+    }
+
+    // 数字格式化（大数字显示为k/M格式）
+    private func formatCount(_ count: Int) -> String {
+        if count >= 1000000 {
+            return String(format: "%.1fM", Double(count) / 1000000.0)
+        } else if count >= 1000 {
+            return String(format: "%.1fk", Double(count) / 1000.0)
+        } else {
+            return "\(count)"
+        }
     }
 
     // 根据语言名称返回对应颜色（GitHub官方语言颜色）
