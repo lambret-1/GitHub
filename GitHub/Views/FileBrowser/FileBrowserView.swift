@@ -209,12 +209,14 @@ struct FileBrowserView: View {
                 }
         )
         .onAppear {
+            // 页面布局统一：无论自己仓库还是别人仓库，都加载相同的布局组件
+            // 包括：RepoHeaderView、BranchBarView、最新提交信息栏、路径导航栏、文件列表、README
             if selectedBranch.isEmpty {
                 selectedBranch = repository.defaultBranch ?? "main"
             }
             loadBranches()
-            loadFiles()
-            // 检查星标状态（仅别人的仓库）
+            loadFiles() // loadFiles内部会自动加载最新提交信息和README（所有文件夹都显示）
+            // 检查星标状态（仅别人的仓库，自己仓库不需要检查）
             if !isOwnRepository {
                 checkStarredStatus()
             }
