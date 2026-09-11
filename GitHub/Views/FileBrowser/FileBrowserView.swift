@@ -149,6 +149,10 @@ struct FileBrowserView: View {
     @State var showZipDownloadAlert: Bool = false
     @State var zipDownloadMessage: String = ""
 
+    // MARK: - 最新提交信息（顶部提交栏）
+    @State var latestCommit: Commit?
+    @State var isLoadingLatestCommit: Bool = false
+
     var body: some View {
         mainContent
     }
@@ -388,6 +392,11 @@ struct FileBrowserView: View {
                 .listRowSeparator(.hidden)
             }
 
+            // 顶部提交信息栏（GitHub官方风格）
+            latestCommitHeaderView
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+
             ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
                 fileRowView(for: file)
                     .listRowInsets(EdgeInsets())
@@ -409,6 +418,84 @@ struct FileBrowserView: View {
         .refreshable {
             await loadFilesAsync()
         }
+    }
+
+    // 顶部提交信息栏（GitHub官方风格）
+    var latestCommitHeaderView: some View {
+        HStack(spacing: 10) {
+            if isLoadingLatestCommit {
+                // 加载中
+                ProgressView()
+                    .scaleEffect(0.8)
+                Text("加载提交信息...")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                Spacer()
+            } else if let commit = latestCommit {
+                // 提交者头像
+                if let avatarUrl = commit.author?.avatarUrl, let url = URL(string: avatarUrl) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Image(systemName: "person.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(width: 28, height: 28)
+                    .clipShape(Circle())
+                } else {
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(.gray)
+                }
+
+                // 提交者名称 + 提交信息
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(commit.authorName)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.primary)
+                        Text(commit.commit.committer.relativeDate)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                    Text(commit.message)
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                // 右侧按钮
+                HStack(spacing: 12) {
+                    Button(action: {
+                        // 复制提交哈希
+                        UIPasteboard.general.string = commit.shortSha
+                    }) {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 16))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Button(action: {
+                        showCommits = true
+                    }) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 16))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } else {
+                // 无提交信息
+                Spacer()
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(appState.isDarkMode ? Color(red: 0.1, green: 0.1, blue: 0.1) : Color(red: 0.96, green: 0.96, blue: 0.96))
     }
 
     // README显示区域
@@ -1145,6 +1232,8 @@ struct FileBrowserView: View {
                 } else {
                     self.readmeContent = nil
                 }
+                // 加载当前目录最新提交（用于顶部提交栏）
+                self.loadLatestCommit()
                 completion?()
             }
         }
@@ -1276,6 +1365,30 @@ struct FileBrowserView: View {
             isDownloadingZip = false
             zipDownloadMessage = "下载失败：\(error.localizedDescription)"
             showZipDownloadAlert = true
+        }
+    }
+
+    // MARK: - 加载当前目录最新提交（用于顶部提交栏）
+    func loadLatestCommit() {
+        isLoadingLatestCommit = true
+        latestCommit = nil
+
+        GitHubAPI.shared.getCommits(
+            owner: repository.ownerName,
+            repo: repository.name,
+            path: currentPath.isEmpty ? nil : currentPath,
+            branch: selectedBranch.isEmpty ? nil : selectedBranch,
+            perPage: 1
+        ) { result in
+            DispatchQueue.main.async {
+                isLoadingLatestCommit = false
+                switch result {
+                case .success(let commits):
+                    latestCommit = commits.first
+                case .failure:
+                    break
+                }
+            }
         }
     }
 
@@ -1926,9 +2039,9 @@ struct FileRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // 文件/文件夹图标
-            Image(systemName: file.iconName)
-                .foregroundColor(file.isDirectory ? Color(red: 0.18, green: 0.49, blue: 0.82) : Color.gray)
+            // 文件/文件夹图标（GitHub官方风格）
+            Image(systemName: file.isDirectory ? "folder.fill" : "doc.text")
+                .foregroundColor(file.isDirectory ? Color(red: 0.18, green: 0.49, blue: 0.82) : Color(red: 0.45, green: 0.49, blue: 0.55))
                 .font(.system(size: 20))
                 .frame(width: 28)
 
@@ -1940,14 +2053,14 @@ struct FileRow: View {
 
             Spacer()
 
-            // 最后更新时间（右侧，灰色）
+            // 最后更新时间（右侧，灰色，GitHub官方相对时间格式）
             if let commit = lastCommit {
                 Text(commit.commit.committer.relativeDate)
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             } else if isLoadingCommit {
-                Text("加载中...")
+                Text("--")
                     .font(.system(size: 13))
                     .foregroundColor(.secondary.opacity(0.5))
                     .lineLimit(1)
@@ -1959,7 +2072,7 @@ struct FileRow: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.vertical, 11)
         .contentShape(Rectangle())
         .onAppear {
             loadLastCommit()

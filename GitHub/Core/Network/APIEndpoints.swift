@@ -14,7 +14,7 @@ enum APIEndpoints {
     case repoContent(owner: String, repo: String, path: String, branch: String)
     case updateFile(owner: String, repo: String, path: String)
     case repoBranches(owner: String, repo: String)
-    case commits(owner: String, repo: String, path: String?)
+    case commits(owner: String, repo: String, path: String?, branch: String?, perPage: Int?)
     case searchRepos(query: String, page: Int)
     case searchUsers(query: String, page: Int)
     case searchCode(query: String, page: Int)
@@ -59,10 +59,15 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/contents/\(encodedPath)"
         case .repoBranches(let owner, let repo):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/branches"
-        case .commits(let owner, let repo, let path):
-            var url = "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/commits?per_page=30"
-            if let path = path {
-                url += "&path=\(path)"
+        case .commits(let owner, let repo, let path, let branch, let perPage):
+            let page = perPage ?? 30
+            var url = "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/commits?per_page=\(page)"
+            if let path = path, !path.isEmpty {
+                let encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
+                url += "&path=\(encodedPath)"
+            }
+            if let branch = branch, !branch.isEmpty {
+                url += "&sha=\(branch)"
             }
             return url
         case .searchRepos(let query, let page):

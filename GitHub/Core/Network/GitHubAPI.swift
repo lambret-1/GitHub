@@ -589,8 +589,8 @@ class GitHubAPI {
     
     // MARK: - 提交记录
     
-    func getCommits(owner: String, repo: String, path: String? = nil, completion: @escaping (Result<[Commit], Error>) -> Void) {
-        performRequest(url: APIEndpoints.commits(owner: owner, repo: repo, path: path).url) { result in
+    func getCommits(owner: String, repo: String, path: String? = nil, branch: String? = nil, perPage: Int? = nil, completion: @escaping (Result<[Commit], Error>) -> Void) {
+        performRequest(url: APIEndpoints.commits(owner: owner, repo: repo, path: path, branch: branch, perPage: perPage).url) { result in
             switch result {
             case .success(let data):
                 do {
