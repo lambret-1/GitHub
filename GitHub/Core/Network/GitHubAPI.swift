@@ -178,8 +178,8 @@ class GitHubAPI {
     }
 
     /// 获取仓库README内容（Markdown原文）
-    func getReadme(owner: String, repo: String, branch: String? = nil, completion: @escaping (Result<String, Error>) -> Void) {
-        performRequest(url: APIEndpoints.readme(owner: owner, repo: repo, branch: branch).url) { result in
+    func getReadme(owner: String, repo: String, branch: String? = nil, path: String? = nil, completion: @escaping (Result<String, Error>) -> Void) {
+        performRequest(url: APIEndpoints.readme(owner: owner, repo: repo, branch: branch, path: path).url) { result in
             switch result {
             case .success(let data):
                 do {

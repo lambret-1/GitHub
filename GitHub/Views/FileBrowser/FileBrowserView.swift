@@ -516,15 +516,13 @@ struct FileBrowserView: View {
                     .listRowSeparator(.visible)
             }
 
-            // README显示区域（仅根目录显示）
-            if currentPath.isEmpty {
-                Section {
-                    readmeSectionView
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+            // README显示区域（所有文件夹都显示，包括子文件夹和孙文件夹）
+            Section {
+                readmeSectionView
             }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
         .listStyle(PlainListStyle())
         // 下拉刷新功能，识别区在列表顶部（上半屏）
@@ -1366,12 +1364,8 @@ struct FileBrowserView: View {
                 case .failure(let error):
                     errorMessage = error.localizedDescription
                 }
-                // 根目录时加载README
-                if self.currentPath.isEmpty {
-                    self.loadReadme()
-                } else {
-                    self.readmeContent = nil
-                }
+                // 所有文件夹都加载README（包括子文件夹和孙文件夹）
+                self.loadReadme()
                 // 加载当前目录最新提交（用于顶部提交栏）
                 self.loadLatestCommit()
                 completion?()
@@ -1379,7 +1373,7 @@ struct FileBrowserView: View {
         }
     }
 
-    /// 加载仓库README内容
+    /// 加载仓库README内容（支持子文件夹）
     func loadReadme() {
         isLoadingReadme = true
         readmeError = nil
@@ -1388,7 +1382,8 @@ struct FileBrowserView: View {
         GitHubAPI.shared.getReadme(
             owner: repository.ownerName,
             repo: repository.name,
-            branch: selectedBranch.isEmpty ? nil : selectedBranch
+            branch: selectedBranch.isEmpty ? nil : selectedBranch,
+            path: currentPath.isEmpty ? nil : currentPath
         ) { result in
             DispatchQueue.main.async {
                 isLoadingReadme = false
