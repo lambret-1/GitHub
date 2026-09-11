@@ -1597,6 +1597,10 @@ struct FileBrowserView: View {
             }) {
                 FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
             }
+            .buttonStyle(PlainButtonStyle())
+            .contextMenu {
+                contextMenuContent(for: file)
+            }
         } else {
             Button(action: {
                 selectedFilePath = file.path
@@ -1623,67 +1627,101 @@ struct FileBrowserView: View {
 
     @ViewBuilder
     func contextMenuContent(for file: FileItem) -> some View {
-        // 编辑文件选项
-        Button(action: {
-            contextMenuEditFilePath = file.path
-            contextMenuEditFileName = file.name
-            navigateToEditorFromContextMenu = true
-        }) {
-            Label("编辑文件", systemImage: "pencil")
-        }
-
-        // 重命名选项（文件和文件夹都支持）
-        Button(action: {
-            contextMenuRenameFile = file
-            renameNewFileName = file.name
-            showContextMenuRename = true
-        }) {
-            Label(file.isDirectory ? "重命名文件夹" : "重命名", systemImage: "pencil.line")
-        }
-
-        // HTML文件显示网页预览选项
-        if file.name.lowercased().hasSuffix(".html") || file.name.lowercased().hasSuffix(".htm") {
+        if file.isDirectory {
+            // 文件夹菜单
+            // 重命名文件夹
             Button(action: {
-                previewHTMLFile(file)
+                contextMenuRenameFile = file
+                renameNewFileName = file.name
+                showContextMenuRename = true
             }) {
-                Label("网页预览", systemImage: "globe")
+                Label("重命名文件夹", systemImage: "pencil.line")
             }
-        }
 
-        Button(action: {
-            selectedFile = file
-            downloadFile(file)
-        }) {
-            Label("下载文件", systemImage: "arrow.down.circle")
-        }
-
-        Button(action: {
-            // 应用镜像加速转换
-            let originalURL = file.htmlUrl ?? repository.htmlUrl
-            let convertedURL = AppSettings.shared.convertWebURL(originalURL)
-            if let url = URL(string: convertedURL) {
-                UIApplication.shared.open(url)
+            // 在 GitHub 打开
+            Button(action: {
+                // 应用镜像加速转换
+                let originalURL = file.htmlUrl ?? repository.htmlUrl
+                let convertedURL = AppSettings.shared.convertWebURL(originalURL)
+                if let url = URL(string: convertedURL) {
+                    UIApplication.shared.open(url)
+                }
+            }) {
+                Label("在 GitHub 打开", systemImage: "safari")
             }
-        }) {
-            Label("在 GitHub 打开", systemImage: "safari")
-        }
 
-        Button(action: {
-            if let url = URL(string: file.downloadUrl ?? "") {
-                UIPasteboard.general.string = url.absoluteString
+            // 删除文件夹（红色字体）
+            Button(action: {
+                contextMenuDeleteFile = file
+                showContextMenuDeleteConfirm = true
+            }) {
+                Label("删除文件夹", systemImage: "trash")
             }
-        }) {
-            Label("复制下载链接", systemImage: "link")
-        }
+            .foregroundColor(.red)
+        } else {
+            // 文件菜单
+            // 编辑文件选项
+            Button(action: {
+                contextMenuEditFilePath = file.path
+                contextMenuEditFileName = file.name
+                navigateToEditorFromContextMenu = true
+            }) {
+                Label("编辑文件", systemImage: "pencil")
+            }
 
-        // 删除选项（红色字体，文件和文件夹都支持）
-        Button(action: {
-            contextMenuDeleteFile = file
-            showContextMenuDeleteConfirm = true
-        }) {
-            Label(file.isDirectory ? "删除文件夹" : "删除", systemImage: "trash")
+            // 重命名选项
+            Button(action: {
+                contextMenuRenameFile = file
+                renameNewFileName = file.name
+                showContextMenuRename = true
+            }) {
+                Label("重命名", systemImage: "pencil.line")
+            }
+
+            // HTML文件显示网页预览选项
+            if file.name.lowercased().hasSuffix(".html") || file.name.lowercased().hasSuffix(".htm") {
+                Button(action: {
+                    previewHTMLFile(file)
+                }) {
+                    Label("网页预览", systemImage: "globe")
+                }
+            }
+
+            Button(action: {
+                selectedFile = file
+                downloadFile(file)
+            }) {
+                Label("下载文件", systemImage: "arrow.down.circle")
+            }
+
+            Button(action: {
+                // 应用镜像加速转换
+                let originalURL = file.htmlUrl ?? repository.htmlUrl
+                let convertedURL = AppSettings.shared.convertWebURL(originalURL)
+                if let url = URL(string: convertedURL) {
+                    UIApplication.shared.open(url)
+                }
+            }) {
+                Label("在 GitHub 打开", systemImage: "safari")
+            }
+
+            Button(action: {
+                if let url = URL(string: file.downloadUrl ?? "") {
+                    UIPasteboard.general.string = url.absoluteString
+                }
+            }) {
+                Label("复制下载链接", systemImage: "link")
+            }
+
+            // 删除选项（红色字体）
+            Button(action: {
+                contextMenuDeleteFile = file
+                showContextMenuDeleteConfirm = true
+            }) {
+                Label("删除", systemImage: "trash")
+            }
+            .foregroundColor(.red)
         }
-        .foregroundColor(.red)
     }
 
     // MARK: - HTML网页预览
