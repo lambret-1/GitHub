@@ -4,7 +4,8 @@ import Foundation
 
 /// 代码搜索结果项
 struct CodeSearchItem: Codable, Identifiable {
-    let id: String
+    // 使用sha作为唯一标识符（代码搜索API不返回node_id）
+    var id: String { sha }
     let name: String
     let path: String
     let sha: String
@@ -14,11 +15,7 @@ struct CodeSearchItem: Codable, Identifiable {
     let repository: CodeSearchRepository
 
     enum CodingKeys: String, CodingKey {
-        case id = "node_id"
-        case name
-        case path
-        case sha
-        case url
+        case name, path, sha, url
         case gitUrl = "git_url"
         case htmlUrl = "html_url"
         case repository
