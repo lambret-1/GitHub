@@ -384,10 +384,14 @@ struct FileBrowserView: View {
                             .foregroundColor(.blue)
                     }
                 }
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
             }
 
             ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
                 fileRowView(for: file)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.visible)
             }
 
             // README显示区域（仅根目录显示）
@@ -397,6 +401,7 @@ struct FileBrowserView: View {
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
         }
         .listStyle(PlainListStyle())
@@ -1921,59 +1926,47 @@ struct FileRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            // 文件/文件夹图标
             Image(systemName: file.iconName)
-                .foregroundColor(file.isDirectory ? .blue : .gray)
-                .frame(width: 24)
+                .foregroundColor(file.isDirectory ? Color(red: 0.18, green: 0.49, blue: 0.82) : Color.gray)
+                .font(.system(size: 20))
+                .frame(width: 28)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(file.name)
-                    .font(.body)
-                    .lineLimit(1)
-                if !file.isDirectory {
-                    HStack(spacing: 8) {
-                        Text(file.formattedSize)
-                            .font(.caption2)
-                            .foregroundColor(.gray)
-
-                        if let commit = lastCommit {
-                            HStack(spacing: 2) {
-                                Image(systemName: "clock")
-                                    .font(.caption2)
-                                    .foregroundColor(.gray)
-                                Text(commit.commit.committer.relativeDate)
-                                    .font(.caption2)
-                                    .foregroundColor(.gray)
-                            }
-                        } else if isLoadingCommit {
-                            HStack(spacing: 2) {
-                                Image(systemName: "clock")
-                                    .font(.caption2)
-                                    .foregroundColor(.gray.opacity(0.5))
-                                Text("加载中...")
-                                    .font(.caption2)
-                                    .foregroundColor(.gray.opacity(0.5))
-                            }
-                        }
-                    }
-                }
-            }
+            // 文件/文件夹名称
+            Text(file.name)
+                .font(.system(size: 15))
+                .foregroundColor(.primary)
+                .lineLimit(1)
 
             Spacer()
 
-            if file.isDirectory {
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.gray)
-                    .font(.caption)
+            // 最后更新时间（右侧，灰色）
+            if let commit = lastCommit {
+                Text(commit.commit.committer.relativeDate)
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            } else if isLoadingCommit {
+                Text("加载中...")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary.opacity(0.5))
+                    .lineLimit(1)
+            } else {
+                Text("--")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
         .onAppear {
             loadLastCommit()
         }
     }
 
     func loadLastCommit() {
-        guard file.isFile else { return }
         guard !isLoadingCommit else { return }
 
         // 先检查缓存
