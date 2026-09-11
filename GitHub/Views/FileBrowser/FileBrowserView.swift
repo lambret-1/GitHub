@@ -223,6 +223,17 @@ struct FileBrowserView: View {
         .overlay {
             progressOverlay
         }
+        // 左滑手势返回父目录（统一使用手势返回上一级）
+        .gesture(
+            DragGesture()
+                .onEnded { value in
+                    if value.translation.width > 80 && abs(value.translation.height) < 50 {
+                        if !pathStack.isEmpty || !currentPath.isEmpty {
+                            navigateUp()
+                        }
+                    }
+                }
+        )
         .onAppear {
             if selectedBranch.isEmpty {
                 selectedBranch = repository.defaultBranch ?? "main"
@@ -399,20 +410,6 @@ struct FileBrowserView: View {
 
     var fileListView: some View {
         List {
-            if !pathStack.isEmpty || !currentPath.isEmpty {
-                Button(action: navigateUp) {
-                    HStack {
-                        Image(systemName: "arrow.left")
-                            .foregroundColor(.blue)
-                            .frame(width: 30)
-                        Text("返回上一级")
-                            .foregroundColor(.blue)
-                    }
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowSeparator(.hidden)
-            }
-
             // 顶部提交信息栏（GitHub官方风格）
             latestCommitHeaderView
                 .listRowInsets(EdgeInsets())

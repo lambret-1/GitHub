@@ -82,29 +82,17 @@ struct CodeEditorView: View {
         .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏系统默认返回按钮，使用自定义返回按钮实现编辑保护
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            // 自定义返回按钮
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: {
-                    // 编辑模式下禁用返回，提示用户
-                    if isEditing {
-                        // 显示提示：正在编辑中
+        .navigationBarBackButtonHidden(false)
+        // 编辑模式下禁用手势返回
+        .gesture(
+            DragGesture()
+                .onEnded { value in
+                    if isEditing && value.translation.width > 50 {
                         editReturnAlert = true
-                    } else {
-                        dismiss()
                     }
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                        Text("返回")
-                    }
-                    // 编辑模式时返回按钮变灰
-                    .foregroundColor(isEditing ? .gray : .blue)
                 }
-                .disabled(isEditing)
-            }
-
+        )
+        .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     // 文件操作
