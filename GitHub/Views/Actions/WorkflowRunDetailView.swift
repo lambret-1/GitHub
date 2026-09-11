@@ -15,6 +15,9 @@ struct WorkflowRunDetailView: View {
     @State private var isRefreshing: Bool = false
     // 旋转动画状态
     @State private var rotationAngle: Double = 0
+    // 失败日志跳转状态
+    @State private var showFailedJobLog: Bool = false
+    @State private var failedJob: WorkflowJob?
 
     var body: some View {
         List {
@@ -78,16 +81,28 @@ struct WorkflowRunDetailView: View {
                             .background(Color(run.statusColor).opacity(0.1))
                             .cornerRadius(8)
 
-                        // 失败时显示退出码
+                        // 失败时显示退出码（点击跳转到失败日志）
                         if run.conclusion == "failure", let failedJob = jobs.first(where: { $0.conclusion == "failure" }), let exitCode = failedJob.exitCode {
-                            Text("退出码: \(exitCode)")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                            Button(action: {
+                                self.failedJob = failedJob
+                                self.showFailedJobLog = true
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.caption)
+                                    Text("退出码: \(exitCode)")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption2)
+                                }
                                 .foregroundColor(.red)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 4)
                                 .background(Color.red.opacity(0.1))
                                 .cornerRadius(8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
 
                         Spacer()
@@ -206,6 +221,17 @@ struct WorkflowRunDetailView: View {
         } message: {
             Text("确定要重新运行此工作流吗？")
         }
+        // 隐藏的NavigationLink，用于点击退出码跳转到失败日志
+        .background(
+            NavigationLink(destination: Group {
+                if let job = failedJob {
+                    JobLogView(owner: owner, repo: repo, job: job)
+                }
+            }, isActive: $showFailedJobLog) {
+                EmptyView()
+            }
+            .hidden()
+        )
     }
 
     // MARK: - 详情行视图
