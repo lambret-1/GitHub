@@ -368,7 +368,8 @@ struct CodeSnippetView: View {
     private func calculateHighlightedParts(_ code: String) -> [AnyView] {
         let lowercasedCode = code.lowercased()
         let lowercasedQuery = searchQuery.lowercased()
-        let codeFont = Font.system(size: 11, design: .monospaced)
+        let normalFont = Font.system(size: 11, design: .monospaced)
+        let boldFont = Font.system(size: 11, weight: .bold, design: .monospaced)
 
         var searchRange = lowercasedCode.startIndex..<lowercasedCode.endIndex
         var parts: [AnyView] = []
@@ -377,17 +378,16 @@ struct CodeSnippetView: View {
             // 添加关键词之前的文本
             let beforeText = String(code[searchRange.lowerBound..<range.lowerBound])
             if !beforeText.isEmpty {
-                parts.append(AnyView(Text(beforeText).font(codeFont)))
+                parts.append(AnyView(Text(beforeText).font(normalFont)))
             }
 
             // 添加高亮的关键词
             let keyword = String(code[range])
             parts.append(AnyView(
                 Text(keyword)
-                    .font(codeFont)
+                    .font(boldFont)
                     .background(Color.yellow.opacity(0.5))
                     .foregroundColor(.red)
-                    .bold()
             ))
 
             // 继续搜索剩余部分
@@ -397,7 +397,7 @@ struct CodeSnippetView: View {
         // 添加最后剩余的文本
         let remainingText = String(code[searchRange])
         if !remainingText.isEmpty {
-            parts.append(AnyView(Text(remainingText).font(codeFont)))
+            parts.append(AnyView(Text(remainingText).font(normalFont)))
         }
 
         return parts
