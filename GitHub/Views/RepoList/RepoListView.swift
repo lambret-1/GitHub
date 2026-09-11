@@ -13,6 +13,11 @@ struct RepoListView: View {
     @State private var repoToDelete: Repository?
     @State private var showDeleteConfirm: Bool = false
     @State private var isDeletingRepo: Bool = false
+    // 重命名仓库相关状态
+    @State private var repoToRename: Repository?
+    @State private var showRenameDialog: Bool = false
+    @State private var newRepoName: String = ""
+    @State private var isRenamingRepo: Bool = false
     
     enum FilterType: String, CaseIterable {
         case all = "全部"
@@ -82,6 +87,26 @@ struct RepoListView: View {
                             }
                             // 重按菜单（长按仓库弹出操作菜单）
                             .contextMenu {
+                                // 重命名仓库
+                                Button(action: {
+                                    repoToRename = repo
+                                    newRepoName = repo.name
+                                    showRenameDialog = true
+                                }) {
+                                    Label("重命名仓库", systemImage: "pencil")
+                                }
+
+                                // 复制仓库地址
+                                Button(action: {
+                                    let repoURL = "https://github.com/\(repo.ownerName)/\(repo.name)"
+                                    UIPasteboard.general.string = repoURL
+                                }) {
+                                    Label("复制仓库地址", systemImage: "link")
+                                }
+
+                                Divider()
+
+                                // 删除仓库
                                 Button(role: .destructive, action: {
                                     repoToDelete = repo
                                     showDeleteConfirm = true
@@ -134,6 +159,28 @@ struct RepoListView: View {
                     Text("确定要删除仓库「\(repo.ownerName)/\(repo.name)」吗？此操作不可撤销，仓库的所有代码、Issue、Pull Request都将被永久删除。")
                 } else {
                     Text("确定要删除该仓库吗？此操作不可撤销。")
+                }
+            }
+            // 重命名仓库弹窗
+            .alert("重命名仓库", isPresented: $showRenameDialog) {
+                TextField("新仓库名称", text: $newRepoName)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                Button("取消", role: .cancel) {
+                    repoToRename = nil
+                    newRepoName = ""
+                }
+                Button("重命名") {
+                    if let repo = repoToRename, !newRepoName.isEmpty {
+                        renameRepository(repo, newName: newRepoName)
+                    }
+                }
+                .disabled(newRepoName.isEmpty || isRenamingRepo)
+            } message: {
+                if let repo = repoToRename {
+                    Text("请输入仓库「\(repo.name)」的新名称。重命名后，旧的仓库URL将自动重定向到新URL。")
+                } else {
+                    Text("请输入新的仓库名称。")
                 }
             }
         }
@@ -199,6 +246,28 @@ struct RepoListView: View {
                     // 显示删除成功提示（可以用appState或者其他方式）
                 case .failure(let error):
                     errorMessage = "删除仓库失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // 重命名仓库（需要admin权限）
+    private func renameRepository(_ repo: Repository, newName: String) {
+        isRenamingRepo = true
+        GitHubAPI.shared.updateRepository(owner: repo.ownerName, repo: repo.name, name: newName) { result in
+            DispatchQueue.main.async {
+                isRenamingRepo = false
+                repoToRename = nil
+                newRepoName = ""
+                switch result {
+                case .success:
+                    // 更新本地仓库列表中的仓库名称
+                    if let index = repos.firstIndex(where: { $0.id == repo.id }) {
+                        repos[index].name = newName
+                        applyFilter()
+                    }
+                case .failure(let error):
+                    errorMessage = "重命名仓库失败: \(error.localizedDescription)"
                 }
             }
         }

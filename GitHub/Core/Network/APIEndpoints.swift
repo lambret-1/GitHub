@@ -36,6 +36,7 @@ enum APIEndpoints {
     case unstarRepository(owner: String, repo: String)
     case forkRepository(owner: String, repo: String)
     case deleteRepository(owner: String, repo: String) // 删除仓库
+    case updateRepository(owner: String, repo: String) // 更新仓库信息（重命名等）
 
     var url: String {
         switch self {
@@ -116,6 +117,8 @@ enum APIEndpoints {
         case .forkRepository(let owner, let repo):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/forks"
         case .deleteRepository(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)"
+        case .updateRepository(let owner, let repo):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)"
         }
     }
