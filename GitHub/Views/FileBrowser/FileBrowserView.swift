@@ -494,7 +494,7 @@ struct FileBrowserView: View {
 
             // 分支栏（复刻GitHub网页布局，可跟随屏幕滑动）
             BranchBarView(
-                branches: branches,
+                branches: $branches,
                 selectedBranch: $selectedBranch,
                 onBranchChange: {
                     loadFiles()
