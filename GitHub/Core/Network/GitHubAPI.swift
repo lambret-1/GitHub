@@ -177,6 +177,62 @@ class GitHubAPI {
         }
     }
 
+    /// 获取仓库README内容（Markdown原文）
+    func getReadme(owner: String, repo: String, branch: String? = nil, completion: @escaping (Result<String, Error>) -> Void) {
+        performRequest(url: APIEndpoints.readme(owner: owner, repo: repo, branch: branch).url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let fileContent = try JSONDecoder().decode(FileContent.self, from: data)
+                    // 解码Base64内容
+                    if let content = fileContent.content,
+                       let encoding = fileContent.encoding,
+                       encoding == "base64",
+                       let decodedData = Data(base64Encoded: content, options: .ignoreUnknownCharacters),
+                       let decodedString = String(data: decodedData, encoding: .utf8) {
+                        completion(.success(decodedString))
+                    } else if let downloadUrl = fileContent.downloadUrl {
+                        // 如果内容太大，API会返回download_url，需要单独下载
+                        self.downloadRawContent(url: downloadUrl, completion: completion)
+                    } else {
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无法解析README内容"])))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 下载原始内容（用于大文件）
+    private func downloadRawContent(url: String, completion: @escaping (Result<String, Error>) -> Void) {
+        guard let urlObj = URL(string: url) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+
+        var request = URLRequest(url: urlObj)
+        request.allHTTPHeaderFields = getHeaders()
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+
+                guard let data = data, let content = String(data: data, encoding: .utf8) else {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无法读取内容"])))
+                    return
+                }
+
+                completion(.success(content))
+            }
+        }.resume()
+    }
+
     // MARK: - 仓库列表
     
     func getUserRepos(page: Int = 1, perPage: Int = 100, completion: @escaping (Result<[Repository], Error>) -> Void) {

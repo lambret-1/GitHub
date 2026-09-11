@@ -57,6 +57,7 @@ class HTMLCache {
 
 struct FileBrowserView: View {
     let repository: Repository
+    @EnvironmentObject var appState: AppState
     @State var files: [FileItem] = []
     @State var currentPath: String = ""
     @State var pathStack: [String] = []
@@ -136,7 +137,12 @@ struct FileBrowserView: View {
     @State var isForking: Bool = false
     @State var showOperationMessage: Bool = false
     @State var operationMessage: String = ""
-    
+
+    // MARK: - README相关状态
+    @State var readmeContent: String?
+    @State var isLoadingReadme: Bool = false
+    @State var readmeError: String?
+
     var body: some View {
         mainContent
     }
@@ -322,11 +328,47 @@ struct FileBrowserView: View {
             ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
                 fileRowView(for: file)
             }
+
+            // README显示区域（仅根目录显示）
+            if currentPath.isEmpty {
+                Section {
+                    readmeSectionView
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            }
         }
         .listStyle(PlainListStyle())
         // 下拉刷新功能，识别区在列表顶部（上半屏）
         .refreshable {
             await loadFilesAsync()
+        }
+    }
+
+    // README显示区域
+    var readmeSectionView: some View {
+        Group {
+            if isLoadingReadme {
+                HStack {
+                    Spacer()
+                    ProgressView("加载README...")
+                        .padding()
+                    Spacer()
+                }
+            } else if let readmeContent = readmeContent {
+                ReadmeView(markdownContent: readmeContent, owner: repository.ownerName, repo: repository.name)
+                    .environmentObject(appState)
+                    .listRowInsets(EdgeInsets())
+            } else if let readmeError = readmeError {
+                HStack {
+                    Spacer()
+                    Text("README加载失败: \(readmeError)")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .padding()
+                    Spacer()
+                }
+            }
         }
     }
 
@@ -1009,7 +1051,7 @@ struct FileBrowserView: View {
     func loadFiles(completion: (() -> Void)? = nil) {
         isLoading = true
         errorMessage = nil
-        
+
         GitHubAPI.shared.getDirectoryContents(
             owner: repository.ownerName,
             repo: repository.name,
@@ -1024,11 +1066,43 @@ struct FileBrowserView: View {
                 case .failure(let error):
                     errorMessage = error.localizedDescription
                 }
+                // 根目录时加载README
+                if self.currentPath.isEmpty {
+                    self.loadReadme()
+                } else {
+                    self.readmeContent = nil
+                }
                 completion?()
             }
         }
     }
-    
+
+    /// 加载仓库README内容
+    func loadReadme() {
+        isLoadingReadme = true
+        readmeError = nil
+        readmeContent = nil
+
+        GitHubAPI.shared.getReadme(
+            owner: repository.ownerName,
+            repo: repository.name,
+            branch: selectedBranch.isEmpty ? nil : selectedBranch
+        ) { result in
+            DispatchQueue.main.async {
+                isLoadingReadme = false
+                switch result {
+                case .success(let content):
+                    self.readmeContent = content
+                case .failure(let error):
+                    // 404表示没有README，不显示错误
+                    if (error as NSError).code != 404 {
+                        self.readmeError = error.localizedDescription
+                    }
+                }
+            }
+        }
+    }
+
     func loadBranches() {
         GitHubAPI.shared.getBranches(owner: repository.ownerName, repo: repository.name) { result in
             DispatchQueue.main.async {
