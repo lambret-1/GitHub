@@ -1550,8 +1550,12 @@ struct FileBrowserView: View {
         GitHubAPI.shared.getBranches(owner: repository.ownerName, repo: repository.name) { result in
             DispatchQueue.main.async {
                 switch result {
-                case .success(let branches):
-                    self.branches = branches
+                case .success(let apiBranches):
+                    // 保留本地添加但API还未返回的分支（解决创建分支后立即刷新导致分支消失的问题）
+                    let apiBranchNames = Set(apiBranches.map { $0.name })
+                    let localOnlyBranches = self.branches.filter { !apiBranchNames.contains($0.name) }
+                    // 合并API返回的分支和本地独有的分支
+                    self.branches = apiBranches + localOnlyBranches
                 case .failure:
                     break
                 }
@@ -2847,8 +2851,8 @@ struct BranchPickerView: View {
                     }
                     let createdName = newBranchName
                     newBranchName = ""
-                    // 延迟1秒后从API刷新，确保数据一致
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    // 延迟3秒后从API刷新，确保GitHub API已更新
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                         onBranchesChanged()
                     }
                 case .failure(let error):
@@ -2886,8 +2890,8 @@ struct BranchPickerView: View {
                     }
                     let newName = renameBranchNewName
                     renameBranchNewName = ""
-                    // 延迟1秒后从API刷新，确保数据一致
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    // 延迟3秒后从API刷新，确保GitHub API已更新
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                         onBranchesChanged()
                     }
                 case .failure(let error):
@@ -2917,8 +2921,8 @@ struct BranchPickerView: View {
                     showMessage("分支「\(branch.name)」删除成功")
                     // 先在本地删除分支，确保立即消失
                     branches.removeAll { $0.name == branch.name }
-                    // 延迟1秒后从API刷新，确保数据一致
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    // 延迟3秒后从API刷新，确保GitHub API已更新
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                         onBranchesChanged()
                     }
                 case .failure(let error):
