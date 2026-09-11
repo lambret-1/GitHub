@@ -290,7 +290,7 @@ struct AboutView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
                 Text("已是最新版本")
-                    .foregroundColor(.black)
+                    .foregroundColor(appState.isDarkMode ? .white : .black)
                     .font(.subheadline)
             }
         case .updateAvailable(let release):
@@ -299,16 +299,16 @@ struct AboutView: View {
                     Image(systemName: "exclamationmark.circle.fill")
                         .foregroundColor(.orange)
                     Text("发现新版本: \(release.tagName)")
-                        .foregroundColor(.black)
+                        .foregroundColor(appState.isDarkMode ? .white : .black)
                         .font(.subheadline.bold())
                 }
                 Text("发布时间: \(AppVersion.formattedDate(from: release.publishedAt))")
                     .font(.caption)
-                    .foregroundColor(.black)
+                    .foregroundColor(appState.isDarkMode ? .white.opacity(0.8) : .black.opacity(0.8))
                 if let body = release.body, !body.isEmpty {
                     Text(body)
                         .font(.caption)
-                        .foregroundColor(.black)
+                        .foregroundColor(appState.isDarkMode ? .white.opacity(0.8) : .black.opacity(0.8))
                         .lineLimit(3)
                 }
                 Button(action: {
@@ -333,7 +333,7 @@ struct AboutView: View {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.red)
                 Text("检查失败: \(error.localizedDescription)")
-                    .foregroundColor(.black)
+                    .foregroundColor(appState.isDarkMode ? .white : .black)
                     .font(.subheadline)
             }
         }
@@ -348,15 +348,15 @@ struct AboutView: View {
             HStack {
                 Text("正在下载更新...")
                     .font(.subheadline)
-                    .foregroundColor(.black)
+                    .foregroundColor(appState.isDarkMode ? .white : .black)
                 Spacer()
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(.black)
+                    .foregroundColor(appState.isDarkMode ? .white : .black)
             }
         }
         .padding(.vertical, 4)
-        .background(Color.white)
+        .background(appState.isDarkMode ? Color(red: 0.12, green: 0.12, blue: 0.12) : Color.white)
     }
 
     // MARK: - 下载中全屏覆盖层
@@ -373,18 +373,18 @@ struct AboutView: View {
 
                 Text("正在下载更新...")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(appState.isDarkMode ? .white : .black)
 
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(.black)
+                    .foregroundColor(appState.isDarkMode ? .white : .black)
 
                 Text("下载完成后将自动弹出分享面板")
                     .font(.caption)
-                    .foregroundColor(.black.opacity(0.7))
+                    .foregroundColor(appState.isDarkMode ? .white.opacity(0.7) : .black.opacity(0.7))
             }
             .padding(32)
-            .background(Color.white)
+            .background(appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color.white)
             .cornerRadius(16)
         }
     }

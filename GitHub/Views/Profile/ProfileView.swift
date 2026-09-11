@@ -275,18 +275,18 @@ struct ProfileView: View {
 
                             Text("正在下载更新...")
                                 .font(.headline)
-                                .foregroundColor(.black)
+                                .foregroundColor(appState.isDarkMode ? .white : .black)
 
                             Text(String(format: "%.0f%%", downloadProgress * 100))
                                 .font(.subheadline)
-                                .foregroundColor(.black)
+                                .foregroundColor(appState.isDarkMode ? .white : .black)
 
                             Text("下载完成后将自动弹出分享面板")
                                 .font(.caption)
-                                .foregroundColor(.black.opacity(0.7))
+                                .foregroundColor(appState.isDarkMode ? .white.opacity(0.7) : .black.opacity(0.7))
                         }
                         .padding(32)
-                        .background(Color.white)
+                        .background(appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color.white)
                         .cornerRadius(16)
                     }
                 }
