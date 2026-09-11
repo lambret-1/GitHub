@@ -2973,7 +2973,7 @@ struct CommitsView: View {
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
                                 Spacer()
-                                Text(commit.formattedDate)
+                                Text(日期工具.相对时间(fromISO: commit.authorDate))
                                     .font(.caption2)
                                     .foregroundColor(.gray)
                             }

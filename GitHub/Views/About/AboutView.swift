@@ -303,7 +303,7 @@ struct AboutView: View {
                         .foregroundColor(appState.isDarkMode ? .white : .black)
                         .font(.subheadline.bold())
                 }
-                Text("发布时间: \(AppVersion.formattedDate(from: release.publishedAt))")
+                Text("发布时间: \(日期工具.相对时间(fromISO: release.publishedAt))")
                     .font(.caption)
                     .foregroundColor(appState.isDarkMode ? .white.opacity(0.8) : .black.opacity(0.8))
                 if let body = release.body, !body.isEmpty {

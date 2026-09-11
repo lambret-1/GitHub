@@ -160,10 +160,4 @@ struct AppVersion {
 
         return false
     }
-
-    /// 格式化发布时间（统一相对时间格式）
-    static func formattedDate(from isoDate: String) -> String {
-        // 使用统一的相对时间工具类
-        return 日期工具.相对时间(fromISO: isoDate)
-    }
 }

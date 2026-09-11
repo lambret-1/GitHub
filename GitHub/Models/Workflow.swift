@@ -474,15 +474,3 @@ func parseDate(_ dateString: String) -> Date? {
     formatter.formatOptions = [.withInternetDateTime]
     return formatter.date(from: dateString)
 }
-
-// MARK: - 日期格式化器扩展
-
-extension DateFormatter {
-    static let githubDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
-        formatter.locale = Locale(identifier: "zh_CN")
-        return formatter
-    }()
-}
