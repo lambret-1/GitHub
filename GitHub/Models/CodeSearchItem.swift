@@ -11,7 +11,7 @@ struct CodeSearchItem: Codable, Identifiable {
     let url: String
     let gitUrl: String
     let htmlUrl: String
-    let repository: Repository
+    let repository: CodeSearchRepository
 
     enum CodingKeys: String, CodingKey {
         case id = "node_id"
@@ -22,6 +22,39 @@ struct CodeSearchItem: Codable, Identifiable {
         case gitUrl = "git_url"
         case htmlUrl = "html_url"
         case repository
+    }
+}
+
+/// 代码搜索结果中的简化仓库模型（避免完整Repository模型的解码问题）
+struct CodeSearchRepository: Codable {
+    let id: Int
+    let name: String
+    let fullName: String
+    let isPrivate: Bool
+    let htmlUrl: String
+    let owner: CodeSearchRepositoryOwner
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, owner
+        case fullName = "full_name"
+        case isPrivate = "private"
+        case htmlUrl = "html_url"
+    }
+
+    var ownerName: String {
+        return owner.login
+    }
+}
+
+/// 代码搜索结果中的简化仓库所有者模型
+struct CodeSearchRepositoryOwner: Codable {
+    let login: String
+    let id: Int
+    let avatarUrl: String
+
+    enum CodingKeys: String, CodingKey {
+        case login, id
+        case avatarUrl = "avatar_url"
     }
 }
 
