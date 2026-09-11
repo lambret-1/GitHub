@@ -78,6 +78,18 @@ struct WorkflowRunDetailView: View {
                             .background(Color(run.statusColor).opacity(0.1))
                             .cornerRadius(8)
 
+                        // 失败时显示退出码
+                        if run.conclusion == "failure", let failedJob = jobs.first(where: { $0.conclusion == "failure" }), let exitCode = failedJob.exitCode {
+                            Text("退出码: \(exitCode)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 4)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+
                         Spacer()
                     }
                 }
@@ -381,10 +393,20 @@ struct JobRow: View {
 
             Spacer()
 
-            // 状态文本
-            Text(job.statusDisplay)
-                .font(.caption2)
-                .foregroundColor(Color(job.statusColor))
+            // 状态文本和退出码
+            HStack(spacing: 6) {
+                Text(job.statusDisplay)
+                    .font(.caption2)
+                    .foregroundColor(Color(job.statusColor))
+
+                // 失败时显示退出码
+                if job.conclusion == "failure", let exitCode = job.exitCode {
+                    Text("(\(exitCode))")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.red)
+                }
+            }
         }
         .padding(.vertical, 4)
     }

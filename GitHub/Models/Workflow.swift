@@ -264,6 +264,7 @@ struct WorkflowJob: Codable, Identifiable {
     let runnerName: String?
     let runnerGroupId: Int?
     let runnerGroupName: String?
+    let exitCode: Int? // 作业退出码（失败时非0，成功时为0）
 
     enum CodingKeys: String, CodingKey {
         case id, name, status, conclusion, url, steps, labels
@@ -279,6 +280,7 @@ struct WorkflowJob: Codable, Identifiable {
         case runnerName = "runner_name"
         case runnerGroupId = "runner_group_id"
         case runnerGroupName = "runner_group_name"
+        case exitCode = "exit_code"
     }
 
     // 作业状态显示文本

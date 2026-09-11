@@ -2582,6 +2582,7 @@ struct BranchPickerView: View {
     let repo: String
     let onBranchesChanged: () -> Void // 分支变更后回调（刷新分支列表）
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject private var appState: AppState
     @State private var searchText: String = ""
     // 新建分支相关状态
     @State private var showCreateBranchDialog: Bool = false
