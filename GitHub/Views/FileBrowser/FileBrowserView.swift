@@ -449,7 +449,7 @@ struct FileBrowserView: View {
 
     var branchBarSection: some View {
         BranchBarView(
-            branches: branches,
+            branches: $branches,
             selectedBranch: $selectedBranch,
             onBranchChange: {
                 loadFiles()
@@ -2531,7 +2531,7 @@ class ZipDownloadDelegate: NSObject, URLSessionDownloadDelegate {
 // MARK: - 分支选择器
 
 struct BranchPickerView: View {
-    let branches: [Branch]
+    @Binding var branches: [Branch]
     @Binding var selectedBranch: String
     let onSelect: () -> Void
     let owner: String
@@ -2661,39 +2661,83 @@ struct BranchPickerView: View {
                     }
                 }
             }
-            // 新建分支弹窗
-            .alert("新建分支", isPresented: $showCreateBranchDialog) {
-                TextField("新分支名称", text: $newBranchName)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                Button("取消", role: .cancel) {
-                    newBranchName = ""
+            // 新建分支弹窗（使用sheet确保创建按钮正常显示）
+            .sheet(isPresented: $showCreateBranchDialog) {
+                NavigationView {
+                    Form {
+                        Section("分支名称") {
+                            TextField("输入新分支名称", text: $newBranchName)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                        }
+                        Section {
+                            Button(action: {
+                                createBranch()
+                            }) {
+                                HStack {
+                                    Spacer()
+                                    if isCreatingBranch {
+                                        ProgressView()
+                                    } else {
+                                        Text("创建分支")
+                                            .foregroundColor(.blue)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .disabled(newBranchName.isEmpty || isCreatingBranch)
+                        }
+                    }
+                    .navigationTitle("新建分支")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("取消") {
+                                showCreateBranchDialog = false
+                                newBranchName = ""
+                            }
+                        }
+                    }
                 }
-                Button("创建") {
-                    createBranch()
-                }
-                .disabled(newBranchName.isEmpty || isCreatingBranch)
-            } message: {
-                Text("基于当前分支「\(selectedBranch)」创建新分支")
             }
-            // 重命名分支弹窗
-            .alert("重命名分支", isPresented: $showRenameBranchDialog) {
-                TextField("新分支名称", text: $renameBranchNewName)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                Button("取消", role: .cancel) {
-                    branchToRename = nil
-                    renameBranchNewName = ""
-                }
-                Button("重命名") {
-                    renameBranch()
-                }
-                .disabled(renameBranchNewName.isEmpty || isRenamingBranch)
-            } message: {
-                if let branch = branchToRename {
-                    Text("请输入分支「\(branch.name)」的新名称")
-                } else {
-                    Text("请输入新的分支名称")
+            // 重命名分支弹窗（使用sheet确保重命名按钮正常显示）
+            .sheet(isPresented: $showRenameBranchDialog) {
+                NavigationView {
+                    Form {
+                        Section("新分支名称") {
+                            TextField("输入新分支名称", text: $renameBranchNewName)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                        }
+                        Section {
+                            Button(action: {
+                                renameBranch()
+                            }) {
+                                HStack {
+                                    Spacer()
+                                    if isRenamingBranch {
+                                        ProgressView()
+                                    } else {
+                                        Text("重命名分支")
+                                            .foregroundColor(.blue)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .disabled(renameBranchNewName.isEmpty || isRenamingBranch)
+                        }
+                    }
+                    .navigationTitle("重命名分支")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("取消") {
+                                showRenameBranchDialog = false
+                                branchToRename = nil
+                                renameBranchNewName = ""
+                            }
+                        }
+                    }
                 }
             }
             // 删除分支确认弹窗
@@ -2926,7 +2970,7 @@ private struct FileBrowserBranchAndRenameSheetsModifier: ViewModifier {
         content
             .sheet(isPresented: view.$showBranchPicker) {
                 BranchPickerView(
-                    branches: view.branches,
+                    branches: view.$branches,
                     selectedBranch: view.$selectedBranch,
                     onSelect: {
                         view.loadFiles()

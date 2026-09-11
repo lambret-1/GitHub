@@ -7,7 +7,7 @@ import SwiftUI
 // ==============================================================================
 
 struct BranchBarView<MenuContent: View>: View {
-    let branches: [Branch]
+    @Binding var branches: [Branch]
     @Binding var selectedBranch: String
     let onBranchChange: () -> Void
     let menuContent: () -> MenuContent
@@ -20,7 +20,7 @@ struct BranchBarView<MenuContent: View>: View {
     @State private var showCodeMenu: Bool = false
 
     init(
-        branches: [Branch],
+        branches: Binding<[Branch]>,
         selectedBranch: Binding<String>,
         onBranchChange: @escaping () -> Void,
         owner: String,
@@ -28,7 +28,7 @@ struct BranchBarView<MenuContent: View>: View {
         onBranchesChanged: @escaping () -> Void,
         @ViewBuilder menuContent: @escaping () -> MenuContent
     ) {
-        self.branches = branches
+        self._branches = branches
         self._selectedBranch = selectedBranch
         self.onBranchChange = onBranchChange
         self.owner = owner
@@ -91,7 +91,7 @@ struct BranchBarView<MenuContent: View>: View {
         .background(appState.isDarkMode ? Color(red: 0.08, green: 0.08, blue: 0.08) : Color(red: 0.98, green: 0.98, blue: 0.98))
         .sheet(isPresented: $showBranchPicker) {
             BranchPickerView(
-                branches: branches,
+                branches: $branches,
                 selectedBranch: $selectedBranch,
                 onSelect: {
                     showBranchPicker = false
