@@ -261,11 +261,8 @@ struct RepoListView: View {
                 newRepoName = ""
                 switch result {
                 case .success:
-                    // 更新本地仓库列表中的仓库名称
-                    if let index = repos.firstIndex(where: { $0.id == repo.id }) {
-                        repos[index].name = newName
-                        applyFilter()
-                    }
+                    // 重命名成功后重新加载仓库列表（因为Repository.name是let常量，不能直接修改）
+                    loadRepos()
                 case .failure(let error):
                     errorMessage = "重命名仓库失败: \(error.localizedDescription)"
                 }
