@@ -221,10 +221,8 @@ extension CommitPerson {
             return "\(Int(interval / 60)) 分钟前"
         } else if interval < 86400 {
             return "\(Int(interval / 3600)) 小时前"
-        } else if interval < 2592000 {
-            return "\(Int(interval / 86400)) 天前"
         } else if interval < 31536000 {
-            return "\(Int(interval / 2592000)) 个月前"
+            return "\(Int(interval / 86400)) 天前"
         } else {
             return "\(Int(interval / 31536000)) 年前"
         }
