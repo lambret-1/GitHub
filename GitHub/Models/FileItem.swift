@@ -193,7 +193,7 @@ extension CommitPerson {
         if let date = formatter.date(from: date) {
             let displayFormatter = DateFormatter()
             displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-            displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+            // 不设置时区，使用系统默认时区
             return displayFormatter.string(from: date)
         }
         // 再尝试不带小数秒的格式
@@ -201,7 +201,7 @@ extension CommitPerson {
         if let date = formatter.date(from: date) {
             let displayFormatter = DateFormatter()
             displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-            displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+            // 不设置时区，使用系统默认时区
             return displayFormatter.string(from: date)
         }
         return date
@@ -223,7 +223,7 @@ extension CommitPerson {
         return formattedDate
     }
 
-    // 计算相对时间差（核心逻辑：当前时间 - 提交时间）
+    // 计算相对时间差（核心逻辑：当前时间 - 提交时间，不做任何时区转换）
     private func calculateRelativeDate(from date: Date) -> String {
         let now = Date()
         let interval = now.timeIntervalSince(date)

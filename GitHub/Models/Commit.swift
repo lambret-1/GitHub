@@ -34,7 +34,7 @@ struct Commit: Codable, Identifiable {
         if let date = formatter.date(from: authorDate) {
             let displayFormatter = DateFormatter()
             displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-            displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+            // 不设置时区，使用系统默认时区
             return displayFormatter.string(from: date)
         }
         return authorDate
