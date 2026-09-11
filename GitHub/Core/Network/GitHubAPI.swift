@@ -837,6 +837,18 @@ class GitHubAPI {
         }
         performSimpleRequest(url: url, method: "PATCH", body: body, failureMessage: "更新仓库失败", completion: completion)
     }
+
+    /// 创建新仓库
+    func createRepository(name: String, description: String = "", isPrivate: Bool = false, autoInit: Bool = true, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.createRepository.url
+        var body: [String: Any] = [
+            "name": name,
+            "description": description,
+            "private": isPrivate,
+            "auto_init": autoInit
+        ]
+        performSimpleRequest(url: url, method: "POST", body: body, failureMessage: "创建仓库失败", completion: completion)
+    }
 }
 
 // MARK: - 搜索结果包装

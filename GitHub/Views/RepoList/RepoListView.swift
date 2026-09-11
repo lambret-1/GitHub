@@ -18,6 +18,12 @@ struct RepoListView: View {
     @State private var showRenameDialog: Bool = false
     @State private var newRepoName: String = ""
     @State private var isRenamingRepo: Bool = false
+    // 新建仓库相关状态
+    @State private var showCreateRepoDialog: Bool = false
+    @State private var createRepoName: String = ""
+    @State private var createRepoDescription: String = ""
+    @State private var createRepoIsPrivate: Bool = false
+    @State private var isCreatingRepo: Bool = false
     
     enum FilterType: String, CaseIterable {
         case all = "全部"
@@ -128,6 +134,11 @@ struct RepoListView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
                         Button(action: {
+                            showCreateRepoDialog = true
+                        }) {
+                            Image(systemName: "plus")
+                        }
+                        Button(action: {
                             showSearchView = true
                         }) {
                             Image(systemName: "magnifyingglass")
@@ -181,6 +192,43 @@ struct RepoListView: View {
                     Text("请输入仓库「\(repo.name)」的新名称。重命名后，旧的仓库URL将自动重定向到新URL。")
                 } else {
                     Text("请输入新的仓库名称。")
+                }
+            }
+            // 新建仓库表单
+            .sheet(isPresented: $showCreateRepoDialog) {
+                NavigationView {
+                    Form {
+                        Section(header: Text("仓库信息")) {
+                            TextField("仓库名称（必填）", text: $createRepoName)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                            TextField("仓库描述（可选）", text: $createRepoDescription)
+                        }
+                        Section(header: Text("仓库设置")) {
+                            Toggle("私有仓库", isOn: $createRepoIsPrivate)
+                            Text(createRepoIsPrivate ? "只有你和你授权的协作者可以查看此仓库" : "任何人都可以查看此仓库")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .navigationTitle("新建仓库")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("取消") {
+                                showCreateRepoDialog = false
+                                createRepoName = ""
+                                createRepoDescription = ""
+                                createRepoIsPrivate = false
+                            }
+                        }
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("创建") {
+                                createRepository()
+                            }
+                            .disabled(createRepoName.isEmpty || isCreatingRepo)
+                        }
+                    }
                 }
             }
         }
@@ -265,6 +313,33 @@ struct RepoListView: View {
                     loadRepos()
                 case .failure(let error):
                     errorMessage = "重命名仓库失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // 创建新仓库
+    private func createRepository() {
+        guard !createRepoName.isEmpty else { return }
+        isCreatingRepo = true
+        GitHubAPI.shared.createRepository(
+            name: createRepoName,
+            description: createRepoDescription,
+            isPrivate: createRepoIsPrivate,
+            autoInit: true
+        ) { result in
+            DispatchQueue.main.async {
+                isCreatingRepo = false
+                switch result {
+                case .success:
+                    // 创建成功后关闭弹窗并重新加载仓库列表
+                    showCreateRepoDialog = false
+                    createRepoName = ""
+                    createRepoDescription = ""
+                    createRepoIsPrivate = false
+                    loadRepos()
+                case .failure(let error):
+                    errorMessage = "创建仓库失败: \(error.localizedDescription)"
                 }
             }
         }
