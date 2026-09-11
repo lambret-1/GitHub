@@ -498,6 +498,11 @@ struct FileBrowserView: View {
                 selectedBranch: $selectedBranch,
                 onBranchChange: {
                     loadFiles()
+                },
+                owner: repository.ownerName,
+                repo: repository.name,
+                onBranchesChanged: {
+                    loadBranches()
                 }
             ) {
                 moreMenuContent
