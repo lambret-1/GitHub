@@ -1192,46 +1192,50 @@ struct FileBrowserView: View {
 
     // 路径导航栏（字号和高度与文件夹行一致）
     var pathNavigationBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
-                Button(action: {
-                    pathStack.removeAll()
-                    currentPath = ""
-                    loadFiles()
-                }) {
-                    Image(systemName: "house.fill")
-                        .foregroundColor(.blue)
-                        .font(.system(size: 15))
-                }
-                
-                if !currentPath.isEmpty {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    Button(action: {
+                        pathStack.removeAll()
+                        currentPath = ""
+                        loadFiles()
+                    }) {
+                        Image(systemName: "house.fill")
+                            .foregroundColor(.blue)
+                            .font(.system(size: 15))
+                    }
                     
-                    let components = currentPath.components(separatedBy: "/")
-                    ForEach(Array(components.enumerated()), id: \.offset) { index, component in
-                        Button(action: {
-                            let newPath = components.prefix(index + 1).joined(separator: "/")
-                            currentPath = newPath
-                            pathStack = Array(pathStack.prefix(index))
-                            loadFiles()
-                        }) {
-                            Text(component)
-                                .font(.system(size: 15))
-                                .foregroundColor(index == components.count - 1 ? .primary : .blue)
-                        }
-                        if index < components.count - 1 {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12))
-                                .foregroundColor(.gray)
+                    if !currentPath.isEmpty {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                        
+                        let components = currentPath.components(separatedBy: "/")
+                        ForEach(Array(components.enumerated()), id: \.offset) { index, component in
+                            Button(action: {
+                                let newPath = components.prefix(index + 1).joined(separator: "/")
+                                currentPath = newPath
+                                pathStack = Array(pathStack.prefix(index))
+                                loadFiles()
+                            }) {
+                                Text(component)
+                                    .font(.system(size: 15))
+                                    .foregroundColor(index == components.count - 1 ? .primary : .blue)
+                            }
+                            if index < components.count - 1 {
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.gray)
+                            }
                         }
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 11)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 11)
+            .frame(maxWidth: .infinity)
         }
+        .frame(height: 44)
         .background(Color(.systemGray6))
     }
 
