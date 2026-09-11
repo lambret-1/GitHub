@@ -2836,8 +2836,21 @@ struct BranchPickerView: View {
                 switch result {
                 case .success:
                     showMessage("分支「\(newBranchName)」创建成功")
+                    // 先在本地添加新分支，确保立即显示
+                    if let currentBranch = branches.first(where: { $0.name == selectedBranch }) {
+                        let newBranch = Branch(
+                            name: newBranchName,
+                            commit: currentBranch.commit,
+                            protected: false
+                        )
+                        branches.append(newBranch)
+                    }
+                    let createdName = newBranchName
                     newBranchName = ""
-                    onBranchesChanged()
+                    // 延迟1秒后从API刷新，确保数据一致
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        onBranchesChanged()
+                    }
                 case .failure(let error):
                     showMessage("创建分支失败: \(error.localizedDescription)")
                 }
@@ -2857,13 +2870,26 @@ struct BranchPickerView: View {
                 switch result {
                 case .success:
                     showMessage("分支重命名成功: \(branch.name) → \(renameBranchNewName)")
+                    // 先在本地更新分支名称，确保旧分支立即消失
+                    if let index = branches.firstIndex(where: { $0.name == branch.name }) {
+                        let renamedBranch = Branch(
+                            name: renameBranchNewName,
+                            commit: branches[index].commit,
+                            protected: branches[index].protected
+                        )
+                        branches[index] = renamedBranch
+                    }
                     // 如果重命名的是当前选中的分支，更新选中的分支
                     if selectedBranch == branch.name {
                         selectedBranch = renameBranchNewName
                         onSelect()
                     }
+                    let newName = renameBranchNewName
                     renameBranchNewName = ""
-                    onBranchesChanged()
+                    // 延迟1秒后从API刷新，确保数据一致
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        onBranchesChanged()
+                    }
                 case .failure(let error):
                     showMessage("重命名分支失败: \(error.localizedDescription)")
                 }
@@ -2889,7 +2915,12 @@ struct BranchPickerView: View {
                 switch result {
                 case .success:
                     showMessage("分支「\(branch.name)」删除成功")
-                    onBranchesChanged()
+                    // 先在本地删除分支，确保立即消失
+                    branches.removeAll { $0.name == branch.name }
+                    // 延迟1秒后从API刷新，确保数据一致
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        onBranchesChanged()
+                    }
                 case .failure(let error):
                     showMessage("删除分支失败: \(error.localizedDescription)")
                 }
