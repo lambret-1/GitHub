@@ -387,7 +387,7 @@ struct CodeSnippetView: View {
                     .font(codeFont)
                     .background(Color.yellow.opacity(0.5))
                     .foregroundColor(.red)
-                    .fontWeight(.bold)
+                    .bold()
             ))
 
             // 继续搜索剩余部分
