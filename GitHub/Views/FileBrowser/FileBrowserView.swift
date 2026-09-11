@@ -223,14 +223,15 @@ struct FileBrowserView: View {
         .overlay {
             progressOverlay
         }
-        // 左滑手势返回父目录（统一使用手势返回上一级）
-        .gesture(
+        // 左滑手势返回上一级目录（孙目录→子目录→父目录，统一使用手势返回上一级）
+        .highPriorityGesture(
             DragGesture()
                 .onEnded { value in
+                    // 仅在子目录中生效（根目录左滑返回上一个页面）
+                    guard !pathStack.isEmpty || !currentPath.isEmpty else { return }
+                    // 手势识别阈值：水平滑动>80pt，垂直滑动<50pt
                     if value.translation.width > 80 && abs(value.translation.height) < 50 {
-                        if !pathStack.isEmpty || !currentPath.isEmpty {
-                            navigateUp()
-                        }
+                        navigateUp()
                     }
                 }
         )
