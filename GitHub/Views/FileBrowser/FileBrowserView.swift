@@ -2097,7 +2097,7 @@ struct FileBrowserView: View {
         contextMenuDeleteFile = nil
 
         // 先获取文件夹中的所有内容
-        GitHubAPI.shared.getContents(
+        GitHubAPI.shared.getDirectoryContents(
             owner: repository.ownerName,
             repo: repository.name,
             path: folder.path,
