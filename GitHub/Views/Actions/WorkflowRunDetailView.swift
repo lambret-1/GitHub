@@ -466,9 +466,33 @@ struct JobLogView: View {
                     .font(.headline)
                     .lineLimit(1)
                 Spacer()
-                Text(job.statusDisplay)
-                    .font(.caption)
-                    .foregroundColor(Color(job.statusColor))
+                HStack(spacing: 6) {
+                    Text(job.statusDisplay)
+                        .font(.caption)
+                        .foregroundColor(Color(job.statusColor))
+                    // 失败时显示退出码
+                    if job.conclusion == "failure" {
+                        if let exitCode = job.exitCode {
+                            Text("退出码: \(exitCode)")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(4)
+                        } else {
+                            Text("退出码: 未知")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(4)
+                        }
+                    }
+                }
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
@@ -548,15 +572,47 @@ struct JobLogView: View {
                         Spacer()
                     }
                 } else {
-                    // 日志文本视图
-                    ScrollView {
-                        Text(logs)
-                            .font(.system(size: 10, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(8)
-                            .textSelection(.enabled)
+                    VStack(spacing: 0) {
+                        // 退出码信息栏（失败时显示）
+                        if job.conclusion == "failure" {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.red)
+                                Text("作业执行失败")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.red)
+                                Spacer()
+                                if let exitCode = job.exitCode {
+                                    Text("退出码: \(exitCode)")
+                                        .font(.subheadline)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 2)
+                                        .background(Color.red)
+                                        .cornerRadius(4)
+                                } else {
+                                    Text("退出码: 未知（GitHub未返回）")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                            .background(Color.red.opacity(0.1))
+                        }
+
+                        // 日志文本视图
+                        ScrollView {
+                            Text(logs)
+                                .font(.system(size: 10, design: .monospaced))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
+                                .textSelection(.enabled)
+                        }
+                        .background(Color(.systemBackground))
                     }
-                    .background(Color(.systemBackground))
                 }
             }
         }
