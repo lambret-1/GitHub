@@ -870,8 +870,8 @@ class GitHubAPI {
         performSimpleRequest(url: url, method: "DELETE", failureMessage: "删除仓库失败", completion: completion)
     }
 
-    /// 更新仓库信息（重命名等，需要admin权限）
-    func updateRepository(owner: String, repo: String, name: String? = nil, description: String? = nil, completion: @escaping (Result<Bool, Error>) -> Void) {
+    /// 更新仓库信息（重命名、设置公开/私有等，需要admin权限）
+    func updateRepository(owner: String, repo: String, name: String? = nil, description: String? = nil, isPrivate: Bool? = nil, completion: @escaping (Result<Bool, Error>) -> Void) {
         let url = APIEndpoints.updateRepository(owner: owner, repo: repo).url
         var body: [String: Any] = [:]
         if let name = name {
@@ -879,6 +879,9 @@ class GitHubAPI {
         }
         if let description = description {
             body["description"] = description
+        }
+        if let isPrivate = isPrivate {
+            body["private"] = isPrivate
         }
         performSimpleRequest(url: url, method: "PATCH", body: body, failureMessage: "更新仓库失败", completion: completion)
     }

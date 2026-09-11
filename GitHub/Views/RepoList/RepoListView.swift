@@ -24,6 +24,10 @@ struct RepoListView: View {
     @State private var createRepoDescription: String = ""
     @State private var createRepoIsPrivate: Bool = false
     @State private var isCreatingRepo: Bool = false
+    // 切换公开/私有相关状态
+    @State private var repoToToggleVisibility: Repository?
+    @State private var showToggleVisibilityConfirm: Bool = false
+    @State private var isTogglingVisibility: Bool = false
     
     enum FilterType: String, CaseIterable {
         case all = "全部"
@@ -110,6 +114,18 @@ struct RepoListView: View {
                                     Label("复制仓库地址", systemImage: "link")
                                 }
 
+                                // 切换公开/私有
+                                Button(action: {
+                                    repoToToggleVisibility = repo
+                                    showToggleVisibilityConfirm = true
+                                }) {
+                                    if repo.isPrivate {
+                                        Label("设为公开", systemImage: "globe")
+                                    } else {
+                                        Label("设为私有", systemImage: "lock.fill")
+                                    }
+                                }
+
                                 Divider()
 
                                 // 删除仓库
@@ -170,6 +186,27 @@ struct RepoListView: View {
                     Text("确定要删除仓库「\(repo.ownerName)/\(repo.name)」吗？此操作不可撤销，仓库的所有代码、Issue、Pull Request都将被永久删除。")
                 } else {
                     Text("确定要删除该仓库吗？此操作不可撤销。")
+                }
+            }
+            // 切换公开/私有确认弹窗
+            .alert("确认切换仓库可见性", isPresented: $showToggleVisibilityConfirm) {
+                Button("取消", role: .cancel) {
+                    repoToToggleVisibility = nil
+                }
+                Button("确认") {
+                    if let repo = repoToToggleVisibility {
+                        toggleRepositoryVisibility(repo)
+                    }
+                }
+            } message: {
+                if let repo = repoToToggleVisibility {
+                    if repo.isPrivate {
+                        Text("确定要将仓库「\(repo.ownerName)/\(repo.name)」设为公开吗？设为公开后，任何人都可以查看和克隆该仓库。")
+                    } else {
+                        Text("确定要将仓库「\(repo.ownerName)/\(repo.name)」设为私有吗？设为私有后，只有您和被授权的协作者可以访问该仓库。")
+                    }
+                } else {
+                    Text("确定要切换该仓库的可见性吗？")
                 }
             }
             // 重命名仓库弹窗
@@ -313,6 +350,26 @@ struct RepoListView: View {
                     loadRepos()
                 case .failure(let error):
                     errorMessage = "重命名仓库失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // 切换仓库公开/私有状态
+    private func toggleRepositoryVisibility(_ repo: Repository) {
+        isTogglingVisibility = true
+        let newIsPrivate = !repo.isPrivate
+        GitHubAPI.shared.updateRepository(owner: repo.ownerName, repo: repo.name, isPrivate: newIsPrivate) { result in
+            DispatchQueue.main.async {
+                isTogglingVisibility = false
+                repoToToggleVisibility = nil
+                showToggleVisibilityConfirm = false
+                switch result {
+                case .success:
+                    // 切换成功后重新加载仓库列表（因为Repository.isPrivate是let常量，不能直接修改）
+                    loadRepos()
+                case .failure(let error):
+                    errorMessage = "切换仓库可见性失败: \(error.localizedDescription)"
                 }
             }
         }
