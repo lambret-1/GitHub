@@ -2138,7 +2138,7 @@ struct FileBrowserView: View {
 
         if currentItem.isDirectory {
             // 子文件夹：先获取内容，再递归删除
-            GitHubAPI.shared.getContents(
+            GitHubAPI.shared.getDirectoryContents(
                 owner: repository.ownerName,
                 repo: repository.name,
                 path: currentItem.path,
@@ -2272,7 +2272,7 @@ struct FileBrowserView: View {
         }
 
         // 先获取文件夹中的所有内容
-        GitHubAPI.shared.getContents(
+        GitHubAPI.shared.getDirectoryContents(
             owner: repository.ownerName,
             repo: repository.name,
             path: oldFolderPath,
@@ -2316,7 +2316,7 @@ struct FileBrowserView: View {
             let subOldFolderPath = currentItem.path
             let subNewFolderPath = newFolderPath + String(subOldFolderPath.dropFirst(oldFolderPath.count))
 
-            GitHubAPI.shared.getContents(
+            GitHubAPI.shared.getDirectoryContents(
                 owner: repository.ownerName,
                 repo: repository.name,
                 path: subOldFolderPath,
