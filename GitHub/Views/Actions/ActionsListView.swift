@@ -272,13 +272,45 @@ struct ActionsListView: View {
 
 struct WorkflowRunRow: View {
     let run: WorkflowRun
+    // 旋转动画状态
+    @State private var rotationAngle: Double = 0
 
     var body: some View {
         HStack(spacing: 12) {
-            // 状态图标
-            Image(systemName: run.statusIcon)
-                .font(.title2)
-                .foregroundColor(Color(run.statusColor))
+            // 状态图标（进行中时动态旋转）
+            ZStack {
+                if run.status == "in_progress" {
+                    // 进行中：旋转的循环箭头图标
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.title2)
+                        .foregroundColor(Color(run.statusColor))
+                        .rotationEffect(.degrees(rotationAngle))
+                        .onAppear {
+                            // 启动无限旋转动画
+                            withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                                rotationAngle = 360
+                            }
+                        }
+                } else if run.status == "queued" || run.status == "pending" {
+                    // 排队中：脉冲动画
+                    Image(systemName: "clock")
+                        .font(.title2)
+                        .foregroundColor(Color(run.statusColor))
+                        .opacity(0.5 + 0.5 * sin(rotationAngle / 180 * .pi))
+                        .onAppear {
+                            // 启动脉冲动画
+                            withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                                rotationAngle = 360
+                            }
+                        }
+                } else {
+                    // 已完成：静态图标
+                    Image(systemName: run.statusIcon)
+                        .font(.title2)
+                        .foregroundColor(Color(run.statusColor))
+                }
+            }
+            .frame(width: 30)
 
             VStack(alignment: .leading, spacing: 4) {
                 // 工作流名称和运行编号

@@ -13,6 +13,8 @@ struct WorkflowRunDetailView: View {
     @State private var showCancelAlert: Bool = false
     @State private var showRerunAlert: Bool = false
     @State private var isRefreshing: Bool = false
+    // 旋转动画状态
+    @State private var rotationAngle: Double = 0
 
     var body: some View {
         List {
@@ -21,9 +23,39 @@ struct WorkflowRunDetailView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     // 状态图标和名称
                     HStack {
-                        Image(systemName: run.statusIcon)
-                            .font(.largeTitle)
-                            .foregroundColor(Color(run.statusColor))
+                        ZStack {
+                            if run.status == "in_progress" {
+                                // 进行中：旋转的循环箭头图标
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.largeTitle)
+                                    .foregroundColor(Color(run.statusColor))
+                                    .rotationEffect(.degrees(rotationAngle))
+                                    .onAppear {
+                                        // 启动无限旋转动画
+                                        withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                                            rotationAngle = 360
+                                        }
+                                    }
+                            } else if run.status == "queued" || run.status == "pending" {
+                                // 排队中：脉冲动画
+                                Image(systemName: "clock")
+                                    .font(.largeTitle)
+                                    .foregroundColor(Color(run.statusColor))
+                                    .opacity(0.5 + 0.5 * sin(rotationAngle / 180 * .pi))
+                                    .onAppear {
+                                        // 启动脉冲动画
+                                        withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                                            rotationAngle = 360
+                                        }
+                                    }
+                            } else {
+                                // 已完成：静态图标
+                                Image(systemName: run.statusIcon)
+                                    .font(.largeTitle)
+                                    .foregroundColor(Color(run.statusColor))
+                            }
+                        }
+                        .frame(width: 40)
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(run.name)
@@ -285,13 +317,45 @@ struct WorkflowRunDetailView: View {
 
 struct JobRow: View {
     let job: WorkflowJob
+    // 旋转动画状态
+    @State private var rotationAngle: Double = 0
 
     var body: some View {
         HStack(spacing: 12) {
-            // 状态图标
-            Image(systemName: job.statusIcon)
-                .font(.title3)
-                .foregroundColor(Color(job.statusColor))
+            // 状态图标（进行中时动态旋转）
+            ZStack {
+                if job.status == "in_progress" {
+                    // 进行中：旋转的循环箭头图标
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.title3)
+                        .foregroundColor(Color(job.statusColor))
+                        .rotationEffect(.degrees(rotationAngle))
+                        .onAppear {
+                            // 启动无限旋转动画
+                            withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                                rotationAngle = 360
+                            }
+                        }
+                } else if job.status == "queued" || job.status == "pending" {
+                    // 排队中：脉冲动画
+                    Image(systemName: "clock")
+                        .font(.title3)
+                        .foregroundColor(Color(job.statusColor))
+                        .opacity(0.5 + 0.5 * sin(rotationAngle / 180 * .pi))
+                        .onAppear {
+                            // 启动脉冲动画
+                            withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                                rotationAngle = 360
+                            }
+                        }
+                } else {
+                    // 已完成：静态图标
+                    Image(systemName: job.statusIcon)
+                        .font(.title3)
+                        .foregroundColor(Color(job.statusColor))
+                }
+            }
+            .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 4) {
                 // 作业名称
