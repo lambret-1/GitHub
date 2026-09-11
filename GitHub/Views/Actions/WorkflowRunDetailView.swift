@@ -455,6 +455,8 @@ struct JobLogView: View {
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
     @State private var showSteps: Bool = true
+    // 从日志中解析的退出码
+    @State private var parsedExitCode: Int?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -470,9 +472,10 @@ struct JobLogView: View {
                     Text(job.statusDisplay)
                         .font(.caption)
                         .foregroundColor(Color(job.statusColor))
-                    // 失败时显示退出码
+                    // 失败时显示退出码（优先使用API返回的，其次使用从日志解析的）
                     if job.conclusion == "failure" {
-                        if let exitCode = job.exitCode {
+                        let displayExitCode = job.exitCode ?? parsedExitCode
+                        if let exitCode = displayExitCode {
                             Text("退出码: \(exitCode)")
                                 .font(.caption)
                                 .fontWeight(.bold)
@@ -482,7 +485,7 @@ struct JobLogView: View {
                                 .background(Color.red.opacity(0.1))
                                 .cornerRadius(4)
                         } else {
-                            Text("退出码: 未知")
+                            Text("退出码: 解析中...")
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundColor(.orange)
@@ -583,7 +586,8 @@ struct JobLogView: View {
                                     .fontWeight(.medium)
                                     .foregroundColor(.red)
                                 Spacer()
-                                if let exitCode = job.exitCode {
+                                let displayExitCode = job.exitCode ?? parsedExitCode
+                                if let exitCode = displayExitCode {
                                     Text("退出码: \(exitCode)")
                                         .font(.subheadline)
                                         .fontWeight(.bold)
@@ -593,7 +597,7 @@ struct JobLogView: View {
                                         .background(Color.red)
                                         .cornerRadius(4)
                                 } else {
-                                    Text("退出码: 未知（GitHub未返回）")
+                                    Text("退出码: 解析中...")
                                         .font(.caption)
                                         .foregroundColor(.orange)
                                 }
@@ -637,10 +641,55 @@ struct JobLogView: View {
                 switch result {
                 case .success(let logs):
                     self.logs = logs
+                    // 从日志中解析退出码
+                    self.parsedExitCode = Self.parseExitCode(from: logs)
                 case .failure(let error):
                     self.errorMessage = "加载日志失败: \(error.localizedDescription)"
                 }
             }
         }
+    }
+
+    // 从日志中解析退出码
+    private static func parseExitCode(from logs: String) -> Int? {
+        // 匹配多种退出码格式
+        let patterns = [
+            "退出码[:：]\\s*(\\d+)",           // 中文：退出码: 65
+            "exit code[:：]?\\s*(\\d+)",       // 英文：exit code 65
+            "EXIT CODE[:：]?\\s*(\\d+)",       // 大写：EXIT CODE: 65
+            "BUILD_EXIT_CODE[=:]\\s*(\\d+)",   // 变量：BUILD_EXIT_CODE=65
+            "Command failed with exit code (\\d+)", // xcodebuild错误
+            "xcodebuild.*exit (\\d+)",          // xcodebuild退出
+            "error:\\s*.*exit (\\d+)"           // 错误信息中的退出码
+        ]
+
+        for pattern in patterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+                let range = NSRange(logs.startIndex..., in: logs)
+                if let match = regex.firstMatch(in: logs, options: [], range: range),
+                   let codeRange = Range(match.range(at: 1), in: logs) {
+                    return Int(logs[codeRange])
+                }
+            }
+        }
+
+        // 如果没有找到明确的退出码，尝试查找最后一个非零退出码
+        let lines = logs.components(separatedBy: .newlines)
+        for line in lines.reversed() {
+            if let range = line.range(of: #"\d+"#, options: .regularExpression),
+               let code = Int(line[range]), code > 0 && code < 256 {
+                // 检查这一行是否包含错误或失败关键词
+                if line.lowercased().contains("error") ||
+                   line.lowercased().contains("fail") ||
+                   line.lowercased().contains("exit") ||
+                   line.contains("错误") ||
+                   line.contains("失败") ||
+                   line.contains("退出") {
+                    return code
+                }
+            }
+        }
+
+        return nil
     }
 }
