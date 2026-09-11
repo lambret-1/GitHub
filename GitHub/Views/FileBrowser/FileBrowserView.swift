@@ -526,43 +526,54 @@ struct FileBrowserView: View {
                     performCodeSearch()
                 }
             )
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .background(Color(.systemGray6))
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
 
             // 代码搜索结果（搜索时显示，替换文件列表）
-            if !codeSearchQuery.isEmpty || isSearchingCode || !codeSearchResults.isEmpty {
+            if isSearchingCode || !codeSearchResults.isEmpty || codeSearchError != nil {
                 codeSearchResultsSection
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
-            }
-
-            // 顶部提交信息栏（GitHub官方风格）
-            latestCommitHeaderView
-                .listRowInsets(EdgeInsets())
-                .listRowSeparator(.hidden)
-
-            // 路径导航栏（仅子目录显示，可跟随屏幕滑动，字号和高度与文件夹行一致）
-            if !currentPath.isEmpty {
-                pathNavigationBar
+            } else {
+                // 顶部提交信息栏（GitHub官方风格）
+                latestCommitHeaderView
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
-            }
 
-            ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
-                fileRowView(for: file)
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.visible)
-            }
+                // 路径导航栏（仅子目录显示，可跟随屏幕滑动，字号和高度与文件夹行一致）
+                if !currentPath.isEmpty {
+                    pathNavigationBar
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
+                }
 
-            // README显示区域（所有文件夹都显示，包括子文件夹和孙文件夹）
-            Section {
-                readmeSectionView
+                ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
+                    fileRowView(for: file)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.visible)
+                }
+
+                // README显示区域（所有文件夹都显示，包括子文件夹和孙文件夹）
+                Section {
+                    readmeSectionView
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
         }
         .listStyle(PlainListStyle())
+        // 监听搜索框内容变化，内容为空时清除搜索结果
+        .onChange(of: codeSearchQuery) { newValue in
+            if newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                codeSearchResults = []
+                codeSearchError = nil
+                isSearchingCode = false
+            }
+        }
         // 下拉刷新功能，识别区在列表顶部（上半屏）
         .refreshable {
             await loadFilesAsync()
