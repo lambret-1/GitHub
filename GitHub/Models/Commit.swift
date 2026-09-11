@@ -30,14 +30,11 @@ struct Commit: Codable, Identifiable {
     }
     
     var formattedDate: String {
-        let formatter = ISO8601DateFormatter()
-        if let date = formatter.date(from: authorDate) {
-            let displayFormatter = DateFormatter()
-            displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-            // 不设置时区，使用系统默认时区
-            return displayFormatter.string(from: date)
+        // 使用统一的日期工具类格式化
+        guard let date = 日期工具.解析ISO日期(authorDate) else {
+            return authorDate
         }
-        return authorDate
+        return 日期工具.格式化日期(date)
     }
 }
 

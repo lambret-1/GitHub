@@ -37,14 +37,8 @@ struct Repository: Codable, Identifiable {
     
     var formattedUpdateTime: String {
         guard let updatedAt = updatedAt else { return "未知" }
-        let formatter = ISO8601DateFormatter()
-        if let date = formatter.date(from: updatedAt) {
-            let displayFormatter = DateFormatter()
-            displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-            displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
-            return displayFormatter.string(from: date)
-        }
-        return updatedAt
+        // 使用统一的相对时间工具类
+        return 日期工具.相对时间(fromISO: updatedAt)
     }
     
     var languageColor: String {

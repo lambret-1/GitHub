@@ -30,13 +30,7 @@ struct GitHubUser: Codable, Identifiable {
     
     var formattedDate: String {
         guard let createdAt = createdAt else { return "未知" }
-        let formatter = ISO8601DateFormatter()
-        if let date = formatter.date(from: createdAt) {
-            let displayFormatter = DateFormatter()
-            displayFormatter.dateFormat = "yyyy年MM月dd日"
-            displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
-            return displayFormatter.string(from: date)
-        }
-        return createdAt
+        // 使用统一的相对时间工具类
+        return 日期工具.相对时间(fromISO: createdAt)
     }
 }

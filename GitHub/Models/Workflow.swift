@@ -184,9 +184,9 @@ struct WorkflowRun: Codable, Identifiable {
         return String(headSha.prefix(7))
     }
 
-    // 格式化的创建时间
+    // 格式化的创建时间（统一相对时间格式）
     var formattedCreatedAt: String {
-        return DateFormatter.githubDateFormatter.string(from: parseDate(createdAt) ?? Date())
+        return 日期工具.相对时间(fromISO: createdAt)
     }
 }
 

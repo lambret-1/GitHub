@@ -161,17 +161,9 @@ struct AppVersion {
         return false
     }
 
-    /// 格式化发布时间
+    /// 格式化发布时间（统一相对时间格式）
     static func formattedDate(from isoDate: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        guard let date = formatter.date(from: isoDate) else {
-            return isoDate
-        }
-
-        let displayFormatter = DateFormatter()
-        displayFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-        displayFormatter.locale = Locale(identifier: "zh_CN")
-        displayFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
-        return displayFormatter.string(from: date)
+        // 使用统一的相对时间工具类
+        return 日期工具.相对时间(fromISO: isoDate)
     }
 }
