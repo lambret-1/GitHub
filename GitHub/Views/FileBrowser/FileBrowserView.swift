@@ -178,34 +178,7 @@ struct FileBrowserView: View {
 
     var baseView: some View {
         VStack(spacing: 0) {
-            // 仓库头部（复刻GitHub网页布局）
-            RepoHeaderView(
-                repository: repository,
-                isStarred: isStarred,
-                isCheckingStar: isCheckingStar,
-                isStarring: isStarring,
-                isForking: isForking,
-                onToggleStar: toggleStar,
-                onFork: forkRepository
-            )
-            .environmentObject(appState)
-
-            // 分支栏（复刻GitHub网页布局）
-            BranchBarView(
-                branches: branches,
-                selectedBranch: $selectedBranch,
-                onBranchChange: {
-                    loadFiles()
-                },
-                onDownloadZip: downloadRepositoryZip
-            )
-            .environmentObject(appState)
-
-            // 路径导航栏（仅子目录显示）
-            if !currentPath.isEmpty {
-                pathNavigationBar
-            }
-
+            // 文件列表内容（包含仓库头部、分支栏、路径导航栏，均可跟随屏幕滑动）
             fileListContent
 
             // 删除模式底部操作栏
@@ -372,45 +345,164 @@ struct FileBrowserView: View {
     }
 
     var loadingView: some View {
-        VStack {
-            Spacer()
-            ProgressView("加载中...")
-            Spacer()
+        List {
+            // 仓库头部（可跟随屏幕滑动）
+            repoHeaderSection
+            // 分支栏（可跟随屏幕滑动）
+            branchBarSection
+            // 路径导航栏（可跟随屏幕滑动）
+            pathNavSection
+            // 加载中
+            HStack {
+                Spacer()
+                VStack(spacing: 12) {
+                    ProgressView("加载中...")
+                }
+                Spacer()
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .padding(.top, 100)
         }
+        .listStyle(PlainListStyle())
     }
 
     func errorView(error: String) -> some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "exclamationmark.triangle")
-                .font(.largeTitle)
-                .foregroundColor(.orange)
-            Text(error)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-            Button("重试") {
-                loadFiles()
+        List {
+            // 仓库头部（可跟随屏幕滑动）
+            repoHeaderSection
+            // 分支栏（可跟随屏幕滑动）
+            branchBarSection
+            // 路径导航栏（可跟随屏幕滑动）
+            pathNavSection
+            // 错误信息
+            HStack {
+                Spacer()
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.largeTitle)
+                        .foregroundColor(.orange)
+                    Text(error)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("重试") {
+                        loadFiles()
+                    }
+                    .buttonStyle(.bordered)
+                }
+                Spacer()
             }
-            .buttonStyle(.bordered)
-            Spacer()
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .padding(.top, 80)
+            .padding()
         }
-        .padding()
+        .listStyle(PlainListStyle())
     }
 
     var emptyView: some View {
-        VStack(spacing: 12) {
-            Spacer()
-            Image(systemName: "folder")
-                .font(.largeTitle)
-                .foregroundColor(.gray)
-            Text("此目录为空")
-                .foregroundColor(.secondary)
-            Spacer()
+        List {
+            // 仓库头部（可跟随屏幕滑动）
+            repoHeaderSection
+            // 分支栏（可跟随屏幕滑动）
+            branchBarSection
+            // 路径导航栏（可跟随屏幕滑动）
+            pathNavSection
+            // 空目录提示
+            HStack {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "folder")
+                        .font(.largeTitle)
+                        .foregroundColor(.gray)
+                    Text("此目录为空")
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .padding(.top, 100)
+        }
+        .listStyle(PlainListStyle())
+    }
+
+    // MARK: - 复用的仓库头部/分支栏/路径导航栏Section
+
+    var repoHeaderSection: some View {
+        RepoHeaderView(
+            repository: repository,
+            isStarred: isStarred,
+            isCheckingStar: isCheckingStar,
+            isStarring: isStarring,
+            isForking: isForking,
+            onToggleStar: toggleStar,
+            onFork: forkRepository
+        )
+        .environmentObject(appState)
+        .listRowInsets(EdgeInsets())
+        .listRowSeparator(.hidden)
+    }
+
+    var branchBarSection: some View {
+        BranchBarView(
+            branches: branches,
+            selectedBranch: $selectedBranch,
+            onBranchChange: {
+                loadFiles()
+            },
+            onDownloadZip: downloadRepositoryZip
+        )
+        .environmentObject(appState)
+        .listRowInsets(EdgeInsets())
+        .listRowSeparator(.hidden)
+    }
+
+    @ViewBuilder
+    var pathNavSection: some View {
+        if !currentPath.isEmpty {
+            pathNavigationBar
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
         }
     }
 
     var fileListView: some View {
         List {
+            // 仓库头部（复刻GitHub网页布局，可跟随屏幕滑动）
+            RepoHeaderView(
+                repository: repository,
+                isStarred: isStarred,
+                isCheckingStar: isCheckingStar,
+                isStarring: isStarring,
+                isForking: isForking,
+                onToggleStar: toggleStar,
+                onFork: forkRepository
+            )
+            .environmentObject(appState)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+
+            // 分支栏（复刻GitHub网页布局，可跟随屏幕滑动）
+            BranchBarView(
+                branches: branches,
+                selectedBranch: $selectedBranch,
+                onBranchChange: {
+                    loadFiles()
+                },
+                onDownloadZip: downloadRepositoryZip
+            )
+            .environmentObject(appState)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+
+            // 路径导航栏（仅子目录显示，可跟随屏幕滑动）
+            if !currentPath.isEmpty {
+                pathNavigationBar
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+            }
+
             // 顶部提交信息栏（GitHub官方风格）
             latestCommitHeaderView
                 .listRowInsets(EdgeInsets())
