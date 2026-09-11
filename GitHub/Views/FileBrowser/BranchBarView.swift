@@ -42,6 +42,7 @@ struct BranchBarView: View {
                         .stroke(appState.isDarkMode ? Color(red: 0.25, green: 0.25, blue: 0.25) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
                 )
             }
+            .buttonStyle(PlainButtonStyle())
 
             Spacer()
 
@@ -62,6 +63,7 @@ struct BranchBarView: View {
                 .background(Color(red: 0.13, green: 0.55, blue: 0.27))
                 .cornerRadius(6)
             }
+            .buttonStyle(PlainButtonStyle())
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

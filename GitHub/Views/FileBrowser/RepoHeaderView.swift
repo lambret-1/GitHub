@@ -95,6 +95,7 @@ struct RepoHeaderView: View {
                             .stroke(appState.isDarkMode ? Color(red: 0.3, green: 0.3, blue: 0.3) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
                     )
                 }
+                .buttonStyle(PlainButtonStyle())
 
                 // 复刻按钮
                 Button(action: {
@@ -119,6 +120,7 @@ struct RepoHeaderView: View {
                     )
                 }
                 .disabled(isForking)
+                .buttonStyle(PlainButtonStyle())
 
                 // 标星按钮
                 Button(action: {
@@ -144,6 +146,7 @@ struct RepoHeaderView: View {
                     )
                 }
                 .disabled(isStarring || isCheckingStar)
+                .buttonStyle(PlainButtonStyle())
 
                 Spacer()
             }
