@@ -498,17 +498,17 @@ struct FileBrowserView: View {
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
 
-            // 路径导航栏（仅子目录显示，可跟随屏幕滑动）
+            // 顶部提交信息栏（GitHub官方风格）
+            latestCommitHeaderView
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+
+            // 路径导航栏（仅子目录显示，可跟随屏幕滑动，字号和高度与文件夹行一致）
             if !currentPath.isEmpty {
                 pathNavigationBar
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
             }
-
-            // 顶部提交信息栏（GitHub官方风格）
-            latestCommitHeaderView
-                .listRowInsets(EdgeInsets())
-                .listRowSeparator(.hidden)
 
             ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
                 fileRowView(for: file)
@@ -1190,7 +1190,7 @@ struct FileBrowserView: View {
         }
     }
 
-    // 路径导航栏
+    // 路径导航栏（字号和高度与文件夹行一致）
     var pathNavigationBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
@@ -1201,12 +1201,12 @@ struct FileBrowserView: View {
                 }) {
                     Image(systemName: "house.fill")
                         .foregroundColor(.blue)
-                        .font(.caption)
+                        .font(.system(size: 15))
                 }
                 
                 if !currentPath.isEmpty {
                     Image(systemName: "chevron.right")
-                        .font(.caption2)
+                        .font(.system(size: 12))
                         .foregroundColor(.gray)
                     
                     let components = currentPath.components(separatedBy: "/")
@@ -1218,19 +1218,19 @@ struct FileBrowserView: View {
                             loadFiles()
                         }) {
                             Text(component)
-                                .font(.caption)
+                                .font(.system(size: 15))
                                 .foregroundColor(index == components.count - 1 ? .primary : .blue)
                         }
                         if index < components.count - 1 {
                             Image(systemName: "chevron.right")
-                                .font(.caption2)
+                                .font(.system(size: 12))
                                 .foregroundColor(.gray)
                         }
                     }
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.vertical, 11)
         }
         .background(Color(.systemGray6))
     }
