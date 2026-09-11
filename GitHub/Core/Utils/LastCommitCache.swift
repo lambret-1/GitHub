@@ -9,7 +9,7 @@ class LastCommitCache {
     static let shared = LastCommitCache()
 
     private let cacheDirectory: URL
-    private let cacheDuration: TimeInterval = 24 * 60 * 60 // 1天
+    private let cacheDuration: TimeInterval = 5 * 60 // 5分钟，确保时间显示与官方一致
 
     private init() {
         let paths = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
@@ -104,5 +104,22 @@ class LastCommitCache {
     func clearAllCache() {
         try? FileManager.default.removeItem(at: cacheDirectory)
         try? FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+    }
+
+    // MARK: - 清除指定仓库和分支的缓存（用于下拉刷新）
+
+    func clearCacheForRepo(owner: String, repo: String, branch: String) {
+        DispatchQueue.global(qos: .background).async {
+            guard let fileURLs = try? FileManager.default.contentsOfDirectory(at: self.cacheDirectory, includingPropertiesForKeys: nil, options: []) else {
+                return
+            }
+
+            let prefix = "\(owner)_\(repo)_\(branch)_"
+            for fileURL in fileURLs {
+                if fileURL.lastPathComponent.hasPrefix(prefix) {
+                    try? FileManager.default.removeItem(at: fileURL)
+                }
+            }
+        }
     }
 }

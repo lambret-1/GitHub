@@ -1371,6 +1371,13 @@ struct FileBrowserView: View {
         isLoading = true
         errorMessage = nil
 
+        // 清除当前仓库和分支的提交缓存，确保获取最新的提交时间（与官方GitHub一致）
+        LastCommitCache.shared.clearCacheForRepo(
+            owner: repository.ownerName,
+            repo: repository.name,
+            branch: selectedBranch
+        )
+
         GitHubAPI.shared.getDirectoryContents(
             owner: repository.ownerName,
             repo: repository.name,
