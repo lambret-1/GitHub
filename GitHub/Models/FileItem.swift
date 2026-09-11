@@ -187,11 +187,8 @@ extension Int {
 
 extension CommitPerson {
     var formattedDate: String {
-        // 使用统一的日期工具类格式化
-        guard let date = 日期工具.解析ISO日期(date) else {
-            return date
-        }
-        return 日期工具.格式化日期(date)
+        // 使用统一的相对时间工具类
+        return 日期工具.相对时间(fromISO: date)
     }
 
     var relativeDate: String {
