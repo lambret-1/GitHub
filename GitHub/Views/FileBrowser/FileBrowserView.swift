@@ -453,6 +453,11 @@ struct FileBrowserView: View {
             selectedBranch: $selectedBranch,
             onBranchChange: {
                 loadFiles()
+            },
+            owner: repository.ownerName,
+            repo: repository.name,
+            onBranchesChanged: {
+                loadBranches()
             }
         ) {
             moreMenuContent
@@ -2524,8 +2529,27 @@ struct BranchPickerView: View {
     let branches: [Branch]
     @Binding var selectedBranch: String
     let onSelect: () -> Void
+    let owner: String
+    let repo: String
+    let onBranchesChanged: () -> Void // 分支变更后回调（刷新分支列表）
     @Environment(\.presentationMode) var presentationMode
     @State private var searchText: String = ""
+    // 新建分支相关状态
+    @State private var showCreateBranchDialog: Bool = false
+    @State private var newBranchName: String = ""
+    @State private var isCreatingBranch: Bool = false
+    // 重命名分支相关状态
+    @State private var branchToRename: Branch?
+    @State private var showRenameBranchDialog: Bool = false
+    @State private var renameBranchNewName: String = ""
+    @State private var isRenamingBranch: Bool = false
+    // 删除分支相关状态
+    @State private var branchToDelete: Branch?
+    @State private var showDeleteBranchConfirm: Bool = false
+    @State private var isDeletingBranch: Bool = false
+    // 操作提示消息
+    @State private var operationMessage: String = ""
+    @State private var showOperationMessage: Bool = false
 
     // 过滤后的分支列表
     private var filteredBranches: [Branch] {
@@ -2594,6 +2618,22 @@ struct BranchPickerView: View {
                                     }
                                 }
                             }
+                            // 分支重按菜单（重命名、删除）
+                            .contextMenu {
+                                Button(action: {
+                                    branchToRename = branch
+                                    renameBranchNewName = branch.name
+                                    showRenameBranchDialog = true
+                                }) {
+                                    Label("重命名分支", systemImage: "pencil")
+                                }
+                                Button(role: .destructive, action: {
+                                    branchToDelete = branch
+                                    showDeleteBranchConfirm = true
+                                }) {
+                                    Label("删除分支", systemImage: "trash")
+                                }
+                            }
                         }
                     }
                 }
@@ -2602,10 +2642,169 @@ struct BranchPickerView: View {
             .navigationTitle("选择分支（共\(branches.count)个）")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("关闭") {
                         presentationMode.wrappedValue.dismiss()
                     }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        newBranchName = ""
+                        showCreateBranchDialog = true
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            // 新建分支弹窗
+            .alert("新建分支", isPresented: $showCreateBranchDialog) {
+                TextField("新分支名称", text: $newBranchName)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                Button("取消", role: .cancel) {
+                    newBranchName = ""
+                }
+                Button("创建") {
+                    createBranch()
+                }
+                .disabled(newBranchName.isEmpty || isCreatingBranch)
+            } message: {
+                Text("基于当前分支「\(selectedBranch)」创建新分支")
+            }
+            // 重命名分支弹窗
+            .alert("重命名分支", isPresented: $showRenameBranchDialog) {
+                TextField("新分支名称", text: $renameBranchNewName)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                Button("取消", role: .cancel) {
+                    branchToRename = nil
+                    renameBranchNewName = ""
+                }
+                Button("重命名") {
+                    renameBranch()
+                }
+                .disabled(renameBranchNewName.isEmpty || isRenamingBranch)
+            } message: {
+                if let branch = branchToRename {
+                    Text("请输入分支「\(branch.name)」的新名称")
+                } else {
+                    Text("请输入新的分支名称")
+                }
+            }
+            // 删除分支确认弹窗
+            .alert("确认删除分支", isPresented: $showDeleteBranchConfirm) {
+                Button("取消", role: .cancel) {
+                    branchToDelete = nil
+                }
+                Button("删除", role: .destructive) {
+                    deleteBranch()
+                }
+            } message: {
+                if let branch = branchToDelete {
+                    Text("确定要删除分支「\(branch.name)」吗？此操作不可撤销。")
+                } else {
+                    Text("确定要删除该分支吗？此操作不可撤销。")
+                }
+            }
+            // 操作提示消息
+            .overlay(
+                VStack {
+                    if showOperationMessage {
+                        Text(operationMessage)
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(Color.black.opacity(0.8))
+                            .cornerRadius(8)
+                            .padding(.top, 20)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                            .animation(.easeInOut, value: showOperationMessage)
+                    }
+                    Spacer()
+                }
+            )
+        }
+    }
+
+    // MARK: - 分支操作方法
+
+    /// 显示操作提示消息
+    private func showMessage(_ message: String) {
+        operationMessage = message
+        showOperationMessage = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            showOperationMessage = false
+        }
+    }
+
+    /// 创建新分支
+    private func createBranch() {
+        guard !newBranchName.isEmpty else { return }
+        isCreatingBranch = true
+        GitHubAPI.shared.createBranch(owner: owner, repo: repo, newBranchName: newBranchName, fromBranch: selectedBranch) { result in
+            DispatchQueue.main.async {
+                isCreatingBranch = false
+                showCreateBranchDialog = false
+                switch result {
+                case .success:
+                    showMessage("分支「\(newBranchName)」创建成功")
+                    newBranchName = ""
+                    onBranchesChanged()
+                case .failure(let error):
+                    showMessage("创建分支失败: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    /// 重命名分支
+    private func renameBranch() {
+        guard let branch = branchToRename, !renameBranchNewName.isEmpty else { return }
+        isRenamingBranch = true
+        GitHubAPI.shared.renameBranch(owner: owner, repo: repo, oldBranchName: branch.name, newBranchName: renameBranchNewName) { result in
+            DispatchQueue.main.async {
+                isRenamingBranch = false
+                showRenameBranchDialog = false
+                branchToRename = nil
+                switch result {
+                case .success:
+                    showMessage("分支重命名成功: \(branch.name) → \(renameBranchNewName)")
+                    // 如果重命名的是当前选中的分支，更新选中的分支
+                    if selectedBranch == branch.name {
+                        selectedBranch = renameBranchNewName
+                        onSelect()
+                    }
+                    renameBranchNewName = ""
+                    onBranchesChanged()
+                case .failure(let error):
+                    showMessage("重命名分支失败: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    /// 删除分支
+    private func deleteBranch() {
+        guard let branch = branchToDelete else { return }
+        // 不允许删除当前选中的分支
+        guard branch.name != selectedBranch else {
+            showMessage("无法删除当前选中的分支，请先切换到其他分支")
+            branchToDelete = nil
+            return
+        }
+        isDeletingBranch = true
+        GitHubAPI.shared.deleteBranch(owner: owner, repo: repo, branchName: branch.name) { result in
+            DispatchQueue.main.async {
+                isDeletingBranch = false
+                showDeleteBranchConfirm = false
+                branchToDelete = nil
+                switch result {
+                case .success:
+                    showMessage("分支「\(branch.name)」删除成功")
+                    onBranchesChanged()
+                case .failure(let error):
+                    showMessage("删除分支失败: \(error.localizedDescription)")
                 }
             }
         }
@@ -2721,10 +2920,19 @@ private struct FileBrowserBranchAndRenameSheetsModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: view.$showBranchPicker) {
-                BranchPickerView(branches: view.branches, selectedBranch: view.$selectedBranch) {
-                    view.loadFiles()
-                    view.showBranchPicker = false
-                }
+                BranchPickerView(
+                    branches: view.branches,
+                    selectedBranch: view.$selectedBranch,
+                    onSelect: {
+                        view.loadFiles()
+                        view.showBranchPicker = false
+                    },
+                    owner: view.repository.ownerName,
+                    repo: view.repository.name,
+                    onBranchesChanged: {
+                        view.loadBranches()
+                    }
+                )
             }
             .sheet(isPresented: view.$showContextMenuRename, content: view.renameFileSheet)
             .sheet(isPresented: view.$showCommits) {

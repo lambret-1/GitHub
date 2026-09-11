@@ -11,6 +11,9 @@ struct BranchBarView<MenuContent: View>: View {
     @Binding var selectedBranch: String
     let onBranchChange: () -> Void
     let menuContent: () -> MenuContent
+    let owner: String
+    let repo: String
+    let onBranchesChanged: () -> Void // 分支变更后回调（刷新分支列表）
 
     @EnvironmentObject var appState: AppState
     @State private var showBranchPicker: Bool = false
@@ -20,11 +23,17 @@ struct BranchBarView<MenuContent: View>: View {
         branches: [Branch],
         selectedBranch: Binding<String>,
         onBranchChange: @escaping () -> Void,
+        owner: String,
+        repo: String,
+        onBranchesChanged: @escaping () -> Void,
         @ViewBuilder menuContent: @escaping () -> MenuContent
     ) {
         self.branches = branches
         self._selectedBranch = selectedBranch
         self.onBranchChange = onBranchChange
+        self.owner = owner
+        self.repo = repo
+        self.onBranchesChanged = onBranchesChanged
         self.menuContent = menuContent
     }
 
@@ -87,7 +96,10 @@ struct BranchBarView<MenuContent: View>: View {
                 onSelect: {
                     showBranchPicker = false
                     onBranchChange()
-                }
+                },
+                owner: owner,
+                repo: repo,
+                onBranchesChanged: onBranchesChanged
             )
             .environmentObject(appState)
         }

@@ -586,6 +586,51 @@ class GitHubAPI {
             }
         }
     }
+
+    /// 创建新分支（基于指定分支）
+    func createBranch(owner: String, repo: String, newBranchName: String, fromBranch: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        // 先获取源分支的最新commit SHA
+        let url = APIEndpoints.repoBranches(owner: owner, repo: repo).url + "/\(fromBranch.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? fromBranch)"
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let commit = json["commit"] as? [String: Any],
+                       let sha = commit["sha"] as? String {
+                        // 创建新分支
+                        let createUrl = APIEndpoints.createBranch(owner: owner, repo: repo).url
+                        let body: [String: Any] = [
+                            "ref": "refs/heads/\(newBranchName)",
+                            "sha": sha
+                        ]
+                        self.performSimpleRequest(url: createUrl, method: "POST", body: body, failureMessage: "创建分支失败", completion: completion)
+                    } else {
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无法获取源分支的commit SHA"])))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 重命名分支
+    func renameBranch(owner: String, repo: String, oldBranchName: String, newBranchName: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.renameBranch(owner: owner, repo: repo, branch: oldBranchName).url
+        let body: [String: Any] = [
+            "new_name": newBranchName
+        ]
+        performSimpleRequest(url: url, method: "POST", body: body, failureMessage: "重命名分支失败", completion: completion)
+    }
+
+    /// 删除分支
+    func deleteBranch(owner: String, repo: String, branchName: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.deleteBranch(owner: owner, repo: repo, branch: branchName).url
+        performSimpleRequest(url: url, method: "DELETE", failureMessage: "删除分支失败", completion: completion)
+    }
     
     // MARK: - 提交记录
     
