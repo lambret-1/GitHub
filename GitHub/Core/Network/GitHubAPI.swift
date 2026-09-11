@@ -818,6 +818,12 @@ class GitHubAPI {
         let url = APIEndpoints.forkRepository(owner: owner, repo: repo).url
         performSimpleRequest(url: url, method: "POST", failureMessage: "Fork仓库失败", completion: completion)
     }
+
+    /// 删除仓库（需要admin权限）
+    func deleteRepository(owner: String, repo: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.deleteRepository(owner: owner, repo: repo).url
+        performSimpleRequest(url: url, method: "DELETE", failureMessage: "删除仓库失败", completion: completion)
+    }
 }
 
 // MARK: - 搜索结果包装

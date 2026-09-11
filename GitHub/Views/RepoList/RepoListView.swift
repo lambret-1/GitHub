@@ -9,6 +9,10 @@ struct RepoListView: View {
     @State private var errorMessage: String?
     @State private var selectedFilter: FilterType = .all
     @State private var showSearchView: Bool = false
+    // 删除仓库相关状态
+    @State private var repoToDelete: Repository?
+    @State private var showDeleteConfirm: Bool = false
+    @State private var isDeletingRepo: Bool = false
     
     enum FilterType: String, CaseIterable {
         case all = "全部"
@@ -76,6 +80,15 @@ struct RepoListView: View {
                             NavigationLink(destination: FileBrowserView(repository: repo)) {
                                 RepoRow(repo: repo)
                             }
+                            // 重按菜单（长按仓库弹出操作菜单）
+                            .contextMenu {
+                                Button(role: .destructive, action: {
+                                    repoToDelete = repo
+                                    showDeleteConfirm = true
+                                }) {
+                                    Label("删除仓库", systemImage: "trash")
+                                }
+                            }
                         }
                     }
                     .listStyle(PlainListStyle())
@@ -105,6 +118,23 @@ struct RepoListView: View {
             .fullScreenCover(isPresented: $showSearchView) {
                 SearchView()
                     .environmentObject(appState)
+            }
+            // 删除仓库二次确认弹窗
+            .alert("确认删除仓库", isPresented: $showDeleteConfirm) {
+                Button("取消", role: .cancel) {
+                    repoToDelete = nil
+                }
+                Button("删除", role: .destructive) {
+                    if let repo = repoToDelete {
+                        deleteRepository(repo)
+                    }
+                }
+            } message: {
+                if let repo = repoToDelete {
+                    Text("确定要删除仓库「\(repo.ownerName)/\(repo.name)」吗？此操作不可撤销，仓库的所有代码、Issue、Pull Request都将被永久删除。")
+                } else {
+                    Text("确定要删除该仓库吗？此操作不可撤销。")
+                }
             }
         }
         .onAppear {
@@ -149,6 +179,26 @@ struct RepoListView: View {
                 // 最小延迟确保刷新动画流畅
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     continuation.resume()
+                }
+            }
+        }
+    }
+
+    // 删除仓库（需要admin权限）
+    private func deleteRepository(_ repo: Repository) {
+        isDeletingRepo = true
+        GitHubAPI.shared.deleteRepository(owner: repo.ownerName, repo: repo.name) { result in
+            DispatchQueue.main.async {
+                isDeletingRepo = false
+                repoToDelete = nil
+                switch result {
+                case .success:
+                    // 从列表中移除已删除的仓库
+                    repos.removeAll { $0.id == repo.id }
+                    applyFilter()
+                    // 显示删除成功提示（可以用appState或者其他方式）
+                case .failure(let error):
+                    errorMessage = "删除仓库失败: \(error.localizedDescription)"
                 }
             }
         }
