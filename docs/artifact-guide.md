@@ -22,7 +22,7 @@
 | 制品格式 | `.ipa` (iOS App Store Package) |
 | 签名状态 | **未签名**（需要本地重签名后安装） |
 | 包结构 | 标准 `Payload/*.app` 结构 |
-| 最低系统 | iOS 15.0 |
+| 最低系统 | iOS 16.0 |
 | 支持设备 | iPhone / iPad（通用应用） |
 | 架构 | arm64（真机） |
 
@@ -215,7 +215,7 @@ certutil -hashfile GitHub.ipa SHA256
 - ✅ 数据线（用于连接设备安装）
 
 **推荐准备**：
-- iOS 设备系统版本 iOS 15.0 或以上
+- iOS 设备系统版本 iOS 16.0 或以上
 - 电脑已安装最新版 iTunes（Windows）或 Finder（macOS）
 - 设备已信任电脑
 
@@ -299,13 +299,13 @@ certutil -hashfile GitHub.ipa SHA256
 
 **可能原因**：
 - 设备 UDID 未添加到 Provisioning Profile
-- 设备系统版本低于应用最低要求（iOS 15.0）
+- 设备系统版本低于应用最低要求（iOS 16.0）
 - 设备存储空间不足
 - 证书类型不支持该设备
 
 **解决方案**：
 - 将设备 UDID 添加到 Provisioning Profile 并重新生成
-- 确认设备系统版本 ≥ iOS 15.0
+- 确认设备系统版本 ≥ iOS 16.0
 - 清理设备存储空间
 - 使用正确类型的证书（开发证书/企业证书）
 

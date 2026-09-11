@@ -64,7 +64,7 @@ GitHub/
 
 - **语言**: Swift 5.9
 - **框架**: SwiftUI
-- **最低系统**: iOS 15.0
+- **最低系统**: iOS 16.0
 - **构建工具**: Xcode 15.4 + XcodeGen
 - **CI/CD**: GitHub Actions
 

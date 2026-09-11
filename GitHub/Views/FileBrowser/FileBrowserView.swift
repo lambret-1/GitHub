@@ -82,6 +82,12 @@ struct FileBrowserView: View {
     @State var showActionSheet: Bool = false
     @State var selectedFile: FileItem?
     @State var showCodeSearch: Bool = false
+    @State var codeSearchQuery: String = ""
+    @State var codeSearchResults: [CodeSearchItem] = []
+    @State var isSearchingCode: Bool = false
+    @State var codeSearchError: String?
+    @State var selectedCodeSearchItem: CodeSearchItem?
+    @State var showCodeSearchSnippet: Bool = false
     @State var showUploadSuccess: Bool = false
     @State var uploadErrorMessage: String?
     @State var showCreateFolderDialog: Bool = false
@@ -512,6 +518,24 @@ struct FileBrowserView: View {
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
 
+            // 代码搜索框（使用主页仓库搜索框样式）
+            SearchBar(
+                text: $codeSearchQuery,
+                placeholder: "搜索当前仓库代码...",
+                onSearchButtonClicked: {
+                    performCodeSearch()
+                }
+            )
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+
+            // 代码搜索结果（搜索时显示，替换文件列表）
+            if !codeSearchQuery.isEmpty || isSearchingCode || !codeSearchResults.isEmpty {
+                codeSearchResultsSection
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+            }
+
             // 顶部提交信息栏（GitHub官方风格）
             latestCommitHeaderView
                 .listRowInsets(EdgeInsets())
@@ -542,6 +566,110 @@ struct FileBrowserView: View {
         // 下拉刷新功能，识别区在列表顶部（上半屏）
         .refreshable {
             await loadFilesAsync()
+        }
+    }
+
+    // MARK: - 代码搜索结果区域
+
+    @ViewBuilder
+    var codeSearchResultsSection: some View {
+        if isSearchingCode {
+            // 加载中
+            HStack {
+                Spacer()
+                ProgressView("搜索中...")
+                Spacer()
+            }
+            .padding(.vertical, 20)
+        } else if let error = codeSearchError {
+            // 错误状态
+            VStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.largeTitle)
+                    .foregroundColor(.orange)
+                Text(error)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Button("重试") {
+                    performCodeSearch()
+                }
+                .foregroundColor(.blue)
+            }
+            .padding(.vertical, 20)
+        } else if codeSearchResults.isEmpty && !codeSearchQuery.isEmpty {
+            // 无结果
+            HStack {
+                Spacer()
+                VStack(spacing: 8) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 40))
+                        .foregroundColor(.gray)
+                    Text("未找到匹配的代码")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.vertical, 20)
+        } else if !codeSearchResults.isEmpty {
+            // 搜索结果列表
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("搜索结果 (\(codeSearchResults.count))")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("清除搜索") {
+                        codeSearchQuery = ""
+                        codeSearchResults = []
+                        codeSearchError = nil
+                    }
+                    .font(.system(size: 13))
+                    .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+
+                ForEach(codeSearchResults) { item in
+                    Button(action: {
+                        // 跳转到代码片段页面
+                        showCodeSnippet(for: item)
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "doc.text")
+                                .foregroundColor(.blue)
+                                .font(.system(size: 18))
+                                .frame(width: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.name)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                Text(item.path)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 12))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Divider()
+                        .padding(.leading, 52)
+                }
+            }
         }
     }
 
@@ -888,13 +1016,6 @@ struct FileBrowserView: View {
         }
 
         // 通用功能（自己和别人的仓库都显示）
-        Button(action: {
-            showCodeSearch = true
-        }) {
-            Label("搜索代码", systemImage: "magnifyingglass")
-        }
-        .disabled(isDeleteMode)
-
         Button(action: {
             showBranchPicker = true
         }) {
@@ -1373,6 +1494,44 @@ struct FileBrowserView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             showOperationMessage = false
         }
+    }
+
+    // MARK: - 代码搜索
+
+    func performCodeSearch() {
+        let query = codeSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            codeSearchResults = []
+            codeSearchError = nil
+            return
+        }
+
+        isSearchingCode = true
+        codeSearchError = nil
+        codeSearchResults = []
+
+        GitHubAPI.shared.searchCodeInRepo(
+            owner: repository.ownerName,
+            repo: repository.name,
+            query: query
+        ) { result in
+            DispatchQueue.main.async {
+                isSearchingCode = false
+                switch result {
+                case .success(let items):
+                    codeSearchResults = items
+                case .failure(let error):
+                    codeSearchError = "搜索失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // 显示代码片段页面
+    func showCodeSnippet(for item: CodeSearchItem) {
+        // 使用sheet显示代码片段页面
+        selectedCodeSearchItem = item
+        showCodeSearchSnippet = true
     }
 
     func loadFiles(completion: (() -> Void)? = nil) {
@@ -3150,6 +3309,17 @@ private struct FileBrowserCreateFileSheetsModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .sheet(isPresented: view.$showCodeSearchSnippet) {
+                if let item = view.selectedCodeSearchItem {
+                    CodeSnippetView(
+                        owner: view.repository.ownerName,
+                        repo: view.repository.name,
+                        branch: view.selectedBranch,
+                        item: item,
+                        searchQuery: view.codeSearchQuery
+                    )
+                }
+            }
             .sheet(isPresented: view.$showCodeSearch) {
                 RepoCodeSearchView(
                     owner: view.repository.ownerName,

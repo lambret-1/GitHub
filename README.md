@@ -43,7 +43,7 @@
 
 - **语言**: Swift 5.0
 - **UI 框架**: SwiftUI
-- **最低系统**: iOS 15.0
+- **最低系统**: iOS 16.0
 - **网络请求**: URLSession (原生)
 - **数据存储**: Keychain
 - **API**: GitHub REST API v3

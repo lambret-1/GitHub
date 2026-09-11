@@ -112,7 +112,7 @@ struct AboutView: View {
             Section("版本信息") {
                 versionInfoRow(icon: "number", color: .blue, title: "版本号", value: "v\(AppVersion.currentVersion)")
                 versionInfoRow(icon: "hammer", color: .orange, title: "构建号", value: AppVersion.buildNumber)
-                versionInfoRow(icon: "apple.logo", color: .gray, title: "部署目标", value: "iOS 15.0+")
+                versionInfoRow(icon: "apple.logo", color: .gray, title: "部署目标", value: "iOS 16.0+")
             }
 
             // 检查更新

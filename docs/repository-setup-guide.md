@@ -83,7 +83,7 @@ GitHub/
 | 操作系统 | `macos-14` | macOS 14 Sonoma，支持 Xcode 15 |
 | Xcode 版本 | 15.4 | 手动指定，避免Runner默认版本变更导致构建失败 |
 | iOS SDK | iphoneos | 真机SDK，生成可安装的IPA |
-| 部署目标 | iOS 15.0 | 最低支持iOS 15 |
+| 部署目标 | iOS 16.0 | 最低支持iOS 16 |
 
 ### 3.2 无需配置的 Secrets
 
