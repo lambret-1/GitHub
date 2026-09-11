@@ -770,8 +770,8 @@ struct FileBrowserView: View {
     func renameFileSheet() -> some View {
         NavigationView {
             Form {
-                Section("文件名") {
-                    TextField("输入新的文件名", text: $renameNewFileName)
+                Section(contextMenuRenameFile?.isDirectory == true ? "文件夹名称" : "文件名") {
+                    TextField(contextMenuRenameFile?.isDirectory == true ? "输入新的文件夹名称" : "输入新的文件名", text: $renameNewFileName)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                 }
@@ -795,7 +795,7 @@ struct FileBrowserView: View {
                     .disabled(renameNewFileName.isEmpty || isRenamingFile)
                 }
             }
-            .navigationTitle("重命名文件")
+            .navigationTitle(contextMenuRenameFile?.isDirectory == true ? "重命名文件夹" : "重命名文件")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -1622,15 +1622,13 @@ struct FileBrowserView: View {
             Label("编辑文件", systemImage: "pencil")
         }
 
-        // 重命名文件选项（仅文件类型，文件夹不支持）
-        if file.isFile {
-            Button(action: {
-                contextMenuRenameFile = file
-                renameNewFileName = file.name
-                showContextMenuRename = true
-            }) {
-                Label("重命名", systemImage: "pencil.line")
-            }
+        // 重命名选项（文件和文件夹都支持）
+        Button(action: {
+            contextMenuRenameFile = file
+            renameNewFileName = file.name
+            showContextMenuRename = true
+        }) {
+            Label(file.isDirectory ? "重命名文件夹" : "重命名", systemImage: "pencil.line")
         }
 
         // HTML文件显示网页预览选项
@@ -1668,12 +1666,12 @@ struct FileBrowserView: View {
             Label("复制下载链接", systemImage: "link")
         }
 
-        // 删除选项（红色字体）
+        // 删除选项（红色字体，文件和文件夹都支持）
         Button(action: {
             contextMenuDeleteFile = file
             showContextMenuDeleteConfirm = true
         }) {
-            Label("删除", systemImage: "trash")
+            Label(file.isDirectory ? "删除文件夹" : "删除", systemImage: "trash")
         }
         .foregroundColor(.red)
     }
@@ -2054,16 +2052,20 @@ struct FileBrowserView: View {
         }
     }
 
-    // MARK: - 删除单个文件（contextMenu）
+    // MARK: - 删除单个文件/文件夹（contextMenu）
 
     func deleteSingleFile(_ file: FileItem) {
-        // GitHub API 不支持直接删除文件夹，只能删除文件
         if file.isDirectory {
-            errorMessage = "无法直接删除文件夹「\(file.name)」（GitHub API 限制）\n如需删除文件夹，请进入文件夹后逐个删除其中的文件"
-            contextMenuDeleteFile = nil
-            return
+            // 删除文件夹：递归删除文件夹中的所有文件
+            deleteFolderRecursive(file)
+        } else {
+            // 删除文件
+            deleteFileActual(file)
         }
+    }
 
+    /// 实际删除文件
+    private func deleteFileActual(_ file: FileItem) {
         isDeletingSingleFile = true
         contextMenuDeleteFile = nil
 
@@ -2089,21 +2091,128 @@ struct FileBrowserView: View {
         }
     }
 
-    // MARK: - 重命名文件（contextMenu）
+    /// 递归删除文件夹
+    private func deleteFolderRecursive(_ folder: FileItem) {
+        isDeletingSingleFile = true
+        contextMenuDeleteFile = nil
+
+        // 先获取文件夹中的所有内容
+        GitHubAPI.shared.getContents(
+            owner: repository.ownerName,
+            repo: repository.name,
+            path: folder.path,
+            branch: selectedBranch
+        ) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let items):
+                    // 递归删除文件夹中的所有内容
+                    self.deleteFolderItems(items, folderName: folder.name) { success in
+                        DispatchQueue.main.async {
+                            self.isDeletingSingleFile = false
+                            if success {
+                                self.loadFiles()
+                            } else {
+                                self.errorMessage = "删除文件夹「\(folder.name)」时部分文件删除失败"
+                            }
+                        }
+                    }
+                case .failure(let error):
+                    isDeletingSingleFile = false
+                    errorMessage = "获取文件夹内容失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    /// 递归删除文件夹中的所有项目
+    private func deleteFolderItems(_ items: [FileItem], folderName: String, completion: @escaping (Bool) -> Void) {
+        guard !items.isEmpty else {
+            completion(true)
+            return
+        }
+
+        var remainingItems = items
+        let currentItem = remainingItems.removeFirst()
+        var allSuccess = true
+
+        if currentItem.isDirectory {
+            // 子文件夹：先获取内容，再递归删除
+            GitHubAPI.shared.getContents(
+                owner: repository.ownerName,
+                repo: repository.name,
+                path: currentItem.path,
+                branch: selectedBranch
+            ) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let subItems):
+                        self.deleteFolderItems(subItems, folderName: folderName) { success in
+                            if !success {
+                                allSuccess = false
+                            }
+                            // 继续删除剩余项目
+                            self.deleteFolderItems(remainingItems, folderName: folderName) { success in
+                                completion(allSuccess && success)
+                            }
+                        }
+                    case .failure:
+                        allSuccess = false
+                        self.deleteFolderItems(remainingItems, folderName: folderName) { success in
+                            completion(allSuccess && success)
+                        }
+                    }
+                }
+            }
+        } else {
+            // 文件：直接删除
+            GitHubAPI.shared.deleteFile(
+                owner: repository.ownerName,
+                repo: repository.name,
+                path: currentItem.path,
+                sha: currentItem.sha,
+                message: "删除文件夹「\(folderName)」中的文件: \(currentItem.name)",
+                branch: selectedBranch
+            ) { result in
+                DispatchQueue.main.async {
+                    if case .failure = result {
+                        allSuccess = false
+                    }
+                    // 继续删除剩余项目
+                    self.deleteFolderItems(remainingItems, folderName: folderName) { success in
+                        completion(allSuccess && success)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - 重命名文件/文件夹（contextMenu）
 
     func renameFile(_ file: FileItem, newName: String) {
         // 检查新文件名是否为空
         guard !newName.isEmpty else {
-            errorMessage = "文件名不能为空"
+            errorMessage = "名称不能为空"
             return
         }
 
         // 检查新文件名是否与旧文件名相同
         guard newName != file.name else {
-            errorMessage = "新文件名与原文件名相同"
+            errorMessage = "新名称与原名称相同"
             return
         }
 
+        if file.isDirectory {
+            // 重命名文件夹：递归重命名文件夹中的所有文件
+            renameFolderRecursive(file, newName: newName)
+        } else {
+            // 重命名文件
+            renameFileActual(file, newName: newName)
+        }
+    }
+
+    /// 实际重命名文件
+    private func renameFileActual(_ file: FileItem, newName: String) {
         isRenamingFile = true
 
         // 计算新文件的路径（替换文件名部分，保留目录路径）
@@ -2138,7 +2247,121 @@ struct FileBrowserView: View {
                     loadFiles()
                 case .failure(let error):
                     // 重命名失败，显示错误信息
-                    errorMessage = "重命名文件失败: \(error.localizedDescription)"
+                    errorMessage = "重命名失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    /// 递归重命名文件夹
+    private func renameFolderRecursive(_ folder: FileItem, newName: String) {
+        isRenamingFile = true
+        showContextMenuRename = false
+        contextMenuRenameFile = nil
+
+        // 计算新文件夹的路径
+        let oldFolderPath = folder.path
+        let newFolderPath: String
+        if oldFolderPath.contains("/") {
+            let components = oldFolderPath.components(separatedBy: "/")
+            var newComponents = components
+            newComponents[newComponents.count - 1] = newName
+            newFolderPath = newComponents.joined(separator: "/")
+        } else {
+            newFolderPath = newName
+        }
+
+        // 先获取文件夹中的所有内容
+        GitHubAPI.shared.getContents(
+            owner: repository.ownerName,
+            repo: repository.name,
+            path: oldFolderPath,
+            branch: selectedBranch
+        ) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let items):
+                    // 递归重命名文件夹中的所有文件
+                    self.renameFolderItems(items, oldFolderPath: oldFolderPath, newFolderPath: newFolderPath, folderName: folder.name) { success in
+                        DispatchQueue.main.async {
+                            self.isRenamingFile = false
+                            if success {
+                                self.loadFiles()
+                            } else {
+                                self.errorMessage = "重命名文件夹「\(folder.name)」时部分文件重命名失败"
+                            }
+                        }
+                    }
+                case .failure(let error):
+                    isRenamingFile = false
+                    errorMessage = "获取文件夹内容失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    /// 递归重命名文件夹中的所有项目
+    private func renameFolderItems(_ items: [FileItem], oldFolderPath: String, newFolderPath: String, folderName: String, completion: @escaping (Bool) -> Void) {
+        guard !items.isEmpty else {
+            completion(true)
+            return
+        }
+
+        var remainingItems = items
+        let currentItem = remainingItems.removeFirst()
+        var allSuccess = true
+
+        if currentItem.isDirectory {
+            // 子文件夹：先获取内容，再递归重命名
+            let subOldFolderPath = currentItem.path
+            let subNewFolderPath = newFolderPath + String(subOldFolderPath.dropFirst(oldFolderPath.count))
+
+            GitHubAPI.shared.getContents(
+                owner: repository.ownerName,
+                repo: repository.name,
+                path: subOldFolderPath,
+                branch: selectedBranch
+            ) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let subItems):
+                        self.renameFolderItems(subItems, oldFolderPath: subOldFolderPath, newFolderPath: subNewFolderPath, folderName: folderName) { success in
+                            if !success {
+                                allSuccess = false
+                            }
+                            // 继续重命名剩余项目
+                            self.renameFolderItems(remainingItems, oldFolderPath: oldFolderPath, newFolderPath: newFolderPath, folderName: folderName) { success in
+                                completion(allSuccess && success)
+                            }
+                        }
+                    case .failure:
+                        allSuccess = false
+                        self.renameFolderItems(remainingItems, oldFolderPath: oldFolderPath, newFolderPath: newFolderPath, folderName: folderName) { success in
+                            completion(allSuccess && success)
+                        }
+                    }
+                }
+            }
+        } else {
+            // 文件：计算新路径并重命名
+            let oldFilePath = currentItem.path
+            let newFilePath = newFolderPath + String(oldFilePath.dropFirst(oldFolderPath.count))
+
+            GitHubAPI.shared.renameFile(
+                owner: repository.ownerName,
+                repo: repository.name,
+                oldPath: oldFilePath,
+                newPath: newFilePath,
+                branch: selectedBranch
+            ) { result in
+                DispatchQueue.main.async {
+                    if case .failure = result {
+                        allSuccess = false
+                    }
+                    // 继续重命名剩余项目
+                    self.renameFolderItems(remainingItems, oldFolderPath: oldFolderPath, newFolderPath: newFolderPath, folderName: folderName) { success in
+                        completion(allSuccess && success)
+                    }
                 }
             }
         }
@@ -2624,7 +2847,11 @@ private struct FileBrowserDeleteSheetsModifier: ViewModifier {
                 }
             } message: {
                 if let file = view.contextMenuDeleteFile {
-                    Text("确定要删除文件「\(file.name)」吗？此操作不可撤销。")
+                    if file.isDirectory {
+                        Text("确定要删除文件夹「\(file.name)」及其所有内容吗？此操作不可撤销，将递归删除文件夹中的所有文件。")
+                    } else {
+                        Text("确定要删除文件「\(file.name)」吗？此操作不可撤销。")
+                    }
                 } else {
                     Text("确定要删除该文件吗？此操作不可撤销。")
                 }
