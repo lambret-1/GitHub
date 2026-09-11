@@ -355,6 +355,25 @@ class GitHubAPI {
             }
         }
     }
+
+    /// 在指定仓库内搜索代码（本地仓库代码搜索）
+    func searchCodeInRepo(owner: String, repo: String, query: String, page: Int = 1, completion: @escaping (Result<[CodeSearchItem], Error>) -> Void) {
+        let url = APIEndpoints.searchCodeInRepo(owner: owner, repo: repo, query: query, page: page).url
+
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let searchResult = try JSONDecoder().decode(CodeSearchResult.self, from: data)
+                    completion(.success(searchResult.items))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
     
     // MARK: - 文件内容
     

@@ -81,6 +81,7 @@ struct FileBrowserView: View {
     @State var downloadingFileName: String = ""
     @State var showActionSheet: Bool = false
     @State var selectedFile: FileItem?
+    @State var showCodeSearch: Bool = false
     @State var showUploadSuccess: Bool = false
     @State var uploadErrorMessage: String?
     @State var showCreateFolderDialog: Bool = false
@@ -887,6 +888,13 @@ struct FileBrowserView: View {
         }
 
         // 通用功能（自己和别人的仓库都显示）
+        Button(action: {
+            showCodeSearch = true
+        }) {
+            Label("搜索代码", systemImage: "magnifyingglass")
+        }
+        .disabled(isDeleteMode)
+
         Button(action: {
             showBranchPicker = true
         }) {
@@ -3142,6 +3150,13 @@ private struct FileBrowserCreateFileSheetsModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .sheet(isPresented: view.$showCodeSearch) {
+                RepoCodeSearchView(
+                    owner: view.repository.ownerName,
+                    repo: view.repository.name,
+                    branch: view.selectedBranch
+                )
+            }
             .sheet(isPresented: view.$showCreateFileDialog) {
                 CreateFileView(currentPath: view.currentPath) { fileName in
                     view.createFile(fileName: fileName)
