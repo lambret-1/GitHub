@@ -8,6 +8,7 @@ enum APIEndpoints {
 
     case user
     case userRepos(page: Int, perPage: Int)
+    case repository(owner: String, repo: String)
     case repoContent(owner: String, repo: String, path: String, branch: String)
     case updateFile(owner: String, repo: String, path: String)
     case repoBranches(owner: String, repo: String)
@@ -39,6 +40,8 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/user"
         case .userRepos(let page, let perPage):
             return "\(APIEndpoints.baseURL)/user/repos?page=\(page)&per_page=\(perPage)&sort=updated"
+        case .repository(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)"
         case .repoContent(let owner, let repo, let path, let branch):
             let encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/contents/\(encodedPath)?ref=\(branch)"

@@ -16,6 +16,11 @@ struct SearchView: View {
     @State private var showAdvancedFilter: Bool = false
     @State private var repoFilter: RepoFilterState = RepoFilterState()
     @State private var userFilter: UserFilterState = UserFilterState()
+    // 代码搜索结果跳转相关状态
+    @State private var selectedCodeItem: CodeSearchItem?
+    @State private var selectedCodeBranch: String = "main"
+    @State private var showCodeEditor: Bool = false
+    @State private var isLoadingCodeRepo: Bool = false
 
     enum SearchTab: String, CaseIterable {
         case repositories = "仓库"
@@ -173,13 +178,9 @@ struct SearchView: View {
                         } else {
                             // 代码搜索结果
                             ForEach(codeResults) { item in
-                                NavigationLink(destination: CodeEditorView(
-                                    owner: item.repository.ownerName,
-                                    repo: item.repository.name,
-                                    path: item.path,
-                                    branch: "main",
-                                    fileName: item.name
-                                )) {
+                                Button(action: {
+                                    openCodeSearchItem(item)
+                                }) {
                                     CodeSearchRow(item: item)
                                 }
                             }
@@ -196,6 +197,28 @@ struct SearchView: View {
                         }
                     }
                     .listStyle(PlainListStyle())
+                }
+
+                // 隐藏的NavigationLink，用于代码搜索结果跳转
+                NavigationLink(destination: Group {
+                    if let item = selectedCodeItem {
+                        CodeEditorView(
+                            owner: item.repository.ownerName,
+                            repo: item.repository.name,
+                            path: item.path,
+                            branch: selectedCodeBranch,
+                            fileName: item.name
+                        )
+                    }
+                }, isActive: $showCodeEditor) {
+                    EmptyView()
+                }
+                .hidden()
+
+                // 加载中提示
+                if isLoadingCodeRepo {
+                    ProgressView("正在获取仓库信息...")
+                        .padding()
                 }
             }
             .navigationTitle("搜索")
@@ -337,6 +360,28 @@ struct SearchView: View {
                     case .failure(let error):
                         self.errorMessage = "搜索失败: \(error.localizedDescription)"
                     }
+                }
+            }
+        }
+    }
+
+    // MARK: - 打开代码搜索结果（先获取仓库默认分支）
+
+    private func openCodeSearchItem(_ item: CodeSearchItem) {
+        isLoadingCodeRepo = true
+        selectedCodeItem = item
+
+        GitHubAPI.shared.getRepository(owner: item.repository.ownerName, repo: item.repository.name) { result in
+            DispatchQueue.main.async {
+                isLoadingCodeRepo = false
+                switch result {
+                case .success(let repository):
+                    selectedCodeBranch = repository.defaultBranch ?? "main"
+                    showCodeEditor = true
+                case .failure:
+                    // 获取仓库信息失败时，使用常见的默认分支
+                    selectedCodeBranch = "main"
+                    showCodeEditor = true
                 }
             }
         }

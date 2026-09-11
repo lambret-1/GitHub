@@ -158,6 +158,25 @@ class GitHubAPI {
         }
     }
     
+    // MARK: - 仓库信息
+
+    /// 获取仓库信息（包括默认分支）
+    func getRepository(owner: String, repo: String, completion: @escaping (Result<Repository, Error>) -> Void) {
+        performRequest(url: APIEndpoints.repository(owner: owner, repo: repo).url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let repository = try JSONDecoder().decode(Repository.self, from: data)
+                    completion(.success(repository))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     // MARK: - 仓库列表
     
     func getUserRepos(page: Int = 1, perPage: Int = 100, completion: @escaping (Result<[Repository], Error>) -> Void) {
