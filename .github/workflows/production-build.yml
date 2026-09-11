@@ -45,7 +45,7 @@ jobs:
   # ============================================================================
   version-bump:
     name: 版本计算与单元测试
-    runs-on: macos-16
+    runs-on: macos-15
     outputs:
       version_new: ${{ steps.bump.outputs.version_new }}
       version_old: ${{ steps.bump.outputs.version_old }}
