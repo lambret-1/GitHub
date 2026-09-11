@@ -6,15 +6,27 @@ import SwiftUI
 // 位置：仓库头部下方，文件列表上方
 // ==============================================================================
 
-struct BranchBarView: View {
+struct BranchBarView<MenuContent: View>: View {
     let branches: [Branch]
     @Binding var selectedBranch: String
     let onBranchChange: () -> Void
-    let onDownloadZip: () -> Void
+    let menuContent: () -> MenuContent
 
     @EnvironmentObject var appState: AppState
     @State private var showBranchPicker: Bool = false
     @State private var showCodeMenu: Bool = false
+
+    init(
+        branches: [Branch],
+        selectedBranch: Binding<String>,
+        onBranchChange: @escaping () -> Void,
+        @ViewBuilder menuContent: @escaping () -> MenuContent
+    ) {
+        self.branches = branches
+        self._selectedBranch = selectedBranch
+        self.onBranchChange = onBranchChange
+        self.menuContent = menuContent
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -46,10 +58,10 @@ struct BranchBarView: View {
 
             Spacer()
 
-            // 右侧：代码下拉按钮（绿色）
-            Button(action: {
-                showCodeMenu = true
-            }) {
+            // 右侧：代码下拉按钮（绿色，保持原样式）
+            Menu {
+                menuContent()
+            } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.down")
                         .font(.system(size: 10))
@@ -63,7 +75,7 @@ struct BranchBarView: View {
                 .background(Color(red: 0.13, green: 0.55, blue: 0.27))
                 .cornerRadius(6)
             }
-            .buttonStyle(PlainButtonStyle())
+            .menuStyle(BorderlessButtonMenuStyle())
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -78,28 +90,6 @@ struct BranchBarView: View {
                 }
             )
             .environmentObject(appState)
-        }
-        .confirmationDialog("代码操作", isPresented: $showCodeMenu, titleVisibility: .visible) {
-            Button(action: {
-                showCodeMenu = false
-                onDownloadZip()
-            }) {
-                Label("下载 ZIP", systemImage: "square.and.arrow.down")
-            }
-
-            Button(action: {
-                showCodeMenu = false
-                // 复制仓库地址
-                UIPasteboard.general.string = "https://github.com/\(branches.isEmpty ? "" : "")"
-            }) {
-                Label("复制仓库地址", systemImage: "link")
-            }
-
-            Button("取消", role: .cancel) {
-                showCodeMenu = false
-            }
-        } message: {
-            Text("选择代码操作")
         }
     }
 }

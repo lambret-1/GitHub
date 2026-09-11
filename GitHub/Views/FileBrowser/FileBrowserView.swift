@@ -450,9 +450,10 @@ struct FileBrowserView: View {
             selectedBranch: $selectedBranch,
             onBranchChange: {
                 loadFiles()
-            },
-            onDownloadZip: downloadRepositoryZip
-        )
+            }
+        ) {
+            moreMenuContent
+        }
         .environmentObject(appState)
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden)
@@ -489,9 +490,10 @@ struct FileBrowserView: View {
                 selectedBranch: $selectedBranch,
                 onBranchChange: {
                     loadFiles()
-                },
-                onDownloadZip: downloadRepositoryZip
-            )
+                }
+            ) {
+                moreMenuContent
+            }
             .environmentObject(appState)
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
@@ -711,8 +713,9 @@ struct FileBrowserView: View {
 
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
+        // 移除导航栏中的三个点菜单，代码按钮已显示三个点菜单内容
         ToolbarItem(placement: .navigationBarTrailing) {
-            moreMenu
+            EmptyView()
         }
     }
 
@@ -787,107 +790,114 @@ struct FileBrowserView: View {
 
     // MARK: - 更多菜单
 
+    // MARK: - 三个点菜单内容（用于代码按钮菜单）
+
+    @ViewBuilder
+    var moreMenuContent: some View {
+        if isOwnRepository {
+            // 自己的仓库：显示文件操作相关功能
+            Button(action: {
+                showDocumentPicker = true
+            }) {
+                Label("上传文件", systemImage: "square.and.arrow.up")
+            }
+            .disabled(isUploading || isDownloading || isDeleteMode)
+
+            Button(action: {
+                showCreateFileDialog = true
+                newFileName = ""
+            }) {
+                Label("新建文件", systemImage: "doc.badge.plus")
+            }
+            .disabled(isCreatingFile || isDeleteMode)
+
+            Button(action: {
+                showCreateFolderDialog = true
+                newFolderName = ""
+            }) {
+                Label("创建文件夹", systemImage: "folder.badge.plus")
+            }
+            .disabled(isCreatingFolder || isDeleteMode)
+
+            Divider()
+
+            Button(action: {
+                isDeleteMode.toggle()
+                selectedFilesForDelete.removeAll()
+            }) {
+                Label(isDeleteMode ? "取消删除" : "删除文件", systemImage: isDeleteMode ? "xmark.circle" : "trash")
+            }
+
+            Divider()
+        } else {
+            // 别人的仓库：显示仓库交互相关功能
+            Button(action: {
+                toggleStar()
+            }) {
+                Label(isStarred ? "取消星标" : "添加星标", systemImage: isStarred ? "star.fill" : "star")
+            }
+            .disabled(isStarring || isCheckingStar)
+
+            Button(action: {
+                forkRepository()
+            }) {
+                Label("Fork 仓库", systemImage: "arrow.triangle.branch")
+            }
+            .disabled(isForking)
+
+            Button(action: {
+                copyRepositoryURL()
+            }) {
+                Label("复制仓库地址", systemImage: "link")
+            }
+
+            Divider()
+        }
+
+        // 通用功能（自己和别人的仓库都显示）
+        Button(action: {
+            showBranchPicker = true
+        }) {
+            Label("切换分支: \(selectedBranch)", systemImage: "arrow.triangle.branch")
+        }
+        .disabled(isDeleteMode)
+
+        Button(action: {
+            showCommits = true
+        }) {
+            Label("提交记录", systemImage: "clock.arrow.circlepath")
+        }
+        .disabled(isDeleteMode)
+
+        Button(action: {
+            showActions = true
+        }) {
+            Label("Actions", systemImage: "bolt.fill")
+        }
+        .disabled(isDeleteMode)
+
+        Button(action: {
+            downloadRepositoryZip()
+        }) {
+            Label("下载仓库 ZIP", systemImage: "square.and.arrow.down")
+        }
+        .disabled(isDeleteMode || isDownloadingZip)
+
+        Button(action: {
+            // 应用镜像加速转换
+            let convertedURL = AppSettings.shared.convertWebURL(repository.htmlUrl)
+            if let url = URL(string: convertedURL) {
+                UIApplication.shared.open(url)
+            }
+        }) {
+            Label("在 GitHub 打开", systemImage: "safari")
+        }
+        .disabled(isDeleteMode)
+    }
+
     var moreMenu: some View {
         Menu {
-            if isOwnRepository {
-                // 自己的仓库：显示文件操作相关功能
-                Button(action: {
-                    showDocumentPicker = true
-                }) {
-                    Label("上传文件", systemImage: "square.and.arrow.up")
-                }
-                .disabled(isUploading || isDownloading || isDeleteMode)
-
-                Button(action: {
-                    showCreateFileDialog = true
-                    newFileName = ""
-                }) {
-                    Label("新建文件", systemImage: "doc.badge.plus")
-                }
-                .disabled(isCreatingFile || isDeleteMode)
-
-                Button(action: {
-                    showCreateFolderDialog = true
-                    newFolderName = ""
-                }) {
-                    Label("创建文件夹", systemImage: "folder.badge.plus")
-                }
-                .disabled(isCreatingFolder || isDeleteMode)
-
-                Divider()
-
-                Button(action: {
-                    isDeleteMode.toggle()
-                    selectedFilesForDelete.removeAll()
-                }) {
-                    Label(isDeleteMode ? "取消删除" : "删除文件", systemImage: isDeleteMode ? "xmark.circle" : "trash")
-                }
-
-                Divider()
-            } else {
-                // 别人的仓库：显示仓库交互相关功能
-                Button(action: {
-                    toggleStar()
-                }) {
-                    Label(isStarred ? "取消星标" : "添加星标", systemImage: isStarred ? "star.fill" : "star")
-                }
-                .disabled(isStarring || isCheckingStar)
-
-                Button(action: {
-                    forkRepository()
-                }) {
-                    Label("Fork 仓库", systemImage: "arrow.triangle.branch")
-                }
-                .disabled(isForking)
-
-                Button(action: {
-                    copyRepositoryURL()
-                }) {
-                    Label("复制仓库地址", systemImage: "link")
-                }
-
-                Divider()
-            }
-
-            // 通用功能（自己和别人的仓库都显示）
-            Button(action: {
-                showBranchPicker = true
-            }) {
-                Label("切换分支: \(selectedBranch)", systemImage: "arrow.triangle.branch")
-            }
-            .disabled(isDeleteMode)
-
-            Button(action: {
-                showCommits = true
-            }) {
-                Label("提交记录", systemImage: "clock.arrow.circlepath")
-            }
-            .disabled(isDeleteMode)
-
-            Button(action: {
-                showActions = true
-            }) {
-                Label("Actions", systemImage: "bolt.fill")
-            }
-            .disabled(isDeleteMode)
-
-            Button(action: {
-                downloadRepositoryZip()
-            }) {
-                Label("下载仓库 ZIP", systemImage: "square.and.arrow.down")
-            }
-            .disabled(isDeleteMode || isDownloadingZip)
-
-            Button(action: {
-                // 应用镜像加速转换
-                let convertedURL = AppSettings.shared.convertWebURL(repository.htmlUrl)
-                if let url = URL(string: convertedURL) {
-                    UIApplication.shared.open(url)
-                }
-            }) {
-                Label("在 GitHub 打开", systemImage: "safari")
-            }
-            .disabled(isDeleteMode)
+            moreMenuContent
         } label: {
             Image(systemName: "ellipsis.circle")
         }
