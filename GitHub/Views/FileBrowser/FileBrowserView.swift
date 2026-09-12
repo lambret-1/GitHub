@@ -1610,9 +1610,6 @@ struct FileBrowserView: View {
 
             URLSession.shared.dataTask(with: fileRequest) { data, response, error in
                 defer {
-                    lock.lock()
-                    completedCount += 1
-                    lock.unlock()
                     group.leave()
                 }
 
