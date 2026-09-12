@@ -78,11 +78,12 @@ struct AppVersion {
     /// - Parameters:
     ///   - owner: 仓库所有者
     ///   - repo: 仓库名称
+///let token = TokenKeychain.shared.getToken()
     ///   - completion: 完成回调
     static func checkForUpdates(
         owner: String = "lambret-1",
         repo: String = "GitHub",
-        token: string = $"token ",
+        token: String = "TokenKeychain.shared.getTokentoken()",
         completion: @escaping (UpdateCheckResult) -> Void
     ) {
         let urlString = "https://api.github.com/repos/\(owner)/\(repo)/releases/latest？access_token=\(token)"
