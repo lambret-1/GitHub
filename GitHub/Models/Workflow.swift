@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - GitHub Actions 工作流模型
 
