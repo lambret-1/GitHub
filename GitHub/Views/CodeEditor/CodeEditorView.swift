@@ -68,6 +68,9 @@ struct CodeEditorView: View {
     // 图片加载任务，用于在页面消失时取消
     @State private var imageLoadTask: URLSessionDataTask?
     
+    // 键盘高度（用于代码区域跟随键盘向上移动）
+    @State private var keyboardHeight: CGFloat = 0
+    
     var body: some View {
         VStack(spacing: 0) {
             contentView
@@ -701,6 +704,34 @@ struct CodeEditorView: View {
                     showSearch = true
                 }
             )
+            // 代码区域跟随键盘弹出向上移动（底部padding = 键盘高度）
+            .padding(.bottom, keyboardHeight)
+            .animation(.easeOut(duration: 0.25), value: keyboardHeight)
+        }
+        .onAppear {
+            // 监听键盘弹出
+            NotificationCenter.default.addObserver(
+                forName: UIResponder.keyboardWillShowNotification,
+                object: nil,
+                queue: .main
+            ) { notification in
+                if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                    keyboardHeight = frame.height
+                }
+            }
+            // 监听键盘收起
+            NotificationCenter.default.addObserver(
+                forName: UIResponder.keyboardWillHideNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                keyboardHeight = 0
+            }
+        }
+        .onDisappear {
+            // 移除键盘监听，避免内存泄漏
+            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
         }
     }
 
