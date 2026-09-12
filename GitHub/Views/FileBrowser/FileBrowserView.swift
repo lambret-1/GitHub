@@ -232,6 +232,32 @@ struct FileBrowserView: View {
             if !isOwnRepository {
                 checkStarredStatus()
             }
+            // 强制隐藏系统导航栏，避免双重导航栏问题
+            DispatchQueue.main.async {
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                    if let navigationController = windowScene.windows.first?.rootViewController as? UINavigationController {
+                        navigationController.setNavigationBarHidden(true, animated: false)
+                    } else if let tabBarController = windowScene.windows.first?.rootViewController as? UITabBarController {
+                        if let navigationController = tabBarController.selectedViewController as? UINavigationController {
+                            navigationController.setNavigationBarHidden(true, animated: false)
+                        }
+                    }
+                }
+            }
+        }
+        .onDisappear {
+            // 页面消失时恢复导航栏显示，避免影响其他页面
+            DispatchQueue.main.async {
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                    if let navigationController = windowScene.windows.first?.rootViewController as? UINavigationController {
+                        navigationController.setNavigationBarHidden(false, animated: false)
+                    } else if let tabBarController = windowScene.windows.first?.rootViewController as? UITabBarController {
+                        if let navigationController = tabBarController.selectedViewController as? UINavigationController {
+                            navigationController.setNavigationBarHidden(false, animated: false)
+                        }
+                    }
+                }
+            }
         }
         // 操作提示消息
         .overlay(
