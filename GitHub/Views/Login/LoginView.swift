@@ -52,6 +52,15 @@ struct LoginView: View {
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .colorScheme(.dark)
+    if !tokenText.isEmpty {
+    Button(action: { tokenText = "" }) {
+        Image(systemName: "xmark.circle.fill")
+            .foregroundColor(.gray)
+            .font(.system(size: 20))
+    }
+    .buttonStyle(PlainButtonStyle())
+}
+
 
                         Button(action: {
                             showTokenHelp.toggle()
