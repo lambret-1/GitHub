@@ -46,21 +46,26 @@ struct LoginView: View {
                             .font(.headline)
                             .foregroundColor(.green)
 
-                        TextField("请输入 GitHub 个人访问令牌", text: $tokenText)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .font(.system(size: 14, design: .monospaced))
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                            .colorScheme(.dark)
+                       HStack(spacing: 8) {
+    SecureField("请输入 GitHub 个人访问令牌", text: $tokenText)
+        .textFieldStyle(RoundedBorderTextFieldStyle())
+        .font(.system(size: 14, design: .monospaced))
+        .autocapitalization(.none)
+        .disableAutocorrection(true)
+        .colorScheme(.dark)
+    
+    // 快捷删除按钮
     if !tokenText.isEmpty {
-    Button(action: { tokenText = "" }) {
-        Image(systemName: "xmark.circle.fill")
-            .foregroundColor(.gray)
-            .font(.system(size: 20))
+        Button(action: {
+            tokenText = ""
+        }) {
+            Image(systemName: "xmark.circle.fill")
+                .foregroundColor(.gray)
+                .font(.system(size: 20))
+        }
+        .buttonStyle(PlainButtonStyle())
     }
-    .buttonStyle(PlainButtonStyle())
 }
-
 
                         Button(action: {
                             showTokenHelp.toggle()
