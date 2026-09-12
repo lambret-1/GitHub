@@ -4,9 +4,6 @@ struct ProfileView: View {
     @EnvironmentObject var appState: AppState
     @State private var showLogoutAlert = false
 
-    // 代码字符集（用于背景动画）
-    private static let codeChars = ["0", "1", "{", "}", "(", ")", ";", "=", "+", "/", "*", "#", "<", ">", "!", "?", ":", "&", "|", "[", "]"]
-
     // 页面导航状态（用于隐藏NavigationLink的>符号）
     @State private var showAbout = false
     @State private var showAccountManager = false
@@ -25,13 +22,6 @@ struct ProfileView: View {
     @State private var downloadErrorMessage: String?
     @State private var showDownloadError = false
 
-    // 头像动画状态
-    @State private var animateAvatar = false
-    // 终端光标闪烁状态
-    @State private var cursorBlink = false
-    // 代码字符流动偏移
-    @State private var codeOffset: CGFloat = 0
-
     var body: some View {
         NavigationView {
             List {
@@ -46,25 +36,6 @@ struct ProfileView: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                                 )
-
-                            // 背景代码字符流动动画（程序员风格）
-                            GeometryReader { geometry in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    ForEach(0..<8, id: \.self) { row in
-                                        HStack(spacing: 4) {
-                                            ForEach(0..<12, id: \.self) { col in
-                                                Text(Self.codeChars[(row + col) % Self.codeChars.count])
-                                                    .font(.system(size: 8, design: .monospaced))
-                                                    .foregroundColor(Color.gray.opacity(0.08))
-                                            }
-                                        }
-                                    }
-                                }
-                                .padding(.top, 40)
-                                .padding(.horizontal, 12)
-                                .offset(y: codeOffset * 2)
-                                .animation(Animation.linear(duration: 8).repeatForever(autoreverses: false), value: codeOffset)
-                            }
 
                             // 终端内容
                             VStack(spacing: 16) {
@@ -97,32 +68,15 @@ struct ProfileView: View {
                                 .padding(.horizontal, 12)
                                 .padding(.top, 10)
 
-                                // 头像（双击切换暗黑模式）
-                                ZStack {
-                                    // 终端光标闪烁边框（程序员风格）
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(
-                                            LinearGradient(
-                                                gradient: Gradient(colors: [Color.green.opacity(cursorBlink ? 0.8 : 0.2), Color.cyan.opacity(cursorBlink ? 0.6 : 0.1)]),
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            ),
-                                            lineWidth: 2
-                                        )
-                                        .frame(width: 88, height: 88)
-                                        .animation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: cursorBlink)
-
-                                    // 头像主体
-                                    CachedImageView(urlString: user.avatarUrl, placeholder: Image(systemName: "person.circle.fill"))
-                                        .frame(width: 80, height: 80)
-                                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.8), lineWidth: 1.5))
-                                        .shadow(radius: 3)
-                                }
-                                .frame(width: 88, height: 88)
-                                .onTapGesture(count: 2) {
-                                    appState.toggleDarkMode()
-                                }
+                                // 头像（双击切换暗黑模式，还原初始状态无动画）
+                                CachedImageView(urlString: user.avatarUrl, placeholder: Image(systemName: "person.circle.fill"))
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                    .shadow(radius: 4)
+                                    .onTapGesture(count: 2) {
+                                        appState.toggleDarkMode()
+                                    }
 
                                 // 姓名和用户名（代码风格）
                                 VStack(spacing: 4) {
@@ -178,11 +132,6 @@ struct ProfileView: View {
                                     Text("whoami")
                                         .font(.system(size: 12, design: .monospaced))
                                         .foregroundColor(.primary)
-                                    // 闪烁光标
-                                    Rectangle()
-                                        .fill(cursorBlink ? Color.primary : Color.clear)
-                                        .frame(width: 7, height: 14)
-                                        .animation(Animation.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: cursorBlink)
                                 }
                                 .padding(.top, 4)
                                 .padding(.bottom, 8)
@@ -192,17 +141,6 @@ struct ProfileView: View {
                         }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(Color.clear)
-                        .onAppear {
-                            // 启动动画
-                            animateAvatar = true
-                            cursorBlink = true
-                            // 代码字符流动动画：持续循环
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                withAnimation(Animation.linear(duration: 8).repeatForever(autoreverses: false)) {
-                                    codeOffset = 20
-                                }
-                            }
-                        }
                     }
                     
                     // 详细信息
