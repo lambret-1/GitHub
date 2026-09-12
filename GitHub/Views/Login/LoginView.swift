@@ -13,9 +13,9 @@ struct LoginView: View {
             Color.black.ignoresSafeArea()
 
             // 矩阵雨背景动画（黑客帝国风格）
-            MatrixRainView()
+           MatrixRainView()
     .opacity(0.4)
-    .frame(height: 400)  // 限制高度为400pt
+    .frame(maxHeight: 500, alignment: .top)  // 最大高度500pt，内容顶部对齐
     .ignoresSafeArea()
             // 扫描线效果（CRT显示器风格）
             ScanlineOverlayView()
