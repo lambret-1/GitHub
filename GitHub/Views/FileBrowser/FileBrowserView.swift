@@ -58,6 +58,7 @@ class HTMLCache {
 struct FileBrowserView: View {
     let repository: Repository
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
     @State var files: [FileItem] = []
     @State var currentPath: String = ""
     @State var pathStack: [String] = []
@@ -188,6 +189,9 @@ struct FileBrowserView: View {
 
     var baseView: some View {
         VStack(spacing: 0) {
+            // 自定义顶部导航栏（替代系统导航栏，避免双重导航栏问题）
+            customNavigationBar
+
             // 文件列表内容（包含仓库头部、分支栏、路径导航栏，均可跟随屏幕滑动）
             fileListContent
 
@@ -198,10 +202,7 @@ struct FileBrowserView: View {
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarHidden(false)
-        .toolbar {
-            toolbarContent
-        }
+        .navigationBarHidden(true)
         // 隐藏的NavigationLink（拆分成单独属性，简化body表达式，避免类型检查超时）
         .background(hiddenNavigationLinks)
         .overlay {
@@ -867,6 +868,61 @@ struct FileBrowserView: View {
     // MARK: - 工具栏内容
 
     @ToolbarContentBuilder
+    // MARK: - 自定义顶部导航栏（替代系统导航栏，避免双重导航栏问题）
+
+    var customNavigationBar: some View {
+        HStack(spacing: 12) {
+            // 返回按钮
+            Button(action: {
+                // 返回上一级页面
+                dismiss()
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 17, weight: .semibold))
+                    Text("返回")
+                        .font(.system(size: 17))
+                }
+                .foregroundColor(.blue)
+                .frame(height: 44)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            Spacer()
+
+            // 仓库所有者头像和用户名
+            HStack(spacing: 8) {
+                AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(.gray)
+                }
+                .frame(width: 28, height: 28)
+                .clipShape(Circle())
+
+                Text(repository.ownerName)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color(.systemBackground))
+        .overlay(
+            Rectangle()
+                .frame(height: 0.5)
+                .foregroundColor(Color(.separator)),
+            alignment: .bottom
+        )
+    }
+
+    // MARK: - 工具栏内容（原三个点菜单位置：显示仓库所有者头像和用户名）
+
     var toolbarContent: some ToolbarContent {
         // 原三个点菜单位置：显示仓库所有者头像和用户名
         ToolbarItem(placement: .navigationBarTrailing) {
