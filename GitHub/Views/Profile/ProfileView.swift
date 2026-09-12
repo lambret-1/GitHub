@@ -24,92 +24,180 @@ struct ProfileView: View {
 
     // 头像动画状态
     @State private var animateAvatar = false
+    // 终端光标闪烁状态
+    @State private var cursorBlink = false
+    // 代码字符流动偏移
+    @State private var codeOffset: CGFloat = 0
 
     var body: some View {
         NavigationView {
             List {
                 if let user = appState.currentUser {
-                    // 用户信息卡片
+                    // 用户信息卡片（程序员风格终端窗口）
                     Section {
-                        VStack(spacing: 16) {
-                            // 头像（双击切换暗黑模式，简洁风格动画渲染）
-                            ZStack {
-                                // 外层脉冲光环（延迟0.5秒）
-                                Circle()
-                                    .stroke(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.1)]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 2
-                                    )
-                                    .frame(width: 96, height: 96)
-                                    .scaleEffect(animateAvatar ? 1.15 : 1.0)
-                                    .opacity(animateAvatar ? 0 : 0.6)
-                                    .animation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: false).delay(0.5), value: animateAvatar)
+                        ZStack(alignment: .topLeading) {
+                            // 终端窗口背景
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(.systemBackground))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
 
-                                // 内层脉冲光环
-                                Circle()
-                                    .stroke(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [Color.blue.opacity(0.4), Color.cyan.opacity(0.2)]),
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        ),
-                                        lineWidth: 1.5
-                                    )
-                                    .frame(width: 88, height: 88)
-                                    .scaleEffect(animateAvatar ? 1.1 : 1.0)
-                                    .opacity(animateAvatar ? 0 : 0.7)
-                                    .animation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: false), value: animateAvatar)
+                            // 背景代码字符流动动画（程序员风格）
+                            GeometryReader { geometry in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    ForEach(0..<8, id: \.self) { row in
+                                        HStack(spacing: 4) {
+                                            ForEach(0..<12, id: \.self) { col in
+                                                Text(["0", "1", "{", "}", "(", ")", ";", "=", "+", "/", "*", "#"][(row + col + Int(codeOffset)) % 14])
+                                                    .font(.system(size: 8, design: .monospaced))
+                                                    .foregroundColor(Color.gray.opacity(0.08))
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(.top, 40)
+                                .padding(.horizontal, 12)
+                                .offset(y: codeOffset * 2)
+                                .animation(Animation.linear(duration: 8).repeatForever(autoreverses: false), value: codeOffset)
+                            }
 
-                                // 头像主体（轻微呼吸缩放）
-                                CachedImageView(urlString: user.avatarUrl, placeholder: Image(systemName: "person.circle.fill"))
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(Circle())
-                                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                                    .shadow(radius: 4)
-                                    .scaleEffect(animateAvatar ? 1.02 : 1.0)
-                                    .animation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: animateAvatar)
+                            // 终端内容
+                            VStack(spacing: 16) {
+                                // 终端标题栏
+                                HStack(spacing: 8) {
+                                    // 红黄绿三个圆点（macOS终端风格）
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 10, height: 10)
+                                    Circle()
+                                        .fill(Color.orange)
+                                        .frame(width: 10, height: 10)
+                                    Circle()
+                                        .fill(Color.green)
+                                        .frame(width: 10, height: 10)
+
+                                    Spacer()
+
+                                    // 终端标题
+                                    Text("~ /profile")
+                                        .font(.system(size: 12, design: .monospaced))
+                                        .foregroundColor(.gray)
+
+                                    Spacer()
+
+                                    // 占位，保持标题居中
+                                    Color.clear
+                                        .frame(width: 54)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.top, 10)
+
+                                // 头像（双击切换暗黑模式）
+                                ZStack {
+                                    // 终端光标闪烁边框（程序员风格）
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color.green.opacity(cursorBlink ? 0.8 : 0.2), Color.cyan.opacity(cursorBlink ? 0.6 : 0.1)]),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 2
+                                        )
+                                        .frame(width: 88, height: 88)
+                                        .animation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: cursorBlink)
+
+                                    // 头像主体
+                                    CachedImageView(urlString: user.avatarUrl, placeholder: Image(systemName: "person.circle.fill"))
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.8), lineWidth: 1.5))
+                                        .shadow(radius: 3)
+                                }
+                                .frame(width: 88, height: 88)
+                                .onTapGesture(count: 2) {
+                                    appState.toggleDarkMode()
+                                }
+
+                                // 姓名和用户名（代码风格）
+                                VStack(spacing: 4) {
+                                    // 姓名：const char* name = "xxx";
+                                    HStack(spacing: 4) {
+                                        Text("const char* name = ")
+                                            .font(.system(size: 13, design: .monospaced))
+                                            .foregroundColor(.gray)
+                                        Text("\"\(user.displayName)\"")
+                                            .font(.system(size: 13, design: .monospaced).bold())
+                                            .foregroundColor(.green)
+                                        Text(";")
+                                            .font(.system(size: 13, design: .monospaced))
+                                            .foregroundColor(.gray)
+                                    }
+
+                                    // 用户名：string user = "@xxx";
+                                    HStack(spacing: 4) {
+                                        Text("string user = ")
+                                            .font(.system(size: 12, design: .monospaced))
+                                            .foregroundColor(.gray)
+                                        Text("\"@\(user.login)\"")
+                                            .font(.system(size: 12, design: .monospaced))
+                                            .foregroundColor(.blue)
+                                        Text(";")
+                                            .font(.system(size: 12, design: .monospaced))
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+
+                                // 简介（如果有）
+                                if let bio = user.bio, !bio.isEmpty {
+                                    Text("// \(bio)")
+                                        .font(.system(size: 12, design: .monospaced))
+                                        .foregroundColor(.gray)
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                }
+
+                                // 统计数据（代码风格）
+                                HStack(spacing: 20) {
+                                    StatView(number: user.publicRepos ?? 0, label: "repos")
+                                    StatView(number: user.followers ?? 0, label: "followers")
+                                    StatView(number: user.following ?? 0, label: "following")
+                                }
+                                .padding(.top, 4)
+
+                                // 底部命令行（程序员风格）
+                                HStack(spacing: 6) {
+                                    Text("$")
+                                        .font(.system(size: 12, design: .monospaced).bold())
+                                        .foregroundColor(.green)
+                                    Text("whoami")
+                                        .font(.system(size: 12, design: .monospaced))
+                                        .foregroundColor(.primary)
+                                    // 闪烁光标
+                                    Rectangle()
+                                        .fill(cursorBlink ? Color.primary : Color.clear)
+                                        .frame(width: 7, height: 14)
+                                        .animation(Animation.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: cursorBlink)
+                                }
+                                .padding(.top, 4)
+                                .padding(.bottom, 8)
                             }
-                            .frame(width: 96, height: 96)
-                            .onTapGesture(count: 2) {
-                                // 双击头像切换暗黑模式
-                                appState.toggleDarkMode()
-                            }
-                            .onAppear {
-                                // 启动头像动画
-                                animateAvatar = true
-                            }
-                            
-                            // 姓名和用户名
-                            VStack(spacing: 4) {
-                                Text(user.displayName)
-                                    .font(.title2.bold())
-                                Text("@\(user.login)")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            // 简介
-                            if let bio = user.bio, !bio.isEmpty {
-                                Text(bio)
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                            }
-                            
-                            // 统计数据
-                            HStack(spacing: 30) {
-                                StatView(number: user.publicRepos ?? 0, label: "仓库")
-                                StatView(number: user.followers ?? 0, label: "粉丝")
-                                StatView(number: user.following ?? 0, label: "关注")
-                            }
-                            .padding(.top, 8)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 20)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .onAppear {
+                            // 启动动画
+                            animateAvatar = true
+                            cursorBlink = true
+                            // 代码字符流动动画
+                            withAnimation(Animation.linear(duration: 8).repeatForever(autoreverses: false)) {
+                                codeOffset = 100
+                            }
+                        }
                     }
                     
                     // 详细信息
@@ -413,13 +501,14 @@ struct ProfileView: View {
 struct StatView: View {
     let number: Int
     let label: String
-    
+
     var body: some View {
         VStack(spacing: 4) {
             Text("\(number)")
-                .font(.title2.bold())
+                .font(.system(size: 18, design: .monospaced).bold())
+                .foregroundColor(.cyan)
             Text(label)
-                .font(.caption)
+                .font(.system(size: 10, design: .monospaced))
                 .foregroundColor(.gray)
         }
     }
