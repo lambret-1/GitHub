@@ -9,33 +9,25 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            // 暗黑渐变背景（简化，避免复杂动画导致闪退）
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.black,
-                    Color(red: 0.0, green: 0.1, blue: 0.0),
-                    Color.black
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            // 暗黑背景
+            Color.black.ignoresSafeArea()
+
+            // 矩阵雨背景动画（黑客帝国风格）
+            MatrixRainView()
+                .opacity(0.4)
+                .ignoresSafeArea()
+
+            // 扫描线效果（CRT显示器风格）
+            ScanlineOverlayView()
+                .opacity(0.3)
+                .ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 30) {
-                    // 顶部Logo区域
+                    // 顶部Logo区域（黑客风格发光头像）
                     VStack(spacing: 16) {
-                        // 头像（简化发光效果）
-                        Image("AppIconImage")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 80, height: 80)
-                            .cornerRadius(16)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(Color.green.opacity(0.6), lineWidth: 1.5)
-                            )
-                            .shadow(color: Color.green.opacity(0.4), radius: 8, x: 0, y: 0)
+                        // 带发光脉冲效果的头像
+                        GlowingAvatarView(imageName: "AppIconImage", size: 80)
 
                         Text("GitHub 中文客户端")
                             .font(.largeTitle.bold())

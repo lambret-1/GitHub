@@ -6,23 +6,23 @@ import SwiftUI
 struct MatrixRainView: View {
     // 动画计时器，驱动字符下落
     @State private var animatableData: Double = 0
-    // 字符列数
-    private let columns = 20
-    // 字符集：数字、字母、符号
-    private let characters = Array("01アイウエオカキクケコサシスセソタチツテトナニヌネノ<>/\\|{}[]=+*#$%&@")
-    // 定时器，每50毫秒更新一次
-    private let timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
+    // 字符列数（减少到12列，降低性能开销）
+    private let columns = 12
+    // 字符集：只使用ASCII字符，避免日文字体渲染开销
+    private let characters = Array("01<>/\\|{}[]=+*#$%&@")
+    // 定时器，每100毫秒更新一次（降低频率，减少CPU使用）
+    private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         GeometryReader { geometry in
             let columnWidth = geometry.size.width / CGFloat(columns)
-            let rowHeight: CGFloat = 18
+            let rowHeight: CGFloat = 20
 
             ZStack {
                 // 黑色背景
                 Color.black.opacity(0.85)
 
-                // 矩阵字符雨
+                // 矩阵字符雨（减少到10行）
                 ForEach(0..<columns, id: \.self) { column in
                     MatrixColumnView(
                         column: column,
@@ -66,23 +66,23 @@ struct MatrixColumnView: View {
 
     // 每列的随机速度和偏移量，确保动画自然
     private var speed: Double {
-        Double((column * 7 + 13) % 5 + 2)
+        Double((column * 7 + 13) % 3 + 1)
     }
 
     private var offset: Double {
-        Double((column * 17 + 29) % 30)
+        Double((column * 17 + 29) % 20)
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            ForEach(0..<15, id: \.self) { row in
+            ForEach(0..<10, id: \.self) { row in
                 Text(String(characterAt(row: row)))
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundColor(colorFor(row: row))
                     .frame(width: columnWidth, height: rowHeight)
             }
         }
-        .offset(y: CGFloat((animatableData * speed + offset).truncatingRemainder(dividingBy: Double(rowHeight * 15))))
+        .offset(y: CGFloat((animatableData * speed + offset).truncatingRemainder(dividingBy: Double(rowHeight * 10))))
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, CGFloat(column) * columnWidth)
     }
@@ -95,7 +95,7 @@ struct MatrixColumnView: View {
 
     /// 根据行计算颜色，头部亮绿色，尾部渐变暗
     private func colorFor(row: Int) -> Color {
-        let brightness = Double(15 - row) / 15.0
+        let brightness = Double(10 - row) / 10.0
         if row == 0 {
             // 头部字符：亮白色带绿色光晕
             return Color(red: 0.8, green: 1.0, blue: 0.8)
@@ -167,24 +167,19 @@ struct GlowingAvatarView: View {
 }
 
 // MARK: - 扫描线覆盖层
-/// 老式CRT显示器扫描线效果
+/// 老式CRT显示器扫描线效果（优化：使用渐变替代大量Rectangle视图）
 struct ScanlineOverlayView: View {
     var body: some View {
-        GeometryReader { geometry in
-            let lineHeight: CGFloat = 4
-            let lineCount = Int(geometry.size.height / lineHeight)
-
-            VStack(spacing: 0) {
-                ForEach(0..<lineCount, id: \.self) { _ in
-                    Rectangle()
-                        .fill(Color.black.opacity(0.15))
-                        .frame(height: lineHeight / 2)
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(height: lineHeight / 2)
-                }
-            }
-        }
+        // 使用线性渐变模拟扫描线效果，避免创建数百个Rectangle视图
+        LinearGradient(
+            gradient: Gradient(stops: [
+                .init(color: Color.black.opacity(0.15), location: 0.0),
+                .init(color: Color.clear, location: 0.5),
+                .init(color: Color.black.opacity(0.15), location: 1.0)
+            ]),
+            startPoint: .top,
+            endPoint: .bottom
+        )
         .allowsHitTesting(false)
     }
 }
