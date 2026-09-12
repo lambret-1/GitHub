@@ -11,9 +11,29 @@ class FileDownloadManager {
 
     private init() {}
 
+    // MARK: - 下载文件夹路径
+
+    /// 获取"下载"文件夹路径（Documents/下载）
+    /// - Returns: 下载文件夹URL
+    func downloadDirectoryURL() -> URL {
+        let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let downloadDir = documentsDir.appendingPathComponent("下载", isDirectory: true)
+
+        // 如果文件夹不存在，创建它
+        if !FileManager.default.fileExists(atPath: downloadDir.path) {
+            do {
+                try FileManager.default.createDirectory(at: downloadDir, withIntermediateDirectories: true, attributes: nil)
+            } catch {
+                print("创建下载文件夹失败: \(error)")
+            }
+        }
+
+        return downloadDir
+    }
+
     // MARK: - 下载文件
 
-    /// 下载文件并保存到临时目录
+    /// 下载文件并保存到"下载"文件夹
     /// - Parameters:
     ///   - url: 文件下载URL
     ///   - fileName: 保存的文件名
@@ -37,8 +57,9 @@ class FileDownloadManager {
             return
         }
 
-        let tempDir = FileManager.default.temporaryDirectory
-        let fileURL = tempDir.appendingPathComponent(fileName)
+        // 保存到"下载"文件夹
+        let downloadDir = downloadDirectoryURL()
+        let fileURL = downloadDir.appendingPathComponent(fileName)
 
         // 如果已存在同名文件，先删除
         if FileManager.default.fileExists(atPath: fileURL.path) {
@@ -130,19 +151,19 @@ class FileDownloadManager {
         viewController.present(documentPicker, animated: true)
     }
 
-    // MARK: - 清理临时文件
+    // MARK: - 清理下载文件
 
-    /// 清理下载的临时文件
-    func cleanupTempFiles() {
-        let tempDir = FileManager.default.temporaryDirectory
+    /// 清理"下载"文件夹中的所有文件
+    func cleanupDownloadFiles() {
+        let downloadDir = downloadDirectoryURL()
         do {
-            let files = try FileManager.default.contentsOfDirectory(atPath: tempDir.path)
+            let files = try FileManager.default.contentsOfDirectory(atPath: downloadDir.path)
             for file in files {
-                let fileURL = tempDir.appendingPathComponent(file)
+                let fileURL = downloadDir.appendingPathComponent(file)
                 try? FileManager.default.removeItem(at: fileURL)
             }
         } catch {
-            print("清理临时文件失败: \(error)")
+            print("清理下载文件失败: \(error)")
         }
     }
 
