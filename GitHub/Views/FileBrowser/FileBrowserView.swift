@@ -1580,26 +1580,36 @@ struct FileBrowserView: View {
         }
 
         // 2. 只搜索文本文件（跳过二进制文件和大文件）
-        let textFileExtensions = ["swift", "md", "yml", "yaml", "json", "plist", "txt", "sh", "py", "js", "ts", "html", "css", "xml"]
+        let textFileExtensions = ["swift", "md", "yml", "yaml", "json", "plist", "txt", "sh", "py", "js", "ts", "html", "css", "xml", "gitignore", "env", "config"]
         let textFiles = treeItems.filter { item in
-            let ext = (item.path as NSString).pathExtension.lowercased()
+            let path = item.path
+            let ext = (path as NSString).pathExtension.lowercased()
             let size = item.size ?? 0
-            return textFileExtensions.contains(ext) && size < 500 * 1024 // 小于500KB
+            // 支持有扩展名的文本文件，以及无扩展名的文本文件（如.gitignore, Dockerfile等）
+            let isTextFile = textFileExtensions.contains(ext) || ext.isEmpty
+            return isTextFile && size < 1024 * 1024 // 小于1MB
         }
 
-        // 限制最多搜索50个文件，避免超时
-        let filesToSearch = Array(textFiles.prefix(50))
+        // 限制最多搜索200个文件，确保覆盖仓库所有文件
+        let filesToSearch = Array(textFiles.prefix(200))
 
         // 3. 逐个下载文件内容并搜索
         let group = DispatchGroup()
         let lock = NSLock()
+        var searchedCount = 0
+        var errorCount = 0
 
         for fileItem in filesToSearch {
             group.enter()
-            let contentPath = fileItem.path.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlPathAllowed) ?? fileItem.path
-            let contentURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/contents/\(contentPath)?ref=\(selectedBranch)"
+            // 对路径中的每个组件进行编码，避免特殊字符问题
+            let pathComponents = fileItem.path.split(separator: "/").map { String($0).addingPercentEncoding(withAllowedCharacters: CharacterSet.urlPathAllowed) ?? String($0) }
+            let encodedPath = pathComponents.joined(separator: "/")
+            let contentURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/contents/\(encodedPath)?ref=\(selectedBranch)"
 
             guard let fileURL = URL(string: contentURL) else {
+                lock.lock()
+                errorCount += 1
+                lock.unlock()
                 group.leave()
                 continue
             }
@@ -1607,13 +1617,18 @@ struct FileBrowserView: View {
             var fileRequest = URLRequest(url: fileURL)
             fileRequest.setValue("token \(TokenKeychain.shared.getToken() ?? "")", forHTTPHeaderField: "Authorization")
             fileRequest.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+            fileRequest.timeoutInterval = 15
 
             URLSession.shared.dataTask(with: fileRequest) { data, response, error in
                 defer {
+                    lock.lock()
+                    searchedCount += 1
+                    if error != nil { errorCount += 1 }
+                    lock.unlock()
                     group.leave()
                 }
 
-                guard let data = data else { return }
+                guard let data = data, error == nil else { return }
                 do {
                     let fileContent = try JSONDecoder().decode(FileContent.self, from: data)
                     let content = fileContent.decodedContent
@@ -1651,13 +1666,15 @@ struct FileBrowserView: View {
             }.resume()
         }
 
-        // 等待所有下载完成，最多等待30秒
-        let timeout = group.wait(timeout: .now() + 30)
+        // 等待所有下载完成，最多等待60秒
+        let timeout = group.wait(timeout: .now() + 60)
 
         DispatchQueue.main.async {
             self.isSearchingCode = false
             if results.isEmpty && timeout == .timedOut {
-                self.codeSearchError = "搜索超时，请尝试更具体的关键词"
+                self.codeSearchError = "搜索超时（已搜索\(searchedCount)个文件），请尝试更具体的关键词"
+            } else if results.isEmpty {
+                self.codeSearchError = "未找到匹配的代码（已搜索\(searchedCount)个文件，\(errorCount)个文件失败）"
             } else {
                 self.codeSearchResults = results
             }
