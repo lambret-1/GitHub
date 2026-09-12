@@ -192,7 +192,7 @@ struct CodeTextView: UIViewRepresentable {
         // MARK: - iOS 16+ 自定义编辑菜单
         //
         // 菜单顺序：🔍查找 / 复制 / 剪切 / 粘贴 / 全选
-        // 其余系统菜单项（分享、翻译、搜索网页等）全部移除，避免被折叠到“更多”。
+        // 其余系统菜单项（分享、翻译、搜索网页等）全部移除，避免被折叠到"更多"。
         @available(iOS 16.0, *)
         func textView(_ textView: UITextView,
                       editMenuForTextIn range: NSRange,
@@ -201,15 +201,19 @@ struct CodeTextView: UIViewRepresentable {
                   range.location + range.length <= (textView.text as NSString).length
             else { return nil }
 
-            let selectedText = (textView.text as NSString).substring(with: range)
+            let selectedText = range.length > 0 ? (textView.text as NSString).substring(with: range) : ""
 
-            // 自定义“🔍查找”（放在第一位）
-            let lookupAction = UIAction(
-                title: "🔍查找",
-                image: UIImage(systemName: "magnifyingglass")
-            ) { [weak self] _ in
-                guard let self = self else { return }
-                self.onLookupSelectedText?(selectedText)
+            // 自定义"🔍查找"（放在第一位，仅在有选中文字时显示）
+            var actions: [UIMenuElement] = []
+            if !selectedText.isEmpty {
+                let lookupAction = UIAction(
+                    title: "🔍查找",
+                    image: UIImage(systemName: "magnifyingglass")
+                ) { [weak self] _ in
+                    guard let self = self else { return }
+                    self.onLookupSelectedText?(selectedText)
+                }
+                actions.append(lookupAction)
             }
 
             // 保留：复制 / 剪切 / 粘贴 / 全选
@@ -220,15 +224,29 @@ struct CodeTextView: UIViewRepresentable {
                 #selector(UIResponderStandardEditActions.selectAll(_:))
             ]
 
-            let filtered: [UIMenuElement] = suggestedActions.filter { element in
-                if let command = element as? UICommand {
-                    return keepSelectors.contains(command.action)
+            // 递归过滤菜单项，处理UIMenu子菜单
+            func filterMenuElements(_ elements: [UIMenuElement]) -> [UIMenuElement] {
+                var result: [UIMenuElement] = []
+                for element in elements {
+                    if let command = element as? UICommand {
+                        if keepSelectors.contains(command.action) {
+                            result.append(command)
+                        }
+                    } else if let menu = element as? UIMenu {
+                        // 递归处理子菜单
+                        let filteredChildren = filterMenuElements(menu.children)
+                        if !filteredChildren.isEmpty {
+                            result.append(contentsOf: filteredChildren)
+                        }
+                    }
                 }
-                return false
+                return result
             }
 
+            let filtered = filterMenuElements(suggestedActions)
+
             // 🔍查找 放第一位，其余系统项按原顺序排在后面
-            return UIMenu(children: [lookupAction] + filtered)
+            return UIMenu(children: actions + filtered)
         }
 
         // MARK: - UITextViewDelegate
