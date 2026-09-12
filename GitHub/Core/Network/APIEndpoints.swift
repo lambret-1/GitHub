@@ -31,6 +31,12 @@ enum APIEndpoints {
     case workflowDispatch(owner: String, repo: String, workflowId: Int)
     case cancelWorkflowRun(owner: String, repo: String, runId: Int)
     case rerunWorkflowRun(owner: String, repo: String, runId: Int)
+    case runArtifacts(owner: String, repo: String, runId: Int) // 获取运行的构建产物列表
+    case artifactDownload(owner: String, repo: String, artifactId: Int) // 下载构建产物
+    case commitFiles(owner: String, repo: String, sha: String) // 获取提交的变更文件列表
+    case enableWorkflow(owner: String, repo: String, workflowId: Int) // 启用工作流
+    case disableWorkflow(owner: String, repo: String, workflowId: Int) // 禁用工作流
+    case rerunFailedJobs(owner: String, repo: String, runId: Int) // 重新运行失败的作业
 
     // MARK: - 仓库交互相关端点
     case checkStarred(owner: String, repo: String)
@@ -123,6 +129,18 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/cancel"
         case .rerunWorkflowRun(let owner, let repo, let runId):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/rerun"
+        case .runArtifacts(let owner, let repo, let runId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/artifacts"
+        case .artifactDownload(let owner, let repo, let artifactId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/artifacts/\(artifactId)/zip"
+        case .commitFiles(let owner, let repo, let sha):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/commits/\(sha)"
+        case .enableWorkflow(let owner, let repo, let workflowId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/workflows/\(workflowId)/enable"
+        case .disableWorkflow(let owner, let repo, let workflowId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/workflows/\(workflowId)/disable"
+        case .rerunFailedJobs(let owner, let repo, let runId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/rerun-failed-jobs"
 
         // MARK: - 仓库交互相关端点实现
         case .checkStarred(let owner, let repo):

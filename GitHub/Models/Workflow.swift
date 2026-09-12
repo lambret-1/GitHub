@@ -474,3 +474,163 @@ func parseDate(_ dateString: String) -> Date? {
     formatter.formatOptions = [.withInternetDateTime]
     return formatter.date(from: dateString)
 }
+
+// MARK: - 构建产物 Artifact 模型
+
+struct ArtifactsResponse: Codable {
+    let totalCount: Int
+    let artifacts: [Artifact]
+
+    enum CodingKeys: String, CodingKey {
+        case totalCount = "total_count"
+        case artifacts
+    }
+}
+
+struct Artifact: Codable, Identifiable {
+    let id: Int
+    let nodeId: String
+    let name: String
+    let sizeInBytes: Int
+    let url: String
+    let archiveDownloadUrl: String
+    let expired: Bool
+    let createdAt: String
+    let expiresAt: String?
+    let workflowRun: ArtifactWorkflowRun?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, url, expired
+        case nodeId = "node_id"
+        case sizeInBytes = "size_in_bytes"
+        case archiveDownloadUrl = "archive_download_url"
+        case createdAt = "created_at"
+        case expiresAt = "expires_at"
+        case workflowRun = "workflow_run"
+    }
+
+    // 格式化的文件大小
+    var sizeDisplay: String {
+        let bytes = Double(sizeInBytes)
+        if bytes < 1024 {
+            return "\(Int(bytes)) B"
+        } else if bytes < 1024 * 1024 {
+            return String(format: "%.1f KB", bytes / 1024)
+        } else if bytes < 1024 * 1024 * 1024 {
+            return String(format: "%.2f MB", bytes / (1024 * 1024))
+        } else {
+            return String(format: "%.2f GB", bytes / (1024 * 1024 * 1024))
+        }
+    }
+
+    // 格式化的创建时间
+    var createdDisplay: String {
+        return 日期工具.相对时间(fromISO: createdAt)
+    }
+}
+
+struct ArtifactWorkflowRun: Codable {
+    let id: Int
+    let repositoryId: Int
+    let headRepositoryId: Int
+    let headBranch: String?
+    let headSha: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case repositoryId = "repository_id"
+        case headRepositoryId = "head_repository_id"
+        case headBranch = "head_branch"
+        case headSha = "head_sha"
+    }
+}
+
+// MARK: - 变更文件 ChangedFile 模型
+
+struct ChangedFile: Codable, Identifiable {
+    let sha: String
+    let filename: String
+    let status: String
+    let additions: Int
+    let deletions: Int
+    let changes: Int
+    let blobUrl: String?
+    let rawUrl: String?
+    let contentsUrl: String?
+    let patch: String?
+    let previousFilename: String?
+
+    enum CodingKeys: String, CodingKey {
+        case sha, filename, status, additions, deletions, changes, patch
+        case blobUrl = "blob_url"
+        case rawUrl = "raw_url"
+        case contentsUrl = "contents_url"
+        case previousFilename = "previous_filename"
+    }
+
+    var id: String { sha + filename }
+
+    // 状态显示文本
+    var statusDisplay: String {
+        switch status {
+        case "added": return "新增"
+        case "modified": return "修改"
+        case "removed": return "删除"
+        case "renamed": return "重命名"
+        case "copied": return "复制"
+        case "changed": return "变更"
+        case "unchanged": return "未变更"
+        default: return status
+        }
+    }
+
+    // 状态对应的颜色
+    var statusColor: Color {
+        switch status {
+        case "added": return .green
+        case "modified": return .blue
+        case "removed": return .red
+        case "renamed": return .orange
+        default: return .gray
+        }
+    }
+
+    // 文件名（只显示最后一段）
+    var shortFilename: String {
+        return (filename as NSString).lastPathComponent
+    }
+
+    // 文件路径（去掉文件名）
+    var filePath: String {
+        return (filename as NSString).deletingLastPathComponent
+    }
+}
+
+// MARK: - 运行统计 RunStats 模型
+
+struct RunStats {
+    let totalRuns: Int
+    let successCount: Int
+    let failureCount: Int
+    let cancelledCount: Int
+    let inProgressCount: Int
+    let averageDurationSeconds: Int?
+
+    // 成功率
+    var successRate: Double {
+        guard totalRuns > 0 else { return 0 }
+        return Double(successCount) / Double(totalRuns) * 100
+    }
+
+    // 格式化的平均耗时
+    var averageDurationDisplay: String {
+        guard let seconds = averageDurationSeconds else { return "-" }
+        if seconds < 60 {
+            return "\(seconds)秒"
+        } else if seconds < 3600 {
+            return "\(seconds / 60)分\(seconds % 60)秒"
+        } else {
+            return "\(seconds / 3600)时\((seconds % 3600) / 60)分"
+        }
+    }
+}

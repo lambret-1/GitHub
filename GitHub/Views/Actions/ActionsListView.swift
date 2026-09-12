@@ -1,24 +1,44 @@
 import SwiftUI
 
-// MARK: - Actions 主视图
+// MARK: - Actions 主入口视图（重做版）
 
 struct ActionsListView: View {
     let owner: String
     let repo: String
 
+    // 标签页状态
     @State private var selectedTab: Int = 0
-    @State private var workflows: [Workflow] = []
+
+    // 运行记录相关状态
     @State private var runs: [WorkflowRun] = []
-    @State private var isLoadingWorkflows: Bool = false
     @State private var isLoadingRuns: Bool = false
-    @State private var errorMessage: String?
+    @State private var runsError: String?
     @State private var currentPage: Int = 1
     @State private var hasMoreRuns: Bool = true
+
+    // 工作流相关状态
+    @State private var workflows: [Workflow] = []
+    @State private var isLoadingWorkflows: Bool = false
+    @State private var workflowsError: String?
+
+    // 统计概览相关状态
+    @State private var stats: RunStats?
+    @State private var isLoadingStats: Bool = false
+
+    // 筛选相关状态
+    @State private var showFilter: Bool = false
+    @State private var filterStatus: String = "all" // all/in_progress/success/failure
+    @State private var filterBranch: String = ""
+
+    // 触发工作流相关状态
     @State private var showTriggerAlert: Bool = false
     @State private var selectedWorkflow: Workflow?
 
     var body: some View {
         VStack(spacing: 0) {
+            // 统计概览卡片
+            statsOverviewCard
+
             // 标签切换
             Picker("选择", selection: $selectedTab) {
                 Text("运行记录").tag(0)
@@ -28,6 +48,7 @@ struct ActionsListView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
 
+            // 内容区域
             if selectedTab == 0 {
                 runsListView
             } else {
@@ -37,11 +58,14 @@ struct ActionsListView: View {
         .navigationTitle("Actions")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            if runs.isEmpty {
+                loadRuns()
+            }
             if workflows.isEmpty {
                 loadWorkflows()
             }
-            if runs.isEmpty {
-                loadRuns()
+            if stats == nil {
+                loadStats()
             }
         }
         .alert(isPresented: $showTriggerAlert) {
@@ -58,6 +82,62 @@ struct ActionsListView: View {
         }
     }
 
+    // MARK: - 统计概览卡片
+
+    private var statsOverviewCard: some View {
+        HStack(spacing: 12) {
+            // 总运行次数
+            statItem(
+                icon: "bolt.fill",
+                color: .blue,
+                value: "\(stats?.totalRuns ?? 0)",
+                label: "总运行"
+            )
+
+            Divider()
+                .frame(height: 40)
+
+            // 成功率
+            statItem(
+                icon: "checkmark.circle.fill",
+                color: .green,
+                value: String(format: "%.0f%%", stats?.successRate ?? 0),
+                label: "成功率"
+            )
+
+            Divider()
+                .frame(height: 40)
+
+            // 平均耗时
+            statItem(
+                icon: "clock.fill",
+                color: .orange,
+                value: stats?.averageDurationDisplay ?? "-",
+                label: "平均耗时"
+            )
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color(.systemGray6))
+    }
+
+    private func statItem(icon: String, color: Color, value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.caption)
+                    .foregroundColor(color)
+                Text(value)
+                    .font(.headline)
+                    .fontWeight(.bold)
+            }
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     // MARK: - 运行记录列表
 
     private var runsListView: some View {
@@ -65,7 +145,7 @@ struct ActionsListView: View {
             if isLoadingRuns && runs.isEmpty {
                 ProgressView("加载中...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error = errorMessage, runs.isEmpty {
+            } else if let error = runsError, runs.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.largeTitle)
@@ -128,7 +208,7 @@ struct ActionsListView: View {
             if isLoadingWorkflows && workflows.isEmpty {
                 ProgressView("加载中...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error = errorMessage, workflows.isEmpty {
+            } else if let error = workflowsError, workflows.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.largeTitle)
@@ -155,7 +235,7 @@ struct ActionsListView: View {
             } else {
                 List {
                     ForEach(workflows) { workflow in
-                        WorkflowRow(workflow: workflow) {
+                        WorkflowCard(workflow: workflow) {
                             selectedWorkflow = workflow
                             showTriggerAlert = true
                         }
@@ -171,37 +251,23 @@ struct ActionsListView: View {
 
     // MARK: - 数据加载
 
-    private func loadWorkflows(completion: (() -> Void)? = nil) {
-        isLoadingWorkflows = true
-        errorMessage = nil
-
-        GitHubAPI.shared.getWorkflows(owner: owner, repo: repo) { result in
-            DispatchQueue.main.async {
-                isLoadingWorkflows = false
-                switch result {
-                case .success(let workflows):
-                    self.workflows = workflows
-                case .failure(let error):
-                    self.errorMessage = "加载工作流失败: \(error.localizedDescription)"
-                }
-                completion?()
-            }
-        }
-    }
-
     private func loadRuns(completion: (() -> Void)? = nil) {
         isLoadingRuns = true
-        errorMessage = nil
+        runsError = nil
 
         GitHubAPI.shared.getWorkflowRuns(owner: owner, repo: repo, page: currentPage) { result in
             DispatchQueue.main.async {
                 isLoadingRuns = false
                 switch result {
                 case .success(let runs):
-                    self.runs = runs
+                    if currentPage == 1 {
+                        self.runs = runs
+                    } else {
+                        self.runs.append(contentsOf: runs)
+                    }
                     self.hasMoreRuns = runs.count >= 30
                 case .failure(let error):
-                    self.errorMessage = "加载运行记录失败: \(error.localizedDescription)"
+                    self.runsError = "加载运行记录失败: \(error.localizedDescription)"
                 }
                 completion?()
             }
@@ -210,17 +276,65 @@ struct ActionsListView: View {
 
     private func loadMoreRuns() {
         currentPage += 1
-        isLoadingRuns = true
+        loadRuns()
+    }
 
-        GitHubAPI.shared.getWorkflowRuns(owner: owner, repo: repo, page: currentPage) { result in
+    private func loadWorkflows(completion: (() -> Void)? = nil) {
+        isLoadingWorkflows = true
+        workflowsError = nil
+
+        GitHubAPI.shared.getWorkflows(owner: owner, repo: repo) { result in
             DispatchQueue.main.async {
-                isLoadingRuns = false
+                isLoadingWorkflows = false
                 switch result {
-                case .success(let newRuns):
-                    self.runs.append(contentsOf: newRuns)
-                    self.hasMoreRuns = newRuns.count >= 30
+                case .success(let workflows):
+                    self.workflows = workflows
+                case .failure(let error):
+                    self.workflowsError = "加载工作流失败: \(error.localizedDescription)"
+                }
+                completion?()
+            }
+        }
+    }
+
+    private func loadStats() {
+        isLoadingStats = true
+        // 加载最近30次运行用于统计
+        GitHubAPI.shared.getWorkflowRuns(owner: owner, repo: repo, page: 1, perPage: 30) { result in
+            DispatchQueue.main.async {
+                self.isLoadingStats = false
+                switch result {
+                case .success(let runs):
+                    var successCount = 0
+                    var failureCount = 0
+                    var cancelledCount = 0
+                    var inProgressCount = 0
+                    var totalDuration = 0
+                    var durationCount = 0
+
+                    for run in runs {
+                        if run.status == "completed" {
+                            switch run.conclusion {
+                            case "success": successCount += 1
+                            case "failure": failureCount += 1
+                            case "cancelled": cancelledCount += 1
+                            default: break
+                            }
+                        } else if run.status == "in_progress" {
+                            inProgressCount += 1
+                        }
+                    }
+
+                    self.stats = RunStats(
+                        totalRuns: runs.count,
+                        successCount: successCount,
+                        failureCount: failureCount,
+                        cancelledCount: cancelledCount,
+                        inProgressCount: inProgressCount,
+                        averageDurationSeconds: durationCount > 0 ? totalDuration / durationCount : nil
+                    )
                 case .failure:
-                    self.currentPage -= 1
+                    self.stats = nil
                 }
             }
         }
@@ -237,7 +351,7 @@ struct ActionsListView: View {
                     hasMoreRuns = true
                     loadRuns()
                 case .failure(let error):
-                    errorMessage = "触发工作流失败: \(error.localizedDescription)"
+                    runsError = "触发工作流失败: \(error.localizedDescription)"
                 }
             }
         }
@@ -248,7 +362,6 @@ struct ActionsListView: View {
     private func loadRunsAsync() async {
         await withCheckedContinuation { continuation in
             loadRuns {
-                // 最小延迟确保刷新动画流畅
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     continuation.resume()
                 }
@@ -259,7 +372,6 @@ struct ActionsListView: View {
     private func loadWorkflowsAsync() async {
         await withCheckedContinuation { continuation in
             loadWorkflows {
-                // 最小延迟确保刷新动画流畅
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     continuation.resume()
                 }
@@ -268,43 +380,37 @@ struct ActionsListView: View {
     }
 }
 
-// MARK: - 工作流运行行视图
+// MARK: - 工作流运行行视图（重做版）
 
 struct WorkflowRunRow: View {
     let run: WorkflowRun
-    // 旋转动画状态
     @State private var rotationAngle: Double = 0
 
     var body: some View {
         HStack(spacing: 12) {
-            // 状态图标（进行中时动态旋转）
+            // 状态图标
             ZStack {
                 if run.status == "in_progress" {
-                    // 进行中：旋转的循环箭头图标
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.title2)
                         .foregroundColor(Color(run.statusColor))
                         .rotationEffect(.degrees(rotationAngle))
                         .onAppear {
-                            // 启动无限旋转动画
                             withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
                                 rotationAngle = 360
                             }
                         }
                 } else if run.status == "queued" || run.status == "pending" {
-                    // 排队中：脉冲动画
                     Image(systemName: "clock")
                         .font(.title2)
                         .foregroundColor(Color(run.statusColor))
                         .opacity(0.5 + 0.5 * sin(rotationAngle / 180 * .pi))
                         .onAppear {
-                            // 启动脉冲动画
                             withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                                 rotationAngle = 360
                             }
                         }
                 } else {
-                    // 已完成：静态图标
                     Image(systemName: run.statusIcon)
                         .font(.title2)
                         .foregroundColor(Color(run.statusColor))
@@ -371,9 +477,9 @@ struct WorkflowRunRow: View {
     }
 }
 
-// MARK: - 工作流行视图
+// MARK: - 工作流卡片视图（重做版）
 
-struct WorkflowRow: View {
+struct WorkflowCard: View {
     let workflow: Workflow
     var onTrigger: () -> Void
 

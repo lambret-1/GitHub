@@ -1,203 +1,55 @@
 import SwiftUI
 
-// MARK: - 工作流运行详情视图
+// MARK: - 工作流运行详情视图（重做版）
 
 struct WorkflowRunDetailView: View {
     let owner: String
     let repo: String
     @State var run: WorkflowRun
 
+    // 作业相关状态
     @State private var jobs: [WorkflowJob] = []
     @State private var isLoadingJobs: Bool = false
-    @State private var errorMessage: String?
+    @State private var jobsError: String?
+
+    // 变更文件相关状态
+    @State private var changedFiles: [ChangedFile] = []
+    @State private var isLoadingFiles: Bool = false
+    @State private var filesError: String?
+
+    // Artifacts相关状态
+    @State private var artifacts: [Artifact] = []
+    @State private var isLoadingArtifacts: Bool = false
+    @State private var artifactsError: String?
+    @State private var downloadingArtifactId: Int?
+    @State private var showShareSheet: Bool = false
+    @State private var downloadedFileURL: URL?
+
+    // 操作相关状态
     @State private var showCancelAlert: Bool = false
     @State private var showRerunAlert: Bool = false
+    @State private var showRerunFailedAlert: Bool = false
     @State private var isRefreshing: Bool = false
+
     // 旋转动画状态
     @State private var rotationAngle: Double = 0
-    // 失败日志跳转状态
-    @State private var showFailedJobLog: Bool = false
-    @State private var failedJob: WorkflowJob?
 
     var body: some View {
         List {
-            // 运行状态概览
-            Section {
-                VStack(alignment: .leading, spacing: 12) {
-                    // 状态图标和名称
-                    HStack {
-                        ZStack {
-                            if run.status == "in_progress" {
-                                // 进行中：旋转的循环箭头图标
-                                Image(systemName: "arrow.triangle.2.circlepath")
-                                    .font(.largeTitle)
-                                    .foregroundColor(Color(run.statusColor))
-                                    .rotationEffect(.degrees(rotationAngle))
-                                    .onAppear {
-                                        // 启动无限旋转动画
-                                        withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                                            rotationAngle = 360
-                                        }
-                                    }
-                            } else if run.status == "queued" || run.status == "pending" {
-                                // 排队中：脉冲动画
-                                Image(systemName: "clock")
-                                    .font(.largeTitle)
-                                    .foregroundColor(Color(run.statusColor))
-                                    .opacity(0.5 + 0.5 * sin(rotationAngle / 180 * .pi))
-                                    .onAppear {
-                                        // 启动脉冲动画
-                                        withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
-                                            rotationAngle = 360
-                                        }
-                                    }
-                            } else {
-                                // 已完成：静态图标
-                                Image(systemName: run.statusIcon)
-                                    .font(.largeTitle)
-                                    .foregroundColor(Color(run.statusColor))
-                            }
-                        }
-                        .frame(width: 40)
+            // 状态横幅
+            statusBannerSection
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(run.name)
-                                .font(.title2)
-                                .fontWeight(.bold)
-                            Text("运行 #\(run.runNumber)")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+            // 运行概览
+            overviewSection
 
-                    // 状态标签
-                    HStack {
-                        Text(run.statusDisplay)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(Color(run.statusColor))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 4)
-                            .background(Color(run.statusColor).opacity(0.1))
-                            .cornerRadius(8)
-
-                        // 失败时显示退出码或查看日志按钮（点击跳转到失败日志）
-                        if run.conclusion == "failure", let failedJob = jobs.first(where: { $0.conclusion == "failure" }) {
-                            Button(action: {
-                                self.failedJob = failedJob
-                                self.showFailedJobLog = true
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .font(.caption)
-                                    if let exitCode = failedJob.exitCode {
-                                        Text("退出码: \(exitCode)")
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                    } else {
-                                        Text("查看失败日志")
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
-                                    }
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption2)
-                                }
-                                .foregroundColor(.red)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 4)
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(8)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-
-                        Spacer()
-                    }
-                }
-                .padding(.vertical, 8)
-            }
-
-            // 运行详情信息
-            Section("运行详情") {
-                detailRow(icon: "branch", title: "分支", value: run.headBranch)
-                detailRow(icon: "chevron.left.forwardslash.chevron.right", title: "提交", value: run.shortSha)
-                detailRow(icon: "bolt", title: "触发事件", value: run.eventDisplay)
-                detailRow(icon: "clock", title: "创建时间", value: run.formattedCreatedAt)
-                if let actor = run.actor {
-                    detailRow(icon: "person", title: "触发者", value: actor.login)
-                }
-                if let message = run.headCommit?.message {
-                    detailRow(icon: "text.alignleft", title: "提交信息", value: message)
-                }
-            }
-
-            // 操作按钮
-            if run.status == "in_progress" || run.status == "queued" {
-                Section {
-                    Button(action: {
-                        showCancelAlert = true
-                    }) {
-                        HStack {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.red)
-                            Text("取消运行")
-                                .foregroundColor(.red)
-                        }
-                    }
-                }
-            }
-
-            if run.status == "completed" {
-                Section {
-                    Button(action: {
-                        showRerunAlert = true
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.clockwise")
-                                .foregroundColor(.blue)
-                            Text("重新运行")
-                                .foregroundColor(.blue)
-                        }
-                    }
-                }
-            }
+            // 变更文件
+            changedFilesSection
 
             // 作业列表
-            Section("作业 (\(jobs.count))") {
-                if isLoadingJobs && jobs.isEmpty {
-                    HStack {
-                        Spacer()
-                        ProgressView("加载作业中...")
-                        Spacer()
-                    }
-                    .listRowSeparator(.hidden)
-                } else if let error = errorMessage, jobs.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .foregroundColor(.orange)
-                        Text(error)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                        Button("重试") {
-                            loadJobs()
-                        }
-                        .font(.caption)
-                    }
-                    .padding(.vertical)
-                    .listRowSeparator(.hidden)
-                } else if jobs.isEmpty {
-                    Text("暂无作业")
-                        .foregroundColor(.secondary)
-                        .listRowSeparator(.hidden)
-                } else {
-                    ForEach(jobs) { job in
-                        NavigationLink(destination: JobLogView(owner: owner, repo: repo, job: job)) {
-                            JobRow(job: job)
-                        }
-                    }
-                }
-            }
+            jobsSection
+
+            // Artifacts构建产物
+            artifactsSection
         }
         .listStyle(InsetGroupedListStyle())
         .navigationTitle("运行详情")
@@ -205,6 +57,12 @@ struct WorkflowRunDetailView: View {
         .onAppear {
             if jobs.isEmpty {
                 loadJobs()
+            }
+            if changedFiles.isEmpty {
+                loadChangedFiles()
+            }
+            if artifacts.isEmpty {
+                loadArtifacts()
             }
         }
         .refreshable {
@@ -227,17 +85,309 @@ struct WorkflowRunDetailView: View {
         } message: {
             Text("确定要重新运行此工作流吗？")
         }
-        // 隐藏的NavigationLink，用于点击退出码跳转到失败日志
-        .background(
-            NavigationLink(destination: Group {
-                if let job = failedJob {
-                    JobLogView(owner: owner, repo: repo, job: job)
-                }
-            }, isActive: $showFailedJobLog) {
-                EmptyView()
+        .alert("重新运行失败作业", isPresented: $showRerunFailedAlert) {
+            Button("重新运行") {
+                rerunFailedJobs()
             }
-            .hidden()
-        )
+            Button("返回", role: .cancel) {}
+        } message: {
+            Text("确定只重新运行失败的作业吗？")
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let url = downloadedFileURL {
+                ShareSheet(activityItems: [url])
+            }
+        }
+    }
+
+    // MARK: - 状态横幅
+
+    private var statusBannerSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                // 状态图标和名称
+                HStack {
+                    ZStack {
+                        if run.status == "in_progress" {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.largeTitle)
+                                .foregroundColor(Color(run.statusColor))
+                                .rotationEffect(.degrees(rotationAngle))
+                                .onAppear {
+                                    withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                                        rotationAngle = 360
+                                    }
+                                }
+                        } else if run.status == "queued" || run.status == "pending" {
+                            Image(systemName: "clock")
+                                .font(.largeTitle)
+                                .foregroundColor(Color(run.statusColor))
+                                .opacity(0.5 + 0.5 * sin(rotationAngle / 180 * .pi))
+                                .onAppear {
+                                    withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                                        rotationAngle = 360
+                                    }
+                                }
+                        } else {
+                            Image(systemName: run.statusIcon)
+                                .font(.largeTitle)
+                                .foregroundColor(Color(run.statusColor))
+                        }
+                    }
+                    .frame(width: 40)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(run.name)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        Text("运行 #\(run.runNumber)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // 状态标签和操作按钮
+                HStack {
+                    Text(run.statusDisplay)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(Color(run.statusColor))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(Color(run.statusColor).opacity(0.1))
+                        .cornerRadius(8)
+
+                    Spacer()
+
+                    // 操作按钮
+                    if run.status == "in_progress" || run.status == "queued" {
+                        Button(action: {
+                            showCancelAlert = true
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.red)
+                            Text("取消")
+                                .foregroundColor(.red)
+                        }
+                    }
+
+                    if run.status == "completed" {
+                        Button(action: {
+                            showRerunAlert = true
+                        }) {
+                            Image(systemName: "arrow.clockwise")
+                                .foregroundColor(.blue)
+                            Text("重跑")
+                                .foregroundColor(.blue)
+                        }
+
+                        if run.conclusion == "failure" {
+                            Button(action: {
+                                showRerunFailedAlert = true
+                            }) {
+                                Image(systemName: "exclamationmark.arrow.triangle.2.circlepath")
+                                    .foregroundColor(.orange)
+                                Text("重跑失败")
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    // MARK: - 运行概览
+
+    private var overviewSection: some View {
+        Section("运行概览") {
+            detailRow(icon: "branch", title: "分支", value: run.headBranch)
+            detailRow(icon: "chevron.left.forwardslash.chevron.right", title: "提交", value: run.shortSha)
+            detailRow(icon: "bolt", title: "触发事件", value: run.eventDisplay)
+            detailRow(icon: "clock", title: "创建时间", value: run.formattedCreatedAt)
+            if let actor = run.actor {
+                detailRow(icon: "person", title: "触发者", value: actor.login)
+            }
+            if let message = run.headCommit?.message {
+                detailRow(icon: "text.alignleft", title: "提交信息", value: message)
+            }
+        }
+    }
+
+    // MARK: - 变更文件
+
+    private var changedFilesSection: some View {
+        Section("变更文件 (\(changedFiles.count))") {
+            if isLoadingFiles && changedFiles.isEmpty {
+                HStack {
+                    Spacer()
+                    ProgressView("加载中...")
+                    Spacer()
+                }
+                .listRowSeparator(.hidden)
+            } else if let error = filesError, changedFiles.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundColor(.orange)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("重试") {
+                        loadChangedFiles()
+                    }
+                    .font(.caption)
+                }
+                .padding(.vertical)
+                .listRowSeparator(.hidden)
+            } else if changedFiles.isEmpty {
+                Text("暂无变更文件")
+                    .foregroundColor(.secondary)
+                    .listRowSeparator(.hidden)
+            } else {
+                ForEach(changedFiles) { file in
+                    HStack(spacing: 12) {
+                        Image(systemName: file.statusIcon)
+                            .foregroundColor(file.statusColor)
+                            .frame(width: 20)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(file.shortFilename)
+                                .font(.subheadline)
+                                .lineLimit(1)
+                            if !file.filePath.isEmpty {
+                                Text(file.filePath)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+
+                        Spacer()
+
+                        // 变更统计
+                        HStack(spacing: 6) {
+                            Text("+\(file.additions)")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                            Text("-\(file.deletions)")
+                                .font(.caption2)
+                                .foregroundColor(.red)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+        }
+    }
+
+    // MARK: - 作业列表
+
+    private var jobsSection: some View {
+        Section("作业 (\(jobs.count))") {
+            if isLoadingJobs && jobs.isEmpty {
+                HStack {
+                    Spacer()
+                    ProgressView("加载作业中...")
+                    Spacer()
+                }
+                .listRowSeparator(.hidden)
+            } else if let error = jobsError, jobs.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundColor(.orange)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("重试") {
+                        loadJobs()
+                    }
+                    .font(.caption)
+                }
+                .padding(.vertical)
+                .listRowSeparator(.hidden)
+            } else if jobs.isEmpty {
+                Text("暂无作业")
+                    .foregroundColor(.secondary)
+                    .listRowSeparator(.hidden)
+            } else {
+                ForEach(jobs) { job in
+                    NavigationLink(destination: JobLogView(owner: owner, repo: repo, job: job)) {
+                        JobRow(job: job)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Artifacts构建产物
+
+    private var artifactsSection: some View {
+        Section("构建产物 (\(artifacts.count))") {
+            if isLoadingArtifacts && artifacts.isEmpty {
+                HStack {
+                    Spacer()
+                    ProgressView("加载中...")
+                    Spacer()
+                }
+                .listRowSeparator(.hidden)
+            } else if let error = artifactsError, artifacts.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundColor(.orange)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("重试") {
+                        loadArtifacts()
+                    }
+                    .font(.caption)
+                }
+                .padding(.vertical)
+                .listRowSeparator(.hidden)
+            } else if artifacts.isEmpty {
+                Text("暂无构建产物")
+                    .foregroundColor(.secondary)
+                    .listRowSeparator(.hidden)
+            } else {
+                ForEach(artifacts) { artifact in
+                    HStack(spacing: 12) {
+                        Image(systemName: "archivebox.fill")
+                            .foregroundColor(.blue)
+                            .frame(width: 20)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(artifact.name)
+                                .font(.subheadline)
+                                .lineLimit(1)
+                            Text("\(artifact.sizeDisplay) · \(artifact.createdDisplay)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        // 下载按钮
+                        if downloadingArtifactId == artifact.id {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Button(action: {
+                                downloadArtifact(artifact)
+                            }) {
+                                Image(systemName: "square.and.arrow.down")
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+        }
     }
 
     // MARK: - 详情行视图
@@ -268,7 +418,7 @@ struct WorkflowRunDetailView: View {
 
     private func loadJobs(completion: (() -> Void)? = nil) {
         isLoadingJobs = true
-        errorMessage = nil
+        jobsError = nil
 
         GitHubAPI.shared.getWorkflowJobs(owner: owner, repo: repo, runId: run.id) { result in
             DispatchQueue.main.async {
@@ -278,7 +428,43 @@ struct WorkflowRunDetailView: View {
                 case .success(let jobs):
                     self.jobs = jobs
                 case .failure(let error):
-                    self.errorMessage = "加载作业失败: \(error.localizedDescription)"
+                    self.jobsError = "加载作业失败: \(error.localizedDescription)"
+                }
+                completion?()
+            }
+        }
+    }
+
+    private func loadChangedFiles(completion: (() -> Void)? = nil) {
+        isLoadingFiles = true
+        filesError = nil
+
+        GitHubAPI.shared.getCommitFiles(owner: owner, repo: repo, sha: run.headSha) { result in
+            DispatchQueue.main.async {
+                isLoadingFiles = false
+                switch result {
+                case .success(let files):
+                    self.changedFiles = files
+                case .failure(let error):
+                    self.filesError = "加载变更文件失败: \(error.localizedDescription)"
+                }
+                completion?()
+            }
+        }
+    }
+
+    private func loadArtifacts(completion: (() -> Void)? = nil) {
+        isLoadingArtifacts = true
+        artifactsError = nil
+
+        GitHubAPI.shared.getRunArtifacts(owner: owner, repo: repo, runId: run.id) { result in
+            DispatchQueue.main.async {
+                isLoadingArtifacts = false
+                switch result {
+                case .success(let artifacts):
+                    self.artifacts = artifacts
+                case .failure(let error):
+                    self.artifactsError = "加载构建产物失败: \(error.localizedDescription)"
                 }
                 completion?()
             }
@@ -304,11 +490,10 @@ struct WorkflowRunDetailView: View {
             DispatchQueue.main.async {
                 switch result {
                 case .success:
-                    // 刷新运行状态
                     refreshRun()
                     loadJobs()
                 case .failure(let error):
-                    errorMessage = "取消运行失败: \(error.localizedDescription)"
+                    jobsError = "取消运行失败: \(error.localizedDescription)"
                 }
             }
         }
@@ -319,21 +504,50 @@ struct WorkflowRunDetailView: View {
             DispatchQueue.main.async {
                 switch result {
                 case .success:
-                    // 刷新运行状态
                     refreshRun()
                     loadJobs()
                 case .failure(let error):
-                    errorMessage = "重新运行失败: \(error.localizedDescription)"
+                    jobsError = "重新运行失败: \(error.localizedDescription)"
                 }
             }
         }
     }
 
-    // MARK: - 异步刷新方法（用于下拉刷新）
+    private func rerunFailedJobs() {
+        GitHubAPI.shared.rerunFailedJobs(owner: owner, repo: repo, runId: run.id) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    refreshRun()
+                    loadJobs()
+                case .failure(let error):
+                    jobsError = "重新运行失败作业失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func downloadArtifact(_ artifact: Artifact) {
+        downloadingArtifactId = artifact.id
+
+        GitHubAPI.shared.downloadArtifact(owner: owner, repo: repo, artifactId: artifact.id) { result in
+            DispatchQueue.main.async {
+                downloadingArtifactId = nil
+                switch result {
+                case .success(let fileURL):
+                    downloadedFileURL = fileURL
+                    showShareSheet = true
+                case .failure(let error):
+                    artifactsError = "下载失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // MARK: - 异步刷新方法
 
     private func refreshAllAsync() async {
         await withCheckedContinuation { continuation in
-            // 使用 DispatchGroup 等待两个请求都完成
             let group = DispatchGroup()
 
             group.enter()
@@ -346,7 +560,16 @@ struct WorkflowRunDetailView: View {
                 group.leave()
             }
 
-            // 所有请求完成后，最小延迟确保刷新动画流畅
+            group.enter()
+            loadChangedFiles {
+                group.leave()
+            }
+
+            group.enter()
+            loadArtifacts {
+                group.leave()
+            }
+
             group.notify(queue: .main) {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     isRefreshing = false
@@ -361,39 +584,33 @@ struct WorkflowRunDetailView: View {
 
 struct JobRow: View {
     let job: WorkflowJob
-    // 旋转动画状态
     @State private var rotationAngle: Double = 0
 
     var body: some View {
         HStack(spacing: 12) {
-            // 状态图标（进行中时动态旋转）
+            // 状态图标
             ZStack {
                 if job.status == "in_progress" {
-                    // 进行中：旋转的循环箭头图标
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.title3)
                         .foregroundColor(Color(job.statusColor))
                         .rotationEffect(.degrees(rotationAngle))
                         .onAppear {
-                            // 启动无限旋转动画
                             withAnimation(Animation.linear(duration: 1.5).repeatForever(autoreverses: false)) {
                                 rotationAngle = 360
                             }
                         }
                 } else if job.status == "queued" || job.status == "pending" {
-                    // 排队中：脉冲动画
                     Image(systemName: "clock")
                         .font(.title3)
                         .foregroundColor(Color(job.statusColor))
                         .opacity(0.5 + 0.5 * sin(rotationAngle / 180 * .pi))
                         .onAppear {
-                            // 启动脉冲动画
                             withAnimation(Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                                 rotationAngle = 360
                             }
                         }
                 } else {
-                    // 已完成：静态图标
                     Image(systemName: job.statusIcon)
                         .font(.title3)
                         .foregroundColor(Color(job.statusColor))
@@ -431,7 +648,6 @@ struct JobRow: View {
                     .font(.caption2)
                     .foregroundColor(Color(job.statusColor))
 
-                // 失败时显示退出码
                 if job.conclusion == "failure", let exitCode = job.exitCode {
                     Text("(\(exitCode))")
                         .font(.caption2)
@@ -444,252 +660,29 @@ struct JobRow: View {
     }
 }
 
-// MARK: - 作业日志视图
+// MARK: - 系统分享面板
 
-struct JobLogView: View {
-    let owner: String
-    let repo: String
-    let job: WorkflowJob
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
 
-    @State private var logs: String = ""
-    @State private var isLoading: Bool = false
-    @State private var errorMessage: String?
-    @State private var showSteps: Bool = true
-    // 从日志中解析的退出码
-    @State private var parsedExitCode: Int?
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // 作业信息头部
-            HStack {
-                Image(systemName: job.statusIcon)
-                    .foregroundColor(Color(job.statusColor))
-                Text(job.name)
-                    .font(.headline)
-                    .lineLimit(1)
-                Spacer()
-                HStack(spacing: 6) {
-                    Text(job.statusDisplay)
-                        .font(.caption)
-                        .foregroundColor(Color(job.statusColor))
-                    // 失败时显示退出码（优先使用API返回的，其次使用从日志解析的）
-                    if job.conclusion == "failure" {
-                        let displayExitCode = job.exitCode ?? parsedExitCode
-                        if let exitCode = displayExitCode {
-                            Text("退出码: \(exitCode)")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.red)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(4)
-                        } else {
-                            Text("退出码: 解析中...")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.orange)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.orange.opacity(0.1))
-                                .cornerRadius(4)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(Color(.systemGray6))
-
-            // 步骤列表（可折叠）
-            if let steps = job.steps, !steps.isEmpty {
-                DisclosureGroup(isExpanded: $showSteps) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(steps) { step in
-                                VStack(spacing: 4) {
-                                    Image(systemName: step.statusIcon)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(Color(step.statusColor))
-                                    Text(step.name)
-                                        .font(.system(size: 10))
-                                        .lineLimit(1)
-                                        .frame(width: 80)
-                                    Text(step.durationDisplay)
-                                        .font(.system(size: 9))
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 8)
-                                .background(Color(.systemGray6))
-                                .cornerRadius(6)
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                } label: {
-                    HStack {
-                        Image(systemName: "list.bullet")
-                            .font(.caption)
-                        Text("步骤 (\(steps.count))")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 4)
-            }
-
-            // 日志内容
-            Group {
-                if isLoading {
-                    VStack {
-                        Spacer()
-                        ProgressView("加载日志中...")
-                        Spacer()
-                    }
-                } else if let error = errorMessage {
-                    VStack(spacing: 16) {
-                        Spacer()
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.largeTitle)
-                            .foregroundColor(.orange)
-                        Text(error)
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
-                        Button("重试") {
-                            loadLogs()
-                        }
-                        .foregroundColor(.blue)
-                        Spacer()
-                    }
-                    .padding()
-                } else if logs.isEmpty {
-                    VStack {
-                        Spacer()
-                        Image(systemName: "doc.text")
-                            .font(.largeTitle)
-                            .foregroundColor(.gray)
-                        Text("暂无日志")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                } else {
-                    VStack(spacing: 0) {
-                        // 退出码信息栏（失败时显示）
-                        if job.conclusion == "failure" {
-                            HStack {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.red)
-                                Text("作业执行失败")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.red)
-                                Spacer()
-                                let displayExitCode = job.exitCode ?? parsedExitCode
-                                if let exitCode = displayExitCode {
-                                    Text("退出码: \(exitCode)")
-                                        .font(.subheadline)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 2)
-                                        .background(Color.red)
-                                        .cornerRadius(4)
-                                } else {
-                                    Text("退出码: 解析中...")
-                                        .font(.caption)
-                                        .foregroundColor(.orange)
-                                }
-                            }
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
-                            .background(Color.red.opacity(0.1))
-                        }
-
-                        // 日志文本视图
-                        ScrollView {
-                            Text(logs)
-                                .font(.system(size: 10, design: .monospaced))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(8)
-                                .textSelection(.enabled)
-                        }
-                        .background(Color(.systemBackground))
-                    }
-                }
-            }
-        }
-        .navigationTitle("作业日志")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            if logs.isEmpty {
-                loadLogs()
-            }
-        }
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        return controller
     }
 
-    // MARK: - 数据加载
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
 
-    private func loadLogs() {
-        isLoading = true
-        errorMessage = nil
+// MARK: - ChangedFile 扩展
 
-        GitHubAPI.shared.getJobLogs(owner: owner, repo: repo, jobId: job.id) { result in
-            DispatchQueue.main.async {
-                isLoading = false
-                switch result {
-                case .success(let logs):
-                    self.logs = logs
-                    // 从日志中解析退出码
-                    self.parsedExitCode = Self.parseExitCode(from: logs)
-                case .failure(let error):
-                    self.errorMessage = "加载日志失败: \(error.localizedDescription)"
-                }
-            }
+extension ChangedFile {
+    var statusIcon: String {
+        switch status {
+        case "added": return "plus.circle.fill"
+        case "modified": return "pencil.circle.fill"
+        case "removed": return "minus.circle.fill"
+        case "renamed": return "arrow.left.arrow.right.circle.fill"
+        default: return "circle.fill"
         }
-    }
-
-    // 从日志中解析退出码
-    private static func parseExitCode(from logs: String) -> Int? {
-        // 匹配多种退出码格式
-        let patterns = [
-            "退出码[:：]\\s*(\\d+)",           // 中文：退出码: 65
-            "exit code[:：]?\\s*(\\d+)",       // 英文：exit code 65
-            "EXIT CODE[:：]?\\s*(\\d+)",       // 大写：EXIT CODE: 65
-            "BUILD_EXIT_CODE[=:]\\s*(\\d+)",   // 变量：BUILD_EXIT_CODE=65
-            "Command failed with exit code (\\d+)", // xcodebuild错误
-            "xcodebuild.*exit (\\d+)",          // xcodebuild退出
-            "error:\\s*.*exit (\\d+)"           // 错误信息中的退出码
-        ]
-
-        for pattern in patterns {
-            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
-                let range = NSRange(logs.startIndex..., in: logs)
-                if let match = regex.firstMatch(in: logs, options: [], range: range),
-                   let codeRange = Range(match.range(at: 1), in: logs) {
-                    return Int(logs[codeRange])
-                }
-            }
-        }
-
-        // 如果没有找到明确的退出码，尝试查找最后一个非零退出码
-        let lines = logs.components(separatedBy: .newlines)
-        for line in lines.reversed() {
-            if let range = line.range(of: #"\d+"#, options: .regularExpression),
-               let code = Int(line[range]), code > 0 && code < 256 {
-                // 检查这一行是否包含错误或失败关键词
-                if line.lowercased().contains("error") ||
-                   line.lowercased().contains("fail") ||
-                   line.lowercased().contains("exit") ||
-                   line.contains("错误") ||
-                   line.contains("失败") ||
-                   line.contains("退出") {
-                    return code
-                }
-            }
-        }
-
-        return nil
     }
 }

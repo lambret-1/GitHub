@@ -945,6 +945,117 @@ class GitHubAPI {
         ]
         performSimpleRequest(url: url, method: "POST", body: body, failureMessage: "创建仓库失败", completion: completion)
     }
+
+    // MARK: - GitHub Actions 扩展API（第一期新增）
+
+    /// 获取运行的构建产物列表
+    func getRunArtifacts(owner: String, repo: String, runId: Int, completion: @escaping (Result<[Artifact], Error>) -> Void) {
+        let url = APIEndpoints.runArtifacts(owner: owner, repo: repo, runId: runId).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let response = try JSONDecoder.github.decode(ArtifactsResponse.self, from: data)
+                    completion(.success(response.artifacts))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 下载构建产物（返回本地文件路径）
+    func downloadArtifact(owner: String, repo: String, artifactId: Int, completion: @escaping (Result<URL, Error>) -> Void) {
+        let urlString = APIEndpoints.artifactDownload(owner: owner, repo: repo, artifactId: artifactId).url
+        guard let url = URL(string: urlString) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的下载URL"])))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        if let token = TokenKeychain.shared.getToken() {
+            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let task = URLSession.shared.downloadTask(with: request) { tempURL, response, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
+                return
+            }
+
+            guard let tempURL = tempURL else {
+                DispatchQueue.main.async {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "下载失败，未获取到文件"])))
+                }
+                return
+            }
+
+            // 移动到tmp目录，重命名为artifact_<id>.zip
+            let fileManager = FileManager.default
+            let destinationURL = fileManager.temporaryDirectory.appendingPathComponent("artifact_\(artifactId).zip")
+            do {
+                if fileManager.fileExists(atPath: destinationURL.path) {
+                    try fileManager.removeItem(at: destinationURL)
+                }
+                try fileManager.moveItem(at: tempURL, to: destinationURL)
+                DispatchQueue.main.async {
+                    completion(.success(destinationURL))
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
+            }
+        }
+        task.resume()
+    }
+
+    /// 获取提交的变更文件列表
+    func getCommitFiles(owner: String, repo: String, sha: String, completion: @escaping (Result<[ChangedFile], Error>) -> Void) {
+        let url = APIEndpoints.commitFiles(owner: owner, repo: repo, sha: sha).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let files = json["files"] as? [[String: Any]] {
+                        let filesData = try JSONSerialization.data(withJSONObject: files)
+                        let changedFiles = try JSONDecoder.github.decode([ChangedFile].self, from: filesData)
+                        completion(.success(changedFiles))
+                    } else {
+                        completion(.success([]))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 启用工作流
+    func enableWorkflow(owner: String, repo: String, workflowId: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.enableWorkflow(owner: owner, repo: repo, workflowId: workflowId).url
+        performSimpleRequest(url: url, method: "PUT", failureMessage: "启用工作流失败", completion: completion)
+    }
+
+    /// 禁用工作流
+    func disableWorkflow(owner: String, repo: String, workflowId: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.disableWorkflow(owner: owner, repo: repo, workflowId: workflowId).url
+        performSimpleRequest(url: url, method: "PUT", failureMessage: "禁用工作流失败", completion: completion)
+    }
+
+    /// 重新运行失败的作业
+    func rerunFailedJobs(owner: String, repo: String, runId: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.rerunFailedJobs(owner: owner, repo: repo, runId: runId).url
+        performSimpleRequest(url: url, method: "POST", failureMessage: "重新运行失败作业失败", completion: completion)
+    }
 }
 
 // MARK: - 搜索结果包装
