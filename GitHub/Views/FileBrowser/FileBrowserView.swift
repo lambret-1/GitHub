@@ -3465,13 +3465,15 @@ private struct FileBrowserCreateFileSheetsModifier: ViewModifier {
         content
             .sheet(isPresented: view.$showCodeSearchSnippet) {
                 if let item = view.selectedCodeSearchItem {
-                    CodeSnippetView(
-                        owner: view.repository.ownerName,
-                        repo: view.repository.name,
-                        branch: view.selectedBranch,
-                        item: item,
-                        searchQuery: view.codeSearchQuery
-                    )
+                    NavigationView {
+                        CodeSnippetView(
+                            owner: view.repository.ownerName,
+                            repo: view.repository.name,
+                            branch: view.selectedBranch,
+                            item: item,
+                            searchQuery: view.codeSearchQuery
+                        )
+                    }
                 }
             }
             .sheet(isPresented: view.$showCodeSearch) {

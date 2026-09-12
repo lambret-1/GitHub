@@ -227,24 +227,23 @@ struct CodeSnippetView: View {
     @State private var isLoading: Bool = true
     @State private var errorMessage: String?
     @State private var snippets: [CodeSnippet] = []
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // 文件信息头部
-                fileHeader
+        VStack(spacing: 0) {
+            // 文件信息头部
+            fileHeader
 
-                // 代码片段内容
-                snippetContent
-            }
-            .navigationTitle("代码片段")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(trailing: Button("完成") {
-                // 关闭页面
-            })
-            .onAppear {
-                loadFileContent()
-            }
+            // 代码片段内容
+            snippetContent
+        }
+        .navigationTitle("代码片段")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarItems(trailing: Button("完成") {
+            dismiss()
+        })
+        .onAppear {
+            loadFileContent()
         }
     }
 
