@@ -865,9 +865,6 @@ struct FileBrowserView: View {
         }
     }
 
-    // MARK: - 工具栏内容
-
-    @ToolbarContentBuilder
     // MARK: - 自定义顶部导航栏（替代系统导航栏，避免双重导航栏问题）
 
     var customNavigationBar: some View {
