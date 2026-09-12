@@ -198,6 +198,7 @@ struct FileBrowserView: View {
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(false)
         .toolbar {
             toolbarContent
         }
