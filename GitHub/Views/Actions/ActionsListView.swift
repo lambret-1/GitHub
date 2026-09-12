@@ -321,8 +321,9 @@ struct ActionsListView: View {
                             default: break
                             }
                             // 计算运行时长（秒）
-                            if let createdAt = run.createdAt, let updatedAt = run.updatedAt {
-                                let duration = Int(updatedAt.timeIntervalSince(createdAt))
+                            if let createdDate = 日期工具.解析ISO日期(run.createdAt),
+                               let updatedDate = 日期工具.解析ISO日期(run.updatedAt) {
+                                let duration = Int(updatedDate.timeIntervalSince(createdDate))
                                 if duration > 0 {
                                     totalDuration += duration
                                     durationCount += 1
