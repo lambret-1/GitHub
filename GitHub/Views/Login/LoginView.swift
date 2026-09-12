@@ -120,7 +120,7 @@ struct LoginView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.green)
                         }
-                        .frame(maxWidth: .infinity)
+                       .frame(width: 150)
                         .frame(height: 50)
                         .background(Color.black)
                         .cornerRadius(12)
@@ -131,7 +131,7 @@ struct LoginView: View {
                         .shadow(color: Color.green.opacity(0.3), radius: 8, x: 0, y: 0)
                     }
                     .disabled(appState.isLoading || tokenText.isEmpty)
-                  .padding(.init(top: 20, leading: 0, bottom: 0, trailing: 0))
+                  .padding(.init(top: 50, leading: 0, bottom: 0, trailing: 0))
 
                     Spacer(minLength: 40)
 
