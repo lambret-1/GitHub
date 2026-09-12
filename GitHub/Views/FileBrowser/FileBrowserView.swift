@@ -1507,7 +1507,7 @@ struct FileBrowserView: View {
         }
     }
 
-    // MARK: - 代码搜索
+    // MARK: - 代码搜索（本地搜索方案，GitHub代码搜索API限制太多）
 
     func performCodeSearch() {
         let query = codeSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1521,19 +1521,148 @@ struct FileBrowserView: View {
         codeSearchError = nil
         codeSearchResults = []
 
-        GitHubAPI.shared.searchCodeInRepo(
-            owner: repository.ownerName,
-            repo: repository.name,
-            query: query
-        ) { result in
+        // 使用本地搜索方案：获取仓库文件列表，逐个下载文件内容，在本地搜索
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.localSearchCode(query: query)
+        }
+    }
+
+    // 本地代码搜索实现
+    private func localSearchCode(query: String) {
+        let lowercasedQuery = query.lowercased()
+        var results: [CodeSearchItem] = []
+        var searchError: String?
+
+        // 1. 获取仓库文件列表（递归）
+        let treesURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/git/trees/\(selectedBranch)?recursive=1"
+
+        guard let url = URL(string: treesURL) else {
             DispatchQueue.main.async {
-                isSearchingCode = false
-                switch result {
-                case .success(let items):
-                    codeSearchResults = items
-                case .failure(let error):
-                    codeSearchError = "搜索失败: \(error.localizedDescription)"
+                self.isSearchingCode = false
+                self.codeSearchError = "无效的仓库地址"
+            }
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("token \(TokenKeychain.shared.getToken() ?? "")", forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var treeItems: [GitTreeItem] = []
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            defer { semaphore.signal() }
+            if let error = error {
+                searchError = "获取文件列表失败: \(error.localizedDescription)"
+                return
+            }
+            guard let data = data else {
+                searchError = "获取文件列表失败: 无数据"
+                return
+            }
+            do {
+                let treeResult = try JSONDecoder().decode(GitTreeResult.self, from: data)
+                treeItems = treeResult.tree.filter { $0.type == "blob" }
+            } catch {
+                searchError = "解析文件列表失败: \(error.localizedDescription)"
+            }
+        }.resume()
+
+        semaphore.wait()
+
+        if let error = searchError {
+            DispatchQueue.main.async {
+                self.isSearchingCode = false
+                self.codeSearchError = error
+            }
+            return
+        }
+
+        // 2. 只搜索文本文件（跳过二进制文件和大文件）
+        let textFileExtensions = ["swift", "md", "yml", "yaml", "json", "plist", "txt", "sh", "py", "js", "ts", "html", "css", "xml"]
+        let textFiles = treeItems.filter { item in
+            let ext = (item.path as NSString).pathExtension.lowercased()
+            return textFileExtensions.contains(ext) && item.size < 500 * 1024 // 小于500KB
+        }
+
+        // 限制最多搜索50个文件，避免超时
+        let filesToSearch = Array(textFiles.prefix(50))
+
+        // 3. 逐个下载文件内容并搜索
+        let downloadSemaphore = DispatchSemaphore(value: 0)
+        let group = DispatchGroup()
+        let lock = NSLock()
+        var completedCount = 0
+
+        for fileItem in filesToSearch {
+            group.enter()
+            let contentURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/contents/\(fileItem.path)?ref=\(selectedBranch)"
+
+            guard let fileURL = URL(string: contentURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? contentURL) else {
+                group.leave()
+                continue
+            }
+
+            var fileRequest = URLRequest(url: fileURL)
+            fileRequest.setValue("token \(TokenKeychain.shared.getToken() ?? "")", forHTTPHeaderField: "Authorization")
+            fileRequest.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+
+            URLSession.shared.dataTask(with: fileRequest) { data, response, error in
+                defer {
+                    lock.lock()
+                    completedCount += 1
+                    lock.unlock()
+                    group.leave()
                 }
+
+                guard let data = data else { return }
+                do {
+                    let fileContent = try JSONDecoder().decode(FileContent.self, from: data)
+                    let content = fileContent.decodedContent
+
+                    if content.lowercased().contains(lowercasedQuery) {
+                        // 构建CodeSearchItem
+                        let fileName = (fileItem.path as NSString).lastPathComponent
+                        let searchItem = CodeSearchItem(
+                            name: fileName,
+                            path: fileItem.path,
+                            sha: fileItem.sha,
+                            url: "",
+                            gitUrl: "",
+                            htmlUrl: "",
+                            repository: CodeSearchRepository(
+                                id: 0,
+                                name: self.repository.name,
+                                fullName: "\(self.repository.ownerName)/\(self.repository.name)",
+                                isPrivate: false,
+                                htmlUrl: "",
+                                owner: CodeSearchRepositoryOwner(
+                                    login: self.repository.ownerName,
+                                    id: 0,
+                                    avatarUrl: self.repository.owner.avatarUrl
+                                )
+                            )
+                        )
+                        lock.lock()
+                        results.append(searchItem)
+                        lock.unlock()
+                    }
+                } catch {
+                    // 忽略单个文件的错误
+                }
+            }.resume()
+        }
+
+        // 等待所有下载完成，最多等待30秒
+        let timeout = group.wait(timeout: .now() + 30)
+
+        DispatchQueue.main.async {
+            self.isSearchingCode = false
+            if results.isEmpty && timeout == .timedOut {
+                self.codeSearchError = "搜索超时，请尝试更具体的关键词"
+            } else {
+                self.codeSearchResults = results
             }
         }
     }

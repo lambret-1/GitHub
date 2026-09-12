@@ -196,3 +196,23 @@ extension CommitPerson {
         return 日期工具.相对时间(fromISO: date)
     }
 }
+
+// MARK: - Git Tree 模型（用于本地代码搜索）
+
+/// Git Tree 结果模型
+struct GitTreeResult: Codable {
+    let sha: String
+    let url: String
+    let tree: [GitTreeItem]
+    let truncated: Bool
+}
+
+/// Git Tree 项模型
+struct GitTreeItem: Codable {
+    let path: String
+    let mode: String
+    let type: String
+    let sha: String
+    let size: Int?
+    let url: String?
+}
