@@ -4,6 +4,9 @@ struct ProfileView: View {
     @EnvironmentObject var appState: AppState
     @State private var showLogoutAlert = false
 
+    // 代码字符集（用于背景动画）
+    private static let codeChars = ["0", "1", "{", "}", "(", ")", ";", "=", "+", "/", "*", "#", "<", ">", "!", "?", ":", "&", "|", "[", "]"]
+
     // 页面导航状态（用于隐藏NavigationLink的>符号）
     @State private var showAbout = false
     @State private var showAccountManager = false
@@ -50,7 +53,7 @@ struct ProfileView: View {
                                     ForEach(0..<8, id: \.self) { row in
                                         HStack(spacing: 4) {
                                             ForEach(0..<12, id: \.self) { col in
-                                                Text(["0", "1", "{", "}", "(", ")", ";", "=", "+", "/", "*", "#"][(row + col + Int(codeOffset)) % 14])
+                                                Text(Self.codeChars[(row + col) % Self.codeChars.count])
                                                     .font(.system(size: 8, design: .monospaced))
                                                     .foregroundColor(Color.gray.opacity(0.08))
                                             }
@@ -193,9 +196,11 @@ struct ProfileView: View {
                             // 启动动画
                             animateAvatar = true
                             cursorBlink = true
-                            // 代码字符流动动画
-                            withAnimation(Animation.linear(duration: 8).repeatForever(autoreverses: false)) {
-                                codeOffset = 100
+                            // 代码字符流动动画：持续循环
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                withAnimation(Animation.linear(duration: 8).repeatForever(autoreverses: false)) {
+                                    codeOffset = 20
+                                }
                             }
                         }
                     }
