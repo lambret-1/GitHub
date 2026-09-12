@@ -491,9 +491,10 @@ jobs:
 
       - name: 下载制品元数据 JSON（如果存在）
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: GitHub-iOS-Metadata-v${{ needs.version-bump.outputs.version_new }}
-          path: ./artifacts || true
+          path: ./artifacts
 
       - name: 列出 artifacts 目录
         run: |
@@ -553,13 +554,12 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: 上传 metadata JSON 到 Release（如果存在）
-        if: steps.meta.outputs.version && ( -f ./artifacts/artifact-metadata.json )
+        if: always()
         run: |
-          # actions/upload-release-asset action doesn't support the 'if: exists' directly with file check in YAML,
-          # so we use curl to upload the JSON only when it exists.
+          # 使用 curl 上传 JSON 仅当文件存在时
           if [ -f ./artifacts/artifact-metadata.json ]; then
             echo "上传 artifact-metadata.json 到 Release"
-            UPLOAD_URL=${{ steps.create_release.outputs.upload_url }}
+            UPLOAD_URL="${{ steps.create_release.outputs.upload_url }}"
             FILE_PATH=./artifacts/artifact-metadata.json
             FILE_NAME=artifact-metadata-v${{ steps.meta.outputs.version }}.json
             echo "上传到: ${UPLOAD_URL}"
