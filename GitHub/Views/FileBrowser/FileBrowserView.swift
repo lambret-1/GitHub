@@ -1583,23 +1583,23 @@ struct FileBrowserView: View {
         let textFileExtensions = ["swift", "md", "yml", "yaml", "json", "plist", "txt", "sh", "py", "js", "ts", "html", "css", "xml"]
         let textFiles = treeItems.filter { item in
             let ext = (item.path as NSString).pathExtension.lowercased()
-            return textFileExtensions.contains(ext) && item.size < 500 * 1024 // 小于500KB
+            let size = item.size ?? 0
+            return textFileExtensions.contains(ext) && size < 500 * 1024 // 小于500KB
         }
 
         // 限制最多搜索50个文件，避免超时
         let filesToSearch = Array(textFiles.prefix(50))
 
         // 3. 逐个下载文件内容并搜索
-        let downloadSemaphore = DispatchSemaphore(value: 0)
         let group = DispatchGroup()
         let lock = NSLock()
-        var completedCount = 0
 
         for fileItem in filesToSearch {
             group.enter()
-            let contentURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/contents/\(fileItem.path)?ref=\(selectedBranch)"
+            let contentPath = fileItem.path.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlPathAllowed) ?? fileItem.path
+            let contentURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/contents/\(contentPath)?ref=\(selectedBranch)"
 
-            guard let fileURL = URL(string: contentURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? contentURL) else {
+            guard let fileURL = URL(string: contentURL) else {
                 group.leave()
                 continue
             }
