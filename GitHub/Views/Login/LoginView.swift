@@ -14,12 +14,12 @@ struct LoginView: View {
 
             // 矩阵雨背景动画（黑客帝国风格）
             MatrixRainView()
-                .opacity(0.4)
-                .ignoresSafeArea()
-
+    .opacity(0.4)
+    .frame(height: 400)  // 限制高度为400pt
+    .ignoresSafeArea()
             // 扫描线效果（CRT显示器风格）
             ScanlineOverlayView()
-                .opacity(0.3)
+                .opacity(0.5)
                 .ignoresSafeArea()
 
             ScrollView {
