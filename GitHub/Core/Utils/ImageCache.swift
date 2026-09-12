@@ -116,7 +116,7 @@ class ImageCache {
     /// 下载并缓存图片（支持自定义缓存键）
     /// - Parameters:
     ///   - urlString: 下载URL
-    ///   - cacheKey: 缓存键（用于镜像加速场景，使用原始URL作为缓存键）
+    ///   - cacheKey: 缓存键
     ///   - completion: 完成回调
     func loadImage(from urlString: String, cacheKey: String, completion: @escaping (UIImage?) -> Void) {
         // 先检查缓存（使用自定义缓存键）
@@ -127,7 +127,6 @@ class ImageCache {
             return
         }
 
-        // 头像不进行镜像转换，直接从官方加载，避免出现"未找到主机名"错误
         // 下载图片
         guard let url = URL(string: urlString) else {
             DispatchQueue.main.async {

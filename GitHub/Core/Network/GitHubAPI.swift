@@ -479,10 +479,7 @@ class GitHubAPI {
     // MARK: - 下载文件原始数据
 
     func downloadFileData(url: String, completion: @escaping (Result<Data, Error>) -> Void) {
-        // 应用镜像加速转换
-        let convertedURL = AppSettings.shared.convertDownloadURL(url)
-
-        guard let urlObj = URL(string: convertedURL) else {
+        guard let urlObj = URL(string: url) else {
             completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的下载URL"])))
             return
         }
@@ -492,8 +489,7 @@ class GitHubAPI {
         request.timeoutInterval = 60
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData // 禁用缓存，确保每次刷新都获取最新数据
 
-        // 使用镜像专用URLSession，允许无效证书（镜像站点可能证书无效）
-        URLSession.mirrorSession.dataTask(with: request) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     completion(.failure(error))

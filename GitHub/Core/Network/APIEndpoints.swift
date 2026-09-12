@@ -2,8 +2,6 @@ import Foundation
 
 enum APIEndpoints {
     // API 请求始终使用官方 API 地址
-    // 重要：不使用镜像加速，避免镜像服务器缓存其他用户的认证响应，导致账号信息泄露
-    // 镜像加速仅用于文件下载、网页预览、头像加载等公开资源
     static let baseURL = "https://api.github.com"
 
     case user

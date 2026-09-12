@@ -16,11 +16,6 @@ struct AboutView: View {
     @State private var downloadErrorMessage: String?
     @State private var showDownloadError = false
 
-    // 镜像加速相关状态
-    @State private var useMirrorAcceleration: Bool = AppSettings.shared.useMirrorAcceleration
-    @State private var showMirrorPicker: Bool = false
-    @ObservedObject private var appSettings = AppSettings.shared
-
     var body: some View {
         List {
             // 应用图标和名称
@@ -45,67 +40,6 @@ struct AboutView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
-            }
-
-            // 镜像加速设置
-            Section("网络设置") {
-                // 镜像加速开关
-                Toggle(isOn: $useMirrorAcceleration) {
-                    HStack {
-                        Image(systemName: "bolt.fill")
-                            .foregroundColor(.yellow)
-                            .frame(width: 30)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("镜像加速")
-                                .foregroundColor(.primary)
-                            Text("国内访问 GitHub 加速")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                }
-                .onChange(of: useMirrorAcceleration) { newValue in
-                    AppSettings.shared.useMirrorAcceleration = newValue
-                }
-
-                // 当前镜像信息
-                if useMirrorAcceleration {
-                    Button(action: {
-                        showMirrorPicker = true
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .foregroundColor(.blue)
-                                .frame(width: 30)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("当前镜像")
-                                    .foregroundColor(.primary)
-                                Text(appSettings.currentMirror.name)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.gray)
-                        }
-                    }
-
-                    // 安全说明
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "lock.shield")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                            Text("账号安全保护")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                        }
-                        Text("API 请求（账号、仓库、文件读写）始终使用官方服务器，仅文件下载、网页预览、头像加载使用镜像加速，确保账号信息安全。")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
-                    }
-                    .padding(.top, 4)
-                }
             }
 
             // 版本信息
@@ -176,26 +110,6 @@ struct AboutView: View {
                 downloadingOverlay
             }
         }
-        // 镜像选择器
-        .sheet(isPresented: $showMirrorPicker) {
-            MirrorPickerView { selectedMirror in
-                // 检查是否是预设镜像
-                if let index = AppSettings.shared.presetMirrors.firstIndex(where: { $0.url == selectedMirror.url }) {
-                    // 预设镜像：设置 selectedMirrorIndex，清除 customMirrorURL
-                    AppSettings.shared.selectedMirrorIndex = index
-                    AppSettings.shared.customMirrorURL = nil
-                } else {
-                    // 自定义镜像：设置 customMirrorURL
-                    AppSettings.shared.customMirrorURL = selectedMirror.url
-                }
-                // 确保镜像加速开启
-                if !AppSettings.shared.useMirrorAcceleration {
-                    AppSettings.shared.useMirrorAcceleration = true
-                    useMirrorAcceleration = true
-                }
-                showMirrorPicker = false
-            }
-        }
     }
 
     // MARK: - 版本信息行
@@ -216,9 +130,7 @@ struct AboutView: View {
 
     private func linkRow(icon: String, color: Color, title: String, url: String) -> some View {
         Button(action: {
-            // 应用镜像加速转换
-            let convertedURL = AppSettings.shared.convertWebURL(url)
-            if let url = URL(string: convertedURL) {
+            if let url = URL(string: url) {
                 UIApplication.shared.open(url)
             }
         }) {
@@ -423,11 +335,9 @@ struct AboutView: View {
         downloadProgress = 0
 
         // 更新下载使用浏览器下载URL（browser_download_url），公开访问，URLSession自动处理重定向
-        // 不使用镜像加速，因为GitHub Releases的下载URL涉及重定向，镜像无法正确代理
         FileDownloadManager.shared.downloadAndShare(
             from: asset.browserDownloadUrl,
             fileName: asset.name,
-            useMirror: false,
             progress: { progress in
                 self.downloadProgress = progress
             }

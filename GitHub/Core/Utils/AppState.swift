@@ -165,11 +165,9 @@ class AppState: ObservableObject {
         
         // 下载更新并自动弹出分享面板
         // 使用浏览器下载URL（browser_download_url），公开访问，URLSession自动处理重定向
-        // 不使用镜像加速，因为GitHub Releases的下载URL涉及重定向，镜像无法正确代理
         FileDownloadManager.shared.downloadAndShare(
             from: asset.browserDownloadUrl,
             fileName: asset.name,
-            useMirror: false,
             progress: { [weak self] progress in
                 DispatchQueue.main.async {
                     self?.updateDownloadProgress = progress

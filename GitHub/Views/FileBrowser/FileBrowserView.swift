@@ -1106,9 +1106,7 @@ struct FileBrowserView: View {
         .disabled(isDeleteMode || isDownloadingZip)
 
         Button(action: {
-            // 应用镜像加速转换
-            let convertedURL = AppSettings.shared.convertWebURL(repository.htmlUrl)
-            if let url = URL(string: convertedURL) {
+            if let url = URL(string: repository.htmlUrl) {
                 UIApplication.shared.open(url)
             }
         }) {
@@ -1882,12 +1880,10 @@ struct FileBrowserView: View {
         zipDownloadMessage = "正在准备下载..."
 
         let branch = selectedBranch.isEmpty ? "main" : selectedBranch
-        // 使用GitHub官方zipball API，支持镜像加速
+        // 使用GitHub官方zipball API
         let apiUrl = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/zipball/\(branch)"
-        // 应用镜像加速转换（如果开启了镜像加速）
-        let downloadUrl = AppSettings.shared.convertDownloadURL(apiUrl)
 
-        guard let url = URL(string: downloadUrl) else {
+        guard let url = URL(string: apiUrl) else {
             isDownloadingZip = false
             zipDownloadMessage = "下载链接无效"
             showZipDownloadAlert = true
@@ -2106,10 +2102,8 @@ struct FileBrowserView: View {
 
             // 在 GitHub 打开
             Button(action: {
-                // 应用镜像加速转换
                 let originalURL = file.htmlUrl ?? repository.htmlUrl
-                let convertedURL = AppSettings.shared.convertWebURL(originalURL)
-                if let url = URL(string: convertedURL) {
+                if let url = URL(string: originalURL) {
                     UIApplication.shared.open(url)
                 }
             }) {
@@ -2161,10 +2155,8 @@ struct FileBrowserView: View {
             }
 
             Button(action: {
-                // 应用镜像加速转换
                 let originalURL = file.htmlUrl ?? repository.htmlUrl
-                let convertedURL = AppSettings.shared.convertWebURL(originalURL)
-                if let url = URL(string: convertedURL) {
+                if let url = URL(string: originalURL) {
                     UIApplication.shared.open(url)
                 }
             }) {
@@ -2220,17 +2212,13 @@ struct FileBrowserView: View {
         htmlPreviewTitle = fileName
         htmlPreviewError = nil
 
-        // 应用镜像加速转换
-        let convertedURL = AppSettings.shared.convertDownloadURL(url)
-
         // 添加超时处理，确保请求不会一直挂起（10秒超时）
-        guard let urlObj = URL(string: convertedURL) else {
+        guard let urlObj = URL(string: url) else {
             isLoadingHTML = false
             htmlPreviewError = "无效的下载链接"
             return
         }
 
-        // 使用镜像专用URLSession，允许无效证书（镜像站点可能证书无效）
         var request = URLRequest(url: urlObj)
         request.timeoutInterval = 10
         request.cachePolicy = .returnCacheDataElseLoad
@@ -2240,7 +2228,7 @@ struct FileBrowserView: View {
         // 启用压缩传输
         request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
 
-        URLSession.mirrorSession.dataTask(with: request) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isLoadingHTML = false
 
@@ -2277,16 +2265,12 @@ struct FileBrowserView: View {
         htmlPreviewTitle = fileName
         htmlPreviewError = nil
 
-        // 应用镜像加速转换
-        let convertedURL = AppSettings.shared.convertDownloadURL(url)
-
-        guard let urlObj = URL(string: convertedURL) else {
+        guard let urlObj = URL(string: url) else {
             isLoadingHTML = false
             htmlPreviewError = "无效的下载链接"
             return
         }
 
-        // 使用镜像专用URLSession，允许无效证书（镜像站点可能证书无效）
         var request = URLRequest(url: urlObj)
         request.timeoutInterval = 10
         request.cachePolicy = .reloadIgnoringLocalCacheData // 忽略缓存，强制重新下载
@@ -2295,7 +2279,7 @@ struct FileBrowserView: View {
         }
         request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
 
-        URLSession.mirrorSession.dataTask(with: request) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isLoadingHTML = false
 
