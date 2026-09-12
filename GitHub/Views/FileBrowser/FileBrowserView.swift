@@ -1837,27 +1837,34 @@ struct FileBrowserView: View {
                 return
             }
 
+            // 检查源文件是否存在
+            guard FileManager.default.fileExists(atPath: location.path) else {
+                zipDownloadMessage = "下载失败：临时文件不存在，请重试"
+                showZipDownloadAlert = true
+                return
+            }
+
             // 生成文件名：仓库名-分支名.zip
             let branch = selectedBranch.isEmpty ? "main" : selectedBranch
             let fileName = "\(repository.name)-\(branch).zip"
 
-            // 移动到临时目录
-            let tempDir = FileManager.default.temporaryDirectory
-            let destinationURL = tempDir.appendingPathComponent(fileName)
+            // 保存到"下载"文件夹
+            let downloadDir = FileDownloadManager.shared.downloadDirectoryURL()
+            let destinationURL = downloadDir.appendingPathComponent(fileName)
 
             do {
+                // 如果目标文件已存在，先删除
                 if FileManager.default.fileExists(atPath: destinationURL.path) {
                     try FileManager.default.removeItem(at: destinationURL)
                 }
+
+                // 移动文件到目标位置
                 try FileManager.default.moveItem(at: location, to: destinationURL)
 
                 // 使用iOS原生分享功能
                 let activityVC = UIActivityViewController(activityItems: [destinationURL], applicationActivities: nil)
                 activityVC.completionWithItemsHandler = { _, _, _, _ in
-                    // 分享完成后清理临时文件
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                        try? FileManager.default.removeItem(at: destinationURL)
-                    }
+                    // 分享完成后不删除文件，保存在下载文件夹中
                 }
 
                 // 找到当前窗口的根视图控制器
@@ -1871,7 +1878,7 @@ struct FileBrowserView: View {
                     topVC.present(activityVC, animated: true)
                 }
 
-                zipDownloadMessage = "下载完成，已打开分享面板"
+                zipDownloadMessage = "下载完成，已保存到下载文件夹，已打开分享面板"
                 showZipDownloadAlert = true
             } catch {
                 zipDownloadMessage = "保存文件失败：\(error.localizedDescription)"
