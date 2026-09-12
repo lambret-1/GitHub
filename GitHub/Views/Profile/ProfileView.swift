@@ -21,7 +21,10 @@ struct ProfileView: View {
     @State private var downloadProgress: Double = 0
     @State private var downloadErrorMessage: String?
     @State private var showDownloadError = false
-    
+
+    // 头像动画状态
+    @State private var animateAvatar = false
+
     var body: some View {
         NavigationView {
             List {
@@ -29,16 +32,56 @@ struct ProfileView: View {
                     // 用户信息卡片
                     Section {
                         VStack(spacing: 16) {
-                            // 头像（双击切换暗黑模式，使用本地缓存）
-                            CachedImageView(urlString: user.avatarUrl, placeholder: Image(systemName: "person.circle.fill"))
-                                .frame(width: 80, height: 80)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                                .shadow(radius: 4)
-                                .onTapGesture(count: 2) {
-                                    // 双击头像切换暗黑模式
-                                    appState.toggleDarkMode()
-                                }
+                            // 头像（双击切换暗黑模式，简洁风格动画渲染）
+                            ZStack {
+                                // 外层脉冲光环（延迟0.5秒）
+                                Circle()
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.1)]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 2
+                                    )
+                                    .frame(width: 96, height: 96)
+                                    .scaleEffect(animateAvatar ? 1.15 : 1.0)
+                                    .opacity(animateAvatar ? 0 : 0.6)
+                                    .animation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: false).delay(0.5), value: animateAvatar)
+
+                                // 内层脉冲光环
+                                Circle()
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color.blue.opacity(0.4), Color.cyan.opacity(0.2)]),
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        ),
+                                        lineWidth: 1.5
+                                    )
+                                    .frame(width: 88, height: 88)
+                                    .scaleEffect(animateAvatar ? 1.1 : 1.0)
+                                    .opacity(animateAvatar ? 0 : 0.7)
+                                    .animation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: false), value: animateAvatar)
+
+                                // 头像主体（轻微呼吸缩放）
+                                CachedImageView(urlString: user.avatarUrl, placeholder: Image(systemName: "person.circle.fill"))
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                    .shadow(radius: 4)
+                                    .scaleEffect(animateAvatar ? 1.02 : 1.0)
+                                    .animation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: animateAvatar)
+                            }
+                            .frame(width: 96, height: 96)
+                            .onTapGesture(count: 2) {
+                                // 双击头像切换暗黑模式
+                                appState.toggleDarkMode()
+                            }
+                            .onAppear {
+                                // 启动头像动画
+                                animateAvatar = true
+                            }
                             
                             // 姓名和用户名
                             VStack(spacing: 4) {
