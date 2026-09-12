@@ -955,7 +955,7 @@ class GitHubAPI {
             switch result {
             case .success(let data):
                 do {
-                    let response = try JSONDecoder.github.decode(ArtifactsResponse.self, from: data)
+                    let response = try JSONDecoder().decode(ArtifactsResponse.self, from: data)
                     completion(.success(response.artifacts))
                 } catch {
                     completion(.failure(error))
@@ -1025,7 +1025,7 @@ class GitHubAPI {
                     if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let files = json["files"] as? [[String: Any]] {
                         let filesData = try JSONSerialization.data(withJSONObject: files)
-                        let changedFiles = try JSONDecoder.github.decode([ChangedFile].self, from: filesData)
+                        let changedFiles = try JSONDecoder().decode([ChangedFile].self, from: filesData)
                         completion(.success(changedFiles))
                     } else {
                         completion(.success([]))
