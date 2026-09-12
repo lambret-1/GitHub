@@ -741,7 +741,7 @@ struct CodeEditorView: View {
                 }
             )
             // 代码区域跟随键盘弹出向上移动（仅编辑模式下生效，底部padding = 键盘高度 - 安全区域）
-            .padding(.bottom, isEditing ? max(0, keyboardHeight - UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0) : 0)
+            .padding(.bottom, isEditing ? max(0, keyboardHeight - (UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0)) : 0)
             .animation(.easeOut(duration: 0.25), value: keyboardHeight)
         }
     }
