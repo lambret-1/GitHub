@@ -921,34 +921,6 @@ struct FileBrowserView: View {
         )
     }
 
-    // MARK: - 工具栏内容（原三个点菜单位置：显示仓库所有者头像和用户名）
-
-    var toolbarContent: some ToolbarContent {
-        // 原三个点菜单位置：显示仓库所有者头像和用户名
-        ToolbarItem(placement: .navigationBarTrailing) {
-            HStack(spacing: 8) {
-                // 仓库所有者头像
-                AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 28))
-                        .foregroundColor(.gray)
-                }
-                .frame(width: 28, height: 28)
-                .clipShape(Circle())
-
-                // 仓库所有者用户名
-                Text(repository.ownerName)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-            }
-        }
-    }
-
     // MARK: - HTML预览Sheet（拆分成单独属性，简化body表达式，避免类型检查超时）
 
     func htmlPreviewSheet() -> some View {
