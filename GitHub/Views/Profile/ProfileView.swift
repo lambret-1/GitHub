@@ -26,121 +26,46 @@ struct ProfileView: View {
         NavigationView {
             List {
                 if let user = appState.currentUser {
-                    // 用户信息卡片（程序员风格终端窗口）
+                    // 用户信息卡片（还原初始状态）
                     Section {
-                        ZStack(alignment: .topLeading) {
-                            // 终端窗口背景
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(.systemBackground))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
-
-                            // 终端内容
-                            VStack(spacing: 16) {
-                                // 终端标题栏
-                                HStack(spacing: 8) {
-                                    // 红黄绿三个圆点（macOS终端风格）
-                                    Circle()
-                                        .fill(Color.red)
-                                        .frame(width: 10, height: 10)
-                                    Circle()
-                                        .fill(Color.orange)
-                                        .frame(width: 10, height: 10)
-                                    Circle()
-                                        .fill(Color.green)
-                                        .frame(width: 10, height: 10)
-
-                                    Spacer()
-
-                                    // 终端标题
-                                    Text("~ /profile")
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .foregroundColor(.gray)
-
-                                    Spacer()
-
-                                    // 占位，保持标题居中
-                                    Color.clear
-                                        .frame(width: 54)
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.top, 10)
-
-                                // 头像（双击切换暗黑模式，还原初始状态无动画）
-                                CachedImageView(urlString: user.avatarUrl, placeholder: Image(systemName: "person.circle.fill"))
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(Circle())
-                                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                                    .shadow(radius: 4)
-                                    .onTapGesture(count: 2) {
-                                        appState.toggleDarkMode()
-                                    }
-
-                                // 姓名和用户名（代码风格）
-                                VStack(spacing: 4) {
-                                    // 姓名：const char* name = "xxx";
-                                    HStack(spacing: 4) {
-                                        Text("const char* name = ")
-                                            .font(.system(size: 13, design: .monospaced))
-                                            .foregroundColor(.gray)
-                                        Text("\"\(user.displayName)\"")
-                                            .font(.system(size: 13, design: .monospaced).bold())
-                                            .foregroundColor(.green)
-                                        Text(";")
-                                            .font(.system(size: 13, design: .monospaced))
-                                            .foregroundColor(.gray)
-                                    }
-
-                                    // 用户名：string user = "@xxx";
-                                    HStack(spacing: 4) {
-                                        Text("string user = ")
-                                            .font(.system(size: 12, design: .monospaced))
-                                            .foregroundColor(.gray)
-                                        Text("\"@\(user.login)\"")
-                                            .font(.system(size: 12, design: .monospaced))
-                                            .foregroundColor(.blue)
-                                        Text(";")
-                                            .font(.system(size: 12, design: .monospaced))
-                                            .foregroundColor(.gray)
-                                    }
+                        VStack(spacing: 16) {
+                            // 头像（双击切换暗黑模式）
+                            CachedImageView(urlString: user.avatarUrl, placeholder: Image(systemName: "person.circle.fill"))
+                                .frame(width: 80, height: 80)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                .shadow(radius: 4)
+                                .onTapGesture(count: 2) {
+                                    appState.toggleDarkMode()
                                 }
 
-                                // 简介（如果有）
-                                if let bio = user.bio, !bio.isEmpty {
-                                    Text("// \(bio)")
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .foregroundColor(.gray)
-                                        .multilineTextAlignment(.center)
-                                        .lineLimit(2)
-                                }
-
-                                // 统计数据（代码风格）
-                                HStack(spacing: 20) {
-                                    StatView(number: user.publicRepos ?? 0, label: "repos")
-                                    StatView(number: user.followers ?? 0, label: "followers")
-                                    StatView(number: user.following ?? 0, label: "following")
-                                }
-                                .padding(.top, 4)
-
-                                // 底部命令行（程序员风格）
-                                HStack(spacing: 6) {
-                                    Text("$")
-                                        .font(.system(size: 12, design: .monospaced).bold())
-                                        .foregroundColor(.green)
-                                    Text("whoami")
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .foregroundColor(.primary)
-                                }
-                                .padding(.top, 4)
-                                .padding(.bottom, 8)
+                            // 姓名和用户名
+                            VStack(spacing: 4) {
+                                Text(user.displayName)
+                                    .font(.title2.bold())
+                                Text("@\(user.login)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
+
+                            // 简介
+                            if let bio = user.bio, !bio.isEmpty {
+                                Text(bio)
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+
+                            // 统计数据
+                            HStack(spacing: 30) {
+                                StatView(number: user.publicRepos ?? 0, label: "仓库")
+                                StatView(number: user.followers ?? 0, label: "粉丝")
+                                StatView(number: user.following ?? 0, label: "关注")
+                            }
+                            .padding(.top, 8)
                         }
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .listRowBackground(Color.clear)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
                     }
                     
                     // 详细信息
@@ -448,10 +373,9 @@ struct StatView: View {
     var body: some View {
         VStack(spacing: 4) {
             Text("\(number)")
-                .font(.system(size: 18, design: .monospaced).bold())
-                .foregroundColor(.cyan)
+                .font(.title2.bold())
             Text(label)
-                .font(.system(size: 10, design: .monospaced))
+                .font(.caption)
                 .foregroundColor(.gray)
         }
     }
