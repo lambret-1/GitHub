@@ -124,8 +124,8 @@ class AppState: ObservableObject {
         if !force {
             if let laterTimestamp = UserDefaults.standard.object(forKey: laterReminderKey) as? TimeInterval {
                 let currentTime = Date().timeIntervalSince1970
-                // 稍后提醒有效期为24小时
-                if currentTime - laterTimestamp < 24 * 60 * 60 {
+                // 稍后提醒有效期为1小时
+                if currentTime - laterTimestamp < 60 * 60 {
                     return
                 }
             }
@@ -145,7 +145,7 @@ class AppState: ObservableObject {
     /// 稍后提醒更新
     func remindLater() {
         showUpdateAlert = false
-        // 记录当前时间戳，24小时内不再提醒
+        // 记录当前时间戳，1小时内不再提醒（应用启动时强制检查会忽略此限制）
         UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: laterReminderKey)
     }
     

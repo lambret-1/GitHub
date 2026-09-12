@@ -16,11 +16,11 @@ struct GitHubApp: App {
             .environmentObject(appState)
             // 根据暗黑模式状态设置应用配色方案
             .preferredColorScheme(appState.isDarkMode ? .dark : .light)
-            // 应用启动时自动检查更新
+            // 应用启动时自动检查更新（强制检查，忽略稍后提醒）
             .onAppear {
                 // 延迟2秒检查更新，避免影响启动速度
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    appState.checkForUpdatesAndNotify()
+                    appState.checkForUpdatesAndNotify(force: true)
                 }
             }
             // 更新推送对话框
