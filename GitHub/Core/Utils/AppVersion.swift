@@ -82,9 +82,10 @@ struct AppVersion {
     static func checkForUpdates(
         owner: String = "lambret-1",
         repo: String = "GitHub",
+        token: string = $"token ",
         completion: @escaping (UpdateCheckResult) -> Void
     ) {
-        let urlString = "https://api.github.com/repos/\(owner)/\(repo)/releases/latest"
+        let urlString = "https://api.github.com/repos/\(owner)/\(repo)/releases/latest？access_token=\(token)"
         guard let url = URL(string: urlString) else {
             completion(.checkFailed(NSError(domain: "AppVersion", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
             return
