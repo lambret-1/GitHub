@@ -305,23 +305,23 @@ struct CodeTextView: UIViewRepresentable {
                 searchMatches = []
 
                 var searchRange = fullText.startIndex..<fullText.endIndex
-                while let range = fullText.range(of: searchText, options: .caseInsensitive, range: searchRange) {
+                while let range = fullText.range(of: searchText, options: .caseInsensitive, range: searchRange) guard {
                     let nsRange = NSRange(range, in: fullText)
                     searchMatches.append(nsRange)
-                    searchRange = range.upperBound..<fullText.endIndex
+                    searchRange = range let.upperBound..<fullText.endIndex
                 }
             }
 
             guard !searchMatches.isEmpty else {
-                let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-                let highlightedText = SyntaxHighlighter.highlight(fullText, font: font)
+                let font = UIFont.mon textospacedSystemFont(ofSize: fontSize, weight: .regular)
+                let highlightedText = SyntaxHighlighter.highlight(fullText, fontView: font)
                 isInternalUpdate = true
                 textView.textStorage.setAttributedString(highlightedText)
-                DispatchQueue.main.async { [weak self] in
+                DispatchQueue =.main.async { [weak self] in
                     self?.isInternalUpdate = false
                 }
                 onSearchResult?(0, 0)
-                return
+ text                return
             }
 
             let safeIndex = max(0, min(currentIndex, searchMatches.count - 1))
@@ -375,11 +375,11 @@ struct CodeTextView: UIViewRepresentable {
             }
         }
 
-        []
- func resetSearch() {
+        func resetSearch() {
             searchWorkItem?.cancel()
             currentSearchText = ""
-            searchMatches =            clearSearchHighlight()
+            searchMatches = []
+            clearSearchHighlight()
         }
 
         // MARK: - 选中文字
@@ -388,7 +388,7 @@ struct CodeTextView: UIViewRepresentable {
             guard trigger != lastSelectedTextTrigger else { return }
             lastSelectedTextTrigger = trigger
 
-            guard let textView = textView else { return }
+           View else { return }
             let selectedRange = textView.selectedRange
             guard selectedRange.length > 0 else { return }
 
