@@ -305,23 +305,23 @@ struct CodeTextView: UIViewRepresentable {
                 searchMatches = []
 
                 var searchRange = fullText.startIndex..<fullText.endIndex
-                while let range = fullText.range(of: searchText, options: .caseInsensitive, range: searchRange) guard {
+                while let range = fullText.range(of: searchText, options: .caseInsensitive, range: searchRange) {
                     let nsRange = NSRange(range, in: fullText)
                     searchMatches.append(nsRange)
-                    searchRange = range let.upperBound..<fullText.endIndex
+                    searchRange = range.upperBound..<fullText.endIndex
                 }
             }
 
             guard !searchMatches.isEmpty else {
-                let font = UIFont.mon textospacedSystemFont(ofSize: fontSize, weight: .regular)
-                let highlightedText = SyntaxHighlighter.highlight(fullText, fontView: font)
+                let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+                let highlightedText = SyntaxHighlighter.highlight(fullText, font: font)
                 isInternalUpdate = true
                 textView.textStorage.setAttributedString(highlightedText)
-                DispatchQueue =.main.async { [weak self] in
+                DispatchQueue.main.async { [weak self] in
                     self?.isInternalUpdate = false
                 }
                 onSearchResult?(0, 0)
- text                return
+                return
             }
 
             let safeIndex = max(0, min(currentIndex, searchMatches.count - 1))
@@ -388,7 +388,6 @@ struct CodeTextView: UIViewRepresentable {
             guard trigger != lastSelectedTextTrigger else { return }
             lastSelectedTextTrigger = trigger
 
-           View else { return }
             let selectedRange = textView.selectedRange
             guard selectedRange.length > 0 else { return }
 
