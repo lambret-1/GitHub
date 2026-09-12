@@ -55,10 +55,15 @@ class FileDownloadManager {
         let session = URLSession(configuration: config, delegate: DownloadDelegate(progress: progress, fileURL: fileURL, completion: completion), delegateQueue: .main)
 
         var request = URLRequest(url: urlObj)
-        // GitHub Release的浏览器下载URL是公开的，不需要认证
-        // API端点URL需要设置Accept: application/octet-stream才能下载文件内容
-        // 这里统一不添加认证头，使用browser_download_url下载
+        // 按照GitHub官方规范设置请求头
+        // 1. Authorization: 使用Token认证，支持私有仓库
+        // 2. Accept: application/octet-stream，告诉API返回文件内容而不是JSON
+        // 3. User-Agent: GitHub要求所有API请求必须有User-Agent
+        if let token = TokenKeychain.shared.getToken() {
+            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        }
         request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
 
         let task = session.downloadTask(with: request)
         task.resume()

@@ -1770,7 +1770,9 @@ struct FileBrowserView: View {
         func attempt(currentRetry: Int) {
             var fileRequest = URLRequest(url: fileURL)
             fileRequest.setValue("token \(TokenKeychain.shared.getToken() ?? "")", forHTTPHeaderField: "Authorization")
-            fileRequest.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+            // 文件内容下载使用raw格式，返回文件原始内容而不是JSON
+            fileRequest.setValue("application/vnd.github.v3.raw", forHTTPHeaderField: "Accept")
+            fileRequest.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
             fileRequest.timeoutInterval = 30
 
             URLSession.shared.dataTask(with: fileRequest) { data, response, error in
@@ -1894,6 +1896,8 @@ struct FileBrowserView: View {
         if let token = TokenKeychain.shared.getToken() {
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
         }
+        // 按照GitHub官方规范设置请求头
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
         request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
 
         let config = URLSessionConfiguration.default
@@ -2225,6 +2229,9 @@ struct FileBrowserView: View {
         if let token = TokenKeychain.shared.getToken() {
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
         }
+        // 按照GitHub官方规范设置请求头
+        request.setValue("application/vnd.github.v3.raw", forHTTPHeaderField: "Accept")
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
         // 启用压缩传输
         request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
 
@@ -2277,6 +2284,9 @@ struct FileBrowserView: View {
         if let token = TokenKeychain.shared.getToken() {
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
         }
+        // 按照GitHub官方规范设置请求头
+        request.setValue("application/vnd.github.v3.raw", forHTTPHeaderField: "Accept")
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
         request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
 
         URLSession.shared.dataTask(with: request) { data, response, error in

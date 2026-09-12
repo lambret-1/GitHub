@@ -334,9 +334,10 @@ struct AboutView: View {
         isDownloadingUpdate = true
         downloadProgress = 0
 
-        // 更新下载使用浏览器下载URL（browser_download_url），公开访问，URLSession自动处理重定向
+        // 使用API端点URL（url字段），支持私有仓库，需要认证头
+        // API端点会返回302重定向到实际下载地址，URLSession自动跟随
         FileDownloadManager.shared.downloadAndShare(
-            from: asset.browserDownloadUrl,
+            from: asset.url,
             fileName: asset.name,
             progress: { progress in
                 self.downloadProgress = progress

@@ -486,6 +486,8 @@ class GitHubAPI {
 
         var request = URLRequest(url: urlObj)
         request.allHTTPHeaderFields = getHeaders()
+        // 文件下载使用raw格式，返回文件原始内容而不是JSON
+        request.setValue("application/vnd.github.v3.raw", forHTTPHeaderField: "Accept")
         request.timeoutInterval = 60
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData // 禁用缓存，确保每次刷新都获取最新数据
 
