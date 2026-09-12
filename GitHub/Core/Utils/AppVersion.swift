@@ -97,13 +97,18 @@ struct AppVersion {
         var request = URLRequest(url: url)
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
         request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
-        
-        // 使用Authorization头传递token（推荐方式）
+
+        // 优先使用传入的token，否则从Keychain获取
+        // 私有仓库必须有正确的token才能访问Release API
         let authToken = token ?? TokenKeychain.shared.getToken()
-        if let authToken = authToken {
+        if let authToken = authToken, !authToken.isEmpty {
             request.setValue("token \(authToken)", forHTTPHeaderField: "Authorization")
+        } else {
+            // 没有token，私有仓库会返回404
+            completion(.checkFailed(NSError(domain: "AppVersion", code: -3, userInfo: [NSLocalizedDescriptionKey: "未获取到登录令牌，无法访问私有仓库"])))
+            return
         }
-        
+
         request.timeoutInterval = 15
 
         URLSession.shared.dataTask(with: request) { data, response, error in
@@ -113,10 +118,27 @@ struct AppVersion {
                     return
                 }
 
-                guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200,
-                      let data = data else {
+                guard let httpResponse = response as? HTTPURLResponse else {
                     completion(.checkFailed(NSError(domain: "AppVersion", code: -2, userInfo: [NSLocalizedDescriptionKey: "服务器响应异常"])))
+                    return
+                }
+
+                // 检查HTTP状态码
+                guard httpResponse.statusCode == 200 else {
+                    var errorMessage = "服务器返回错误 \(httpResponse.statusCode)"
+                    if httpResponse.statusCode == 404 {
+                        errorMessage = "未找到Release（可能是私有仓库认证失败或仓库不存在）"
+                    } else if httpResponse.statusCode == 401 {
+                        errorMessage = "登录令牌已过期，请重新登录"
+                    } else if httpResponse.statusCode == 403 {
+                        errorMessage = "访问被拒绝（可能是API速率限制）"
+                    }
+                    completion(.checkFailed(NSError(domain: "AppVersion", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
+                    return
+                }
+
+                guard let data = data else {
+                    completion(.checkFailed(NSError(domain: "AppVersion", code: -4, userInfo: [NSLocalizedDescriptionKey: "服务器返回数据为空"])))
                     return
                 }
 
