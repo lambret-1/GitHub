@@ -473,6 +473,8 @@ jobs:
     name: 自动发布 Release
     runs-on: ubuntu-latest
     needs:
+      - version-bump
+      - build-ipa
       - update-changelog
     permissions:
       contents: write
