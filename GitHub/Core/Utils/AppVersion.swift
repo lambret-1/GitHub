@@ -80,29 +80,34 @@ struct AppVersion {
     ///   - repo: 仓库名称
 ///let token = TokenKeychain.shared.getToken()
     ///   - completion: 完成回调
-    static func checkForUpdates(
-        owner: String = "lambret-1",
-        repo: String = "GitHub",
-        token: String = "TokenKeychain.shared.getTokentoken()",
-        completion: @escaping (UpdateCheckResult) -> Void
-    ) {
-        let urlString = "https://api.github.com/repos/\(owner)/\(repo)/releases/latest？access_token=\(token)"
-        guard let url = URL(string: urlString) else {
-            completion(.checkFailed(NSError(domain: "AppVersion", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
-            return
-        }
+   static func checkForUpdates(
+    owner: String = "lambret-1",
+    repo: String = "GitHub",
+    token: String? = nil,  // 可选类型，默认nil
+    completion: @escaping (UpdateCheckResult) -> Void
+) {
+    let urlString = "https://api.github.com/repos/\(owner)/\(repo)/releases/latest"
+    guard let url = URL(string: urlString) else {
+        completion(.checkFailed(NSError(domain: "AppVersion", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+        return
+    }
 
-        var request = URLRequest(url: url)
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
-        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 15
+    var request = URLRequest(url: url)
+    request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+    request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
+    
+    // 使用Authorization头传递token（推荐方式）
+    let authToken = token ?? TokenKeychain.shared.getToken()
+    if let authToken = authToken {
+        request.setValue("token \(authToken)", forHTTPHeaderField: "Authorization")
+    }
+    
+    request.timeoutInterval = 15
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    completion(.checkFailed(error))
-                    return
-                }
+    URLSession.shared.dataTask(with: request) { data, response, error in
+        // ... 后续处理
+    }.resume()
+}
 
                 guard let httpResponse = response as? HTTPURLResponse,
                       httpResponse.statusCode == 200,
