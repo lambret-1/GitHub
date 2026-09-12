@@ -237,6 +237,8 @@ struct CodeSnippetView: View {
             // 代码片段内容
             snippetContent
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color(.systemBackground))
         .navigationTitle("代码片段")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarItems(trailing: Button("完成") {
@@ -272,37 +274,48 @@ struct CodeSnippetView: View {
     @ViewBuilder
     private var snippetContent: some View {
         if isLoading {
-            VStack {
-                Spacer()
-                ProgressView("加载文件内容...")
-                Spacer()
+            VStack(spacing: 12) {
+                ProgressView()
+                    .scaleEffect(1.2)
+                Text("加载文件内容...")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.systemBackground))
         } else if let error = errorMessage {
             VStack(spacing: 16) {
-                Spacer()
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.largeTitle)
+                    .font(.system(size: 40))
                     .foregroundColor(.orange)
                 Text(error)
+                    .font(.system(size: 14))
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                 Button("重试") {
                     loadFileContent()
                 }
+                .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.blue)
-                Spacer()
+                .padding(.horizontal, 24)
+                .padding(.vertical, 10)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
             }
-            .padding()
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.systemBackground))
         } else if snippets.isEmpty {
-            VStack {
-                Spacer()
-                Image(systemName: "doc.text")
-                    .font(.largeTitle)
+            VStack(spacing: 12) {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .font(.system(size: 40))
                     .foregroundColor(.gray)
                 Text("未找到包含关键词的代码片段")
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
-                Spacer()
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(.systemBackground))
         } else {
             // 代码片段列表
             ScrollView {
