@@ -22,12 +22,6 @@ on:
       - main
   workflow_dispatch:  # 支持手动触发
 
-# 并发控制：同一时间仅允许一个生产构建运行，新构建排队等待（不取消进行中的构建，
-# 避免 Release 发布中途被截断导致制品不一致）
-concurrency:
-  group: production-build-main
-  cancel-in-progress: false
-
 # 全局环境变量（消除硬编码，便于统一维护）
 env:
   PROJECT_NAME: GitHub
@@ -37,7 +31,6 @@ env:
   IPA_FILE_NAME: GitHub.ipa
   ARTIFACT_RETENTION_DAYS: 30
   DEPLOYMENT_TARGET: 15.0
-  XCODEGEN_VERSION: "2.40.0"
 
 jobs:
   # ============================================================================
@@ -53,12 +46,11 @@ jobs:
       build_start_time: ${{ steps.time.outputs.start_time }}
     steps:
       # Step 1: 检出代码
-      # 使用默认的 GITHUB_TOKEN 进行 checkout，避免 REPO_ADMIN_TOKEN 过期导致 checkout 失败
-      # 后续 git push 步骤会单独配置 REPO_ADMIN_TOKEN
       - name: 检出代码
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # 完整历史，用于git log和commit信息
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Step 2: 记录构建开始时间
       - name: 记录构建开始时间
@@ -128,9 +120,7 @@ jobs:
             NEW_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${{ env.INFO_PLIST_PATH }}")
             COMMIT_SHORT=$(git rev-parse --short HEAD)
             BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-            git commit -m "chore(release): 版本号自动递增至 v${NEW_VERSION} [skip ci]" -m "触发Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME} | 触发方式: GitHub Actions 生产构建流水线"
-            # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
-            git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
+            git commit -m "chore(release): 版本号自动递增至 v${NEW_VERSION}" -m "触发Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME} | 触发方式: GitHub Actions 生产构建流水线"
             git push origin main
             echo "::notice::版本变更已提交并推送到 main 分支"
           fi
@@ -164,14 +154,9 @@ jobs:
       - name: 安装XcodeGen并生成项目
         run: |
           echo "=========================================="
-          echo "安装XcodeGen工具（版本: ${{ env.XCODEGEN_VERSION }}）..."
+          echo "安装XcodeGen工具..."
           echo "=========================================="
-          brew install xcodegen
-          if ! command -v xcodegen &> /dev/null; then
-            echo "::error::XcodeGen安装失败，xcodegen命令不可用"
-            exit 1
-          fi
-          echo "已安装XcodeGen版本: $(xcodegen --version)"
+          brew install xcodegen || true
 
           echo "=========================================="
           echo "删除旧的损坏项目文件..."
@@ -184,17 +169,11 @@ jobs:
           xcodegen generate
 
           echo "=========================================="
-          echo "校验项目objectVersion兼容性..."
+          echo "修复项目格式兼容性（objectVersion降级为60，兼容Xcode 15）..."
           echo "=========================================="
           if [ -f "GitHub.xcodeproj/project.pbxproj" ]; then
-            CURRENT_OV=$(grep -o 'objectVersion = [0-9]*;' GitHub.xcodeproj/project.pbxproj | head -1 | grep -o '[0-9]*')
-            echo "XcodeGen生成的objectVersion: ${CURRENT_OV}"
-            if [ "${CURRENT_OV}" != "60" ]; then
-              echo "::warning::objectVersion=${CURRENT_OV}，降级为60以兼容Xcode 15"
-              sed -i '' 's/objectVersion = [0-9]*;/objectVersion = 60;/g' GitHub.xcodeproj/project.pbxproj
-            else
-              echo "::notice::objectVersion已为60，无需降级"
-            fi
+            sed -i '' 's/objectVersion = 77;/objectVersion = 60;/g' GitHub.xcodeproj/project.pbxproj
+            echo "::notice::objectVersion已降级为60"
           fi
 
           echo "=========================================="
@@ -229,12 +208,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-
 
-      # Step 5: 缓存编译产物（基于项目配置与源码内容哈希，确保缓存可命中）
+      # Step 5: 缓存编译产物（性能优化）
       - name: 缓存编译产物
         uses: actions/cache@v4
         with:
           path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-xcode-${{ hashFiles('project.yml', 'GitHub/**/*.swift', 'GitHub/Info.plist') }}
+          key: ${{ runner.os }}-xcode-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-xcode-
 
@@ -297,7 +276,7 @@ jobs:
           echo "app_path=${APP_PATH}" >> "$GITHUB_OUTPUT"
           echo "编译产物路径: ${APP_PATH}"
 
-      # Step 8: 导出未签名IPA（适配全能签导入标准）
+      # Step 7: 导出未签名IPA（适配全能签导入标准）
       - name: 导出未签名IPA
         id: export_ipa
         run: |
@@ -331,7 +310,7 @@ jobs:
           echo "ipa_size=${IPA_SIZE}" >> "$GITHUB_OUTPUT"
           echo "::notice::IPA导出成功，文件大小: ${IPA_SIZE}"
 
-      # Step 9: 计算IPA文件SHA256哈希
+      # Step 8: 计算IPA文件SHA256哈希
       - name: 计算IPA SHA256哈希
         id: sha256
         run: |
@@ -344,7 +323,7 @@ jobs:
           echo "IPA SHA256: ${SHA256}"
           echo "::notice::SHA256哈希计算完成"
 
-      # Step 10: 计算构建耗时
+      # Step 9: 计算构建耗时
       - name: 计算构建耗时
         id: duration
         run: |
@@ -354,7 +333,7 @@ jobs:
           echo "duration=${DURATION}" >> "$GITHUB_OUTPUT"
           echo "构建总耗时: ${DURATION} 秒"
 
-      # Step 11: 生成制品元数据JSON
+      # Step 10: 生成制品元数据JSON
       - name: 生成制品元数据JSON
         id: metadata
         run: |
@@ -372,7 +351,7 @@ jobs:
 
           echo "::notice::制品元数据JSON生成完成"
 
-      # Step 12: 上传IPA作为Artifacts
+      # Step 11: 上传IPA作为Artifacts
       - name: 上传IPA制品
         uses: actions/upload-artifact@v4
         with:
@@ -380,7 +359,7 @@ jobs:
           path: ${{ env.IPA_FILE_NAME }}
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-      # Step 13: 上传制品元数据作为Artifacts
+      # Step 12: 上传制品元数据作为Artifacts
       - name: 上传制品元数据
         uses: actions/upload-artifact@v4
         with:
@@ -388,65 +367,7 @@ jobs:
           path: artifact-metadata.json
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-      # Step 14: 生成Release说明文档
-      - name: 生成Release说明
-        id: release_notes
-        run: |
-          echo "=========================================="
-          echo "生成GitHub Release说明文档..."
-          echo "=========================================="
-
-          cat > release-notes.md << EOF
-          ## 📦 版本 v${{ steps.version.outputs.current_version }}
-
-          ### 构建信息
-          - **构建Commit**: \`${GITHUB_SHA::7}\`
-          - **构建时间**: $(date '+%Y-%m-%d %H:%M:%S %Z')
-          - **Xcode版本**: $(xcodebuild -version | head -1)
-          - **部署目标**: iOS ${{ env.DEPLOYMENT_TARGET }}.0+
-
-          ### 制品校验
-          - **IPA文件名**: ${{ env.IPA_FILE_NAME }}
-          - **SHA256**: \`${{ steps.sha256.outputs.sha256 }}\`
-          - **文件大小**: $(ls -lh ${{ env.IPA_FILE_NAME }} | awk '{print $5}')
-
-          ### 安装说明
-          1. 下载下方的 \`${{ env.IPA_FILE_NAME }}\` 文件
-          2. 使用全能签或其他重签名工具进行本地重签名
-          3. 安装到iOS设备即可使用
-
-          ### 功能特性
-          - Token 安全登录（Keychain 存储）
-          - 仓库列表浏览与搜索
-          - 文件目录浏览
-          - 代码查看与编辑
-          - 个人中心
-          - 版本信息显示与检查更新
-
-          ---
-          *本Release由GitHub Actions自动构建发布*
-          EOF
-
-          echo "::notice::Release说明文档生成完成"
-          cat release-notes.md
-
-      # Step 15: 发布GitHub Release（以版本号命名）
-      - name: 发布GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.current_version }}
-          name: v${{ steps.version.outputs.current_version }}
-          body_path: release-notes.md
-          files: |
-            ${{ env.IPA_FILE_NAME }}
-            artifact-metadata.json
-          draft: false
-          prerelease: false
-          generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Step 16: 上传编译日志（便于问题排查）
+      # Step 13: 上传编译日志（便于问题排查）
       - name: 上传编译日志
         if: always()
         uses: actions/upload-artifact@v4
@@ -466,13 +387,12 @@ jobs:
       - build-ipa
     steps:
       # Step 1: 检出最新代码
-      # 使用默认的 GITHUB_TOKEN 进行 checkout，避免 REPO_ADMIN_TOKEN 过期导致 checkout 失败
-      # push 步骤会单独配置 REPO_ADMIN_TOKEN 来绕过分支保护
       - name: 检出最新代码
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Step 2: 下载IPA制品（用于SHA256校验和确认）
       - name: 下载IPA制品
@@ -537,9 +457,7 @@ jobs:
             COMMIT_SHORT="${{ needs.version-bump.outputs.git_commit_short }}"
             IPA_SHA256="${{ needs.build-ipa.outputs.ipa_sha256 }}"
             BUILD_DURATION="${{ needs.build-ipa.outputs.build_duration }}"
-            git commit -m "docs(changelog): 追加 v${VERSION_NEW} 更新日志 [skip ci]" -m "版本: v${VERSION_NEW} | Commit: ${COMMIT_SHORT} | SHA256: ${IPA_SHA256} | 构建耗时: ${BUILD_DURATION} 秒"
-            # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
-            git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
+            git commit -m "docs(changelog): 追加 v${VERSION_NEW} 更新日志" -m "版本: v${VERSION_NEW} | Commit: ${COMMIT_SHORT} | SHA256: ${IPA_SHA256} | 构建耗时: ${BUILD_DURATION} 秒"
             git push origin main
             echo "::notice::README变更已提交并推送到 main 分支"
           fi
@@ -566,25 +484,14 @@ jobs:
             console.log(`开始清理超过 ${retentionDays} 天的Artifacts...`);
             console.log(`截止日期: ${cutoffDate.toISOString()}`);
 
-            // 分页获取所有Artifacts（默认per_page=100，需遍历全部页面）
-            let allArtifacts = [];
-            let page = 1;
-            while (true) {
-              const resp = await github.rest.actions.listArtifactsForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                per_page: 100,
-                page: page
-              });
-              allArtifacts = allArtifacts.concat(resp.data.artifacts);
-              if (resp.data.artifacts.length < 100) break;
-              page++;
-            }
-
-            console.log(`当前仓库Artifacts总数: ${allArtifacts.length}`);
+            const artifacts = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
 
             let deletedCount = 0;
-            for (const artifact of allArtifacts) {
+            for (const artifact of artifacts.data.artifacts) {
               const createdDate = new Date(artifact.created_at);
               if (createdDate < cutoffDate) {
                 console.log(`删除过期Artifact: ${artifact.name} (创建于 ${artifact.created_at})`);
@@ -598,4 +505,4 @@ jobs:
             }
 
             console.log(`清理完成，共删除 ${deletedCount} 个过期Artifacts`);
-            console.log(`当前剩余Artifacts: ${allArtifacts.length - deletedCount}`);
+            console.log(`当前剩余Artifacts: ${artifacts.data.artifacts.length - deletedCount}`);
