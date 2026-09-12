@@ -890,6 +890,24 @@ class GitHubAPI {
         performSimpleRequest(url: url, method: "DELETE", failureMessage: "取消星标失败", completion: completion)
     }
 
+    /// 获取用户星标仓库列表
+    func getStarredRepositories(page: Int = 1, perPage: Int = 30, completion: @escaping (Result<[Repository], Error>) -> Void) {
+        let url = APIEndpoints.userStarred(page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let repos = try JSONDecoder().decode([Repository].self, from: data)
+                    completion(.success(repos))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     /// Fork 仓库
     func forkRepository(owner: String, repo: String, completion: @escaping (Result<Bool, Error>) -> Void) {
         let url = APIEndpoints.forkRepository(owner: owner, repo: repo).url

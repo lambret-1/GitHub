@@ -42,6 +42,7 @@ enum APIEndpoints {
     case deleteRepository(owner: String, repo: String) // 删除仓库
     case updateRepository(owner: String, repo: String) // 更新仓库信息（重命名等）
     case createRepository // 创建新仓库
+    case userStarred(page: Int, perPage: Int) // 获取用户星标列表
 
     var url: String {
         switch self {
@@ -140,6 +141,8 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)"
         case .createRepository:
             return "\(APIEndpoints.baseURL)/user/repos"
+        case .userStarred(let page, let perPage):
+            return "\(APIEndpoints.baseURL)/user/starred?page=\(page)&per_page=\(perPage)"
         }
     }
 }

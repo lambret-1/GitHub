@@ -39,11 +39,25 @@ struct RepoListView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // 搜索栏
-                SearchBar(text: $searchText, placeholder: "搜索仓库")
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                
+                // 搜索栏 + 星标按钮
+                HStack(spacing: 12) {
+                    SearchBar(text: $searchText, placeholder: "搜索仓库")
+                        .frame(maxWidth: .infinity)
+
+                    // 星标按钮，点击跳转到星标列表页面
+                    NavigationLink(destination: StarredReposView()) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.yellow)
+                            .frame(width: 40, height: 40)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+
                 // 筛选栏
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
