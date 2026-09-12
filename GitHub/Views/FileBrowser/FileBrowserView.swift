@@ -165,6 +165,8 @@ struct FileBrowserView: View {
     @State var selectedFilePath: String?
     @State var selectedFileName: String?
     @State var navigateToFileEditor: Bool = false
+    // 从代码搜索结果跳转到编辑页面时的目标行号
+    @State var jumpToLineNumber: Int?
 
     var body: some View {
         mainContent
@@ -330,7 +332,8 @@ struct FileBrowserView: View {
                     repo: repository.name,
                     path: filePath,
                     branch: selectedBranch,
-                    fileName: fileName
+                    fileName: fileName,
+                    initialSearchText: jumpToLineNumber != nil ? codeSearchQuery : ""
                 )
             }
         }, isActive: $navigateToFileEditor) {
@@ -3471,7 +3474,14 @@ private struct FileBrowserCreateFileSheetsModifier: ViewModifier {
                             repo: view.repository.name,
                             branch: view.selectedBranch,
                             item: item,
-                            searchQuery: view.codeSearchQuery
+                            searchQuery: view.codeSearchQuery,
+                            onJumpToCode: { filePath, lineNumber in
+                                // 跳转到代码编辑页面
+                                view.selectedFilePath = filePath
+                                view.selectedFileName = (filePath as NSString).lastPathComponent
+                                view.jumpToLineNumber = lineNumber
+                                view.navigateToFileEditor = true
+                            }
                         )
                     }
                 }

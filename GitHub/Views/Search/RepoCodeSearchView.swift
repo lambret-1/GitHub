@@ -222,6 +222,8 @@ struct CodeSnippetView: View {
     let branch: String
     let item: CodeSearchItem
     let searchQuery: String
+    // 点击代码片段后的回调，传递文件路径和行号
+    var onJumpToCode: ((_ filePath: String, _ lineNumber: Int) -> Void)?
 
     @State private var fileContent: String?
     @State private var isLoading: Bool = true
@@ -337,31 +339,43 @@ struct CodeSnippetView: View {
     // MARK: - 代码片段行
 
     private func snippetRow(_ snippet: CodeSnippet, index: Int) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 片段位置信息
-            HStack {
-                Image(systemName: "number")
-                    .font(.system(size: 10))
-                    .foregroundColor(.gray)
-                Text("第 \(snippet.lineNumber) 行")
-                    .font(.system(size: 11))
-                    .foregroundColor(.gray)
-                Spacer()
-                Text("匹配 \(index + 1)")
-                    .font(.system(size: 11))
-                    .foregroundColor(.blue)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
-            .background(Color(.systemGray6))
+        Button(action: {
+            // 点击跳转到代码编辑页面
+            onJumpToCode?(item.path, snippet.lineNumber)
+            dismiss()
+        }) {
+            VStack(alignment: .leading, spacing: 0) {
+                // 片段位置信息
+                HStack {
+                    Image(systemName: "number")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                    Text("第 \(snippet.lineNumber) 行")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                    Spacer()
+                    Text("匹配 \(index + 1)")
+                        .font(.system(size: 11))
+                        .foregroundColor(.blue)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                        .padding(.leading, 4)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .background(Color(.systemGray6))
 
-            // 代码内容（高亮关键词）
-            ScrollView(.horizontal, showsIndicators: false) {
-                highlightedCode(snippet.code)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                // 代码内容（高亮关键词）
+                ScrollView(.horizontal, showsIndicators: false) {
+                    highlightedCode(snippet.code)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                }
             }
         }
+        .buttonStyle(PlainButtonStyle())
+        .contentShape(Rectangle())
     }
 
     // MARK: - 高亮关键词
