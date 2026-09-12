@@ -45,9 +45,8 @@ struct LoginView: View {
                         Text("Personal Access Token")
                             .font(.headline)
                             .foregroundColor(.green)
-
                        HStack(spacing: 8) {
-    SecureField("请输入 GitHub 个人访问令牌", text: $tokenText)
+    TextField("请输入 GitHub 个人访问令牌", text: $tokenText)
         .textFieldStyle(RoundedBorderTextFieldStyle())
         .font(.system(size: 14, design: .monospaced))
         .autocapitalization(.none)
