@@ -45,7 +45,7 @@ jobs:
   # ============================================================================
   version-bump:
     name: 版本计算与单元测试
-    runs-on: macos-15
+    runs-on: macos-14
     outputs:
       version_new: ${{ steps.bump.outputs.version_new }}
       version_old: ${{ steps.bump.outputs.version_old }}
@@ -140,7 +140,7 @@ jobs:
   # ============================================================================
   build-ipa:
     name: Xcode编译与IPA导出
-    runs-on: macos-15
+    runs-on: macos-14
     needs: version-bump
     outputs:
       ipa_sha256: ${{ steps.sha256.outputs.sha256 }}
@@ -460,7 +460,7 @@ jobs:
   # ============================================================================
   update-changelog:
     name: 更新README更新日志
-    runs-on: macos-16
+    runs-on: macos-14
     needs:
       - version-bump
       - build-ipa
