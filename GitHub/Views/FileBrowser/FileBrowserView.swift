@@ -87,6 +87,7 @@ struct FileBrowserView: View {
     @State var codeSearchResults: [CodeSearchItem] = []
     @State var isSearchingCode: Bool = false
     @State var codeSearchError: String?
+    @State var codeSearchProgress: Double = 0
     @State var selectedCodeSearchItem: CodeSearchItem?
     @State var showCodeSearchSnippet: Bool = false
     @State var showUploadSuccess: Bool = false
@@ -616,11 +617,17 @@ struct FileBrowserView: View {
     @ViewBuilder
     var codeSearchResultsSection: some View {
         if isSearchingCode {
-            // 加载中
-            HStack {
-                Spacer()
+            // 加载中（带进度条）
+            VStack(spacing: 12) {
                 ProgressView("搜索中...")
-                Spacer()
+                if codeSearchProgress > 0 {
+                    ProgressView(value: codeSearchProgress)
+                        .progressViewStyle(LinearProgressViewStyle())
+                        .padding(.horizontal, 40)
+                    Text(String(format: "%.0f%%", codeSearchProgress * 100))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             .padding(.vertical, 20)
         } else if let error = codeSearchError {
@@ -1633,95 +1640,170 @@ struct FileBrowserView: View {
             return isTextFile && size < 1024 * 1024 // 小于1MB
         }
 
-        // 限制最多搜索200个文件，确保覆盖仓库所有文件
-        let filesToSearch = Array(textFiles.prefix(200))
+        // 限制最多搜索500个文件，确保覆盖仓库所有文件
+        let filesToSearch = Array(textFiles.prefix(500))
+        let totalFiles = filesToSearch.count
 
-        // 3. 逐个下载文件内容并搜索
+        // 3. 限制并发下载数量为5个，避免网络拥塞和API速率限制
+        let semaphoreDownload = DispatchSemaphore(value: 5)
         let group = DispatchGroup()
         let lock = NSLock()
         var searchedCount = 0
         var errorCount = 0
+        var failedFiles: [String] = []
 
         for fileItem in filesToSearch {
             group.enter()
+            semaphoreDownload.wait()
+
             // 对路径中的每个组件进行编码，避免特殊字符问题
-            let pathComponents = fileItem.path.split(separator: "/").map { String($0).addingPercentEncoding(withAllowedCharacters: CharacterSet.urlPathAllowed) ?? String($0) }
+            // 使用urlPathAllowed字符集，但排除/字符，因为我们是逐个组件编码
+            let pathComponents = fileItem.path.split(separator: "/").map { component -> String in
+                let allowed = CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))
+                return String(component).addingPercentEncoding(withAllowedCharacters: allowed) ?? String(component)
+            }
             let encodedPath = pathComponents.joined(separator: "/")
             let contentURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/contents/\(encodedPath)?ref=\(selectedBranch)"
 
             guard let fileURL = URL(string: contentURL) else {
                 lock.lock()
                 errorCount += 1
+                failedFiles.append(fileItem.path)
+                searchedCount += 1
                 lock.unlock()
+                semaphoreDownload.signal()
                 group.leave()
                 continue
             }
 
-            var fileRequest = URLRequest(url: fileURL)
-            fileRequest.setValue("token \(TokenKeychain.shared.getToken() ?? "")", forHTTPHeaderField: "Authorization")
-            fileRequest.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
-            fileRequest.timeoutInterval = 15
-
-            URLSession.shared.dataTask(with: fileRequest) { data, response, error in
+            // 下载文件内容，最多重试2次
+            self.downloadFileContentWithRetry(fileURL: fileURL, maxRetries: 2) { result in
                 defer {
-                    lock.lock()
-                    searchedCount += 1
-                    if error != nil { errorCount += 1 }
-                    lock.unlock()
+                    semaphoreDownload.signal()
                     group.leave()
                 }
 
-                guard let data = data, error == nil else { return }
-                do {
-                    let fileContent = try JSONDecoder().decode(FileContent.self, from: data)
-                    let content = fileContent.decodedContent
+                lock.lock()
+                searchedCount += 1
+                // 实时更新搜索进度
+                let progress = Double(searchedCount) / Double(totalFiles)
+                DispatchQueue.main.async {
+                    self.codeSearchProgress = progress
+                }
+                lock.unlock()
 
-                    if content.lowercased().contains(lowercasedQuery) {
-                        // 构建CodeSearchItem
-                        let fileName = (fileItem.path as NSString).lastPathComponent
-                        let searchItem = CodeSearchItem(
-                            name: fileName,
-                            path: fileItem.path,
-                            sha: fileItem.sha,
-                            url: "",
-                            gitUrl: "",
-                            htmlUrl: "",
-                            repository: CodeSearchRepository(
-                                id: 0,
-                                name: self.repository.name,
-                                fullName: "\(self.repository.ownerName)/\(self.repository.name)",
-                                isPrivate: false,
+                switch result {
+                case .success(let data):
+                    do {
+                        let fileContent = try JSONDecoder().decode(FileContent.self, from: data)
+                        let content = fileContent.decodedContent
+
+                        if content.lowercased().contains(lowercasedQuery) {
+                            // 构建CodeSearchItem
+                            let fileName = (fileItem.path as NSString).lastPathComponent
+                            let searchItem = CodeSearchItem(
+                                name: fileName,
+                                path: fileItem.path,
+                                sha: fileItem.sha,
+                                url: "",
+                                gitUrl: "",
                                 htmlUrl: "",
-                                owner: CodeSearchRepositoryOwner(
-                                    login: self.repository.ownerName,
+                                repository: CodeSearchRepository(
                                     id: 0,
-                                    avatarUrl: self.repository.owner.avatarUrl
+                                    name: self.repository.name,
+                                    fullName: "\(self.repository.ownerName)/\(self.repository.name)",
+                                    isPrivate: false,
+                                    htmlUrl: "",
+                                    owner: CodeSearchRepositoryOwner(
+                                        login: self.repository.ownerName,
+                                        id: 0,
+                                        avatarUrl: self.repository.owner.avatarUrl
+                                    )
                                 )
                             )
-                        )
+                            lock.lock()
+                            results.append(searchItem)
+                            lock.unlock()
+                        }
+                    } catch {
                         lock.lock()
-                        results.append(searchItem)
+                        errorCount += 1
+                        failedFiles.append(fileItem.path)
                         lock.unlock()
                     }
-                } catch {
-                    // 忽略单个文件的错误
+                case .failure:
+                    lock.lock()
+                    errorCount += 1
+                    failedFiles.append(fileItem.path)
+                    lock.unlock()
                 }
-            }.resume()
+            }
         }
 
-        // 等待所有下载完成，最多等待60秒
-        let timeout = group.wait(timeout: .now() + 60)
+        // 等待所有下载完成，最多等待120秒
+        let timeout = group.wait(timeout: .now() + 120)
 
         DispatchQueue.main.async {
             self.isSearchingCode = false
+            self.codeSearchProgress = 0
             if results.isEmpty && timeout == .timedOut {
-                self.codeSearchError = "搜索超时（已搜索\(searchedCount)个文件），请尝试更具体的关键词"
+                self.codeSearchError = "搜索超时（已搜索\(searchedCount)/\(totalFiles)个文件），请尝试更具体的关键词"
             } else if results.isEmpty {
-                self.codeSearchError = "未找到匹配的代码（已搜索\(searchedCount)个文件，\(errorCount)个文件失败）"
+                var errorMsg = "未找到匹配的代码（已搜索\(searchedCount)/\(totalFiles)个文件"
+                if errorCount > 0 {
+                    errorMsg += "，\(errorCount)个文件失败"
+                    if failedFiles.count > 0 {
+                        errorMsg += "：\(failedFiles.prefix(3).joined(separator: ", "))"
+                        if failedFiles.count > 3 {
+                            errorMsg += "等"
+                        }
+                    }
+                }
+                errorMsg += "）"
+                self.codeSearchError = errorMsg
             } else {
                 self.codeSearchResults = results
             }
         }
+    }
+
+    // 下载文件内容，带重试机制
+    private func downloadFileContentWithRetry(fileURL: URL, maxRetries: Int, completion: @escaping (Result<Data, Error>) -> Void) {
+        func attempt(currentRetry: Int) {
+            var fileRequest = URLRequest(url: fileURL)
+            fileRequest.setValue("token \(TokenKeychain.shared.getToken() ?? "")", forHTTPHeaderField: "Authorization")
+            fileRequest.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+            fileRequest.timeoutInterval = 30
+
+            URLSession.shared.dataTask(with: fileRequest) { data, response, error in
+                if let error = error {
+                    if currentRetry < maxRetries {
+                        // 延迟1秒后重试
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+                            attempt(currentRetry: currentRetry + 1)
+                        }
+                    } else {
+                        completion(.failure(error))
+                    }
+                    return
+                }
+
+                guard let data = data else {
+                    if currentRetry < maxRetries {
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+                            attempt(currentRetry: currentRetry + 1)
+                        }
+                    } else {
+                        completion(.failure(NSError(domain: "CodeSearch", code: -1, userInfo: [NSLocalizedDescriptionKey: "无数据"])))
+                    }
+                    return
+                }
+
+                completion(.success(data))
+            }.resume()
+        }
+
+        attempt(currentRetry: 0)
     }
 
     // 显示代码片段页面
