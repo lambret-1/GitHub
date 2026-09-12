@@ -422,10 +422,10 @@ struct AboutView: View {
         isDownloadingUpdate = true
         downloadProgress = 0
 
-        // 更新下载使用API端点URL（url字段），直接返回文件内容，不需要重定向
+        // 更新下载使用浏览器下载URL（browser_download_url），公开访问，URLSession自动处理重定向
         // 不使用镜像加速，因为GitHub Releases的下载URL涉及重定向，镜像无法正确代理
         FileDownloadManager.shared.downloadAndShare(
-            from: asset.url,
+            from: asset.browserDownloadUrl,
             fileName: asset.name,
             useMirror: false,
             progress: { progress in

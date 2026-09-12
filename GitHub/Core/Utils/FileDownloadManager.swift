@@ -56,15 +56,16 @@ class FileDownloadManager {
         }
 
         let config = URLSessionConfiguration.default
+        // 禁用缓存，确保每次都从服务器下载最新文件
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.urlCache = nil
         let session = URLSession(configuration: config, delegate: DownloadDelegate(progress: progress, fileURL: fileURL, completion: completion), delegateQueue: .main)
 
         var request = URLRequest(url: urlObj)
-        // GitHub Release的API端点需要认证，浏览器下载URL不需要认证
-        // 当使用API端点（url字段）下载时，需要添加Authorization头
-        if let token = TokenKeychain.shared.getToken() {
-            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
-        }
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        // GitHub Release的浏览器下载URL是公开的，不需要认证
+        // API端点URL需要设置Accept: application/octet-stream才能下载文件内容
+        // 这里统一不添加认证头，使用browser_download_url下载
+        request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
 
         let task = session.downloadTask(with: request)
         task.resume()
@@ -236,6 +237,12 @@ private class DownloadDelegate: NSObject, URLSessionDownloadDelegate, URLSession
                 self.completion(.failure(error))
             }
         }
+    }
+
+    // 处理HTTP重定向（GitHub Releases下载URL会302重定向到实际文件地址）
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        // 允许重定向，使用新的请求继续下载
+        completionHandler(request)
     }
 }
 
