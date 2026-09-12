@@ -16,6 +16,58 @@ struct GitHubApp: App {
             .environmentObject(appState)
             // 根据暗黑模式状态设置应用配色方案
             .preferredColorScheme(appState.isDarkMode ? .dark : .light)
+            // 应用启动时自动检查更新
+            .onAppear {
+                // 延迟2秒检查更新，避免影响启动速度
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    appState.checkForUpdatesAndNotify()
+                }
+            }
+            // 更新推送对话框
+            .alert("发现新版本", isPresented: $appState.showUpdateAlert) {
+                if let release = appState.latestRelease {
+                    Button("立即更新") {
+                        appState.downloadUpdateNow()
+                    }
+                    Button("稍后提醒", role: .cancel) {
+                        appState.remindLater()
+                    }
+                }
+            } message: {
+                if let release = appState.latestRelease {
+                    Text("新版本 \(release.tagName) 已发布，点击立即更新，下载完成后将自动弹出分享面板进行安装。")
+                }
+            }
+            // 下载更新进度覆盖层
+            .overlay {
+                if appState.isDownloadingUpdate {
+                    ZStack {
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                        
+                        VStack(spacing: 16) {
+                            ProgressView(value: appState.updateDownloadProgress)
+                                .progressViewStyle(CircularProgressViewStyle())
+                                .scaleEffect(1.5)
+                            
+                            Text("正在下载更新...")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            Text(String(format: "%.0f%%", appState.updateDownloadProgress * 100))
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                            
+                            Text("下载完成后将自动弹出分享面板")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .padding(32)
+                        .background(Color(red: 0.15, green: 0.15, blue: 0.15))
+                        .cornerRadius(16)
+                    }
+                }
+            }
         }
     }
 }

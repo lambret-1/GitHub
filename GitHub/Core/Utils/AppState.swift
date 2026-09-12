@@ -13,8 +13,17 @@ class AppState: ObservableObject {
     // 暗黑模式状态
     @Published var isDarkMode: Bool = false
     
+    // 更新推送相关状态
+    @Published var showUpdateAlert: Bool = false
+    @Published var latestRelease: AppVersion.ReleaseInfo?
+    @Published var isDownloadingUpdate: Bool = false
+    @Published var updateDownloadProgress: Double = 0
+    
     // AccountManager的cancellable，用于监听账号切换
     private var accountCancellable: AnyCancellable?
+    
+    // 稍后提醒的时间戳（UserDefaults键名）
+    private let laterReminderKey = "laterReminderTimestamp"
     
     private init() {
         // 从UserDefaults读取暗黑模式设置
@@ -101,6 +110,74 @@ class AppState: ObservableObject {
                     self?.currentUser = user
                 case .failure:
                     break
+                }
+            }
+        }
+    }
+    
+    // MARK: - 更新推送功能
+    
+    /// 检查更新并推送通知
+    /// - Parameter force: 是否强制检查（忽略稍后提醒）
+    func checkForUpdatesAndNotify(force: Bool = false) {
+        // 如果不是强制检查，检查是否在稍后提醒时间内
+        if !force {
+            if let laterTimestamp = UserDefaults.standard.object(forKey: laterReminderKey) as? TimeInterval {
+                let currentTime = Date().timeIntervalSince1970
+                // 稍后提醒有效期为24小时
+                if currentTime - laterTimestamp < 24 * 60 * 60 {
+                    return
+                }
+            }
+        }
+        
+        AppVersion.checkForUpdates { [weak self] result in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                if case .updateAvailable(let release) = result {
+                    self.latestRelease = release
+                    self.showUpdateAlert = true
+                }
+            }
+        }
+    }
+    
+    /// 稍后提醒更新
+    func remindLater() {
+        showUpdateAlert = false
+        // 记录当前时间戳，24小时内不再提醒
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: laterReminderKey)
+    }
+    
+    /// 立即下载更新
+    func downloadUpdateNow() {
+        guard let release = latestRelease else { return }
+        showUpdateAlert = false
+        isDownloadingUpdate = true
+        updateDownloadProgress = 0
+        
+        // 找到IPA文件的下载链接
+        let ipaAsset = release.assets.first { $0.name.hasSuffix(".ipa") }
+        guard let asset = ipaAsset else {
+            isDownloadingUpdate = false
+            return
+        }
+        
+        // 下载更新并自动弹出分享面板
+        FileDownloadManager.shared.downloadAndShare(
+            from: asset.browserDownloadUrl,
+            fileName: asset.name,
+            useMirror: true,
+            progress: { [weak self] progress in
+                DispatchQueue.main.async {
+                    self?.updateDownloadProgress = progress
+                }
+            }
+        ) { [weak self] result in
+            DispatchQueue.main.async {
+                self?.isDownloadingUpdate = false
+                if case .failure = result {
+                    // 下载失败，可以在这里添加错误处理
                 }
             }
         }
