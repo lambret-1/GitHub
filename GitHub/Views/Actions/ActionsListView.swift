@@ -320,9 +320,25 @@ struct ActionsListView: View {
                             case "cancelled": cancelledCount += 1
                             default: break
                             }
+                            // 计算运行时长（秒）
+                            if let createdAt = run.createdAt, let updatedAt = run.updatedAt {
+                                let duration = Int(updatedAt.timeIntervalSince(createdAt))
+                                if duration > 0 {
+                                    totalDuration += duration
+                                    durationCount += 1
+                                }
+                            }
                         } else if run.status == "in_progress" {
                             inProgressCount += 1
                         }
+                    }
+
+                    // 安全计算平均耗时，避免除以零
+                    let avgDuration: Int?
+                    if durationCount > 0 {
+                        avgDuration = totalDuration / durationCount
+                    } else {
+                        avgDuration = nil
                     }
 
                     self.stats = RunStats(
@@ -331,7 +347,7 @@ struct ActionsListView: View {
                         failureCount: failureCount,
                         cancelledCount: cancelledCount,
                         inProgressCount: inProgressCount,
-                        averageDurationSeconds: durationCount > 0 ? totalDuration / durationCount : nil
+                        averageDurationSeconds: avgDuration
                     )
                 case .failure:
                     self.stats = nil
