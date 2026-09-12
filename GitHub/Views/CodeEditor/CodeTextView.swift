@@ -388,6 +388,7 @@ struct CodeTextView: UIViewRepresentable {
             guard trigger != lastSelectedTextTrigger else { return }
             lastSelectedTextTrigger = trigger
 
+            guard let textView = textView else { return }
             let selectedRange = textView.selectedRange
             guard selectedRange.length > 0 else { return }
 
