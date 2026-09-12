@@ -59,11 +59,12 @@ class FileDownloadManager {
         let session = URLSession(configuration: config, delegate: DownloadDelegate(progress: progress, fileURL: fileURL, completion: completion), delegateQueue: .main)
 
         var request = URLRequest(url: urlObj)
-        // 注意：GitHub Releases的下载URL是公开的，不需要认证
-        // 只有仓库内的文件下载才需要认证
-        if useMirror, let token = TokenKeychain.shared.getToken() {
+        // GitHub Release的API端点需要认证，浏览器下载URL不需要认证
+        // 当使用API端点（url字段）下载时，需要添加Authorization头
+        if let token = TokenKeychain.shared.getToken() {
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
         }
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
 
         let task = session.downloadTask(with: request)
         task.resume()

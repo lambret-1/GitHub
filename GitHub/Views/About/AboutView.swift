@@ -422,13 +422,12 @@ struct AboutView: View {
         isDownloadingUpdate = true
         downloadProgress = 0
 
-        // 更新下载使用镜像加速
-        // 公共镜像站（清华、中科大等）可以用于下载Release文件
-        // 注意：公共镜像站只镜像了部分热门项目，如果镜像下载失败会自动报错
+        // 更新下载使用API端点URL（url字段），直接返回文件内容，不需要重定向
+        // 不使用镜像加速，因为GitHub Releases的下载URL涉及重定向，镜像无法正确代理
         FileDownloadManager.shared.downloadAndShare(
-            from: asset.browserDownloadUrl,
+            from: asset.url,
             fileName: asset.name,
-            useMirror: true,
+            useMirror: false,
             progress: { progress in
                 self.downloadProgress = progress
             }

@@ -55,12 +55,14 @@ struct AppVersion {
         let name: String
         let size: Int
         let downloadCount: Int
-        let browserDownloadUrl: String
+        let url: String           // API端点URL（直接返回文件内容，需要认证）
+        let browserDownloadUrl: String  // 浏览器下载URL（公开访问，需要重定向）
 
         enum CodingKeys: String, CodingKey {
             case name
             case size
             case downloadCount = "download_count"
+            case url
             case browserDownloadUrl = "browser_download_url"
         }
     }
