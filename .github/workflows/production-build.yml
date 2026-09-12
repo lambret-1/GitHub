@@ -140,7 +140,7 @@ jobs:
   # ============================================================================
   build-ipa:
     name: Xcode编译与IPA导出
-    runs-on: macos-16
+    runs-on: macos-15
     needs: version-bump
     outputs:
       ipa_sha256: ${{ steps.sha256.outputs.sha256 }}
