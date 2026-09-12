@@ -244,13 +244,14 @@ struct CodeTextView: UIViewRepresentable {
                 actions.append(cutAction)
             }
 
-            // 粘贴（仅在剪贴板有文字且可编辑时显示）
-            if textView.isEditable, let pasteboardText = UIPasteboard.general.string, !pasteboardText.isEmpty {
+            // 粘贴（仅在可编辑且剪贴板有文字时显示）
+            if textView.isEditable && UIPasteboard.general.hasStrings {
                 let pasteAction = UIAction(
                     title: "粘贴",
                     image: UIImage(systemName: "doc.on.clipboard")
                 ) { [weak self] _ in
                     guard let self = self else { return }
+                    guard let pasteboardText = UIPasteboard.general.string, !pasteboardText.isEmpty else { return }
                     let mutableText = NSMutableString(string: textView.text)
                     mutableText.insert(pasteboardText, at: range.location)
                     textView.text = mutableText as String
