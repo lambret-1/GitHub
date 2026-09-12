@@ -1082,19 +1082,7 @@ struct FileBrowserView: View {
         }
 
         // 通用功能（自己和别人的仓库都显示）
-        Button(action: {
-            showBranchPicker = true
-        }) {
-            Label("切换分支: \(selectedBranch)", systemImage: "arrow.triangle.branch")
-        }
-        .disabled(isDeleteMode)
-
-        Button(action: {
-            showCommits = true
-        }) {
-            Label("提交记录", systemImage: "clock.arrow.circlepath")
-        }
-        .disabled(isDeleteMode)
+        
 
         Button(action: {
             showActions = true
