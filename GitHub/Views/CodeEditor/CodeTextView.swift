@@ -192,7 +192,7 @@ struct CodeTextView: UIViewRepresentable {
         // MARK: - iOS 16+ 自定义编辑菜单
         //
         // 菜单顺序：🔍查找 / 复制 / 剪切 / 粘贴 / 全选
-        // 其余系统菜单项（分享、翻译、搜索网页等）全部移除，避免被折叠到"更多"。
+        // 手动创建所有菜单项，确保功能完整显示，不依赖系统建议
         @available(iOS 16.0, *)
         func textView(_ textView: UITextView,
                       editMenuForTextIn range: NSRange,
@@ -202,9 +202,9 @@ struct CodeTextView: UIViewRepresentable {
             else { return nil }
 
             let selectedText = range.length > 0 ? (textView.text as NSString).substring(with: range) : ""
-
-            // 自定义"🔍查找"（放在第一位，仅在有选中文字时显示）
             var actions: [UIMenuElement] = []
+
+            // 🔍查找（仅在有选中文字时显示）
             if !selectedText.isEmpty {
                 let lookupAction = UIAction(
                     title: "🔍查找",
@@ -216,37 +216,60 @@ struct CodeTextView: UIViewRepresentable {
                 actions.append(lookupAction)
             }
 
-            // 保留：复制 / 剪切 / 粘贴 / 全选
-            let keepSelectors: Set<Selector> = [
-                #selector(UIResponderStandardEditActions.copy(_:)),
-                #selector(UIResponderStandardEditActions.cut(_:)),
-                #selector(UIResponderStandardEditActions.paste(_:)),
-                #selector(UIResponderStandardEditActions.selectAll(_:))
-            ]
-
-            // 递归过滤菜单项，处理UIMenu子菜单
-            func filterMenuElements(_ elements: [UIMenuElement]) -> [UIMenuElement] {
-                var result: [UIMenuElement] = []
-                for element in elements {
-                    if let command = element as? UICommand {
-                        if keepSelectors.contains(command.action) {
-                            result.append(command)
-                        }
-                    } else if let menu = element as? UIMenu {
-                        // 递归处理子菜单
-                        let filteredChildren = filterMenuElements(menu.children)
-                        if !filteredChildren.isEmpty {
-                            result.append(contentsOf: filteredChildren)
-                        }
-                    }
+            // 复制（仅在有选中文字时显示）
+            if !selectedText.isEmpty {
+                let copyAction = UIAction(
+                    title: "复制",
+                    image: UIImage(systemName: "doc.on.doc")
+                ) { _ in
+                    UIPasteboard.general.string = selectedText
                 }
-                return result
+                actions.append(copyAction)
             }
 
-            let filtered = filterMenuElements(suggestedActions)
+            // 剪切（仅在有选中文字且可编辑时显示）
+            if !selectedText.isEmpty && textView.isEditable {
+                let cutAction = UIAction(
+                    title: "剪切",
+                    image: UIImage(systemName: "scissors")
+                ) { [weak self] _ in
+                    guard let self = self else { return }
+                    UIPasteboard.general.string = selectedText
+                    let mutableText = NSMutableString(string: textView.text)
+                    mutableText.deleteCharacters(in: range)
+                    textView.text = mutableText as String
+                    self.text = textView.text
+                    self.onTextChange?(textView.text)
+                }
+                actions.append(cutAction)
+            }
 
-            // 🔍查找 放第一位，其余系统项按原顺序排在后面
-            return UIMenu(children: actions + filtered)
+            // 粘贴（仅在剪贴板有文字且可编辑时显示）
+            if textView.isEditable, let pasteboardText = UIPasteboard.general.string, !pasteboardText.isEmpty {
+                let pasteAction = UIAction(
+                    title: "粘贴",
+                    image: UIImage(systemName: "doc.on.clipboard")
+                ) { [weak self] _ in
+                    guard let self = self else { return }
+                    let mutableText = NSMutableString(string: textView.text)
+                    mutableText.insert(pasteboardText, at: range.location)
+                    textView.text = mutableText as String
+                    self.text = textView.text
+                    self.onTextChange?(textView.text)
+                }
+                actions.append(pasteAction)
+            }
+
+            // 全选（始终显示）
+            let selectAllAction = UIAction(
+                title: "全选",
+                image: UIImage(systemName: "checkmark.circle")
+            ) { _ in
+                textView.selectedRange = NSRange(location: 0, length: (textView.text as NSString).length)
+            }
+            actions.append(selectAllAction)
+
+            return UIMenu(children: actions)
         }
 
         // MARK: - UITextViewDelegate
