@@ -16,6 +16,10 @@
 
 name: 生产构建流水线
 
+# 允许 workflow 使用写权限以便创建 tag / release / push
+permissions:
+  contents: write
+
 on:
   push:
     branches:
@@ -463,7 +467,120 @@ jobs:
           fi
 
   # ============================================================================
-  # Job 4：清理过期Artifacts（节约GitHub存储配额）
+  # Job 4（新增）：发布 Release（依赖 update-changelog 完成）
+  # ============================================================================
+  publish-release:
+    name: 自动发布 Release
+    runs-on: ubuntu-latest
+    needs:
+      - update-changelog
+    permissions:
+      contents: write
+    steps:
+      - name: 检出代码（用于 push tag）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 下载 IPA 制品
+        uses: actions/download-artifact@v4
+        with:
+          name: GitHub-iOS-IPA-v${{ needs.version-bump.outputs.version_new }}
+          path: ./artifacts
+
+      - name: 下载制品元数据 JSON（如果存在）
+        uses: actions/download-artifact@v4
+        with:
+          name: GitHub-iOS-Metadata-v${{ needs.version-bump.outputs.version_new }}
+          path: ./artifacts || true
+
+      - name: 列出 artifacts 目录
+        run: |
+          echo "artifacts 内容:"
+          ls -la artifacts || true
+
+      - name: 读取制品元数据并生成 release body
+        id: meta
+        run: |
+          METADATA_FILE="./artifacts/artifact-metadata.json"
+          if [ -f "${METADATA_FILE}" ]; then
+            VERSION=$(jq -r '.version // empty' "${METADATA_FILE}" || echo "${{ needs.version-bump.outputs.version_new }}")
+            RELEASE_NOTES=$(jq -r '.release_notes // "自动发布：见 artifact-metadata.json" ' "${METADATA_FILE}" || echo "自动发布：见 artifact-metadata.json")
+          else
+            VERSION="${{ needs.version-bump.outputs.version_new }}"
+            RELEASE_NOTES="自动发布：未找到 artifact-metadata.json，使用默认说明。"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release_body<<EOF" >> "$GITHUB_OUTPUT"
+          echo "${RELEASE_NOTES}" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "读取的发布信息：版本=${VERSION}"
+
+      - name: 创建并推送 tag
+        env:
+          TAG: v${{ steps.meta.outputs.version }}
+        run: |
+          echo "创建 tag ${TAG} 并推送到 origin"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git rev-parse "${TAG}" >/dev/null 2>&1; then
+            echo "tag ${TAG} 已存在，跳过创建"
+          else
+            git tag -a "${TAG}" -m "Release ${TAG}"
+            git push origin "${TAG}"
+          fi
+
+      - name: 创建 GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ steps.meta.outputs.version }}
+          release_name: v${{ steps.meta.outputs.version }}
+          body: ${{ steps.meta.outputs.release_body }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 上传 IPA 到 Release
+        if: always()
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./artifacts/${{ env.IPA_FILE_NAME }}
+          asset_name: GitHub-v${{ steps.meta.outputs.version }}.ipa
+          asset_content_type: application/octet-stream
+
+      - name: 上传 metadata JSON 到 Release（如果存在）
+        if: steps.meta.outputs.version && ( -f ./artifacts/artifact-metadata.json )
+        run: |
+          # actions/upload-release-asset action doesn't support the 'if: exists' directly with file check in YAML,
+          # so we use curl to upload the JSON only when it exists.
+          if [ -f ./artifacts/artifact-metadata.json ]; then
+            echo "上传 artifact-metadata.json 到 Release"
+            UPLOAD_URL=${{ steps.create_release.outputs.upload_url }}
+            FILE_PATH=./artifacts/artifact-metadata.json
+            FILE_NAME=artifact-metadata-v${{ steps.meta.outputs.version }}.json
+            echo "上传到: ${UPLOAD_URL}"
+            # 使用 GitHub API 上传资产
+            curl -s -X POST "${UPLOAD_URL}?name=${FILE_NAME}" \
+              -H "Authorization: token ${GITHUB_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data-binary @${FILE_PATH}
+          else
+            echo "未找到 artifact-metadata.json，跳过上传"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 发布完成通知
+        run: |
+          echo "Release v${{ steps.meta.outputs.version }} 已创建并上传资产。"
+          echo "Release URL： https://github.com/${{ github.repository }}/releases/tag/v${{ steps.meta.outputs.version }}"
+
+  # ============================================================================
+  # Job 5：清理过期Artifacts（节约GitHub存储配额）
   # ============================================================================
   cleanup-artifacts:
     name: 清理过期Artifacts
