@@ -13,7 +13,7 @@ class HTMLCache {
 
     private var cache: [String: CacheEntry] = [:]
     private let cacheQueue = DispatchQueue(label: "com.github.htmlcache", attributes: .concurrent)
-    private let cacheValidity: TimeInterval = 300 // 缓存有效期5分钟
+    private let cacheValidity: TimeInterval = 60 // 缓存有效期5分钟
 
     private init() {}
 
