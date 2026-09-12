@@ -301,9 +301,45 @@ struct CodeEditorView: View {
         }
         .onAppear {
             loadFile()
+            
+            // 监听键盘弹出
+            NotificationCenter.default.addObserver(
+                forName: UIResponder.keyboardWillShowNotification,
+                object: nil,
+                queue: .main
+            ) { notification in
+                if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                    keyboardHeight = frame.height
+                }
+            }
+            // 监听键盘收起
+            NotificationCenter.default.addObserver(
+                forName: UIResponder.keyboardWillHideNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                keyboardHeight = 0
+            }
+            // 监听应用进入前台（修复退后台再进来工具栏位置异常bug）
+            NotificationCenter.default.addObserver(
+                forName: UIApplication.didBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                // 进入前台时重置键盘高度，避免状态残留
+                keyboardHeight = 0
+            }
         }
         // 页面消失时强制恢复TabBar显示，防止编辑模式下返回导致TabBar一直隐藏
         .onDisappear {
+            // 移除键盘监听，避免内存泄漏和状态残留
+            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+            NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
+            
+            // 重置键盘高度，避免状态残留
+            keyboardHeight = 0
+            
             // 取消正在进行的图片加载任务，避免回调访问已销毁的视图
             imageLoadTask?.cancel()
             imageLoadTask = nil
@@ -704,34 +740,9 @@ struct CodeEditorView: View {
                     showSearch = true
                 }
             )
-            // 代码区域跟随键盘弹出向上移动（底部padding = 键盘高度）
-            .padding(.bottom, keyboardHeight)
+            // 代码区域跟随键盘弹出向上移动（仅编辑模式下生效，底部padding = 键盘高度 - 安全区域）
+            .padding(.bottom, isEditing ? max(0, keyboardHeight - UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0) : 0)
             .animation(.easeOut(duration: 0.25), value: keyboardHeight)
-        }
-        .onAppear {
-            // 监听键盘弹出
-            NotificationCenter.default.addObserver(
-                forName: UIResponder.keyboardWillShowNotification,
-                object: nil,
-                queue: .main
-            ) { notification in
-                if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                    keyboardHeight = frame.height
-                }
-            }
-            // 监听键盘收起
-            NotificationCenter.default.addObserver(
-                forName: UIResponder.keyboardWillHideNotification,
-                object: nil,
-                queue: .main
-            ) { _ in
-                keyboardHeight = 0
-            }
-        }
-        .onDisappear {
-            // 移除键盘监听，避免内存泄漏
-            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
-            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
         }
     }
 
