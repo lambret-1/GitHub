@@ -554,6 +554,8 @@ jobs:
           asset_path: ./artifacts/${{ env.IPA_FILE_NAME }}
           asset_name: GitHub-v${{ steps.meta.outputs.version }}.ipa
           asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 上传 metadata JSON 到 Release（如果存在）
         if: always()
