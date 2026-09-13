@@ -257,19 +257,19 @@ struct AboutView: View {
     private var downloadProgressView: some View {
         VStack(spacing: 8) {
             ProgressView(value: downloadProgress)
-                .progressViewStyle(LinearProgressViewStyle())
+                .progressViewStyle(LinearProgressViewStyle(tint: .black))
             HStack {
                 Text("正在下载更新...")
                     .font(.subheadline)
-                    .foregroundColor(appState.isDarkMode ? .white : .black)
+                    .foregroundColor(.black)
                 Spacer()
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(appState.isDarkMode ? .white : .black)
+                    .foregroundColor(.black)
             }
         }
         .padding(.vertical, 4)
-        .background(appState.isDarkMode ? Color(red: 0.12, green: 0.12, blue: 0.12) : Color.white)
+        .background(Color.white)
     }
 
     // MARK: - 下载中全屏覆盖层
@@ -281,23 +281,23 @@ struct AboutView: View {
 
             VStack(spacing: 16) {
                 ProgressView(value: downloadProgress)
-                    .progressViewStyle(CircularProgressViewStyle())
+                    .progressViewStyle(CircularProgressViewStyle(tint: .black))
                     .scaleEffect(1.5)
 
                 Text("正在下载更新...")
                     .font(.headline)
-                    .foregroundColor(appState.isDarkMode ? .white : .black)
+                    .foregroundColor(.black)
 
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(appState.isDarkMode ? .white : .black)
+                    .foregroundColor(.black)
 
                 Text("下载完成后将自动弹出分享面板")
                     .font(.caption)
-                    .foregroundColor(appState.isDarkMode ? .white.opacity(0.7) : .black.opacity(0.7))
+                    .foregroundColor(.black.opacity(0.7))
             }
             .padding(32)
-            .background(appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color.white)
+            .background(Color.white)
             .cornerRadius(16)
         }
     }
