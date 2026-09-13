@@ -1,5 +1,4 @@
 import SwiftUI
-import Combine
 
 // MARK: - 仓库内代码搜索页面
 
@@ -15,8 +14,8 @@ struct RepoCodeSearchView: View {
     @State private var errorMessage: String?
     @State private var selectedItem: CodeSearchItem?
     @State private var showCodeSnippet: Bool = false
-    // 防抖搜索计时器
-    @State private var searchTimer: Timer?
+    // 防抖搜索任务（使用Task代替Timer，更可靠）
+    @State private var searchTask: Task<Void, Never>?
     // 搜索结果总数
     @State private var totalCount: Int = 0
 
@@ -74,15 +73,21 @@ struct RepoCodeSearchView: View {
                 .textFieldStyle(PlainTextFieldStyle())
                 .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 .onChange(of: searchQuery) { newValue in
-                    // 防抖搜索：输入300ms后自动搜索
-                    searchTimer?.invalidate()
-                    if newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    // 防抖搜索：取消上一次任务，300ms后执行新搜索
+                    searchTask?.cancel()
+                    let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if trimmed.isEmpty {
                         searchResults = []
                         totalCount = 0
                         return
                     }
-                    searchTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { _ in
-                        performSearch()
+                    searchTask = Task {
+                        // 等待300ms防抖
+                        try? await Task.sleep(nanoseconds: 300_000_000)
+                        // 检查任务是否被取消
+                        if !Task.isCancelled {
+                            performSearch()
+                        }
                     }
                 }
 
@@ -91,7 +96,7 @@ struct RepoCodeSearchView: View {
                     searchQuery = ""
                     searchResults = []
                     totalCount = 0
-                    searchTimer?.invalidate()
+                    searchTask?.cancel()
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.gray)
