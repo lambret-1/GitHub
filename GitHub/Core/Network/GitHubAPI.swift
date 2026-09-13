@@ -803,9 +803,13 @@ class GitHubAPI {
 
                 // 处理302重定向：手动获取Location头，然后下载实际日志
                 if httpResponse.statusCode == 302 {
-                    guard let location = httpResponse.allHeaderFields["Location"] as? String,
+                    // 使用value(forHTTPHeaderField:)获取响应头（大小写不敏感）
+                    // 不能用allHeaderFields["Location"]，因为键名大小写可能不匹配导致获取失败
+                    guard let location = httpResponse.value(forHTTPHeaderField: "Location"),
                           let redirectURL = URL(string: location) else {
-                        completion(.failure(NSError(domain: "GitHubAPI", code: -3, userInfo: [NSLocalizedDescriptionKey: "重定向URL无效"])))
+                        // 调试：输出所有响应头，便于定位问题
+                        let allHeaders = httpResponse.allHeaderFields.map { "\($0.key): \($0.value)" }.joined(separator: ", ")
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -3, userInfo: [NSLocalizedDescriptionKey: "重定向URL无效，响应头: [\(allHeaders)]"])))
                         return
                     }
 
