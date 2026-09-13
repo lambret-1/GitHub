@@ -911,7 +911,7 @@ struct FileBrowserView: View {
                 Spacer()
 
                 // 右侧按钮
-                HStack(spacing: 12) {
+                HStack(spacing: 4) {
                     Button(action: {
                         // 复制提交哈希
                         UIPasteboard.general.string = commit.shortSha
@@ -919,7 +919,10 @@ struct FileBrowserView: View {
                         Image(systemName: "ellipsis")
                             .font(.system(size: 16))
                             .foregroundColor(.secondary)
+                            .frame(width: 36, height: 36)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(PlainButtonStyle())
 
                     Button(action: {
                         showCommits = true
@@ -927,7 +930,10 @@ struct FileBrowserView: View {
                         Image(systemName: "clock.arrow.circlepath")
                             .font(.system(size: 16))
                             .foregroundColor(.secondary)
+                            .frame(width: 36, height: 36)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             } else {
                 // 无提交信息
