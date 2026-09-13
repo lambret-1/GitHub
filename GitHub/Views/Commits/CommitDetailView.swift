@@ -258,14 +258,14 @@ struct ChangedFileRow: View {
 
             // 变更统计
             HStack(spacing: 8) {
-                if let additions = file.additions, additions > 0 {
-                    Text("+\(additions)")
+                if file.additions > 0 {
+                    Text("+\(file.additions)")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.green)
                 }
 
-                if let deletions = file.deletions, deletions > 0 {
-                    Text("-\(deletions)")
+                if file.deletions > 0 {
+                    Text("-\(file.deletions)")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.red)
                 }
@@ -281,7 +281,7 @@ struct ChangedFileRow: View {
 
     // MARK: - 状态图标
     private var statusIcon: String {
-        switch file.status?.lowercased() {
+        switch file.status.lowercased() {
         case "added": return "plus.circle.fill"
         case "modified": return "pencil.circle.fill"
         case "removed": return "trash.circle.fill"
@@ -292,7 +292,7 @@ struct ChangedFileRow: View {
 
     // MARK: - 状态颜色
     private var statusColor: Color {
-        switch file.status?.lowercased() {
+        switch file.status.lowercased() {
         case "added": return .green
         case "modified": return .blue
         case "removed": return .red
