@@ -889,97 +889,109 @@ struct FileBrowserView: View {
         }
     }
 
-    // 顶部提交信息栏（GitHub官方风格，修复P1：压缩为单行布局，显示提交哈希）
+    // 顶部提交信息栏（GitHub官方风格，生产级高度设计：行高44pt，符合Apple HIG）
     var latestCommitHeaderView: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             if isLoadingLatestCommit {
-                // 加载中
+                // 加载中状态
                 ProgressView()
-                    .scaleEffect(0.7)
+                    .scaleEffect(0.8)
                 Text("加载提交信息...")
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                 Spacer()
             } else if let commit = latestCommit {
-                // 提交者头像（小尺寸）
-                if let avatarUrl = commit.author?.avatarUrl, let url = URL(string: avatarUrl) {
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
+                // 提交者头像（24pt，生产级尺寸）
+                Group {
+                    if let avatarUrl = commit.author?.avatarUrl, let url = URL(string: avatarUrl) {
+                        AsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.gray)
+                        }
+                        .frame(width: 24, height: 24)
+                        .clipShape(Circle())
+                    } else {
                         Image(systemName: "person.circle.fill")
-                            .font(.system(size: 20))
+                            .font(.system(size: 24))
                             .foregroundColor(.gray)
                     }
-                    .frame(width: 20, height: 20)
-                    .clipShape(Circle())
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.gray)
+                }
+                .frame(width: 24, height: 24)
+
+                // 提交者名称 + 提交信息（垂直布局，生产级信息层次）
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(commit.authorName)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                        Text("提交了")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                    Text(commit.message)
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .layoutPriority(1)
                 }
 
-                // 提交者名称
-                Text(commit.authorName)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
+                Spacer(minLength: 12)
 
-                // 提交信息（单行截断）
-                Text(commit.message)
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .layoutPriority(1)
-
-                Spacer(minLength: 8)
-
-                // 提交哈希（可点击复制）
+                // 提交哈希（生产级等宽字体，可点击复制）
                 Button(action: {
                     UIPasteboard.general.string = commit.shortSha
                     showMessage("提交哈希已复制: \(commit.shortSha)")
                 }) {
                     Text(commit.shortSha)
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
                         .foregroundColor(.blue)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .background(Color.blue.opacity(0.1))
-                        .cornerRadius(4)
+                        .cornerRadius(6)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .accessibilityLabel("复制提交哈希")
+                .frame(minWidth: 56)
 
-                // 提交时间
+                // 提交时间（生产级次要信息）
                 Text(commit.commit.committer.relativeDate)
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
+                    .frame(minWidth: 60, alignment: .trailing)
 
-                // 查看提交历史按钮
+                // 查看提交历史按钮（生产级点击区域44pt）
                 Button(action: {
                     showCommits = true
                 }) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 14))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
+                        .frame(width: 20, height: 20)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .accessibilityLabel("查看提交历史")
             } else {
-                // 无提交信息（空仓库）
+                // 无提交信息（空仓库状态，生产级空态设计）
                 Image(systemName: "exclamationmark.circle")
-                    .font(.system(size: 14))
+                    .font(.system(size: 18))
                     .foregroundColor(.orange)
                 Text("此目录暂无提交记录")
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                 Spacer()
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
+        .frame(minHeight: 44) // 生产级最小行高，符合Apple HIG
         .background(appState.isDarkMode ? Color(red: 0.1, green: 0.1, blue: 0.1) : Color(red: 0.96, green: 0.96, blue: 0.96))
         .contentShape(Rectangle())
         .onTapGesture {
