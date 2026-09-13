@@ -60,8 +60,13 @@ struct ActionsListView: View {
         .navigationTitle("Actions")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarItems(trailing:
-            NavigationLink(destination: RunStatsView(owner: owner, repo: repo)) {
-                Image(systemName: "chart.bar.xaxis")
+            HStack(spacing: 16) {
+                NavigationLink(destination: RunStatsView(owner: owner, repo: repo)) {
+                    Image(systemName: "chart.bar.xaxis")
+                }
+                NavigationLink(destination: ActionsSettingsView(owner: owner, repo: repo)) {
+                    Image(systemName: "gearshape")
+                }
             }
         )
         .onAppear {

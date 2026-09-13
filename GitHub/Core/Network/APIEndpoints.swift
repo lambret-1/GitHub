@@ -38,6 +38,14 @@ enum APIEndpoints {
     case enableWorkflow(owner: String, repo: String, workflowId: Int) // 启用工作流
     case disableWorkflow(owner: String, repo: String, workflowId: Int) // 禁用工作流
     case rerunFailedJobs(owner: String, repo: String, runId: Int) // 重新运行失败的作业
+    case cacheList(owner: String, repo: String, page: Int, perPage: Int) // 获取Actions缓存列表
+    case deleteCache(owner: String, repo: String, cacheId: Int) // 删除Actions缓存
+    case deleteCacheByKey(owner: String, repo: String, key: String) // 按key删除Actions缓存
+    case runnerList(owner: String, repo: String, page: Int, perPage: Int) // 获取自助托管Runner列表
+    case runnerDetail(owner: String, repo: String, runnerId: Int) // 获取Runner详情
+    case deleteRunner(owner: String, repo: String, runnerId: Int) // 删除Runner
+    case runnerApplicationList(owner: String, repo: String) // 获取Runner应用列表
+    case workflowUsage(owner: String, repo: String, workflowId: Int) // 获取工作流使用情况
 
     // MARK: - 仓库交互相关端点
     case checkStarred(owner: String, repo: String)
@@ -144,6 +152,23 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/workflows/\(workflowId)/disable"
         case .rerunFailedJobs(let owner, let repo, let runId):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/rerun-failed-jobs"
+        case .cacheList(let owner, let repo, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/caches?page=\(page)&per_page=\(perPage)"
+        case .deleteCache(let owner, let repo, let cacheId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/caches/\(cacheId)"
+        case .deleteCacheByKey(let owner, let repo, let key):
+            let encodedKey = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? key
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/caches?key=\(encodedKey)"
+        case .runnerList(let owner, let repo, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runners?page=\(page)&per_page=\(perPage)"
+        case .runnerDetail(let owner, let repo, let runnerId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runners/\(runnerId)"
+        case .deleteRunner(let owner, let repo, let runnerId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runners/\(runnerId)"
+        case .runnerApplicationList(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runners/downloads"
+        case .workflowUsage(let owner, let repo, let workflowId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/workflows/\(workflowId)/timing"
 
         // MARK: - 仓库交互相关端点实现
         case .checkStarred(let owner, let repo):

@@ -1094,6 +1094,100 @@ class GitHubAPI {
         let url = APIEndpoints.rerunFailedJobs(owner: owner, repo: repo, runId: runId).url
         performSimpleRequest(url: url, method: "POST", failureMessage: "重新运行失败作业失败", completion: completion)
     }
+
+    // MARK: - Actions缓存管理
+
+    /// 获取Actions缓存列表
+    func getCaches(owner: String, repo: String, page: Int = 1, perPage: Int = 30, completion: @escaping (Result<(caches: [ActionsCache], totalCount: Int), Error>) -> Void) {
+        let url = APIEndpoints.cacheList(owner: owner, repo: repo, page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let response = try JSONDecoder().decode(CachesResponse.self, from: data)
+                    completion(.success((caches: response.actionsCaches ?? [], totalCount: response.totalCount)))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 删除Actions缓存（按ID）
+    func deleteCache(owner: String, repo: String, cacheId: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.deleteCache(owner: owner, repo: repo, cacheId: cacheId).url
+        performSimpleRequest(url: url, method: "DELETE", failureMessage: "删除缓存失败", completion: completion)
+    }
+
+    /// 删除Actions缓存（按Key）
+    func deleteCacheByKey(owner: String, repo: String, key: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.deleteCacheByKey(owner: owner, repo: repo, key: key).url
+        performSimpleRequest(url: url, method: "DELETE", failureMessage: "删除缓存失败", completion: completion)
+    }
+
+    // MARK: - 自助托管Runner管理
+
+    /// 获取自助托管Runner列表
+    func getRunners(owner: String, repo: String, page: Int = 1, perPage: Int = 30, completion: @escaping (Result<(runners: [SelfHostedRunner], totalCount: Int), Error>) -> Void) {
+        let url = APIEndpoints.runnerList(owner: owner, repo: repo, page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let response = try JSONDecoder().decode(RunnersResponse.self, from: data)
+                    completion(.success((runners: response.runners ?? [], totalCount: response.totalCount)))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取Runner详情
+    func getRunnerDetail(owner: String, repo: String, runnerId: Int, completion: @escaping (Result<SelfHostedRunner, Error>) -> Void) {
+        let url = APIEndpoints.runnerDetail(owner: owner, repo: repo, runnerId: runnerId).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let runner = try JSONDecoder().decode(SelfHostedRunner.self, from: data)
+                    completion(.success(runner))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 删除Runner
+    func deleteRunner(owner: String, repo: String, runnerId: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.deleteRunner(owner: owner, repo: repo, runnerId: runnerId).url
+        performSimpleRequest(url: url, method: "DELETE", failureMessage: "删除Runner失败", completion: completion)
+    }
+
+    /// 获取工作流使用情况
+    func getWorkflowUsage(owner: String, repo: String, workflowId: Int, completion: @escaping (Result<WorkflowUsage, Error>) -> Void) {
+        let url = APIEndpoints.workflowUsage(owner: owner, repo: repo, workflowId: workflowId).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let usage = try JSONDecoder().decode(WorkflowUsage.self, from: data)
+                    completion(.success(usage))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
 }
 
 // MARK: - 搜索结果包装

@@ -635,3 +635,193 @@ struct RunStats {
         }
     }
 }
+
+// MARK: - Actions缓存模型
+
+struct ActionsCache: Identifiable, Codable {
+    let id: Int
+    let key: String
+    let ref: String
+    let version: String
+    let lastAccessedAt: String
+    let createdAt: String
+    let sizeInBytes: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case key
+        case ref
+        case version
+        case lastAccessedAt = "last_accessed_at"
+        case createdAt = "created_at"
+        case sizeInBytes = "size_in_bytes"
+    }
+
+    // 格式化大小
+    var sizeDisplay: String {
+        if sizeInBytes < 1024 {
+            return "\(sizeInBytes) B"
+        } else if sizeInBytes < 1024 * 1024 {
+            return String(format: "%.1f KB", Double(sizeInBytes) / 1024)
+        } else if sizeInBytes < 1024 * 1024 * 1024 {
+            return String(format: "%.1f MB", Double(sizeInBytes) / (1024 * 1024))
+        } else {
+            return String(format: "%.1f GB", Double(sizeInBytes) / (1024 * 1024 * 1024))
+        }
+    }
+
+    // 最后访问时间显示
+    var lastAccessedDisplay: String {
+        return 日期工具.相对时间(fromISO: lastAccessedAt)
+    }
+
+    // 创建时间显示
+    var createdDisplay: String {
+        return 日期工具.相对时间(fromISO: createdAt)
+    }
+
+    // 分支名称
+    var branchName: String {
+        return ref.replacingOccurrences(of: "refs/heads/", with: "")
+    }
+}
+
+// 缓存列表响应
+struct CachesResponse: Codable {
+    let totalCount: Int
+    let actionsCaches: [ActionsCache]?
+
+    enum CodingKeys: String, CodingKey {
+        case totalCount = "total_count"
+        case actionsCaches = "actions_caches"
+    }
+}
+
+// MARK: - 自助托管Runner模型
+
+struct SelfHostedRunner: Identifiable, Codable {
+    let id: Int
+    let name: String
+    let os: String
+    let status: String
+    let busy: Bool
+    let labels: [RunnerLabel]?
+
+    // 状态显示
+    var statusDisplay: String {
+        switch status {
+        case "online": return busy ? "忙碌中" : "在线"
+        case "offline": return "离线"
+        default: return status
+        }
+    }
+
+    // 状态颜色
+    var statusColor: Color {
+        switch status {
+        case "online": return busy ? .orange : .green
+        case "offline": return .gray
+        default: return .gray
+        }
+    }
+
+    // 状态图标
+    var statusIcon: String {
+        switch status {
+        case "online": return busy ? "hourglass" : "checkmark.circle.fill"
+        case "offline": return "xmark.circle.fill"
+        default: return "circle"
+        }
+    }
+
+    // 操作系统图标
+    var osIcon: String {
+        if os.lowercased().contains("mac") {
+            return "desktopcomputer"
+        } else if os.lowercased().contains("linux") {
+            return "terminal"
+        } else if os.lowercased().contains("windows") {
+            return "pc"
+        } else {
+            return "cpu"
+        }
+    }
+
+    // 标签显示
+    var labelsDisplay: String {
+        guard let labels = labels, !labels.isEmpty else { return "无标签" }
+        return labels.map { $0.name }.joined(separator: ", ")
+    }
+}
+
+// Runner标签
+struct RunnerLabel: Codable {
+    let id: Int
+    let name: String
+    let type: String?
+}
+
+// Runner列表响应
+struct RunnersResponse: Codable {
+    let totalCount: Int
+    let runners: [SelfHostedRunner]?
+
+    enum CodingKeys: String, CodingKey {
+        case totalCount = "total_count"
+        case runners
+    }
+}
+
+// MARK: - 工作流使用情况模型
+
+struct WorkflowUsage: Codable {
+    let billable: BillableUsage?
+
+    struct BillableUsage: Codable {
+        let ubuntu: UsageDetail?
+        let macos: UsageDetail?
+        let windows: UsageDetail?
+
+        struct UsageDetail: Codable {
+            let totalMs: Int?
+
+            enum CodingKeys: String, CodingKey {
+                case totalMs = "total_ms"
+            }
+
+            var totalSeconds: Int {
+                return (totalMs ?? 0) / 1000
+            }
+
+            var totalDisplay: String {
+                let seconds = totalSeconds
+                if seconds < 60 {
+                    return "\(seconds)秒"
+                } else if seconds < 3600 {
+                    return "\(seconds / 60)分\(seconds % 60)秒"
+                } else {
+                    return "\(seconds / 3600)时\((seconds % 3600) / 60)分"
+                }
+            }
+        }
+    }
+
+    // 总使用时间（毫秒）
+    var totalMs: Int {
+        return (billable?.ubuntu?.totalMs ?? 0) +
+               (billable?.macos?.totalMs ?? 0) +
+               (billable?.windows?.totalMs ?? 0)
+    }
+
+    // 总使用时间显示
+    var totalDisplay: String {
+        let seconds = totalMs / 1000
+        if seconds < 60 {
+            return "\(seconds)秒"
+        } else if seconds < 3600 {
+            return "\(seconds / 60)分\(seconds % 60)秒"
+        } else {
+            return "\(seconds / 3600)时\((seconds % 3600) / 60)分"
+        }
+    }
+}
