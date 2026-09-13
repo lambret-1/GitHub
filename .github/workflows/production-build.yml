@@ -534,8 +534,33 @@ jobs:
             git push origin "${TAG}"
           fi
 
+      - name: 检查 Release 是否已存在
+        id: check_release
+        run: |
+          TAG="v${{ steps.meta.outputs.version }}"
+          echo "检查 Release ${TAG} 是否已存在..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}")
+          if [ "${HTTP_CODE}" = "200" ]; then
+            echo "release_exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Release ${TAG} 已存在，将跳过创建，直接使用已有Release"
+            UPLOAD_URL=$(curl -s \
+              -H "Authorization: token ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}" | jq -r '.upload_url')
+            echo "upload_url=${UPLOAD_URL}" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Release ${TAG} 不存在，将创建新Release"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: 创建 GitHub Release
         id: create_release
+        if: steps.check_release.outputs.release_exists == 'false'
         uses: actions/create-release@v1
         with:
           tag_name: v${{ steps.meta.outputs.version }}
@@ -546,11 +571,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 获取最终 upload_url
+        id: final_upload
+        run: |
+          if [ "${{ steps.check_release.outputs.release_exists }}" = "true" ]; then
+            echo "upload_url=${{ steps.check_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "最终 upload_url 已设置"
+
       - name: 上传 IPA 到 Release
         if: always()
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.final_upload.outputs.upload_url }}
           asset_path: ./artifacts/${{ env.IPA_FILE_NAME }}
           asset_name: GitHub-v${{ steps.meta.outputs.version }}.ipa
           asset_content_type: application/octet-stream
@@ -560,14 +595,12 @@ jobs:
       - name: 上传 metadata JSON 到 Release（如果存在）
         if: always()
         run: |
-          # 使用 curl 上传 JSON 仅当文件存在时
           if [ -f ./artifacts/artifact-metadata.json ]; then
             echo "上传 artifact-metadata.json 到 Release"
-            UPLOAD_URL="${{ steps.create_release.outputs.upload_url }}"
+            UPLOAD_URL="${{ steps.final_upload.outputs.upload_url }}"
             FILE_PATH=./artifacts/artifact-metadata.json
             FILE_NAME=artifact-metadata-v${{ steps.meta.outputs.version }}.json
             echo "上传到: ${UPLOAD_URL}"
-            # 使用 GitHub API 上传资产
             curl -s -X POST "${UPLOAD_URL}?name=${FILE_NAME}" \
               -H "Authorization: token ${GITHUB_TOKEN}" \
               -H "Content-Type: application/json" \
