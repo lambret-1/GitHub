@@ -677,6 +677,13 @@ struct JobLogView: View {
             )
         }
 
+        // 文本片段模型（用于高亮渲染）
+        struct TextSegment: Identifiable {
+            let id = UUID()
+            let text: String
+            let isHighlighted: Bool
+        }
+
         // 高亮搜索文本
         @ViewBuilder
         private func highlightedText(_ text: String) -> some View {
@@ -689,46 +696,41 @@ struct JobLogView: View {
 
         private func normalHighlightedText(_ text: String) -> some View {
             let options: String.CompareOptions = isCaseSensitive ? [] : .caseInsensitive
-            var result: AnyView = AnyView(Text(""))
+            var segments: [TextSegment] = []
             var currentIndex = text.startIndex
 
             while let range = text.range(of: searchText, options: options, range: currentIndex..<text.endIndex) {
                 // 添加匹配前的文本
                 if currentIndex < range.lowerBound {
-                    result = AnyView(result + Text(String(text[currentIndex..<range.lowerBound]))
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(colorForLineType(line.type)))
+                    segments.append(TextSegment(text: String(text[currentIndex..<range.lowerBound]), isHighlighted: false))
                 }
 
                 // 全词匹配检查
-                if isWholeWord && !isWholeWordMatch(text: text, range: range) {
-                    result = AnyView(result + Text(String(text[range]))
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(colorForLineType(line.type)))
-                } else {
-                    // 添加高亮文本
-                    result = AnyView(result + Text(String(text[range]))
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(.black)
-                        .background(Color.yellow))
-                }
+                let shouldHighlight = !isWholeWord || isWholeWordMatch(text: text, range: range)
+                segments.append(TextSegment(text: String(text[range]), isHighlighted: shouldHighlight))
 
                 currentIndex = range.upperBound
             }
 
             // 添加剩余文本
             if currentIndex < text.endIndex {
-                result = AnyView(result + Text(String(text[currentIndex..<text.endIndex]))
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(colorForLineType(line.type)))
+                segments.append(TextSegment(text: String(text[currentIndex..<text.endIndex]), isHighlighted: false))
             }
 
-            return result
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // 使用Group和ForEach渲染片段
+            return Group {
+                ForEach(segments) { segment in
+                    Text(segment.text)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(segment.isHighlighted ? .black : colorForLineType(line.type))
+                        .background(segment.isHighlighted ? Color.yellow : Color.clear)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
 
         private func regexHighlightedText(_ text: String) -> some View {
-            var result: AnyView = AnyView(Text(""))
+            var segments: [TextSegment] = []
             var currentIndex = text.startIndex
 
             do {
@@ -740,14 +742,9 @@ struct JobLogView: View {
                 for match in matches {
                     if let range = Range(match.range, in: text) {
                         if currentIndex < range.lowerBound {
-                            result = AnyView(result + Text(String(text[currentIndex..<range.lowerBound]))
-                                .font(.system(size: 9, design: .monospaced))
-                                .foregroundColor(colorForLineType(line.type)))
+                            segments.append(TextSegment(text: String(text[currentIndex..<range.lowerBound]), isHighlighted: false))
                         }
-                        result = AnyView(result + Text(String(text[range]))
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundColor(.black)
-                            .background(Color.yellow))
+                        segments.append(TextSegment(text: String(text[range]), isHighlighted: true))
                         currentIndex = range.upperBound
                     }
                 }
@@ -760,13 +757,19 @@ struct JobLogView: View {
             }
 
             if currentIndex < text.endIndex {
-                result = AnyView(result + Text(String(text[currentIndex..<text.endIndex]))
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(colorForLineType(line.type)))
+                segments.append(TextSegment(text: String(text[currentIndex..<text.endIndex]), isHighlighted: false))
             }
 
-            return result
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // 使用Group和ForEach渲染片段
+            return Group {
+                ForEach(segments) { segment in
+                    Text(segment.text)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(segment.isHighlighted ? .black : colorForLineType(line.type))
+                        .background(segment.isHighlighted ? Color.yellow : Color.clear)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
 
         // 检查是否是全词匹配
