@@ -33,12 +33,12 @@ struct IssuesListView: View {
 
                 Button(action: { showCreateIssue = true }) {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 24))
+                        .font(.system(size: 24))  // 字体大小24pt，控制文字显示尺寸
                         .foregroundColor(.blue)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
 
             // Issues列表
             if isLoading && issues.isEmpty {
@@ -129,7 +129,7 @@ struct IssuesListView: View {
     private func errorView(error: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40))
+                .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
                 .foregroundColor(.orange)
             Text(error)
                 .foregroundColor(.secondary)
@@ -149,7 +149,7 @@ struct IssuesListView: View {
     private var emptyView: some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.circle")
-                .font(.system(size: 40))
+                .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
                 .foregroundColor(.secondary)
             Text(selectedState == "open" ? "暂无开放的Issue" : "暂无已关闭的Issue")
                 .foregroundColor(.secondary)
@@ -191,7 +191,7 @@ struct IssuesListView: View {
                     ProgressView("创建中...")
                         .padding()
                         .background(.ultraThinMaterial)
-                        .cornerRadius(8)
+                        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
                 }
             }
         }
@@ -271,13 +271,13 @@ struct IssueRow: View {
             // 状态图标
             Image(systemName: issue.state.图标名称)
                 .foregroundColor(issue.state.颜色)
-                .font(.system(size: 18))
-                .padding(.top, 2)
+                .font(.system(size: 18))  // 字体大小18pt，控制文字显示尺寸
+                .padding(.top, 2)  // 顶部内边距2pt，控制上方留白间距
 
             VStack(alignment: .leading, spacing: 4) {
                 // 标题
                 Text(issue.title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))  // 字体大小15pt，控制文字显示尺寸
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
                     .lineLimit(2)
 
@@ -286,16 +286,16 @@ struct IssueRow: View {
                     HStack(spacing: 4) {
                         ForEach(labels.prefix(3)) { label in
                             Text(label.name)
-                                .font(.system(size: 11))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
+                                .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                                .padding(.horizontal, 6)  // 水平内边距6pt，控制左右留白间距
+                                .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
                                 .background(label.背景颜色)
                                 .foregroundColor(label.文字颜色)
-                                .cornerRadius(4)
+                                .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
                         }
                         if labels.count > 3 {
                             Text("+\(labels.count - 3)")
-                                .font(.system(size: 11))
+                                .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -304,23 +304,23 @@ struct IssueRow: View {
                 // 底部信息
                 HStack(spacing: 8) {
                     Text("#\(issue.number)")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
 
                     Text(issue.user.login)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
 
                     Text(issue.创建时间显示)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
 
                     if issue.comments > 0 {
                         HStack(spacing: 2) {
                             Image(systemName: "bubble.right")
-                                .font(.system(size: 11))
+                                .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
                             Text("\(issue.comments)")
-                                .font(.system(size: 12))
+                                .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                         }
                         .foregroundColor(.secondary)
                     }
@@ -329,7 +329,7 @@ struct IssueRow: View {
 
             Spacer()
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
         .contentShape(Rectangle())
     }
 }

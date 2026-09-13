@@ -135,11 +135,11 @@ struct WorkflowFileView: View {
                 Text(message)
                     .font(.subheadline)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
             .background(Color(.systemGray6))
-            .cornerRadius(8)
-            .padding(.bottom, 40)
+            .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+            .padding(.bottom, 40)  // 底部内边距40pt，控制下方留白间距
             Spacer()
         }
         .transition(.opacity)
@@ -166,14 +166,14 @@ struct WorkflowFileView: View {
                 Text("未保存")
                     .font(.caption2)
                     .foregroundColor(.orange)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, 6)  // 水平内边距6pt，控制左右留白间距
+                    .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
                     .background(Color.orange.opacity(0.1))
-                    .cornerRadius(4)
+                    .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
         .background(Color(.systemGray6))
     }
 
@@ -187,7 +187,7 @@ struct WorkflowFileView: View {
                 performSearch()
             })
             .textFieldStyle(RoundedBorderTextFieldStyle())
-            .font(.system(size: 14))
+            .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
             .autocapitalization(.none)
             .disableAutocorrection(true)
 
@@ -227,7 +227,7 @@ struct WorkflowFileView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
         .background(Color(.systemGray6))
         .onChange(of: searchText) { _ in
             performSearch()
@@ -246,7 +246,7 @@ struct WorkflowFileView: View {
             Spacer()
         }
         .padding(.horizontal)
-        .padding(.vertical, 6)
+        .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
         .background(Color.blue.opacity(0.1))
     }
 
@@ -302,11 +302,11 @@ struct WorkflowFileView: View {
 
     private var editingContent: some View {
         TextEditor(text: $fileContent)
-            .font(.system(size: 12, design: .monospaced))
+            .font(.system(size: 12, design: .monospaced))  // 字体大小12pt，控制文字显示尺寸
             .disableAutocorrection(true)
             .autocapitalization(.none)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
+            .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
             .background(Color(.systemBackground))
     }
 
@@ -320,26 +320,26 @@ struct WorkflowFileView: View {
                         HStack(alignment: .top, spacing: 0) {
                             // 行号
                             Text("\(index + 1)")
-                                .font(.system(size: 10, design: .monospaced))
+                                .font(.system(size: 10, design: .monospaced))  // 字体大小10pt，控制文字显示尺寸
                                 .foregroundColor(.gray)
                                 .frame(width: 40, alignment: .trailing)
                                 .padding(.trailing, 8)
                             // 代码内容（带搜索高亮）
                             if !searchText.isEmpty && searchMatches.contains(index) {
                                 Text(line)
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(.system(size: 10, design: .monospaced))  // 字体大小10pt，控制文字显示尺寸
                                     .foregroundColor(colorForLine(line))
                                     .background(Color.yellow.opacity(0.3))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             } else {
                                 Text(line)
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(.system(size: 10, design: .monospaced))  // 字体大小10pt，控制文字显示尺寸
                                     .foregroundColor(colorForLine(line))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
+                        .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
+                        .padding(.vertical, 1)  // 垂直内边距1pt，控制上下留白间距
                         .background(
                             !searchText.isEmpty && searchMatches.contains(index) && currentMatchIndex < searchMatches.count && searchMatches[currentMatchIndex] == index ?
                             Color.yellow.opacity(0.2) :
@@ -348,7 +348,7 @@ struct WorkflowFileView: View {
                         .id(index)
                     }
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
                 .onAppear {
                     scrollProxy = proxy
                 }

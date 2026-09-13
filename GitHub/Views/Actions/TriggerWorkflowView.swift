@@ -34,7 +34,7 @@ struct TriggerWorkflowView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                 }
 
                 // 分支选择

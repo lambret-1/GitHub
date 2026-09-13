@@ -138,13 +138,13 @@ struct StarredReposView: View {
                 VStack {
                     Spacer()
                     Text(operationMessage)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))  // 字体大小14pt，控制文字显示尺寸
                         .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+                        .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
                         .background(Color.black.opacity(0.8))
-                        .cornerRadius(8)
-                        .padding(.bottom, 40)
+                        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                        .padding(.bottom, 40)  // 底部内边距40pt，控制下方留白间距
                 }
                 .transition(.opacity)
                 .onAppear {
@@ -163,10 +163,10 @@ struct StarredReposView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.secondary)
-                .font(.system(size: 16))
+                .font(.system(size: 16))  // 字体大小16pt，控制文字显示尺寸
 
             TextField("搜索星标仓库...", text: $searchText)
-                .font(.system(size: 15))
+                .font(.system(size: 15))  // 字体大小15pt，控制文字显示尺寸
                 .foregroundColor(appState.isDarkMode ? .white : .primary)
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
@@ -177,17 +177,17 @@ struct StarredReposView: View {
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.secondary)
-                        .font(.system(size: 16))
+                        .font(.system(size: 16))  // 字体大小16pt，控制文字显示尺寸
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
+        .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
         .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
-        .cornerRadius(10)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .cornerRadius(10)  // 圆角半径10pt，控制视图边角圆润程度
+        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+        .padding(.vertical, 12)  // 垂直内边距12pt，控制上下留白间距
     }
 
     // MARK: - 筛选标签栏
@@ -199,9 +199,9 @@ struct StarredReposView: View {
                         selectedFilter = filterType
                     }) {
                         Text(filterType.rawValue)
-                            .font(.system(size: 13, weight: .medium))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 6)
+                            .font(.system(size: 13, weight: .medium))  // 字体大小13pt，控制文字显示尺寸
+                            .padding(.horizontal, 14)  // 水平内边距14pt，控制左右留白间距
+                            .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
                             .background(
                                 selectedFilter == filterType ?
                                 Color.blue :
@@ -210,7 +210,7 @@ struct StarredReposView: View {
                             .foregroundColor(
                                 selectedFilter == filterType ? .white : .secondary
                             )
-                            .cornerRadius(16)
+                            .cornerRadius(16)  // 圆角半径16pt，控制视图边角圆润程度
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -219,13 +219,13 @@ struct StarredReposView: View {
 
                 // 仓库数量
                 Text("\(filteredRepos.count) 个仓库")
-                    .font(.system(size: 12))
+                    .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
                     .padding(.trailing, 4)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
         }
-        .padding(.bottom, 8)
+        .padding(.bottom, 8)  // 底部内边距8pt，控制下方留白间距
     }
 
     // MARK: - 加载中视图
@@ -234,9 +234,9 @@ struct StarredReposView: View {
             Spacer()
             VStack(spacing: 12) {
                 ProgressView()
-                    .scaleEffect(1.2)
+                    .scaleEffect(1.2)  // 缩放比例1.2倍，控制视图整体放大缩小
                 Text("加载星标仓库中...")
-                    .font(.system(size: 15))
+                    .font(.system(size: 15))  // 字体大小15pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
             }
             Spacer()
@@ -250,23 +250,23 @@ struct StarredReposView: View {
             Spacer()
             VStack(spacing: 16) {
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 48))
+                    .font(.system(size: 48))  // 字体大小48pt，控制文字显示尺寸
                     .foregroundColor(.orange)
                 Text(error)
-                    .font(.system(size: 15))
+                    .font(.system(size: 15))  // 字体大小15pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                    .padding(.horizontal, 32)  // 水平内边距32pt，控制左右留白间距
                 Button(action: {
                     loadStarredRepos()
                 }) {
                     Text("重试")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.system(size: 15, weight: .medium))  // 字体大小15pt，控制文字显示尺寸
                         .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 24)  // 水平内边距24pt，控制左右留白间距
+                        .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
                         .background(Color.blue)
-                        .cornerRadius(8)
+                        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -281,18 +281,18 @@ struct StarredReposView: View {
             Spacer()
             VStack(spacing: 12) {
                 Image(systemName: "star.slash")
-                    .font(.system(size: 56))
+                    .font(.system(size: 56))  // 字体大小56pt，控制文字显示尺寸
                     .foregroundColor(.gray)
                 Text(searchText.isEmpty ? "还没有星标任何仓库" : "没有找到匹配的仓库")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 16, weight: .medium))  // 字体大小16pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
                 if searchText.isEmpty {
                     Text("在仓库页面点击星标按钮即可收藏")
-                        .font(.system(size: 13))
+                        .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
                         .foregroundColor(.gray)
                 } else {
                     Text("试试其他关键词")
-                        .font(.system(size: 13))
+                        .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
                         .foregroundColor(.gray)
                 }
             }
@@ -356,7 +356,7 @@ struct StarredReposView: View {
                 HStack {
                     Spacer()
                     ProgressView("加载更多...")
-                        .padding(.vertical, 16)
+                        .padding(.vertical, 16)  // 垂直内边距16pt，控制上下留白间距
                     Spacer()
                 }
                 .listRowBackground(Color.clear)
@@ -462,12 +462,12 @@ struct StarredRepoCard: View {
             HStack(spacing: 8) {
                 // 仓库图标
                 Image(systemName: repo.isPrivate ? "lock.fill" : "folder.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: 16))  // 字体大小16pt，控制文字显示尺寸
                     .foregroundColor(repo.isPrivate ? .orange : .blue)
 
                 // 所有者/仓库名
                 Text("\(repo.ownerName)/\(repo.name)")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))  // 字体大小16pt，控制文字显示尺寸
                     .foregroundColor(.blue)
                     .lineLimit(1)
 
@@ -475,14 +475,14 @@ struct StarredRepoCard: View {
 
                 // 星标图标
                 Image(systemName: "star.fill")
-                    .font(.system(size: 14))
+                    .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                     .foregroundColor(.yellow)
             }
 
             // 第二行：仓库描述
             if let description = repo.description, !description.isEmpty {
                 Text(description)
-                    .font(.system(size: 14))
+                    .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                     .foregroundColor(appState.isDarkMode ? .white.opacity(0.8) : .secondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -495,9 +495,9 @@ struct StarredRepoCard: View {
                     HStack(spacing: 4) {
                         Circle()
                             .fill(Color(hex: repo.languageColor))
-                            .frame(width: 12, height: 12)
+                            .frame(width: 12, height: 12)  // 视图尺寸宽12pt高12pt，控制组件显示大小
                         Text(language)
-                            .font(.system(size: 12))
+                            .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                             .foregroundColor(.secondary)
                     }
                 }
@@ -505,20 +505,20 @@ struct StarredRepoCard: View {
                 // Star数
                 HStack(spacing: 4) {
                     Image(systemName: "star.fill")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
                     Text("\(repo.stargazersCount ?? 0)")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
                 }
 
                 // Fork数
                 HStack(spacing: 4) {
                     Image(systemName: "tuningfork")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
                     Text("\(repo.forksCount ?? 0)")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
                 }
 
@@ -526,12 +526,12 @@ struct StarredRepoCard: View {
 
                 // 更新时间
                 Text(repo.formattedUpdateTime)
-                    .font(.system(size: 12))
+                    .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
             }
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 14)
+        .padding(.vertical, 12)  // 垂直内边距12pt，控制上下留白间距
+        .padding(.horizontal, 14)  // 水平内边距14pt，控制左右留白间距
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))

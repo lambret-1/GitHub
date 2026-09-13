@@ -44,22 +44,22 @@ struct SearchView: View {
                     }) {
                         ZStack {
                             Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 18))
+                                .font(.system(size: 18))  // 字体大小18pt，控制文字显示尺寸
                                 .foregroundColor(hasActiveFilters ? .blue : .gray)
 
                             // 激活筛选条件数量角标
                             if hasActiveFilters {
                                 Text("●")
-                                    .font(.system(size: 8))
+                                    .font(.system(size: 8))  // 字体大小8pt，控制文字显示尺寸
                                     .foregroundColor(.blue)
                                     .offset(x: 10, y: -8)
                             }
                         }
-                        .frame(width: 32, height: 32)
+                        .frame(width: 32, height: 32)  // 视图尺寸宽32pt高32pt，控制组件显示大小
                     }
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 8)
+                .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
 
                 // 当前激活的筛选条件标签
                 if hasActiveFilters {
@@ -73,11 +73,11 @@ struct SearchView: View {
                             ForEach(activeFilterTags, id: \.self) { tag in
                                 Text(tag)
                                     .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
+                                    .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                                     .background(Color.blue.opacity(0.1))
                                     .foregroundColor(.blue)
-                                    .cornerRadius(4)
+                                    .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
                             }
 
                             // 清除所有筛选按钮
@@ -94,7 +94,7 @@ struct SearchView: View {
                         }
                         .padding(.horizontal)
                     }
-                    .padding(.bottom, 4)
+                    .padding(.bottom, 4)  // 底部内边距4pt，控制下方留白间距
                 }
 
                 // 标签页切换
@@ -105,7 +105,7 @@ struct SearchView: View {
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .padding(.horizontal)
-                .padding(.bottom, 8)
+                .padding(.bottom, 8)  // 底部内边距8pt，控制下方留白间距
                 .onChange(of: selectedTab) { _ in
                     // 切换标签页时，如果有搜索文本，重新搜索
                     if !searchText.isEmpty {
@@ -462,7 +462,7 @@ struct UserRow: View {
         HStack(spacing: 12) {
             // 头像
             CachedImageView(urlString: user.avatarUrl)
-                .frame(width: 48, height: 48)
+                .frame(width: 48, height: 48)  // 视图尺寸宽48pt高48pt，控制组件显示大小
                 .clipShape(Circle())
 
             // 用户信息
@@ -520,7 +520,7 @@ struct UserRow: View {
                     .foregroundColor(.blue)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
     }
 }
 
@@ -533,11 +533,11 @@ struct CodeSearchRow: View {
         HStack(spacing: 12) {
             // 文件图标
             Image(systemName: fileIconName)
-                .font(.system(size: 24))
+                .font(.system(size: 24))  // 字体大小24pt，控制文字显示尺寸
                 .foregroundColor(.blue)
-                .frame(width: 40, height: 40)
+                .frame(width: 40, height: 40)  // 视图尺寸宽40pt高40pt，控制组件显示大小
                 .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
+                .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
 
             // 文件信息
             VStack(alignment: .leading, spacing: 4) {
@@ -570,7 +570,7 @@ struct CodeSearchRow: View {
                 .foregroundColor(.gray)
                 .font(.caption)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
     }
 
     /// 根据文件扩展名获取图标名称

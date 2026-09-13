@@ -177,7 +177,7 @@ struct JobLogView: View {
                 }) {
                     if isExporting {
                         ProgressView()
-                            .scaleEffect(0.8)
+                            .scaleEffect(0.8)  // 缩放比例0.8倍，控制视图整体放大缩小
                     } else {
                         Image(systemName: "square.and.arrow.up")
                     }
@@ -239,25 +239,25 @@ struct JobLogView: View {
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.red)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, 6)  // 水平内边距6pt，控制左右留白间距
+                            .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
                             .background(Color.red.opacity(0.1))
-                            .cornerRadius(4)
+                            .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
                     } else {
                         Text("退出码: 解析中...")
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.orange)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, 6)  // 水平内边距6pt，控制左右留白间距
+                            .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
                             .background(Color.orange.opacity(0.1))
-                            .cornerRadius(4)
+                            .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
                     }
                 }
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
         .background(Color(.systemGray6))
     }
 
@@ -272,7 +272,7 @@ struct JobLogView: View {
                     performSearch()
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .font(.system(size: 14))
+                .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
 
@@ -311,7 +311,7 @@ struct JobLogView: View {
                         .font(.caption2)
                     Spacer()
                 }
-                .padding(.horizontal, 4)
+                .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
                 .onChange(of: isCaseSensitive) { _ in performSearch() }
                 .onChange(of: isRegexMode) { _ in performSearch() }
                 .onChange(of: isWholeWord) { _ in performSearch() }
@@ -345,11 +345,11 @@ struct JobLogView: View {
                     }
                     .disabled(currentMatchIndex >= searchMatches.count - 1)
                 }
-                .padding(.horizontal, 4)
+                .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
         .background(Color(.systemGray6))
         .onChange(of: searchText) { _ in
             performSearch()
@@ -398,7 +398,7 @@ struct JobLogView: View {
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal)
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
         .background(Color(.systemGray6).opacity(0.5))
     }
 
@@ -415,20 +415,20 @@ struct JobLogView: View {
                         }) {
                             VStack(spacing: 4) {
                                 Image(systemName: step.statusIcon)
-                                    .font(.system(size: 12))
+                                    .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                                     .foregroundColor(Color(step.statusColor))
                                 Text(step.name)
-                                    .font(.system(size: 10))
+                                    .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
                                     .lineLimit(1)
-                                    .frame(width: 80)
+                                    .frame(width: 80)  // 视图宽度80pt，控制组件水平尺寸
                                 Text(step.durationDisplay)
-                                    .font(.system(size: 9))
+                                    .font(.system(size: 9))  // 字体大小9pt，控制文字显示尺寸
                                     .foregroundColor(.secondary)
                             }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 6)  // 水平内边距6pt，控制左右留白间距
+                            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
                             .background(selectedStepIndex == index ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            .cornerRadius(6)
+                            .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
                             .overlay(
                                 RoundedRectangle(cornerRadius: 6)
                                     .stroke(selectedStepIndex == index ? Color.blue : Color.clear, lineWidth: 1)
@@ -454,7 +454,7 @@ struct JobLogView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
         .background(Color(.systemGray6))
     }
 
@@ -512,10 +512,10 @@ struct JobLogView: View {
                                     .font(.subheadline)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
+                                    .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
+                                    .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
                                     .background(Color.red)
-                                    .cornerRadius(4)
+                                    .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
                             } else {
                                 Text("退出码: 解析中...")
                                     .font(.caption)
@@ -523,7 +523,7 @@ struct JobLogView: View {
                             }
                         }
                         .padding(.horizontal)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
                         .background(Color.red.opacity(0.1))
                     }
 
@@ -542,15 +542,15 @@ struct JobLogView: View {
                                 Text("+新增\(newLinesCount)行")
                                     .font(.caption2)
                                     .foregroundColor(.blue)
-                                    .padding(.horizontal, 4)
-                                    .padding(.vertical, 1)
+                                    .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
+                                    .padding(.vertical, 1)  // 垂直内边距1pt，控制上下留白间距
                                     .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(3)
+                                    .cornerRadius(3)  // 圆角半径3pt，控制视图边角圆润程度
                             }
                             Spacer()
                         }
                         .padding(.horizontal)
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                         .background(Color.green.opacity(0.05))
                     }
 
@@ -586,7 +586,7 @@ struct JobLogView: View {
                                         Spacer()
                                         if isLoadingMore {
                                             ProgressView()
-                                                .scaleEffect(0.8)
+                                                .scaleEffect(0.8)  // 缩放比例0.8倍，控制视图整体放大缩小
                                         } else {
                                             Button(action: {
                                                 loadMoreLines()
@@ -598,16 +598,16 @@ struct JobLogView: View {
                                         }
                                         Spacer()
                                     }
-                                    .padding(.vertical, 8)
+                                    .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
                                     .id("loadMore")
                                 }
 
                                 // 底部锚点
                                 Color.clear
-                                    .frame(height: 1)
+                                    .frame(height: 1)  // 视图高度1pt，控制组件垂直尺寸
                                     .id("bottom")
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                         }
                         .onAppear {
                             scrollProxy = proxy
@@ -651,7 +651,7 @@ struct JobLogView: View {
             HStack(alignment: .top, spacing: 0) {
                 // 行号
                 Text("\(line.lineNumber)")
-                    .font(.system(size: 9, design: .monospaced))
+                    .font(.system(size: 9, design: .monospaced))  // 字体大小9pt，控制文字显示尺寸
                     .foregroundColor(.gray)
                     .frame(width: 45, alignment: .trailing)
                     .padding(.trailing, 6)
@@ -660,15 +660,15 @@ struct JobLogView: View {
                 if line.isGroupHeader {
                     Button(action: onGroupTap) {
                         Image(systemName: line.type == .groupStart ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 8))
+                            .font(.system(size: 8))  // 字体大小8pt，控制文字显示尺寸
                             .foregroundColor(.blue)
-                            .frame(width: 12)
+                            .frame(width: 12)  // 视图宽度12pt，控制组件水平尺寸
                     }
                     .buttonStyle(PlainButtonStyle())
                     .padding(.trailing, 4)
                 } else {
                     Color.clear
-                        .frame(width: 16)
+                        .frame(width: 16)  // 视图宽度16pt，控制组件水平尺寸
                 }
 
                 // 日志内容（带搜索高亮）
@@ -676,13 +676,13 @@ struct JobLogView: View {
                     highlightedText(line.content)
                 } else {
                     Text(line.content)
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.system(size: 9, design: .monospaced))  // 字体大小9pt，控制文字显示尺寸
                         .foregroundColor(colorForLineType(line.type))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 0.5)
+            .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
+            .padding(.vertical, 0.5)  // 垂直内边距0.5pt，控制上下留白间距
             .background(
                 isCurrentMatch ? Color.yellow.opacity(0.3) :
                 isHighlighted ? Color.yellow.opacity(0.1) :
@@ -736,7 +736,7 @@ struct JobLogView: View {
             return Group {
                 ForEach(segments) { segment in
                     Text(segment.text)
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.system(size: 9, design: .monospaced))  // 字体大小9pt，控制文字显示尺寸
                         .foregroundColor(segment.isHighlighted ? .black : colorForLineType(line.type))
                         .background(segment.isHighlighted ? Color.yellow : Color.clear)
                 }
@@ -782,7 +782,7 @@ struct JobLogView: View {
             if result.error != nil {
                 // 正则无效，显示普通文本
                 Text(text)
-                    .font(.system(size: 9, design: .monospaced))
+                    .font(.system(size: 9, design: .monospaced))  // 字体大小9pt，控制文字显示尺寸
                     .foregroundColor(colorForLineType(line.type))
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -790,7 +790,7 @@ struct JobLogView: View {
                 Group {
                     ForEach(result.segments) { segment in
                         Text(segment.text)
-                            .font(.system(size: 9, design: .monospaced))
+                            .font(.system(size: 9, design: .monospaced))  // 字体大小9pt，控制文字显示尺寸
                             .foregroundColor(segment.isHighlighted ? .black : colorForLineType(line.type))
                             .background(segment.isHighlighted ? Color.yellow : Color.clear)
                     }

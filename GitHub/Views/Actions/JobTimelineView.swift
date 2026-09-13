@@ -25,7 +25,7 @@ struct JobTimelineView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
         }
         .background(Color(.systemBackground))
     }
@@ -40,11 +40,11 @@ struct JobTimelineView: View {
                 ZStack {
                     Circle()
                         .fill(backgroundColorForStep(step))
-                        .frame(width: 28, height: 28)
+                        .frame(width: 28, height: 28)  // 视图尺寸宽28pt高28pt，控制组件显示大小
 
                     if step.status == "in_progress" {
                         Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))  // 字体大小12pt，控制文字显示尺寸
                             .foregroundColor(.white)
                             .rotationEffect(.degrees(rotationAngle))
                             .onAppear {
@@ -54,20 +54,20 @@ struct JobTimelineView: View {
                             }
                     } else {
                         Image(systemName: iconForStep(step))
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))  // 字体大小12pt，控制文字显示尺寸
                             .foregroundColor(.white)
                     }
                 }
-                .frame(width: 28, height: 28)
+                .frame(width: 28, height: 28)  // 视图尺寸宽28pt高28pt，控制组件显示大小
 
                 // 连接线
                 if !isLast {
                     Rectangle()
                         .fill(lineColorForStep(step))
-                        .frame(width: 2, height: 40)
+                        .frame(width: 2, height: 40)  // 视图尺寸宽2pt高40pt，控制组件显示大小
                 }
             }
-            .frame(width: 28)
+            .frame(width: 28)  // 视图宽度28pt，控制组件水平尺寸
 
             // 时间线右侧：步骤信息
             VStack(alignment: .leading, spacing: 4) {
@@ -92,10 +92,10 @@ struct JobTimelineView: View {
                         .font(.caption2)
                         .fontWeight(.medium)
                         .foregroundColor(textColorForStep(step))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 6)  // 水平内边距6pt，控制左右留白间距
+                        .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
                         .background(backgroundColorForStep(step).opacity(0.15))
-                        .cornerRadius(4)
+                        .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
                 }
 
                 // 时间信息
@@ -103,7 +103,7 @@ struct JobTimelineView: View {
                     if let startedAt = step.startedAt, let startDate = parseDate(startedAt) {
                         HStack(spacing: 3) {
                             Image(systemName: "play.fill")
-                                .font(.system(size: 8))
+                                .font(.system(size: 8))  // 字体大小8pt，控制文字显示尺寸
                                 .foregroundColor(.green)
                             Text("开始: \(formatTime(startDate))")
                                 .font(.caption2)
@@ -114,7 +114,7 @@ struct JobTimelineView: View {
                     if let completedAt = step.completedAt, let endDate = parseDate(completedAt) {
                         HStack(spacing: 3) {
                             Image(systemName: "stop.fill")
-                                .font(.system(size: 8))
+                                .font(.system(size: 8))  // 字体大小8pt，控制文字显示尺寸
                                 .foregroundColor(.red)
                             Text("结束: \(formatTime(endDate))")
                                 .font(.caption2)
@@ -125,7 +125,7 @@ struct JobTimelineView: View {
                     if let duration = step.durationSeconds {
                         HStack(spacing: 3) {
                             Image(systemName: "clock")
-                                .font(.system(size: 8))
+                                .font(.system(size: 8))  // 字体大小8pt，控制文字显示尺寸
                                 .foregroundColor(.blue)
                             Text("耗时: \(formatDuration(duration))")
                                 .font(.caption2)
@@ -139,16 +139,16 @@ struct JobTimelineView: View {
                 if step.status == "in_progress" {
                     ProgressView(value: 0.5)
                         .progressViewStyle(LinearProgressViewStyle(tint: .blue))
-                        .padding(.top, 2)
+                        .padding(.top, 2)  // 顶部内边距2pt，控制上方留白间距
                 }
             }
             .padding(.leading, 4)
             .padding(.trailing, 8)
-            .padding(.vertical, 8)
+            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
             .background(Color(.systemGray6).opacity(0.5))
-            .cornerRadius(8)
+            .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
     }
 
     // MARK: - 空状态视图
@@ -163,7 +163,7 @@ struct JobTimelineView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .padding(.vertical, 40)  // 垂直内边距40pt，控制上下留白间距
     }
 
     // MARK: - 辅助方法

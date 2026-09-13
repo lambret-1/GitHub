@@ -48,7 +48,7 @@ struct GitHubApp: App {
                         VStack(spacing: 16) {
                             ProgressView(value: appState.updateDownloadProgress)
                                 .progressViewStyle(CircularProgressViewStyle())
-                                .scaleEffect(1.5)
+                                .scaleEffect(1.5)  // 缩放比例1.5倍，控制视图整体放大缩小
                             
                             Text("正在下载更新...")
                                 .font(.headline)
@@ -62,9 +62,9 @@ struct GitHubApp: App {
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.7))
                         }
-                        .padding(32)
+                        .padding(32)  // 四向统一内边距32pt，控制上下左右留白
                         .background(Color(red: 0.15, green: 0.15, blue: 0.15))
-                        .cornerRadius(16)
+                        .cornerRadius(16)  // 圆角半径16pt，控制视图边角圆润程度
                     }
                 }
             }

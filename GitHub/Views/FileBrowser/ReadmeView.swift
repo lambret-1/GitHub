@@ -32,23 +32,23 @@ struct ReadmeView: View {
             // README标题栏
             HStack {
                 Image(systemName: "book.closed")
-                    .font(.system(size: 16))
+                    .font(.system(size: 16))  // 字体大小16pt，控制文字显示尺寸
                     .foregroundColor(appState.isDarkMode ? .gray : .secondary)
 
                 Text("README.md")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))  // 字体大小15pt，控制文字显示尺寸
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
 
                 Spacer()
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+            .padding(.vertical, 12)  // 垂直内边距12pt，控制上下留白间距
             .background(appState.isDarkMode ? Color(red: 0.12, green: 0.12, blue: 0.12) : Color(red: 0.96, green: 0.96, blue: 0.96))
 
             // 分割线
             Rectangle()
                 .fill(appState.isDarkMode ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color(red: 0.85, green: 0.85, blue: 0.85))
-                .frame(height: 1)
+                .frame(height: 1)  // 视图高度1pt，控制组件垂直尺寸
 
             // 内容区域
             ZStack {
@@ -81,14 +81,14 @@ struct ReadmeView: View {
                     // 渲染失败，降级显示纯文本
                     VStack(alignment: .leading, spacing: 8) {
                         Text("渲染失败: \(error)")
-                            .font(.system(size: 12))
+                            .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                             .foregroundColor(.red)
                         ScrollView {
                             Text(markdownContent)
-                                .font(.system(size: 13))
+                                .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
                                 .foregroundColor(appState.isDarkMode ? .white : .primary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(16)
+                                .padding(16)  // 四向统一内边距16pt，控制上下左右留白
                         }
                     }
                     .frame(height: webViewHeight)
@@ -96,13 +96,13 @@ struct ReadmeView: View {
             }
             .background(appState.isDarkMode ? Color(red: 0.08, green: 0.08, blue: 0.08) : .white)
         }
-        .cornerRadius(8)
+        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(appState.isDarkMode ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
         )
-        .padding(.horizontal, 12)
-        .padding(.bottom, 16)
+        .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
+        .padding(.bottom, 16)  // 底部内边距16pt，控制下方留白间距
         .onAppear {
             renderMarkdown()
         }

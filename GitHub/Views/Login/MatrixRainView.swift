@@ -77,7 +77,7 @@ struct MatrixColumnView: View {
         VStack(spacing: 0) {
             ForEach(0..<10, id: \.self) { row in
                 Text(String(characterAt(row: row)))
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(.system(size: 12, design: .monospaced))  // 字体大小12pt，控制文字显示尺寸
                     .foregroundColor(colorFor(row: row))
                     .frame(width: columnWidth, height: rowHeight)
             }

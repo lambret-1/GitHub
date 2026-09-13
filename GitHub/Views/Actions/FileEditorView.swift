@@ -128,9 +128,9 @@ struct FileEditorView: View {
                         .font(.subheadline)
                         .foregroundColor(.primary)
                 }
-                .padding(24)
+                .padding(24)  // 四向统一内边距24pt，控制上下左右留白
                 .background(Color(.systemBackground).opacity(0.9))
-                .cornerRadius(12)
+                .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
                 .shadow(radius: 8)
             }
 
@@ -140,14 +140,14 @@ struct FileEditorView: View {
                         .ignoresSafeArea()
                     VStack(spacing: 16) {
                         ProgressView()
-                            .scaleEffect(1.5)
+                            .scaleEffect(1.5)  // 缩放比例1.5倍，控制视图整体放大缩小
                         Text("正在保存...")
                             .font(.headline)
                             .foregroundColor(.white)
                     }
-                    .padding(32)
+                    .padding(32)  // 四向统一内边距32pt，控制上下左右留白
                     .background(Color(.systemGray6))
-                    .cornerRadius(16)
+                    .cornerRadius(16)  // 圆角半径16pt，控制视图边角圆润程度
                 }
             }
         }
@@ -185,8 +185,8 @@ struct FileEditorView: View {
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
         .background(Color(.systemGray6))
     }
 
@@ -220,7 +220,7 @@ struct FileEditorView: View {
                 // 编辑模式：使用TextEditor
                 TextEditor(text: $fileContent)
                     .font(.system(.body, design: .monospaced))
-                    .padding(4)
+                    .padding(4)  // 四向统一内边距4pt，控制上下左右留白
                     .background(Color(.systemBackground))
             } else {
                 // 查看模式：使用ScrollView+Text
@@ -232,7 +232,7 @@ struct FileEditorView: View {
                         Text(fileContent)
                             .font(.system(.body, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(8)
+                            .padding(8)  // 四向统一内边距8pt，控制上下左右留白
                     }
                 }
             }
@@ -256,12 +256,12 @@ struct FileEditorView: View {
                         .font(.system(.body, design: .monospaced))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.vertical, 1)
-                .padding(.horizontal, 4)
+                .padding(.vertical, 1)  // 垂直内边距1pt，控制上下留白间距
+                .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
                 .background(isLineMatch(line) ? Color.yellow.opacity(0.2) : Color.clear)
             }
         }
-        .padding(8)
+        .padding(8)  // 四向统一内边距8pt，控制上下左右留白
     }
 
     @ViewBuilder

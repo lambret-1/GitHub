@@ -385,11 +385,11 @@ struct CodeEditorView: View {
 
             VStack(spacing: 20) {
                 Image(systemName: "square.and.arrow.down")
-                    .font(.system(size: 40))
+                    .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
                     .foregroundColor(.blue)
-                    .frame(width: 70, height: 70)
+                    .frame(width: 70, height: 70)  // 视图尺寸宽70pt高70pt，控制组件显示大小
                     .background(Color.white)
-                    .cornerRadius(35)
+                    .cornerRadius(35)  // 圆角半径35pt，控制视图边角圆润程度
 
                 Text("正在下载文件")
                     .font(.headline)
@@ -403,15 +403,15 @@ struct CodeEditorView: View {
 
                 ProgressView(value: downloadProgress)
                     .progressViewStyle(LinearProgressViewStyle())
-                    .frame(width: 250)
+                    .frame(width: 250)  // 视图宽度250pt，控制组件水平尺寸
 
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
                     .foregroundColor(.black)
             }
-            .padding(32)
+            .padding(32)  // 四向统一内边距32pt，控制上下左右留白
             .background(Color.white)
-            .cornerRadius(20)
+            .cornerRadius(20)  // 圆角半径20pt，控制视图边角圆润程度
             .shadow(radius: 20)
         }
     }
@@ -433,9 +433,9 @@ struct CodeEditorView: View {
                 Text("取消")
                     .foregroundColor(.red)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 44)
+                    .frame(height: 44)  // 视图高度44pt，控制组件垂直尺寸
                     .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
+                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
             }
 
             Button(action: {
@@ -452,14 +452,14 @@ struct CodeEditorView: View {
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(height: 44)  // 视图高度44pt，控制组件垂直尺寸
             .background(Color.black)
-            .cornerRadius(8)
+            .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
             .disabled(!hasChanges || isSaving)
             .opacity((!hasChanges || isSaving) ? 0.5 : 1)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
         .background(Color(.systemGray6))
         .edgesIgnoringSafeArea(.bottom)
     }
@@ -488,8 +488,8 @@ struct CodeEditorView: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+        .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
         .background(Color(.systemGray6))
     }
 
@@ -700,9 +700,9 @@ struct CodeEditorView: View {
                             .foregroundColor(.orange)
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
                 // 编辑模式提示条行高减少一半
-                .padding(.vertical, 4)
+                .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                 .background(Color.blue.opacity(0.1))
             }
 
@@ -805,7 +805,7 @@ struct CodeEditorView: View {
                 }) {
                     Text("完成")
                         .foregroundColor(.blue)
-                        .frame(height: 36)
+                        .frame(height: 36)  // 视图高度36pt，控制组件垂直尺寸
                 }
 
                 Spacer()
@@ -822,9 +822,9 @@ struct CodeEditorView: View {
                         Image(systemName: "chevron.up")
                     }
                     .foregroundColor(.white)
-                    .frame(width: 90, height: 36)
+                    .frame(width: 90, height: 36)  // 视图尺寸宽90pt高36pt，控制组件显示大小
                     .background(totalMatches > 0 ? Color(red: 0.35, green: 0.6, blue: 1.0) : Color.gray.opacity(0.5))
-                    .cornerRadius(8)
+                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
                 }
                 .disabled(totalMatches == 0)
 
@@ -840,15 +840,15 @@ struct CodeEditorView: View {
                         Image(systemName: "chevron.down")
                     }
                     .foregroundColor(.white)
-                    .frame(width: 90, height: 36)
+                    .frame(width: 90, height: 36)  // 视图尺寸宽90pt高36pt，控制组件显示大小
                     .background(totalMatches > 0 ? Color(red: 0.35, green: 0.6, blue: 1.0) : Color.gray.opacity(0.5))
-                    .cornerRadius(8)
+                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
                 }
                 .disabled(totalMatches == 0)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
         .background(Color(.systemGray6))
     }
 

@@ -69,7 +69,7 @@ struct IssueDetailView: View {
                 ProgressView("处理中...")
                     .padding()
                     .background(.ultraThinMaterial)
-                    .cornerRadius(8)
+                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
             }
         }
     }
@@ -79,7 +79,7 @@ struct IssueDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             // 标题
             Text(issue.title)
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: 20, weight: .bold))  // 字体大小20pt，控制文字显示尺寸
                 .foregroundColor(appState.isDarkMode ? .white : .primary)
 
             // 状态和元信息
@@ -89,19 +89,19 @@ struct IssueDetailView: View {
                     Image(systemName: issue.state.图标名称)
                     Text(issue.state.显示文本)
                 }
-                .font(.system(size: 13, weight: .medium))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
+                .font(.system(size: 13, weight: .medium))  // 字体大小13pt，控制文字显示尺寸
+                .padding(.horizontal, 10)  // 水平内边距10pt，控制左右留白间距
+                .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                 .background(issue.state.颜色.opacity(0.15))
                 .foregroundColor(issue.state.颜色)
-                .cornerRadius(12)
+                .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
 
                 Text("#\(issue.number)")
-                    .font(.system(size: 14))
+                    .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
 
                 Text("由 \(issue.user.login) 创建于 \(issue.创建时间显示)")
-                    .font(.system(size: 13))
+                    .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
             }
 
@@ -110,12 +110,12 @@ struct IssueDetailView: View {
                 HStack(spacing: 6) {
                     ForEach(labels) { label in
                         Text(label.name)
-                            .font(.system(size: 12))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
+                            .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                            .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
+                            .padding(.vertical, 3)  // 垂直内边距3pt，控制上下留白间距
                             .background(label.背景颜色)
                             .foregroundColor(label.文字颜色)
-                            .cornerRadius(4)
+                            .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
                     }
                 }
             }
@@ -124,9 +124,9 @@ struct IssueDetailView: View {
             if let milestone = issue.milestone {
                 HStack(spacing: 4) {
                     Image(systemName: "milestone")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                     Text(milestone.title)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                 }
                 .foregroundColor(.secondary)
             }
@@ -144,25 +144,25 @@ struct IssueDetailView: View {
                     Image(systemName: "person.circle.fill")
                         .foregroundColor(.gray)
                 }
-                .frame(width: 28, height: 28)
+                .frame(width: 28, height: 28)  // 视图尺寸宽28pt高28pt，控制组件显示大小
                 .clipShape(Circle())
 
                 Text(issue.user.login)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))  // 字体大小14pt，控制文字显示尺寸
 
                 Text(issue.创建时间显示)
-                    .font(.system(size: 12))
+                    .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
             }
 
             // 描述内容
             Text(body)
-                .font(.system(size: 14))
+                .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                 .foregroundColor(appState.isDarkMode ? .white.opacity(0.9) : .primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
+                .padding(12)  // 四向统一内边距12pt，控制上下左右留白
                 .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
-                .cornerRadius(8)
+                .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
         }
     }
 
@@ -175,7 +175,7 @@ struct IssueDetailView: View {
                 Divider()
 
                 Text("评论 (\(comments.count))")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))  // 字体大小16pt，控制文字显示尺寸
 
                 if isLoadingComments {
                     HStack {
@@ -186,7 +186,7 @@ struct IssueDetailView: View {
                     .padding()
                 } else if let error = commentsError {
                     Text(error)
-                        .font(.system(size: 13))
+                        .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
                         .foregroundColor(.red)
                 } else {
                     ForEach(comments) { comment in
@@ -208,26 +208,26 @@ struct IssueDetailView: View {
                     Image(systemName: "person.circle.fill")
                         .foregroundColor(.gray)
                 }
-                .frame(width: 28, height: 28)
+                .frame(width: 28, height: 28)  // 视图尺寸宽28pt高28pt，控制组件显示大小
                 .clipShape(Circle())
 
                 Text(comment.user.login)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))  // 字体大小14pt，控制文字显示尺寸
 
                 Text(comment.创建时间显示)
-                    .font(.system(size: 12))
+                    .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
             }
 
             // 评论内容
             if let body = comment.body, !body.isEmpty {
                 Text(body)
-                    .font(.system(size: 14))
+                    .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                     .foregroundColor(appState.isDarkMode ? .white.opacity(0.9) : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
+                    .padding(12)  // 四向统一内边距12pt，控制上下左右留白
                     .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
-                    .cornerRadius(8)
+                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
             }
         }
     }
@@ -238,14 +238,14 @@ struct IssueDetailView: View {
             Divider()
 
             Text("添加评论")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold))  // 字体大小16pt，控制文字显示尺寸
 
             TextEditor(text: $newComment)
-                .font(.system(size: 14))
+                .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                 .frame(minHeight: 80)
-                .padding(8)
+                .padding(8)  // 四向统一内边距8pt，控制上下左右留白
                 .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
-                .cornerRadius(8)
+                .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
 
             HStack {
                 Spacer()
@@ -255,7 +255,7 @@ struct IssueDetailView: View {
                             .tint(.white)
                     } else {
                         Text("发表评论")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 14, weight: .medium))  // 字体大小14pt，控制文字显示尺寸
                     }
                 }
                 .buttonStyle(.borderedProminent)

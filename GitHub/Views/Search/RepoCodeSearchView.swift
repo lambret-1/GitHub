@@ -56,7 +56,7 @@ struct RepoCodeSearchView: View {
                 performSearch()
             })
             .textFieldStyle(PlainTextFieldStyle())
-            .padding(.vertical, 8)
+            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
 
             if !searchQuery.isEmpty {
                 Button(action: {
@@ -70,9 +70,9 @@ struct RepoCodeSearchView: View {
             }
         }
         .background(Color(.systemGray6))
-        .cornerRadius(8)
+        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
     }
 
     // MARK: - 搜索结果列表
@@ -119,7 +119,7 @@ struct RepoCodeSearchView: View {
             VStack {
                 Spacer()
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 60))
+                    .font(.system(size: 60))  // 字体大小60pt，控制文字显示尺寸
                     .foregroundColor(.gray)
                 Text("在当前仓库中搜索代码")
                     .font(.headline)
@@ -127,7 +127,7 @@ struct RepoCodeSearchView: View {
                 Text("支持搜索代码内容、文件名等")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                    .padding(.top, 4)
+                    .padding(.top, 4)  // 顶部内边距4pt，控制上方留白间距
                 Spacer()
             }
         } else {
@@ -154,19 +154,19 @@ struct RepoCodeSearchView: View {
             // 文件图标
             Image(systemName: "doc.text")
                 .foregroundColor(.blue)
-                .font(.system(size: 20))
-                .frame(width: 28)
+                .font(.system(size: 20))  // 字体大小20pt，控制文字显示尺寸
+                .frame(width: 28)  // 视图宽度28pt，控制组件水平尺寸
 
             VStack(alignment: .leading, spacing: 4) {
                 // 文件名
                 Text(item.name)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 15, weight: .medium))  // 字体大小15pt，控制文字显示尺寸
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
                 // 文件路径
                 Text(item.path)
-                    .font(.system(size: 12))
+                    .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
@@ -176,10 +176,10 @@ struct RepoCodeSearchView: View {
             // 右箭头
             Image(systemName: "chevron.right")
                 .foregroundColor(.gray)
-                .font(.system(size: 12))
+                .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+        .padding(.vertical, 12)  // 垂直内边距12pt，控制上下留白间距
         .contentShape(Rectangle())
     }
 
@@ -259,15 +259,15 @@ struct CodeSnippetView: View {
                 .foregroundColor(.blue)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 15, weight: .medium))  // 字体大小15pt，控制文字显示尺寸
                 Text(item.path)
-                    .font(.system(size: 12))
+                    .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
             }
             Spacer()
         }
         .padding(.horizontal)
-        .padding(.vertical, 12)
+        .padding(.vertical, 12)  // 垂直内边距12pt，控制上下留白间距
         .background(Color(.systemGray6))
     }
 
@@ -278,9 +278,9 @@ struct CodeSnippetView: View {
         if isLoading {
             VStack(spacing: 12) {
                 ProgressView()
-                    .scaleEffect(1.2)
+                    .scaleEffect(1.2)  // 缩放比例1.2倍，控制视图整体放大缩小
                 Text("加载文件内容...")
-                    .font(.system(size: 14))
+                    .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -288,32 +288,32 @@ struct CodeSnippetView: View {
         } else if let error = errorMessage {
             VStack(spacing: 16) {
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 40))
+                    .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
                     .foregroundColor(.orange)
                 Text(error)
-                    .font(.system(size: 14))
+                    .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                 Button("重试") {
                     loadFileContent()
                 }
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 15, weight: .medium))  // 字体大小15pt，控制文字显示尺寸
                 .foregroundColor(.blue)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 24)  // 水平内边距24pt，控制左右留白间距
+                .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
                 .background(Color(.systemGray6))
-                .cornerRadius(8)
+                .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 24)  // 水平内边距24pt，控制左右留白间距
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(.systemBackground))
         } else if snippets.isEmpty {
             VStack(spacing: 12) {
                 Image(systemName: "doc.text.magnifyingglass")
-                    .font(.system(size: 40))
+                    .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
                     .foregroundColor(.gray)
                 Text("未找到包含关键词的代码片段")
-                    .font(.system(size: 14))
+                    .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                     .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -330,7 +330,7 @@ struct CodeSnippetView: View {
                         }
                     }
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
             }
             .background(Color(.systemBackground))
         }
@@ -348,29 +348,29 @@ struct CodeSnippetView: View {
                 // 片段位置信息
                 HStack {
                     Image(systemName: "number")
-                        .font(.system(size: 10))
+                        .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
                         .foregroundColor(.gray)
                     Text("第 \(snippet.lineNumber) 行")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
                         .foregroundColor(.gray)
                     Spacer()
                     Text("匹配 \(index + 1)")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
                         .foregroundColor(.blue)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10))
+                        .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
                         .foregroundColor(.gray)
                         .padding(.leading, 4)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+                .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
                 .background(Color(.systemGray6))
 
                 // 代码内容（高亮关键词）
                 ScrollView(.horizontal, showsIndicators: false) {
                     highlightedCode(snippet.code)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+                        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
                 }
             }
         }

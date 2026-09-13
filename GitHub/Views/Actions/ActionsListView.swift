@@ -54,7 +54,7 @@ struct ActionsListView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
 
             // 内容区域
             if selectedTab == 0 {
@@ -142,7 +142,7 @@ struct ActionsListView: View {
             )
 
             Divider()
-                .frame(height: 40)
+                .frame(height: 40)  // 视图高度40pt，控制组件垂直尺寸
 
             // 成功率
             statItem(
@@ -153,7 +153,7 @@ struct ActionsListView: View {
             )
 
             Divider()
-                .frame(height: 40)
+                .frame(height: 40)  // 视图高度40pt，控制组件垂直尺寸
 
             // 平均耗时
             statItem(
@@ -163,8 +163,8 @@ struct ActionsListView: View {
                 label: "平均耗时"
             )
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+        .padding(.vertical, 12)  // 垂直内边距12pt，控制上下留白间距
         .background(Color(.systemGray6))
     }
 
@@ -243,9 +243,9 @@ struct ActionsListView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(6)
+                .padding(6)  // 四向统一内边距6pt，控制上下左右留白
                 .background(Color.blue.opacity(0.1))
-                .cornerRadius(6)
+                .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
 
                 Text("VS")
                     .font(.caption)
@@ -268,9 +268,9 @@ struct ActionsListView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(6)
+                .padding(6)  // 四向统一内边距6pt，控制上下左右留白
                 .background(Color.orange.opacity(0.1))
-                .cornerRadius(6)
+                .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
             }
 
             // 开始对比按钮
@@ -285,9 +285,9 @@ struct ActionsListView: View {
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
                     .background(Color.blue)
-                    .cornerRadius(8)
+                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -338,13 +338,13 @@ struct ActionsListView: View {
                     Text(statusFilterDisplay)
                         .font(.caption)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 8))
+                        .font(.system(size: 8))  // 字体大小8pt，控制文字显示尺寸
                 }
                 .foregroundColor(.blue)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
+                .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                 .background(Color.blue.opacity(0.1))
-                .cornerRadius(6)
+                .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
             }
 
             // 排序
@@ -358,10 +358,10 @@ struct ActionsListView: View {
                         .font(.caption)
                 }
                 .foregroundColor(.blue)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
+                .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                 .background(Color.blue.opacity(0.1))
-                .cornerRadius(6)
+                .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
             }
 
             Spacer()
@@ -383,8 +383,8 @@ struct ActionsListView: View {
                 }
             }
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 4)
+        .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
+        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
         .listRowSeparator(.hidden)
     }
 
@@ -716,7 +716,7 @@ struct WorkflowRunRow: View {
                         .foregroundColor(Color(run.statusColor))
                 }
             }
-            .frame(width: 30)
+            .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
 
             VStack(alignment: .leading, spacing: 4) {
                 // 工作流名称和运行编号
@@ -751,10 +751,10 @@ struct WorkflowRunRow: View {
                 HStack(spacing: 8) {
                     Text(run.eventDisplay)
                         .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 6)  // 水平内边距6pt，控制左右留白间距
+                        .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
                         .background(Color.gray.opacity(0.2))
-                        .cornerRadius(4)
+                        .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
 
                     Text(run.formattedCreatedAt)
                         .font(.caption2)
@@ -768,12 +768,12 @@ struct WorkflowRunRow: View {
             Text(run.statusDisplay)
                 .font(.caption)
                 .foregroundColor(Color(run.statusColor))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
+                .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                 .background(Color(run.statusColor).opacity(0.1))
-                .cornerRadius(6)
+                .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
     }
 }
 
@@ -810,7 +810,7 @@ struct WorkflowCard: View {
                 HStack(spacing: 4) {
                     Circle()
                         .fill(workflow.state == "active" ? Color.green : Color.gray)
-                        .frame(width: 6, height: 6)
+                        .frame(width: 6, height: 6)  // 视图尺寸宽6pt高6pt，控制组件显示大小
                     Text(workflow.stateDisplay)
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -826,12 +826,12 @@ struct WorkflowCard: View {
                     showFileView = true
                 }) {
                     Image(systemName: "doc.text")
-                        .font(.system(size: 14))
+                        .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                         .foregroundColor(.blue)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
+                        .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
                         .background(Color.blue.opacity(0.1))
-                        .cornerRadius(6)
+                        .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
                 }
                 .buttonStyle(PlainButtonStyle())
 
@@ -840,17 +840,17 @@ struct WorkflowCard: View {
                     showTriggerView = true
                 }) {
                     Image(systemName: "play.fill")
-                        .font(.system(size: 14))
+                        .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
                         .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
+                        .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
                         .background(Color.green)
-                        .cornerRadius(6)
+                        .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
         .sheet(isPresented: $showFileView) {
             NavigationView {
                 WorkflowFileView(owner: owner, repo: repo, workflow: workflow)

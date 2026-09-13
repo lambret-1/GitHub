@@ -47,16 +47,16 @@ struct RepoListView: View {
                     // 星标按钮，点击跳转到星标列表页面
                     NavigationLink(destination: StarredReposView()) {
                         Image(systemName: "star.fill")
-                            .font(.system(size: 18))
+                            .font(.system(size: 18))  // 字体大小18pt，控制文字显示尺寸
                             .foregroundColor(.yellow)
-                            .frame(width: 40, height: 40)
+                            .frame(width: 40, height: 40)  // 视图尺寸宽40pt高40pt，控制组件显示大小
                             .background(Color(.systemGray6))
-                            .cornerRadius(8)
+                            .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 8)
+                .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
 
                 // 筛选栏
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -70,7 +70,7 @@ struct RepoListView: View {
                     }
                     .padding(.horizontal)
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, 8)  // 底部内边距8pt，控制下方留白间距
                 
                 // 仓库列表
                 if isLoading {
@@ -465,7 +465,7 @@ struct RepoRow: View {
                     HStack(spacing: 4) {
                         Circle()
                             .fill(Color(hex: repo.languageColor))
-                            .frame(width: 10, height: 10)
+                            .frame(width: 10, height: 10)  // 视图尺寸宽10pt高10pt，控制组件显示大小
                         Text(language)
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -493,7 +493,7 @@ struct RepoRow: View {
                     .foregroundColor(.gray)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
     }
 }
 
@@ -508,11 +508,11 @@ struct FilterChip: View {
         Button(action: action) {
             Text(title)
                 .font(.subheadline)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+                .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
                 .background(isSelected ? Color.black : Color.gray.opacity(0.15))
                 .foregroundColor(isSelected ? .white : .primary)
-                .cornerRadius(20)
+                .cornerRadius(20)  // 圆角半径20pt，控制视图边角圆润程度
         }
     }
 }

@@ -72,7 +72,7 @@ struct CacheManagementView: View {
                                     .font(.headline)
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                     }
 
                     // 缓存列表
@@ -150,7 +150,7 @@ struct CacheManagementView: View {
         HStack(spacing: 12) {
             Image(systemName: "archivebox")
                 .foregroundColor(.blue)
-                .frame(width: 24)
+                .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(cache.key)
@@ -159,7 +159,7 @@ struct CacheManagementView: View {
 
                 HStack(spacing: 6) {
                     Image(systemName: "branch")
-                        .font(.system(size: 10))
+                        .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
                     Text(cache.branchName)
                         .font(.caption2)
@@ -184,7 +184,7 @@ struct CacheManagementView: View {
             // 删除按钮
             if deletingCacheId == cache.id {
                 ProgressView()
-                    .scaleEffect(0.8)
+                    .scaleEffect(0.8)  // 缩放比例0.8倍，控制视图整体放大缩小
             } else {
                 Button(action: {
                     cacheToDelete = cache
@@ -196,7 +196,7 @@ struct CacheManagementView: View {
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
     }
 
     // MARK: - 计算属性

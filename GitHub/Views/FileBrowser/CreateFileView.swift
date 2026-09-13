@@ -20,7 +20,7 @@ struct CreateFileView: View {
                 // 提示信息
                 VStack(spacing: 8) {
                     Image(systemName: "doc.badge.plus")
-                        .font(.system(size: 40))
+                        .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
                         .foregroundColor(.blue)
                     Text("新建文件")
                         .font(.headline)
@@ -28,7 +28,7 @@ struct CreateFileView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 24)
+                .padding(.vertical, 24)  // 垂直内边距24pt，控制上下留白间距
                 .padding(.horizontal)
 
                 Divider()
@@ -56,8 +56,8 @@ struct CreateFileView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 16)
+                .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+                .padding(.vertical, 16)  // 垂直内边距16pt，控制上下留白间距
 
                 Spacer()
 
@@ -77,10 +77,10 @@ struct CreateFileView: View {
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 14)  // 垂直内边距14pt，控制上下留白间距
                         .background(fileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isCreating ? Color.gray : Color.blue)
                         .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .cornerRadius(10)  // 圆角半径10pt，控制视图边角圆润程度
                     }
                     .disabled(fileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isCreating)
 
@@ -90,15 +90,15 @@ struct CreateFileView: View {
                         Text("取消")
                             .fontWeight(.medium)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 14)  // 垂直内边距14pt，控制上下留白间距
                             .background(Color(.systemGray6))
                             .foregroundColor(.primary)
-                            .cornerRadius(10)
+                            .cornerRadius(10)  // 圆角半径10pt，控制视图边角圆润程度
                     }
                     .disabled(isCreating)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 20)
+                .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+                .padding(.bottom, 20)  // 底部内边距20pt，控制下方留白间距
             }
             .navigationBarHidden(true)
             // 确保sheet正确继承暗黑模式颜色方案

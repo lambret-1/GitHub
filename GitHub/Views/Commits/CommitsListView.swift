@@ -53,7 +53,7 @@ struct CommitsListView: View {
                         Spacer()
                     }
                     .listRowBackground(Color.clear)
-                    .padding(.vertical, 16)
+                    .padding(.vertical, 16)  // 垂直内边距16pt，控制上下留白间距
                 }
             }
         }
@@ -79,13 +79,13 @@ struct CommitsListView: View {
                 VStack {
                     Spacer()
                     Text(operationMessage)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))  // 字体大小14pt，控制文字显示尺寸
                         .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
+                        .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
                         .background(Color.black.opacity(0.8))
-                        .cornerRadius(8)
-                        .padding(.bottom, 40)
+                        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                        .padding(.bottom, 40)  // 底部内边距40pt，控制下方留白间距
                 }
                 .transition(.opacity)
                 .onAppear {
@@ -111,14 +111,14 @@ struct CommitsListView: View {
             Spacer()
         }
         .listRowBackground(Color.clear)
-        .padding(.vertical, 40)
+        .padding(.vertical, 40)  // 垂直内边距40pt，控制上下留白间距
     }
 
     // MARK: - 错误
     private func errorRow(error: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40))
+                .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
                 .foregroundColor(.orange)
             Text(error)
                 .foregroundColor(.secondary)
@@ -131,20 +131,20 @@ struct CommitsListView: View {
             .buttonStyle(.borderedProminent)
         }
         .listRowBackground(Color.clear)
-        .padding(.vertical, 40)
+        .padding(.vertical, 40)  // 垂直内边距40pt，控制上下留白间距
     }
 
     // MARK: - 空状态
     private var emptyRow: some View {
         VStack(spacing: 12) {
             Image(systemName: "dot.circle")
-                .font(.system(size: 40))
+                .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
                 .foregroundColor(.secondary)
             Text("暂无提交记录")
                 .foregroundColor(.secondary)
         }
         .listRowBackground(Color.clear)
-        .padding(.vertical, 40)
+        .padding(.vertical, 40)  // 垂直内边距40pt，控制上下留白间距
     }
 
     // MARK: - 加载提交列表
@@ -207,14 +207,14 @@ struct CommitRow: View {
         HStack(alignment: .top, spacing: 12) {
             // 提交图标
             Image(systemName: "commit")
-                .font(.system(size: 18))
+                .font(.system(size: 18))  // 字体大小18pt，控制文字显示尺寸
                 .foregroundColor(.secondary)
-                .padding(.top, 4)
+                .padding(.top, 4)  // 顶部内边距4pt，控制上方留白间距
 
             VStack(alignment: .leading, spacing: 6) {
                 // 提交信息
                 Text(commit.message)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))  // 字体大小15pt，控制文字显示尺寸
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
                     .lineLimit(2)
 
@@ -227,19 +227,19 @@ struct CommitRow: View {
                         Image(systemName: "person.circle.fill")
                             .foregroundColor(.gray)
                     }
-                    .frame(width: 20, height: 20)
+                    .frame(width: 20, height: 20)  // 视图尺寸宽20pt高20pt，控制组件显示大小
                     .clipShape(Circle())
 
                     Text(commit.authorName)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))  // 字体大小13pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
 
                     Text("提交于")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
 
                     Text(commit.formattedDate)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
                         .foregroundColor(.secondary)
 
                     Spacer()
@@ -254,22 +254,22 @@ struct CommitRow: View {
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: showCopyMessage ? "checkmark" : "doc.on.doc")
-                                .font(.system(size: 11))
+                                .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
                             Text(commit.shortSha)
-                                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                .font(.system(size: 12, weight: .medium, design: .monospaced))  // 字体大小12pt，控制文字显示尺寸
                         }
                         .foregroundColor(.blue)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
+                        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
                         .background(Color.blue.opacity(0.1))
-                        .cornerRadius(6)
+                        .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
             }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 16)
+        .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
+        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
         .contentShape(Rectangle())
         .background(
             appState.isDarkMode ? Color.black : Color.white
@@ -277,7 +277,7 @@ struct CommitRow: View {
         .overlay(
             Rectangle()
                 .fill(appState.isDarkMode ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
-                .frame(height: 1)
+                .frame(height: 1)  // 视图高度1pt，控制组件垂直尺寸
                 .padding(.leading, 40),
             alignment: .bottom
         )
