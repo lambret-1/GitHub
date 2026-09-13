@@ -36,6 +36,12 @@ struct ActionsListView: View {
     @State private var showTriggerAlert: Bool = false
     @State private var selectedWorkflow: Workflow?
 
+    // 运行对比相关状态
+    @State private var isComparisonMode: Bool = false
+    @State private var selectedRunForComparison1: WorkflowRun?
+    @State private var selectedRunForComparison2: WorkflowRun?
+    @State private var showComparisonView: Bool = false
+
     var body: some View {
         VStack(spacing: 0) {
             // 统计概览卡片
@@ -61,6 +67,18 @@ struct ActionsListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarItems(trailing:
             HStack(spacing: 16) {
+                // 对比按钮
+                Button(action: {
+                    isComparisonMode.toggle()
+                    if !isComparisonMode {
+                        selectedRunForComparison1 = nil
+                        selectedRunForComparison2 = nil
+                    }
+                }) {
+                    Image(systemName: isComparisonMode ? "xmark.circle.fill" : "arrow.left.arrow.right")
+                        .foregroundColor(isComparisonMode ? .red : .primary)
+                }
+
                 NavigationLink(destination: RunStatsView(owner: owner, repo: repo)) {
                     Image(systemName: "chart.bar.xaxis")
                 }
@@ -68,6 +86,12 @@ struct ActionsListView: View {
                     Image(systemName: "gearshape")
                 }
             }
+        )
+        .background(
+            NavigationLink(destination: comparisonDestination, isActive: $showComparisonView) {
+                EmptyView()
+            }
+            .hidden()
         )
         .onAppear {
             if runs.isEmpty {
@@ -91,6 +115,17 @@ struct ActionsListView: View {
                 },
                 secondaryButton: .cancel(Text("取消"))
             )
+        }
+    }
+
+    // MARK: - 对比目标视图
+
+    @ViewBuilder
+    private var comparisonDestination: some View {
+        if let run1 = selectedRunForComparison1, let run2 = selectedRunForComparison2 {
+            RunComparisonView(owner: owner, repo: repo, run1: run1, run2: run2)
+        } else {
+            EmptyView()
         }
     }
 
@@ -175,6 +210,114 @@ struct ActionsListView: View {
         }
 
         return result
+    }
+
+    // MARK: - 对比模式提示栏
+
+    private var comparisonModeBar: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: "arrow.left.arrow.right")
+                    .foregroundColor(.blue)
+                Text("对比模式 - 选择两次运行进行对比")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.blue)
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                // 已选择的运行1
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("运行1")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    if let run1 = selectedRunForComparison1 {
+                        Text("#\(run1.runNumber) - \(run1.name)")
+                            .font(.caption)
+                            .lineLimit(1)
+                    } else {
+                        Text("未选择")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(6)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(6)
+
+                Text("VS")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.gray)
+
+                // 已选择的运行2
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("运行2")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    if let run2 = selectedRunForComparison2 {
+                        Text("#\(run2.runNumber) - \(run2.name)")
+                            .font(.caption)
+                            .lineLimit(1)
+                    } else {
+                        Text("未选择")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(6)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(6)
+            }
+
+            // 开始对比按钮
+            if selectedRunForComparison1 != nil && selectedRunForComparison2 != nil {
+                Button(action: {
+                    showComparisonView = true
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.left.arrow.right.circle.fill")
+                        Text("开始对比")
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(Color.blue)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .listRowSeparator(.hidden)
+    }
+
+    // MARK: - 对比模式辅助方法
+
+    private func selectRunForComparison(_ run: WorkflowRun) {
+        if selectedRunForComparison1 == nil {
+            selectedRunForComparison1 = run
+        } else if selectedRunForComparison2 == nil {
+            if selectedRunForComparison1?.id == run.id {
+                // 取消选择第一个
+                selectedRunForComparison1 = nil
+            } else {
+                selectedRunForComparison2 = run
+            }
+        } else {
+            // 两个都已选择，重新开始
+            selectedRunForComparison1 = run
+            selectedRunForComparison2 = nil
+        }
+    }
+
+    private func isRunSelected(_ run: WorkflowRun) -> Bool {
+        return selectedRunForComparison1?.id == run.id || selectedRunForComparison2?.id == run.id
     }
 
     // MARK: - 筛选和排序栏
@@ -289,16 +432,36 @@ struct ActionsListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
+                    // 对比模式提示栏
+                    if isComparisonMode {
+                        comparisonModeBar
+                    }
+
                     // 筛选和排序栏
                     filterSortBar
 
                     ForEach(filteredRuns) { run in
-                        NavigationLink(destination: WorkflowRunDetailView(owner: owner, repo: repo, run: run)) {
-                            WorkflowRunRow(run: run)
-                        }
-                        .onAppear {
-                            if run.id == filteredRuns.last?.id && hasMoreRuns && !isLoadingRuns {
-                                loadMoreRuns()
+                        if isComparisonMode {
+                            // 对比模式：点击选择运行
+                            Button(action: {
+                                selectRunForComparison(run)
+                            }) {
+                                WorkflowRunRow(run: run)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(isRunSelected(run) ? Color.blue : Color.clear, lineWidth: 2)
+                                    )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        } else {
+                            // 正常模式：点击进入详情
+                            NavigationLink(destination: WorkflowRunDetailView(owner: owner, repo: repo, run: run)) {
+                                WorkflowRunRow(run: run)
+                            }
+                            .onAppear {
+                                if run.id == filteredRuns.last?.id && hasMoreRuns && !isLoadingRuns {
+                                    loadMoreRuns()
+                                }
                             }
                         }
                     }
@@ -324,8 +487,7 @@ struct ActionsListView: View {
 
     // MARK: - 工作流列表
 
-    private var workflowsListView: some View {
-        Group {
+    private var workflowsListView: some View {        Group {
             if isLoadingWorkflows && workflows.isEmpty {
                 ProgressView("加载中...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -1,20 +1,50 @@
 import SwiftUI
 
-// MARK: - 工作流文件查看器
+// MARK: - 工作流文件编辑器（支持查看和编辑YAML文件）
 
 struct WorkflowFileView: View {
     let owner: String
     let repo: String
     let workflow: Workflow
+
+    // 文件内容相关状态
     @State private var fileContent: String = ""
+    @State private var originalContent: String = ""  // 原始内容，用于对比是否有修改
     @State private var isLoading: Bool = true
     @State private var errorMessage: String?
     @State private var showCopySuccess: Bool = false
+
+    // 编辑模式相关状态
+    @State private var isEditing: Bool = false
+    @State private var isSaving: Bool = false
+    @State private var showSaveAlert: Bool = false
+    @State private var commitMessage: String = ""
+    @State private var showSaveSuccess: Bool = false
+    @State private var showSaveError: String? = nil
+
+    // 搜索相关状态
+    @State private var showSearch: Bool = false
+    @State private var searchText: String = ""
+    @State private var searchMatches: [Int] = []  // 匹配的行号
+    @State private var currentMatchIndex: Int = 0
+
+    // 滚动代理
+    @State private var scrollProxy: ScrollViewProxy?
 
     var body: some View {
         VStack(spacing: 0) {
             // 文件信息头部
             fileInfoHeader
+
+            // 搜索栏
+            if showSearch {
+                searchBar
+            }
+
+            // 编辑模式提示栏
+            if isEditing {
+                editingBanner
+            }
 
             // 内容区域
             contentSection
@@ -23,11 +53,40 @@ struct WorkflowFileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarItems(trailing:
             HStack(spacing: 16) {
+                // 搜索按钮
                 Button(action: {
-                    copyContent()
+                    showSearch.toggle()
                 }) {
-                    Image(systemName: "doc.on.doc")
+                    Image(systemName: "magnifyingglass")
                 }
+
+                // 编辑/完成按钮
+                Button(action: {
+                    if isEditing {
+                        // 检查是否有修改
+                        if fileContent != originalContent {
+                            showSaveAlert = true
+                        } else {
+                            isEditing = false
+                        }
+                    } else {
+                        isEditing = true
+                    }
+                }) {
+                    Text(isEditing ? "完成" : "编辑")
+                        .fontWeight(.medium)
+                }
+
+                // 复制按钮（仅查看模式显示）
+                if !isEditing {
+                    Button(action: {
+                        copyContent()
+                    }) {
+                        Image(systemName: "doc.on.doc")
+                    }
+                }
+
+                // 刷新按钮
                 Button(action: {
                     loadFileContent()
                 }) {
@@ -38,29 +97,51 @@ struct WorkflowFileView: View {
         .onAppear {
             loadFileContent()
         }
+        .alert("保存修改", isPresented: $showSaveAlert) {
+            TextField("提交信息", text: $commitMessage)
+            Button("保存", action: saveFile)
+            Button("取消", role: .cancel) {
+                isEditing = false
+                fileContent = originalContent  // 恢复原始内容
+            }
+        } message: {
+            Text("请输入提交信息，保存后将直接提交到仓库。")
+        }
         .overlay(
-            // 复制成功提示
+            // 提示信息
             Group {
                 if showCopySuccess {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                            Text("已复制到剪贴板")
-                                .font(.subheadline)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
-                        .padding(.bottom, 40)
-                        Spacer()
-                    }
-                    .transition(.opacity)
+                    toastView(message: "已复制到剪贴板", icon: "checkmark.circle.fill", color: .green)
+                }
+                if showSaveSuccess {
+                    toastView(message: "保存成功", icon: "checkmark.circle.fill", color: .green)
+                }
+                if let error = showSaveError {
+                    toastView(message: error, icon: "xmark.circle.fill", color: .red)
                 }
             }
         )
+    }
+
+    // MARK: - Toast提示视图
+
+    private func toastView(message: String, icon: String, color: Color) -> some View {
+        VStack {
+            Spacer()
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                Text(message)
+                    .font(.subheadline)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color(.systemGray6))
+            .cornerRadius(8)
+            .padding(.bottom, 40)
+            Spacer()
+        }
+        .transition(.opacity)
     }
 
     // MARK: - 文件信息头部
@@ -79,10 +160,93 @@ struct WorkflowFileView: View {
                     .foregroundColor(workflow.state == "active" ? .green : .gray)
             }
             Spacer()
+            // 显示是否有未保存的修改
+            if isEditing && fileContent != originalContent {
+                Text("未保存")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(4)
+            }
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
         .background(Color(.systemGray6))
+    }
+
+    // MARK: - 搜索栏
+
+    private var searchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.gray)
+            TextField("搜索...", text: $searchText, onCommit: {
+                performSearch()
+            })
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .font(.system(size: 14))
+            .autocapitalization(.none)
+            .disableAutocorrection(true)
+
+            if !searchText.isEmpty {
+                Button(action: {
+                    searchText = ""
+                    searchMatches = []
+                    currentMatchIndex = 0
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                }
+
+                // 上一个/下一个匹配
+                HStack(spacing: 4) {
+                    Button(action: {
+                        goToPreviousMatch()
+                    }) {
+                        Image(systemName: "chevron.up")
+                            .font(.caption)
+                    }
+                    .disabled(currentMatchIndex <= 0)
+
+                    Text("\(currentMatchIndex + 1)/\(searchMatches.count)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .frame(minWidth: 40)
+
+                    Button(action: {
+                        goToNextMatch()
+                    }) {
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                    }
+                    .disabled(currentMatchIndex >= searchMatches.count - 1)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(Color(.systemGray6))
+        .onChange(of: searchText) { _ in
+            performSearch()
+        }
+    }
+
+    // MARK: - 编辑模式提示栏
+
+    private var editingBanner: some View {
+        HStack {
+            Image(systemName: "pencil.circle.fill")
+                .foregroundColor(.blue)
+            Text("编辑模式 - 修改后点击完成保存")
+                .font(.caption)
+                .foregroundColor(.blue)
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 6)
+        .background(Color.blue.opacity(0.1))
     }
 
     // MARK: - 内容区域
@@ -122,35 +286,74 @@ struct WorkflowFileView: View {
                     Spacer()
                 }
             } else {
-                // YAML内容显示
-                ScrollView {
-                    ScrollViewReader { proxy in
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            ForEach(Array(fileContent.components(separatedBy: .newlines).enumerated()), id: \.offset) { index, line in
-                                HStack(alignment: .top, spacing: 0) {
-                                    // 行号
-                                    Text("\(index + 1)")
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .foregroundColor(.gray)
-                                        .frame(width: 40, alignment: .trailing)
-                                        .padding(.trailing, 8)
-                                    // 代码内容
-                                    Text(line)
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .foregroundColor(colorForLine(line))
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 1)
-                                .background(index % 2 == 0 ? Color(.systemBackground) : Color(.systemGray6).opacity(0.3))
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
+                if isEditing {
+                    // 编辑模式：使用TextEditor
+                    editingContent
+                } else {
+                    // 查看模式：使用带语法高亮的ScrollView
+                    viewingContent
                 }
-                .background(Color(.systemBackground))
             }
         }
+    }
+
+    // MARK: - 编辑模式内容
+
+    private var editingContent: some View {
+        TextEditor(text: $fileContent)
+            .font(.system(size: 12, design: .monospaced))
+            .disableAutocorrection(true)
+            .autocapitalization(.none)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color(.systemBackground))
+    }
+
+    // MARK: - 查看模式内容
+
+    private var viewingContent: some View {
+        ScrollView {
+            ScrollViewReader { proxy in
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(fileContent.components(separatedBy: .newlines).enumerated()), id: \.offset) { index, line in
+                        HStack(alignment: .top, spacing: 0) {
+                            // 行号
+                            Text("\(index + 1)")
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(.gray)
+                                .frame(width: 40, alignment: .trailing)
+                                .padding(.trailing, 8)
+                            // 代码内容（带搜索高亮）
+                            if !searchText.isEmpty && searchMatches.contains(index) {
+                                Text(line)
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(colorForLine(line))
+                                    .background(Color.yellow.opacity(0.3))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                Text(line)
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(colorForLine(line))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(
+                            !searchText.isEmpty && searchMatches.contains(index) && currentMatchIndex < searchMatches.count && searchMatches[currentMatchIndex] == index ?
+                            Color.yellow.opacity(0.2) :
+                            (index % 2 == 0 ? Color(.systemBackground) : Color(.systemGray6).opacity(0.3))
+                        )
+                        .id(index)
+                    }
+                }
+                .padding(.vertical, 8)
+                .onAppear {
+                    scrollProxy = proxy
+                }
+            }
+        }
+        .background(Color(.systemBackground))
     }
 
     // MARK: - YAML语法高亮
@@ -176,6 +379,52 @@ struct WorkflowFileView: View {
         return .primary
     }
 
+    // MARK: - 搜索相关方法
+
+    private func performSearch() {
+        guard !searchText.isEmpty else {
+            searchMatches = []
+            currentMatchIndex = 0
+            return
+        }
+
+        let lines = fileContent.components(separatedBy: .newlines)
+        searchMatches = []
+
+        for (index, line) in lines.enumerated() {
+            if line.localizedCaseInsensitiveContains(searchText) {
+                searchMatches.append(index)
+            }
+        }
+
+        currentMatchIndex = 0
+        if !searchMatches.isEmpty {
+            scrollToMatch(at: 0)
+        }
+    }
+
+    private func goToPreviousMatch() {
+        guard currentMatchIndex > 0 else { return }
+        currentMatchIndex -= 1
+        scrollToMatch(at: currentMatchIndex)
+    }
+
+    private func goToNextMatch() {
+        guard currentMatchIndex < searchMatches.count - 1 else { return }
+        currentMatchIndex += 1
+        scrollToMatch(at: currentMatchIndex)
+    }
+
+    private func scrollToMatch(at index: Int) {
+        guard index < searchMatches.count else { return }
+        let lineIndex = searchMatches[index]
+        DispatchQueue.main.async {
+            withAnimation {
+                scrollProxy?.scrollTo(lineIndex, anchor: .center)
+            }
+        }
+    }
+
     // MARK: - 数据加载
 
     private func loadFileContent() {
@@ -190,11 +439,55 @@ struct WorkflowFileView: View {
                     let content = fileContent.decodedContent
                     if !content.isEmpty {
                         self.fileContent = content
+                        self.originalContent = content
                     } else {
                         self.errorMessage = "无法解码文件内容"
                     }
                 case .failure(let error):
                     self.errorMessage = "加载失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // MARK: - 保存文件
+
+    private func saveFile() {
+        guard !commitMessage.isEmpty else {
+            showSaveError = "请输入提交信息"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                showSaveError = nil
+            }
+            return
+        }
+
+        isSaving = true
+        showSaveAlert = false
+
+        GitHubAPI.shared.updateFile(
+            owner: owner,
+            repo: repo,
+            path: workflow.path,
+            content: fileContent,
+            sha: workflow.sha ?? "",
+            message: commitMessage
+        ) { result in
+            DispatchQueue.main.async {
+                isSaving = false
+                switch result {
+                case .success:
+                    originalContent = fileContent
+                    isEditing = false
+                    commitMessage = ""
+                    showSaveSuccess = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showSaveSuccess = false
+                    }
+                case .failure(let error):
+                    showSaveError = "保存失败: \(error.localizedDescription)"
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        showSaveError = nil
+                    }
                 }
             }
         }
