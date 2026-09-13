@@ -28,19 +28,19 @@ struct RepoHeaderView: View {
             // 第一行：仓库名称 + 图标
             HStack(spacing: 8) {
                 Image(systemName: "book.closed")
-                    .font(.system(size: 18))
+                    .font(.system(size: 18))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(appState.isDarkMode ? .gray : .secondary)
 
                 Text(repository.ownerName)
-                    .font(.system(size: 17))
+                    .font(.system(size: 17))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.blue)
 
                 Text("/")
-                    .font(.system(size: 17))
+                    .font(.system(size: 17))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(appState.isDarkMode ? .gray : .secondary)
 
                 Text(repository.name)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 17, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.blue)
 
                 Spacer()
@@ -48,20 +48,20 @@ struct RepoHeaderView: View {
                 // 仓库可见性标签
                 if repository.isPrivate {
                     Text("私有")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
+                        .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 3)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(appState.isDarkMode ? Color.gray.opacity(0.4) : Color.secondary.opacity(0.4), lineWidth: 1)
                         )
                 } else {
                     Text("公开")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
+                        .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 3)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(appState.isDarkMode ? Color.gray.opacity(0.4) : Color.secondary.opacity(0.4), lineWidth: 1)
@@ -76,13 +76,13 @@ struct RepoHeaderView: View {
                 }) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.triangle.branch")
-                            .font(.system(size: 11))
+                            .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.blue)
                         Text("复刻自 ")
-                            .font(.system(size: 12))
+                            .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                         Text("\(parent.ownerName)/\(parent.name)")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.blue)
                     }
                 }
@@ -93,7 +93,7 @@ struct RepoHeaderView: View {
             if let description = repository.description, !description.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(description)
-                        .font(.system(size: 14))
+                        .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? Color(red: 0.8, green: 0.8, blue: 0.8) : .secondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineLimit(isDescriptionExpanded ? nil : 2)
@@ -104,7 +104,7 @@ struct RepoHeaderView: View {
                             isDescriptionExpanded.toggle()
                         }) {
                             Text(isDescriptionExpanded ? "收起" : "展开")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(size: 12, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(.blue)
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -120,17 +120,17 @@ struct RepoHeaderView: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "eye")
-                            .font(.system(size: 13))
+                            .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         Text("关注")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         Text(formatCount(repository.watchersCount ?? 0))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                    .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     .background(appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
-                    .cornerRadius(6)
+                    .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
                             .stroke(appState.isDarkMode ? Color(red: 0.3, green: 0.3, blue: 0.3) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
@@ -144,17 +144,17 @@ struct RepoHeaderView: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.triangle.branch")
-                            .font(.system(size: 13))
+                            .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         Text("复刻")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         Text(formatCount(repository.forksCount ?? 0))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                    .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     .background(appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
-                    .cornerRadius(6)
+                    .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
                             .stroke(appState.isDarkMode ? Color(red: 0.3, green: 0.3, blue: 0.3) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
@@ -172,19 +172,19 @@ struct RepoHeaderView: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: isStarred ? "star.fill" : "star")
-                            .font(.system(size: 13))
+                            .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(isStarred ? .yellow : (appState.isDarkMode ? .white : .primary))
                             // 星标图标缩放动画
                             .scaleEffect(isStarred ? 1.2 : 1.0)
                             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isStarred)
                         Text(isStarred ? "已标星" : "标星")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         Text(formatCount(starCount ?? repository.stargazersCount ?? 0))
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                    .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     .background(
                         // 背景颜色过渡动画
                         isStarred ?
@@ -192,7 +192,7 @@ struct RepoHeaderView: View {
                         (appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
                     )
                     .animation(.easeInOut(duration: 0.2), value: isStarred)
-                    .cornerRadius(6)
+                    .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
                             .stroke(
@@ -219,12 +219,12 @@ struct RepoHeaderView: View {
                     HStack(spacing: 6) {
                         ForEach(topics, id: \.self) { topic in
                             Text(topic)
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.system(size: 11, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(.blue)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
+                                .padding(.horizontal, 10)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                                .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                                 .background(Color.blue.opacity(0.1))
-                                .cornerRadius(12)
+                                .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                         }
                     }
                 }
@@ -237,9 +237,9 @@ struct RepoHeaderView: View {
                     HStack(spacing: 5) {
                         Circle()
                             .fill(languageColor(language))
-                            .frame(width: 12, height: 12)
+                            .frame(width: 12, height: 12)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                         Text(language)
-                            .font(.system(size: 12))
+                            .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     }
                 }
@@ -247,40 +247,40 @@ struct RepoHeaderView: View {
                 // 开源协议
                 HStack(spacing: 4) {
                     Image(systemName: "scroll")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     Text(repository.协议名称)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
                 // 仓库大小
                 HStack(spacing: 4) {
                     Image(systemName: "internaldrive")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     Text(repository.大小显示)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
                 // 星标数
                 HStack(spacing: 4) {
                     Image(systemName: "star.fill")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     Text("\(repository.stargazersCount ?? 0)")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
                 // 复刻数（修复P0问题：arrow.triangle.branch在小尺寸下渲染异常，改用arrowshape.turn.up.right）
                 HStack(spacing: 4) {
                     Image(systemName: "arrowshape.turn.up.right")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     Text("\(repository.forksCount ?? 0)")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
@@ -292,10 +292,10 @@ struct RepoHeaderView: View {
                 if let createdAt = repository.createdAt {
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
-                            .font(.system(size: 11))
+                            .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                         Text("创建于 \(日期工具.相对时间(fromISO: createdAt))")
-                            .font(.system(size: 11))
+                            .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     }
                 }
@@ -303,10 +303,10 @@ struct RepoHeaderView: View {
                 if let updatedAt = repository.updatedAt {
                     HStack(spacing: 4) {
                         Image(systemName: "clock")
-                            .font(.system(size: 11))
+                            .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                         Text("更新于 \(日期工具.相对时间(fromISO: updatedAt))")
-                            .font(.system(size: 11))
+                            .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     }
                 }
@@ -314,8 +314,8 @@ struct RepoHeaderView: View {
                 Spacer()
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 14)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(appState.isDarkMode ? Color(red: 0.08, green: 0.08, blue: 0.08) : Color(red: 0.98, green: 0.98, blue: 0.98))
     }
 

@@ -44,22 +44,22 @@ struct SearchView: View {
                     }) {
                         ZStack {
                             Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 18))
+                                .font(.system(size: 18))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(hasActiveFilters ? .blue : .gray)
 
                             // 激活筛选条件数量角标
                             if hasActiveFilters {
                                 Text("●")
-                                    .font(.system(size: 8))
+                                    .font(.system(size: 8))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .foregroundColor(.blue)
                                     .offset(x: 10, y: -8)
                             }
                         }
-                        .frame(width: 32, height: 32)
+                        .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                     }
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 8)
+                .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
 
                 // 当前激活的筛选条件标签
                 if hasActiveFilters {
@@ -73,11 +73,11 @@ struct SearchView: View {
                             ForEach(activeFilterTags, id: \.self) { tag in
                                 Text(tag)
                                     .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                                    .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                                     .background(Color.blue.opacity(0.1))
                                     .foregroundColor(.blue)
-                                    .cornerRadius(4)
+                                    .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                             }
 
                             // 清除所有筛选按钮
@@ -94,7 +94,7 @@ struct SearchView: View {
                         }
                         .padding(.horizontal)
                     }
-                    .padding(.bottom, 4)
+                    .padding(.bottom, 4)  // 这是底部内边距，控制内容下方与边缘的空白距离，单位是pt；改大下方留白更宽，改小下方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
                 }
 
                 // 标签页切换
@@ -105,7 +105,7 @@ struct SearchView: View {
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .padding(.horizontal)
-                .padding(.bottom, 8)
+                .padding(.bottom, 8)  // 这是底部内边距，控制内容下方与边缘的空白距离，单位是pt；改大下方留白更宽，改小下方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
                 .onChange(of: selectedTab) { _ in
                     // 切换标签页时，如果有搜索文本，重新搜索
                     if !searchText.isEmpty {
@@ -462,7 +462,7 @@ struct UserRow: View {
         HStack(spacing: 12) {
             // 头像
             CachedImageView(urlString: user.avatarUrl)
-                .frame(width: 48, height: 48)
+                .frame(width: 48, height: 48)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                 .clipShape(Circle())
 
             // 用户信息
@@ -520,7 +520,7 @@ struct UserRow: View {
                     .foregroundColor(.blue)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
     }
 }
 
@@ -533,11 +533,11 @@ struct CodeSearchRow: View {
         HStack(spacing: 12) {
             // 文件图标
             Image(systemName: fileIconName)
-                .font(.system(size: 24))
+                .font(.system(size: 24))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(.blue)
-                .frame(width: 40, height: 40)
+                .frame(width: 40, height: 40)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                 .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
+                .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
 
             // 文件信息
             VStack(alignment: .leading, spacing: 4) {
@@ -570,7 +570,7 @@ struct CodeSearchRow: View {
                 .foregroundColor(.gray)
                 .font(.caption)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
     }
 
     /// 根据文件扩展名获取图标名称

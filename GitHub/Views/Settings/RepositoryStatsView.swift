@@ -54,7 +54,7 @@ struct RepositoryStatsView: View {
         Section {
             VStack(spacing: 12) {
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 40))
+                    .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.orange)
                 Text(error)
                     .foregroundColor(.secondary)
@@ -103,7 +103,7 @@ struct RepositoryStatsView: View {
                     value: "\(repo.openIssuesCount ?? 0)"
                 )
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             .listRowBackground(Color.clear)
         }
     }
@@ -112,21 +112,21 @@ struct RepositoryStatsView: View {
     private func statCard(icon: String, color: Color, title: String, value: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 24))
+                .font(.system(size: 24))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(color)
 
             Text(value)
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 22, weight: .bold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(appState.isDarkMode ? .white : .primary)
 
             Text(title)
-                .font(.system(size: 12))
+                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
+        .padding(.vertical, 16)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemBackground))
-        .cornerRadius(12)
+        .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 
@@ -136,7 +136,7 @@ struct RepositoryStatsView: View {
             HStack {
                 Image(systemName: "doc.text")
                     .foregroundColor(.blue)
-                    .frame(width: 24)
+                    .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 Text("仓库大小")
                 Spacer()
                 Text(repo.formattedSize)
@@ -147,7 +147,7 @@ struct RepositoryStatsView: View {
                 HStack {
                     Image(systemName: "chevron.left.forwardslash.chevron.right")
                         .foregroundColor(.orange)
-                        .frame(width: 24)
+                        .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                     Text("主要语言")
                     Spacer()
                     Text(language)
@@ -159,7 +159,7 @@ struct RepositoryStatsView: View {
                 HStack {
                     Image(systemName: "scroll")
                         .foregroundColor(.green)
-                        .frame(width: 24)
+                        .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                     Text("开源协议")
                     Spacer()
                     Text(license.name)
@@ -170,7 +170,7 @@ struct RepositoryStatsView: View {
             HStack {
                 Image(systemName: "lock")
                     .foregroundColor(repo.isPrivate ? .orange : .green)
-                    .frame(width: 24)
+                    .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 Text("可见性")
                 Spacer()
                 Text(repo.isPrivate ? "私有" : "公开")
@@ -181,7 +181,7 @@ struct RepositoryStatsView: View {
                 HStack {
                     Image(systemName: "branch")
                         .foregroundColor(.purple)
-                        .frame(width: 24)
+                        .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                     Text("默认分支")
                     Spacer()
                     Text(defaultBranch)
@@ -193,7 +193,7 @@ struct RepositoryStatsView: View {
                 HStack {
                     Image(systemName: "tuningfork")
                         .foregroundColor(.purple)
-                        .frame(width: 24)
+                        .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                     Text("Fork来源")
                     Spacer()
                     if let parent = repo.parent {
@@ -210,7 +210,7 @@ struct RepositoryStatsView: View {
                 HStack {
                     Image(systemName: "archivebox")
                         .foregroundColor(.gray)
-                        .frame(width: 24)
+                        .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                     Text("已归档")
                     Spacer()
                     Text("是")
@@ -226,7 +226,7 @@ struct RepositoryStatsView: View {
             HStack {
                 Image(systemName: "calendar")
                     .foregroundColor(.blue)
-                    .frame(width: 24)
+                    .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 Text("创建时间")
                 Spacer()
                 Text(repo.formattedCreateTime ?? "未知")
@@ -236,7 +236,7 @@ struct RepositoryStatsView: View {
             HStack {
                 Image(systemName: "clock.arrow.circlepath")
                     .foregroundColor(.orange)
-                    .frame(width: 24)
+                    .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 Text("更新时间")
                 Spacer()
                 Text(repo.formattedUpdateTime)
@@ -246,7 +246,7 @@ struct RepositoryStatsView: View {
             HStack {
                 Image(systemName: "link")
                     .foregroundColor(.gray)
-                    .frame(width: 24)
+                    .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 Text("仓库地址")
                 Spacer()
                 Text(repo.fullName)

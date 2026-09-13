@@ -34,7 +34,7 @@ struct TriggerWorkflowView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 }
 
                 // 分支选择
@@ -100,7 +100,7 @@ struct TriggerWorkflowView: View {
                             Spacer()
                             if isTriggering {
                                 ProgressView()
-                                    .padding(.trailing, 8)
+                                    .padding(.trailing, 8)  // 这是右侧内边距，控制内容右方与边缘的空白距离，单位是pt；改大右方留白更宽，改小右方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
                                 Text("触发中...")
                             } else if triggerSuccess {
                                 Image(systemName: "checkmark.circle.fill")

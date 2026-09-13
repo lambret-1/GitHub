@@ -25,8 +25,8 @@ struct AboutView: View {
                     Image("AppIconImage")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 80, height: 80)
-                        .cornerRadius(18)
+                        .frame(width: 80, height: 80)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                        .cornerRadius(18)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                         .shadow(radius: 6)
 
                     // 应用名称
@@ -39,7 +39,7 @@ struct AboutView: View {
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
+                .padding(.vertical, 20)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             }
 
             // 版本信息
@@ -82,7 +82,7 @@ struct AboutView: View {
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             }
         }
         .listStyle(InsetGroupedListStyle())
@@ -118,7 +118,7 @@ struct AboutView: View {
         HStack {
             Image(systemName: icon)
                 .foregroundColor(color)
-                .frame(width: 30)
+                .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
             Text(title)
                 .foregroundColor(.secondary)
             Spacer()
@@ -137,7 +137,7 @@ struct AboutView: View {
             HStack {
                 Image(systemName: icon)
                     .foregroundColor(color)
-                    .frame(width: 30)
+                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 Text(title)
                     .foregroundColor(.primary)
                 Spacer()
@@ -156,11 +156,11 @@ struct AboutView: View {
             HStack {
                 if isCheckingUpdate {
                     ProgressView()
-                        .frame(width: 30)
+                        .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 } else {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .foregroundColor(.blue)
-                        .frame(width: 30)
+                        .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 }
                 Text(isCheckingUpdate ? "正在检查更新..." : "检查更新")
                     .foregroundColor(.primary)
@@ -234,13 +234,13 @@ struct AboutView: View {
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     .background(Color.blue)
-                    .cornerRadius(8)
+                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                 }
                 .disabled(isDownloadingUpdate)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         case .checkFailed(let error):
             HStack {
                 Image(systemName: "xmark.circle.fill")
@@ -268,7 +268,7 @@ struct AboutView: View {
                     .foregroundColor(.black)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color.white)
     }
 
@@ -282,7 +282,7 @@ struct AboutView: View {
             VStack(spacing: 16) {
                 ProgressView(value: downloadProgress)
                     .progressViewStyle(CircularProgressViewStyle(tint: .black))
-                    .scaleEffect(1.5)
+                    .scaleEffect(1.5)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
 
                 Text("正在下载更新...")
                     .font(.headline)
@@ -296,9 +296,9 @@ struct AboutView: View {
                     .font(.caption)
                     .foregroundColor(.black.opacity(0.7))
             }
-            .padding(32)
+            .padding(32)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
             .background(Color.white)
-            .cornerRadius(16)
+            .cornerRadius(16)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         }
     }
 

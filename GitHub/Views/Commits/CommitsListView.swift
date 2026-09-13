@@ -53,7 +53,7 @@ struct CommitsListView: View {
                         Spacer()
                     }
                     .listRowBackground(Color.clear)
-                    .padding(.vertical, 16)
+                    .padding(.vertical, 16)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 }
             }
         }
@@ -79,13 +79,13 @@ struct CommitsListView: View {
                 VStack {
                     Spacer()
                     Text(operationMessage)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .background(Color.black.opacity(0.8))
-                        .cornerRadius(8)
-                        .padding(.bottom, 40)
+                        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                        .padding(.bottom, 40)  // 这是底部内边距，控制内容下方与边缘的空白距离，单位是pt；改大下方留白更宽，改小下方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
                 }
                 .transition(.opacity)
                 .onAppear {
@@ -111,14 +111,14 @@ struct CommitsListView: View {
             Spacer()
         }
         .listRowBackground(Color.clear)
-        .padding(.vertical, 40)
+        .padding(.vertical, 40)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
     }
 
     // MARK: - 错误
     private func errorRow(error: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40))
+                .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(.orange)
             Text(error)
                 .foregroundColor(.secondary)
@@ -131,20 +131,20 @@ struct CommitsListView: View {
             .buttonStyle(.borderedProminent)
         }
         .listRowBackground(Color.clear)
-        .padding(.vertical, 40)
+        .padding(.vertical, 40)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
     }
 
     // MARK: - 空状态
     private var emptyRow: some View {
         VStack(spacing: 12) {
             Image(systemName: "dot.circle")
-                .font(.system(size: 40))
+                .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(.secondary)
             Text("暂无提交记录")
                 .foregroundColor(.secondary)
         }
         .listRowBackground(Color.clear)
-        .padding(.vertical, 40)
+        .padding(.vertical, 40)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
     }
 
     // MARK: - 加载提交列表
@@ -207,14 +207,14 @@ struct CommitRow: View {
         HStack(alignment: .top, spacing: 12) {
             // 提交图标
             Image(systemName: "commit")
-                .font(.system(size: 18))
+                .font(.system(size: 18))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(.secondary)
-                .padding(.top, 4)
+                .padding(.top, 4)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
 
             VStack(alignment: .leading, spacing: 6) {
                 // 提交信息
                 Text(commit.message)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
                     .lineLimit(2)
 
@@ -227,19 +227,19 @@ struct CommitRow: View {
                         Image(systemName: "person.circle.fill")
                             .foregroundColor(.gray)
                     }
-                    .frame(width: 20, height: 20)
+                    .frame(width: 20, height: 20)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                     .clipShape(Circle())
 
                     Text(commit.authorName)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.secondary)
 
                     Text("提交于")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.secondary)
 
                     Text(commit.formattedDate)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.secondary)
 
                     Spacer()
@@ -254,22 +254,22 @@ struct CommitRow: View {
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: showCopyMessage ? "checkmark" : "doc.on.doc")
-                                .font(.system(size: 11))
+                                .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             Text(commit.shortSha)
-                                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                .font(.system(size: 12, weight: .medium, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         }
                         .foregroundColor(.blue)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .background(Color.blue.opacity(0.1))
-                        .cornerRadius(6)
+                        .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
             }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 16)
+        .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
         .contentShape(Rectangle())
         .background(
             appState.isDarkMode ? Color.black : Color.white
@@ -277,7 +277,7 @@ struct CommitRow: View {
         .overlay(
             Rectangle()
                 .fill(appState.isDarkMode ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
-                .frame(height: 1)
+                .frame(height: 1)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
                 .padding(.leading, 40),
             alignment: .bottom
         )

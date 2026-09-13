@@ -70,7 +70,7 @@ struct AccountManagerView: View {
                     .resizable()
                     .foregroundColor(.gray)
             }
-            .frame(width: 40, height: 40)
+            .frame(width: 40, height: 40)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
             .clipShape(Circle())
 
             // 账号信息
@@ -98,7 +98,7 @@ struct AccountManagerView: View {
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .contextMenu {
             if !isCurrent {
                 Button(role: .destructive, action: {

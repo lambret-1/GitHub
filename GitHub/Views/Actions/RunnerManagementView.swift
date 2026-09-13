@@ -74,7 +74,7 @@ struct RunnerManagementView: View {
                                     .font(.headline)
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     }
 
                     // Runner列表
@@ -135,7 +135,7 @@ struct RunnerManagementView: View {
         HStack(spacing: 12) {
             Image(systemName: runner.osIcon)
                 .foregroundColor(.blue)
-                .frame(width: 24)
+                .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
@@ -144,7 +144,7 @@ struct RunnerManagementView: View {
                         .lineLimit(1)
 
                     Image(systemName: runner.statusIcon)
-                        .font(.system(size: 10))
+                        .font(.system(size: 10))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(runner.statusColor)
                 }
 
@@ -173,7 +173,7 @@ struct RunnerManagementView: View {
             // 删除按钮
             if deletingRunnerId == runner.id {
                 ProgressView()
-                    .scaleEffect(0.8)
+                    .scaleEffect(0.8)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
             } else {
                 Button(action: {
                     runnerToDelete = runner
@@ -185,7 +185,7 @@ struct RunnerManagementView: View {
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
     }
 
     // MARK: - 计算属性

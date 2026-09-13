@@ -18,7 +18,7 @@ struct ActionsSettingsView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "archivebox")
                             .foregroundColor(.blue)
-                            .frame(width: 24)
+                            .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                         VStack(alignment: .leading, spacing: 2) {
                             Text("缓存管理")
                                 .font(.subheadline)
@@ -28,17 +28,17 @@ struct ActionsSettingsView: View {
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 10))
+                            .font(.system(size: 10))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.gray)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 }
 
                 NavigationLink(destination: RunnerManagementView(owner: owner, repo: repo)) {
                     HStack(spacing: 12) {
                         Image(systemName: "cpu")
                             .foregroundColor(.purple)
-                            .frame(width: 24)
+                            .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Runner管理")
                                 .font(.subheadline)
@@ -48,10 +48,10 @@ struct ActionsSettingsView: View {
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 10))
+                            .font(.system(size: 10))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.gray)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 }
             }
 
@@ -102,7 +102,7 @@ struct ActionsSettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             }
         }
         .listStyle(InsetGroupedListStyle())
@@ -150,7 +150,7 @@ struct WorkflowSettingsRow: View {
         HStack(spacing: 12) {
             Image(systemName: "bolt.fill")
                 .foregroundColor(workflow.state == "active" ? .green : .gray)
-                .frame(width: 24)
+                .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(workflow.name)
@@ -167,7 +167,7 @@ struct WorkflowSettingsRow: View {
             // 状态开关
             if isUpdating {
                 ProgressView()
-                    .scaleEffect(0.8)
+                    .scaleEffect(0.8)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
             } else {
                 Toggle("", isOn: Binding(
                     get: { workflow.state == "active" },
@@ -179,7 +179,7 @@ struct WorkflowSettingsRow: View {
                 .toggleStyle(SwitchToggleStyle(tint: .green))
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .alert("操作结果", isPresented: $showAlert) {
             Button("确定", role: .cancel) {}
         } message: {

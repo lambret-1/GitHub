@@ -135,11 +135,11 @@ struct WorkflowFileView: View {
                 Text(message)
                     .font(.subheadline)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             .background(Color(.systemGray6))
-            .cornerRadius(8)
-            .padding(.bottom, 40)
+            .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+            .padding(.bottom, 40)  // 这是底部内边距，控制内容下方与边缘的空白距离，单位是pt；改大下方留白更宽，改小下方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
             Spacer()
         }
         .transition(.opacity)
@@ -166,14 +166,14 @@ struct WorkflowFileView: View {
                 Text("未保存")
                     .font(.caption2)
                     .foregroundColor(.orange)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, 6)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                    .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     .background(Color.orange.opacity(0.1))
-                    .cornerRadius(4)
+                    .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6))
     }
 
@@ -187,7 +187,7 @@ struct WorkflowFileView: View {
                 performSearch()
             })
             .textFieldStyle(RoundedBorderTextFieldStyle())
-            .font(.system(size: 14))
+            .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
             .autocapitalization(.none)
             .disableAutocorrection(true)
 
@@ -227,7 +227,7 @@ struct WorkflowFileView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6))
         .onChange(of: searchText) { _ in
             performSearch()
@@ -246,7 +246,7 @@ struct WorkflowFileView: View {
             Spacer()
         }
         .padding(.horizontal)
-        .padding(.vertical, 6)
+        .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color.blue.opacity(0.1))
     }
 
@@ -302,11 +302,11 @@ struct WorkflowFileView: View {
 
     private var editingContent: some View {
         TextEditor(text: $fileContent)
-            .font(.system(size: 12, design: .monospaced))
+            .font(.system(size: 12, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
             .disableAutocorrection(true)
             .autocapitalization(.none)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+            .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             .background(Color(.systemBackground))
     }
 
@@ -320,26 +320,26 @@ struct WorkflowFileView: View {
                         HStack(alignment: .top, spacing: 0) {
                             // 行号
                             Text("\(index + 1)")
-                                .font(.system(size: 10, design: .monospaced))
+                                .font(.system(size: 10, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(.gray)
                                 .frame(width: 40, alignment: .trailing)
-                                .padding(.trailing, 8)
+                                .padding(.trailing, 8)  // 这是右侧内边距，控制内容右方与边缘的空白距离，单位是pt；改大右方留白更宽，改小右方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
                             // 代码内容（带搜索高亮）
                             if !searchText.isEmpty && searchMatches.contains(index) {
                                 Text(line)
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(.system(size: 10, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .foregroundColor(colorForLine(line))
                                     .background(Color.yellow.opacity(0.3))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             } else {
                                 Text(line)
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(.system(size: 10, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .foregroundColor(colorForLine(line))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
+                        .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 1)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .background(
                             !searchText.isEmpty && searchMatches.contains(index) && currentMatchIndex < searchMatches.count && searchMatches[currentMatchIndex] == index ?
                             Color.yellow.opacity(0.2) :
@@ -348,7 +348,7 @@ struct WorkflowFileView: View {
                         .id(index)
                     }
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 .onAppear {
                     scrollProxy = proxy
                 }

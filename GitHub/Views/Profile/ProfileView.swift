@@ -31,7 +31,7 @@ struct ProfileView: View {
                         VStack(spacing: 16) {
                             // 头像（双击切换暗黑模式）
                             CachedImageView(urlString: user.avatarUrl, placeholder: Image(systemName: "person.circle.fill"))
-                                .frame(width: 80, height: 80)
+                                .frame(width: 80, height: 80)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(Color.white, lineWidth: 2))
                                 .shadow(radius: 4)
@@ -62,10 +62,10 @@ struct ProfileView: View {
                                 StatView(number: user.followers ?? 0, label: "粉丝")
                                 StatView(number: user.following ?? 0, label: "关注")
                             }
-                            .padding(.top, 8)
+                            .padding(.top, 8)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 20)
+                        .padding(.vertical, 20)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     }
                     
                     // 详细信息
@@ -74,7 +74,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "building.2")
                                     .foregroundColor(.gray)
-                                    .frame(width: 30)
+                                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text("公司")
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -86,7 +86,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "location.fill")
                                     .foregroundColor(.gray)
-                                    .frame(width: 30)
+                                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text("位置")
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -98,7 +98,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "link")
                                     .foregroundColor(.gray)
-                                    .frame(width: 30)
+                                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text("博客")
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -110,7 +110,7 @@ struct ProfileView: View {
                         HStack {
                             Image(systemName: "calendar")
                                 .foregroundColor(.gray)
-                                .frame(width: 30)
+                                .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                             Text("注册时间")
                                 .foregroundColor(.secondary)
                             Spacer()
@@ -126,7 +126,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "person.2.circle")
                                     .foregroundColor(.blue)
-                                    .frame(width: 30)
+                                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text("账号管理")
                                     .foregroundColor(.primary)
                                 Spacer()
@@ -152,7 +152,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "safari")
                                     .foregroundColor(.blue)
-                                    .frame(width: 30)
+                                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text("在 GitHub 查看主页")
                                     .foregroundColor(.primary)
                                 Spacer()
@@ -168,11 +168,11 @@ struct ProfileView: View {
                             HStack {
                                 if isCheckingUpdate {
                                     ProgressView()
-                                        .frame(width: 30)
+                                        .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 } else {
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                         .foregroundColor(.blue)
-                                        .frame(width: 30)
+                                        .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 }
                                 Text(isCheckingUpdate ? "正在检查更新..." : "检查更新")
                                     .foregroundColor(.primary)
@@ -189,7 +189,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "info.circle")
                                     .foregroundColor(.blue)
-                                    .frame(width: 30)
+                                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text("关于")
                                     .foregroundColor(.primary)
                                 Spacer()
@@ -213,7 +213,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "arrow.right.square")
                                     .foregroundColor(.red)
-                                    .frame(width: 30)
+                                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text("退出登录")
                                     .foregroundColor(.red)
                             }
@@ -226,7 +226,7 @@ struct ProfileView: View {
                             ProgressView("加载中...")
                             Spacer()
                         }
-                        .padding(.vertical, 40)
+                        .padding(.vertical, 40)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     }
                 }
             }
@@ -270,7 +270,7 @@ struct ProfileView: View {
                         VStack(spacing: 16) {
                             ProgressView(value: downloadProgress)
                                 .progressViewStyle(CircularProgressViewStyle(tint: .black))
-                                .scaleEffect(1.5)
+                                .scaleEffect(1.5)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
 
                             Text("正在下载更新...")
                                 .font(.headline)
@@ -284,9 +284,9 @@ struct ProfileView: View {
                                 .font(.caption)
                                 .foregroundColor(.black.opacity(0.7))
                         }
-                        .padding(32)
+                        .padding(32)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                         .background(Color.white)
-                        .cornerRadius(16)
+                        .cornerRadius(16)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     }
                 }
             }

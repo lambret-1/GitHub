@@ -25,7 +25,7 @@ struct JobTimelineView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         }
         .background(Color(.systemBackground))
     }
@@ -40,11 +40,11 @@ struct JobTimelineView: View {
                 ZStack {
                     Circle()
                         .fill(backgroundColorForStep(step))
-                        .frame(width: 28, height: 28)
+                        .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
 
                     if step.status == "in_progress" {
                         Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.white)
                             .rotationEffect(.degrees(rotationAngle))
                             .onAppear {
@@ -54,20 +54,20 @@ struct JobTimelineView: View {
                             }
                     } else {
                         Image(systemName: iconForStep(step))
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.white)
                     }
                 }
-                .frame(width: 28, height: 28)
+                .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
 
                 // 连接线
                 if !isLast {
                     Rectangle()
                         .fill(lineColorForStep(step))
-                        .frame(width: 2, height: 40)
+                        .frame(width: 2, height: 40)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                 }
             }
-            .frame(width: 28)
+            .frame(width: 28)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
             // 时间线右侧：步骤信息
             VStack(alignment: .leading, spacing: 4) {
@@ -92,10 +92,10 @@ struct JobTimelineView: View {
                         .font(.caption2)
                         .fontWeight(.medium)
                         .foregroundColor(textColorForStep(step))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 6)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .background(backgroundColorForStep(step).opacity(0.15))
-                        .cornerRadius(4)
+                        .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                 }
 
                 // 时间信息
@@ -103,7 +103,7 @@ struct JobTimelineView: View {
                     if let startedAt = step.startedAt, let startDate = parseDate(startedAt) {
                         HStack(spacing: 3) {
                             Image(systemName: "play.fill")
-                                .font(.system(size: 8))
+                                .font(.system(size: 8))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(.green)
                             Text("开始: \(formatTime(startDate))")
                                 .font(.caption2)
@@ -114,7 +114,7 @@ struct JobTimelineView: View {
                     if let completedAt = step.completedAt, let endDate = parseDate(completedAt) {
                         HStack(spacing: 3) {
                             Image(systemName: "stop.fill")
-                                .font(.system(size: 8))
+                                .font(.system(size: 8))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(.red)
                             Text("结束: \(formatTime(endDate))")
                                 .font(.caption2)
@@ -125,7 +125,7 @@ struct JobTimelineView: View {
                     if let duration = step.durationSeconds {
                         HStack(spacing: 3) {
                             Image(systemName: "clock")
-                                .font(.system(size: 8))
+                                .font(.system(size: 8))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(.blue)
                             Text("耗时: \(formatDuration(duration))")
                                 .font(.caption2)
@@ -139,16 +139,16 @@ struct JobTimelineView: View {
                 if step.status == "in_progress" {
                     ProgressView(value: 0.5)
                         .progressViewStyle(LinearProgressViewStyle(tint: .blue))
-                        .padding(.top, 2)
+                        .padding(.top, 2)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
                 }
             }
-            .padding(.leading, 4)
-            .padding(.trailing, 8)
-            .padding(.vertical, 8)
+            .padding(.leading, 4)  // 这是左侧内边距，控制内容左方与边缘的空白距离，单位是pt；改大左方留白更宽，改小左方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
+            .padding(.trailing, 8)  // 这是右侧内边距，控制内容右方与边缘的空白距离，单位是pt；改大右方留白更宽，改小右方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
+            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             .background(Color(.systemGray6).opacity(0.5))
-            .cornerRadius(8)
+            .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
     }
 
     // MARK: - 空状态视图
@@ -163,7 +163,7 @@ struct JobTimelineView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .padding(.vertical, 40)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
     }
 
     // MARK: - 辅助方法

@@ -38,7 +38,7 @@ struct LoginView: View {
                             .font(.subheadline)
                             .foregroundColor(.green.opacity(0.7))
                     }
-                    .padding(.top, 60)
+                    .padding(.top, 60)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
 
                     // 登录表单
                     VStack(alignment: .leading, spacing: 12) {
@@ -48,7 +48,7 @@ struct LoginView: View {
                        HStack(spacing: 8) {
     TextField("请输入 GitHub 个人访问令牌", text: $tokenText)
         .textFieldStyle(RoundedBorderTextFieldStyle())
-        .font(.system(size: 14, design: .monospaced))
+        .font(.system(size: 14, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
         .autocapitalization(.none)
         .disableAutocorrection(true)
         .colorScheme(.dark)
@@ -60,7 +60,7 @@ struct LoginView: View {
         }) {
             Image(systemName: "xmark.circle.fill")
                 .foregroundColor(.gray)
-                .font(.system(size: 20))
+                .font(.system(size: 20))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -89,9 +89,9 @@ struct LoginView: View {
                             }
                             .font(.caption)
                             .foregroundColor(.green.opacity(0.7))
-                            .padding(10)
+                            .padding(10)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                             .background(Color.green.opacity(0.1))
-                            .cornerRadius(8)
+                            .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.green.opacity(0.3), lineWidth: 1)
@@ -111,7 +111,7 @@ struct LoginView: View {
                         }
                         .padding()
                         .background(Color.red.opacity(0.1))
-                        .cornerRadius(8)
+                        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.red.opacity(0.5), lineWidth: 1)
@@ -133,10 +133,10 @@ struct LoginView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.green)
                         }
-                       .frame(width: 150)
-                        .frame(height: 50)
+                       .frame(width: 150)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
+                        .frame(height: 50)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
                         .background(Color.black)
-                        .cornerRadius(12)
+                        .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(Color.green.opacity(0.6), lineWidth: 1.5)
@@ -158,8 +158,8 @@ struct LoginView: View {
                             .foregroundColor(.green.opacity(0.6))
                             .multilineTextAlignment(.center)
                     }
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 30)
+                    .padding(.horizontal, 40)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                    .padding(.bottom, 30)  // 这是底部内边距，控制内容下方与边缘的空白距离，单位是pt；改大下方留白更宽，改小下方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
                 }
             }
         }

@@ -128,9 +128,9 @@ struct FileEditorView: View {
                         .font(.subheadline)
                         .foregroundColor(.primary)
                 }
-                .padding(24)
+                .padding(24)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                 .background(Color(.systemBackground).opacity(0.9))
-                .cornerRadius(12)
+                .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                 .shadow(radius: 8)
             }
 
@@ -140,14 +140,14 @@ struct FileEditorView: View {
                         .ignoresSafeArea()
                     VStack(spacing: 16) {
                         ProgressView()
-                            .scaleEffect(1.5)
+                            .scaleEffect(1.5)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
                         Text("正在保存...")
                             .font(.headline)
                             .foregroundColor(.white)
                     }
-                    .padding(32)
+                    .padding(32)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                     .background(Color(.systemGray6))
-                    .cornerRadius(16)
+                    .cornerRadius(16)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                 }
             }
         }
@@ -185,8 +185,8 @@ struct FileEditorView: View {
                 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6))
     }
 
@@ -220,7 +220,7 @@ struct FileEditorView: View {
                 // 编辑模式：使用TextEditor
                 TextEditor(text: $fileContent)
                     .font(.system(.body, design: .monospaced))
-                    .padding(4)
+                    .padding(4)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                     .background(Color(.systemBackground))
             } else {
                 // 查看模式：使用ScrollView+Text
@@ -232,7 +232,7 @@ struct FileEditorView: View {
                         Text(fileContent)
                             .font(.system(.body, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(8)
+                            .padding(8)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                     }
                 }
             }
@@ -256,12 +256,12 @@ struct FileEditorView: View {
                         .font(.system(.body, design: .monospaced))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.vertical, 1)
-                .padding(.horizontal, 4)
+                .padding(.vertical, 1)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
                 .background(isLineMatch(line) ? Color.yellow.opacity(0.2) : Color.clear)
             }
         }
-        .padding(8)
+        .padding(8)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
     }
 
     @ViewBuilder

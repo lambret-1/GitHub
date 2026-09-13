@@ -77,7 +77,7 @@ struct MatrixColumnView: View {
         VStack(spacing: 0) {
             ForEach(0..<10, id: \.self) { row in
                 Text(String(characterAt(row: row)))
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(.system(size: 12, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(colorFor(row: row))
                     .frame(width: columnWidth, height: rowHeight)
             }

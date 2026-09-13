@@ -76,12 +76,12 @@ struct RunComparisonView: View {
                     .font(.headline)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                    .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     .background(Color.blue)
-                    .cornerRadius(8)
+                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
             }
-            .frame(width: 60)
+            .frame(width: 60)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
             // 运行2
             runCard(run: run2, isLeft: false)
@@ -127,9 +127,9 @@ struct RunComparisonView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(12)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
         .background(Color(.systemBackground))
-        .cornerRadius(8)
+        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(isLeft ? Color.blue.opacity(0.3) : Color.orange.opacity(0.3), lineWidth: 2)
@@ -149,17 +149,17 @@ struct RunComparisonView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(selectedDimension == dimension ? .white : .primary)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                             .background(selectedDimension == dimension ? Color.blue : Color(.systemGray6))
-                            .cornerRadius(8)
+                            .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
             }
             .padding(.horizontal)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemBackground))
     }
 
@@ -179,7 +179,7 @@ struct RunComparisonView: View {
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(8)
+        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
     }
 
     // MARK: - 作业对比
@@ -219,7 +219,7 @@ struct RunComparisonView: View {
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(8)
+        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
     }
 
     private func jobComparisonRow(job1: WorkflowJob?, job2: WorkflowJob?, index: Int) -> some View {
@@ -253,9 +253,9 @@ struct RunComparisonView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(8)
+            .padding(8)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
             .background(job1?.conclusion == "failure" ? Color.red.opacity(0.1) : Color(.systemGray6))
-            .cornerRadius(6)
+            .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
 
             // 箭头
             Image(systemName: "arrow.right")
@@ -291,9 +291,9 @@ struct RunComparisonView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(8)
+            .padding(8)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
             .background(job2?.conclusion == "failure" ? Color.red.opacity(0.1) : Color(.systemGray6))
-            .cornerRadius(6)
+            .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         }
     }
 
@@ -338,7 +338,7 @@ struct RunComparisonView: View {
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(8)
+        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
     }
 
     // MARK: - 耗时分析
@@ -389,7 +389,7 @@ struct RunComparisonView: View {
                     }
                     .padding()
                     .background(Color(.systemGray6))
-                    .cornerRadius(8)
+                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                 }
 
                 // 各作业耗时对比
@@ -412,14 +412,14 @@ struct RunComparisonView: View {
                                 timingBar(duration: duration2, maxDuration: max(duration1, duration2), color: .orange, label: formatDuration(duration2))
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     }
                 }
             }
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(8)
+        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
     }
 
     private func timingBar(duration: Int, maxDuration: Int, color: Color, label: String) -> some View {
@@ -429,7 +429,7 @@ struct RunComparisonView: View {
                     .fill(color)
                     .frame(width: max(CGFloat(duration) / CGFloat(max(maxDuration, 1)) * geometry.size.width, 20), height: 12)
             }
-            .frame(height: 12)
+            .frame(height: 12)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
 
             Text(label)
                 .font(.caption2)
@@ -451,9 +451,9 @@ struct RunComparisonView: View {
                 .font(.subheadline)
                 .foregroundColor(color1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(6)
+                .padding(6)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                 .background(highlightDifference && value1 != value2 ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                .cornerRadius(4)
+                .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
 
             Image(systemName: "arrow.right")
                 .font(.caption)
@@ -463,9 +463,9 @@ struct RunComparisonView: View {
                 .font(.subheadline)
                 .foregroundColor(color2)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(6)
+                .padding(6)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                 .background(highlightDifference && value1 != value2 ? Color.orange.opacity(0.1) : Color(.systemGray6))
-                .cornerRadius(4)
+                .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         }
     }
 

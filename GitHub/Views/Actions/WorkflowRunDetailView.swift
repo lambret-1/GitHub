@@ -159,7 +159,7 @@ struct WorkflowRunDetailView: View {
                                 .foregroundColor(Color(run.statusColor))
                         }
                     }
-                    .frame(width: 40)
+                    .frame(width: 40)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(run.name)
@@ -177,10 +177,10 @@ struct WorkflowRunDetailView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(Color(run.statusColor))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 12)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .background(Color(run.statusColor).opacity(0.1))
-                        .cornerRadius(8)
+                        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
 
                     Spacer()
 
@@ -219,7 +219,7 @@ struct WorkflowRunDetailView: View {
                     }
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         }
     }
 
@@ -276,7 +276,7 @@ struct WorkflowRunDetailView: View {
                         HStack(spacing: 12) {
                             Image(systemName: file.statusIcon)
                                 .foregroundColor(file.statusColor)
-                                .frame(width: 20)
+                                .frame(width: 20)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(file.shortFilename)
@@ -301,11 +301,11 @@ struct WorkflowRunDetailView: View {
                                     .font(.caption2)
                                     .foregroundColor(.red)
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 10))
+                                    .font(.system(size: 10))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .foregroundColor(.gray)
                             }
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -324,7 +324,7 @@ struct WorkflowRunDetailView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .listRowSeparator(.hidden)
-            .padding(.bottom, 4)
+            .padding(.bottom, 4)  // 这是底部内边距，控制内容下方与边缘的空白距离，单位是pt；改大下方留白更宽，改小下方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
 
             if viewMode == .list {
                 // 列表视图
@@ -405,7 +405,7 @@ struct WorkflowRunDetailView: View {
                                     .font(.caption2)
                                     .foregroundColor(Color(job.statusColor))
                             }
-                            .padding(.horizontal, 4)
+                            .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
 
                             // 时间线视图
                             JobTimelineView(job: job) { stepIndex in
@@ -413,9 +413,9 @@ struct WorkflowRunDetailView: View {
                                 // 这里可以传递步骤索引，在日志视图中定位到对应步骤
                             }
                             .frame(height: min(CGFloat((job.steps?.count ?? 1) * 70), 400))
-                            .cornerRadius(8)
+                            .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .listRowSeparator(.hidden)
                     }
                 }
@@ -460,7 +460,7 @@ struct WorkflowRunDetailView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "archivebox.fill")
                             .foregroundColor(.blue)
-                            .frame(width: 20)
+                            .frame(width: 20)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(artifact.name)
@@ -482,7 +482,7 @@ struct WorkflowRunDetailView: View {
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                     Image(systemName: "clock")
-                                        .font(.system(size: 8))
+                                        .font(.system(size: 8))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                         .foregroundColor(.orange)
                                     Text("过期: \(日期工具.相对时间(fromISO: expiresAt))")
                                         .font(.caption2)
@@ -494,10 +494,10 @@ struct WorkflowRunDetailView: View {
                                         .font(.caption2)
                                         .fontWeight(.bold)
                                         .foregroundColor(.red)
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 1)
+                                        .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                                        .padding(.vertical, 1)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                                         .background(Color.red.opacity(0.1))
-                                        .cornerRadius(3)
+                                        .cornerRadius(3)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                                 }
                             }
                         }
@@ -509,7 +509,7 @@ struct WorkflowRunDetailView: View {
                             // 下载按钮
                             if downloadingArtifactId == artifact.id {
                                 ProgressView()
-                                    .scaleEffect(0.8)
+                                    .scaleEffect(0.8)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
                             } else {
                                 Button(action: {
                                     downloadArtifact(artifact)
@@ -523,7 +523,7 @@ struct WorkflowRunDetailView: View {
                             // 删除按钮
                             if deletingArtifactId == artifact.id {
                                 ProgressView()
-                                    .scaleEffect(0.8)
+                                    .scaleEffect(0.8)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
                             } else {
                                 Button(action: {
                                     showDeleteArtifactAlert = true
@@ -536,7 +536,7 @@ struct WorkflowRunDetailView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 }
             }
         }
@@ -547,9 +547,9 @@ struct WorkflowRunDetailView: View {
     private func detailRow(icon: String, title: String, value: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(.secondary)
-                .frame(width: 20)
+                .frame(width: 20)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
             Text(title)
                 .font(.subheadline)
@@ -563,7 +563,7 @@ struct WorkflowRunDetailView: View {
 
             Spacer()
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
     }
 
     // MARK: - 数据加载
@@ -786,7 +786,7 @@ struct JobRow: View {
                         .foregroundColor(Color(job.statusColor))
                 }
             }
-            .frame(width: 28)
+            .frame(width: 28)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
             VStack(alignment: .leading, spacing: 4) {
                 // 作业名称
@@ -826,7 +826,7 @@ struct JobRow: View {
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
     }
 }
 

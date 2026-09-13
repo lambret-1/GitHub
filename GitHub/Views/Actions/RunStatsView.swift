@@ -19,7 +19,7 @@ struct RunStatsView: View {
                         ProgressView("加载统计数据中...")
                         Spacer()
                     }
-                    .frame(height: 300)
+                    .frame(height: 300)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
                 } else if let error = errorMessage {
                     VStack(spacing: 16) {
                         Spacer()
@@ -35,7 +35,7 @@ struct RunStatsView: View {
                         .foregroundColor(.blue)
                         Spacer()
                     }
-                    .frame(height: 300)
+                    .frame(height: 300)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
                     .padding()
                 } else {
                     // 时间范围选择
@@ -83,9 +83,9 @@ struct RunStatsView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6))
-        .cornerRadius(8)
+        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
     }
 
     // MARK: - 统计概览卡片
@@ -110,7 +110,7 @@ struct RunStatsView: View {
                 Divider()
                 statItem(title: "取消", value: "\(stats.cancelledCount)", color: .gray)
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
 
             HStack(spacing: 0) {
                 statItem(title: "成功率", value: String(format: "%.1f%%", stats.successRate), color: .green)
@@ -119,11 +119,11 @@ struct RunStatsView: View {
                 Divider()
                 statItem(title: "进行中", value: "\(stats.inProgressCount)", color: .blue)
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 
@@ -188,7 +188,7 @@ struct RunStatsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                .frame(width: 120, height: 120)
+                .frame(width: 120, height: 120)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
 
                 // 图例
                 VStack(alignment: .leading, spacing: 8) {
@@ -200,7 +200,7 @@ struct RunStatsView: View {
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 
@@ -208,7 +208,7 @@ struct RunStatsView: View {
         HStack(spacing: 8) {
             Circle()
                 .fill(color)
-                .frame(width: 10, height: 10)
+                .frame(width: 10, height: 10)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -240,11 +240,11 @@ struct RunStatsView: View {
                 barItem(label: "取消", count: stats.cancelledCount, maxCount: maxCount, color: .gray)
                 barItem(label: "进行中", count: stats.inProgressCount, maxCount: maxCount, color: .blue)
             }
-            .frame(height: 120)
+            .frame(height: 120)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 
@@ -290,32 +290,32 @@ struct RunStatsView: View {
                 Text("暂无已完成的运行数据")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                    .frame(height: 80)
+                    .frame(height: 80)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .bottom, spacing: 4) {
                         ForEach(Array(durations.enumerated()), id: \.offset) { index, duration in
                             VStack(spacing: 2) {
                                 Text(formatDuration(duration))
-                                    .font(.system(size: 8))
+                                    .font(.system(size: 8))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .foregroundColor(.secondary)
                                 RoundedRectangle(cornerRadius: 2)
                                     .fill(LinearGradient(gradient: Gradient(colors: [.blue, .purple]), startPoint: .bottom, endPoint: .top))
                                     .frame(width: 12, height: CGFloat(Double(duration) / Double(maxDuration) * 60))
                                 Text("#\(durations.count - index)")
-                                    .font(.system(size: 7))
+                                    .font(.system(size: 7))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .foregroundColor(.secondary)
                             }
                         }
                     }
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
                 }
-                .frame(height: 100)
+                .frame(height: 100)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
             }
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 

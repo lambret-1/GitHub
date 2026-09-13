@@ -177,7 +177,7 @@ struct JobLogView: View {
                 }) {
                     if isExporting {
                         ProgressView()
-                            .scaleEffect(0.8)
+                            .scaleEffect(0.8)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
                     } else {
                         Image(systemName: "square.and.arrow.up")
                     }
@@ -239,25 +239,25 @@ struct JobLogView: View {
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.red)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, 6)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                            .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                             .background(Color.red.opacity(0.1))
-                            .cornerRadius(4)
+                            .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     } else {
                         Text("退出码: 解析中...")
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.orange)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, 6)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                            .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                             .background(Color.orange.opacity(0.1))
-                            .cornerRadius(4)
+                            .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     }
                 }
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6))
     }
 
@@ -272,7 +272,7 @@ struct JobLogView: View {
                     performSearch()
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .font(.system(size: 14))
+                .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
 
@@ -311,7 +311,7 @@ struct JobLogView: View {
                         .font(.caption2)
                     Spacer()
                 }
-                .padding(.horizontal, 4)
+                .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
                 .onChange(of: isCaseSensitive) { _ in performSearch() }
                 .onChange(of: isRegexMode) { _ in performSearch() }
                 .onChange(of: isWholeWord) { _ in performSearch() }
@@ -345,11 +345,11 @@ struct JobLogView: View {
                     }
                     .disabled(currentMatchIndex >= searchMatches.count - 1)
                 }
-                .padding(.horizontal, 4)
+                .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6))
         .onChange(of: searchText) { _ in
             performSearch()
@@ -398,7 +398,7 @@ struct JobLogView: View {
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal)
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6).opacity(0.5))
     }
 
@@ -415,20 +415,20 @@ struct JobLogView: View {
                         }) {
                             VStack(spacing: 4) {
                                 Image(systemName: step.statusIcon)
-                                    .font(.system(size: 12))
+                                    .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .foregroundColor(Color(step.statusColor))
                                 Text(step.name)
-                                    .font(.system(size: 10))
+                                    .font(.system(size: 10))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .lineLimit(1)
-                                    .frame(width: 80)
+                                    .frame(width: 80)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text(step.durationDisplay)
-                                    .font(.system(size: 9))
+                                    .font(.system(size: 9))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .foregroundColor(.secondary)
                             }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 6)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                             .background(selectedStepIndex == index ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            .cornerRadius(6)
+                            .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                             .overlay(
                                 RoundedRectangle(cornerRadius: 6)
                                     .stroke(selectedStepIndex == index ? Color.blue : Color.clear, lineWidth: 1)
@@ -454,7 +454,7 @@ struct JobLogView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 4)
+        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6))
     }
 
@@ -512,10 +512,10 @@ struct JobLogView: View {
                                     .font(.subheadline)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
+                                    .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                                    .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                                     .background(Color.red)
-                                    .cornerRadius(4)
+                                    .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                             } else {
                                 Text("退出码: 解析中...")
                                     .font(.caption)
@@ -523,7 +523,7 @@ struct JobLogView: View {
                             }
                         }
                         .padding(.horizontal)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .background(Color.red.opacity(0.1))
                     }
 
@@ -542,15 +542,15 @@ struct JobLogView: View {
                                 Text("+新增\(newLinesCount)行")
                                     .font(.caption2)
                                     .foregroundColor(.blue)
-                                    .padding(.horizontal, 4)
-                                    .padding(.vertical, 1)
+                                    .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                                    .padding(.vertical, 1)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                                     .background(Color.blue.opacity(0.1))
-                                    .cornerRadius(3)
+                                    .cornerRadius(3)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                             }
                             Spacer()
                         }
                         .padding(.horizontal)
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .background(Color.green.opacity(0.05))
                     }
 
@@ -586,7 +586,7 @@ struct JobLogView: View {
                                         Spacer()
                                         if isLoadingMore {
                                             ProgressView()
-                                                .scaleEffect(0.8)
+                                                .scaleEffect(0.8)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
                                         } else {
                                             Button(action: {
                                                 loadMoreLines()
@@ -598,16 +598,16 @@ struct JobLogView: View {
                                         }
                                         Spacer()
                                     }
-                                    .padding(.vertical, 8)
+                                    .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                                     .id("loadMore")
                                 }
 
                                 // 底部锚点
                                 Color.clear
-                                    .frame(height: 1)
+                                    .frame(height: 1)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
                                     .id("bottom")
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         }
                         .onAppear {
                             scrollProxy = proxy
@@ -651,24 +651,24 @@ struct JobLogView: View {
             HStack(alignment: .top, spacing: 0) {
                 // 行号
                 Text("\(line.lineNumber)")
-                    .font(.system(size: 9, design: .monospaced))
+                    .font(.system(size: 9, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.gray)
                     .frame(width: 45, alignment: .trailing)
-                    .padding(.trailing, 6)
+                    .padding(.trailing, 6)  // 这是右侧内边距，控制内容右方与边缘的空白距离，单位是pt；改大右方留白更宽，改小右方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
 
                 // 分组折叠图标
                 if line.isGroupHeader {
                     Button(action: onGroupTap) {
                         Image(systemName: line.type == .groupStart ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 8))
+                            .font(.system(size: 8))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.blue)
-                            .frame(width: 12)
+                            .frame(width: 12)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                     }
                     .buttonStyle(PlainButtonStyle())
-                    .padding(.trailing, 4)
+                    .padding(.trailing, 4)  // 这是右侧内边距，控制内容右方与边缘的空白距离，单位是pt；改大右方留白更宽，改小右方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
                 } else {
                     Color.clear
-                        .frame(width: 16)
+                        .frame(width: 16)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 }
 
                 // 日志内容（带搜索高亮）
@@ -676,13 +676,13 @@ struct JobLogView: View {
                     highlightedText(line.content)
                 } else {
                     Text(line.content)
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.system(size: 9, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(colorForLineType(line.type))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 0.5)
+            .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+            .padding(.vertical, 0.5)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             .background(
                 isCurrentMatch ? Color.yellow.opacity(0.3) :
                 isHighlighted ? Color.yellow.opacity(0.1) :
@@ -736,7 +736,7 @@ struct JobLogView: View {
             return Group {
                 ForEach(segments) { segment in
                     Text(segment.text)
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.system(size: 9, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(segment.isHighlighted ? .black : colorForLineType(line.type))
                         .background(segment.isHighlighted ? Color.yellow : Color.clear)
                 }
@@ -782,7 +782,7 @@ struct JobLogView: View {
             if result.error != nil {
                 // 正则无效，显示普通文本
                 Text(text)
-                    .font(.system(size: 9, design: .monospaced))
+                    .font(.system(size: 9, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(colorForLineType(line.type))
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -790,7 +790,7 @@ struct JobLogView: View {
                 Group {
                     ForEach(result.segments) { segment in
                         Text(segment.text)
-                            .font(.system(size: 9, design: .monospaced))
+                            .font(.system(size: 9, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(segment.isHighlighted ? .black : colorForLineType(line.type))
                             .background(segment.isHighlighted ? Color.yellow : Color.clear)
                     }

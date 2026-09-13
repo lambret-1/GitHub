@@ -77,7 +77,7 @@ struct DiffView: View {
             Spacer()
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6))
     }
 
@@ -125,7 +125,7 @@ struct DiffView: View {
                             diffLineView(line: line, lineNumber: index + 1)
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 }
                 .background(Color(.systemBackground))
             }
@@ -164,23 +164,23 @@ struct DiffView: View {
         return HStack(alignment: .top, spacing: 0) {
             // 行号
             Text("\(lineNumber)")
-                .font(.system(size: 9, design: .monospaced))
+                .font(.system(size: 9, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(.gray)
                 .frame(width: 35, alignment: .trailing)
-                .padding(.trailing, 6)
+                .padding(.trailing, 6)  // 这是右侧内边距，控制内容右方与边缘的空白距离，单位是pt；改大右方留白更宽，改小右方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
             // 前缀符号
             Text(prefix)
-                .font(.system(size: 9, design: .monospaced))
+                .font(.system(size: 9, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(textColor)
-                .frame(width: 10)
+                .frame(width: 10)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
             // Diff内容
             Text(line)
-                .font(.system(size: 9, design: .monospaced))
+                .font(.system(size: 9, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(textColor)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 0.5)
+        .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 0.5)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(backgroundColor)
     }
 

@@ -227,10 +227,10 @@ struct FileBrowserView: View {
                         .aspectRatio(contentMode: .fill)
                 } placeholder: {
                     Image(systemName: "person.circle.fill")
-                        .font(.system(size: 20))
+                        .font(.system(size: 20))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.gray)
                 }
-                .frame(width: 28, height: 28)
+                .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                 .clipShape(Circle())
             }
         }
@@ -303,11 +303,11 @@ struct FileBrowserView: View {
                     Text(operationMessage)
                         .font(.subheadline)
                         .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .background(Color.black.opacity(0.8))
-                        .cornerRadius(8)
-                        .padding(.top, 20)
+                        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                        .padding(.top, 20)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
                         .transition(.move(edge: .top).combined(with: .opacity))
                         .animation(.easeInOut, value: showOperationMessage)
                 }
@@ -321,14 +321,14 @@ struct FileBrowserView: View {
                     VStack(spacing: 16) {
                         ProgressView(value: zipDownloadProgress)
                             .progressViewStyle(LinearProgressViewStyle())
-                            .frame(width: 200)
+                            .frame(width: 200)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                         Text(zipDownloadMessage)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
-                    .padding(24)
+                    .padding(24)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                     .background(Color(.systemBackground).opacity(0.95))
-                    .cornerRadius(12)
+                    .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     .shadow(radius: 8)
                 }
             }
@@ -440,7 +440,7 @@ struct FileBrowserView: View {
             }
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
-            .padding(.top, 100)
+            .padding(.top, 100)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
         }
         .listStyle(PlainListStyle())
     }
@@ -472,7 +472,7 @@ struct FileBrowserView: View {
             }
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
-            .padding(.top, 80)
+            .padding(.top, 80)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
             .padding()
         }
         .listStyle(PlainListStyle())
@@ -500,7 +500,7 @@ struct FileBrowserView: View {
             }
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
-            .padding(.top, 100)
+            .padding(.top, 100)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
         }
         .listStyle(PlainListStyle())
     }
@@ -521,13 +521,13 @@ struct FileBrowserView: View {
                                 .font(.subheadline)
                                 .fontWeight(selectedTab == tab ? .semibold : .regular)
                                 .foregroundColor(selectedTab == tab ? .blue : .secondary)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                                .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
 
                             // 选中态下划线
                             Rectangle()
                                 .fill(selectedTab == tab ? Color.blue : Color.clear)
-                                .frame(height: 2)
+                                .frame(height: 2)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
                         }
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -678,7 +678,7 @@ struct FileBrowserView: View {
             }
         )
         .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6))
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden)
@@ -725,7 +725,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)
+        .frame(height: 600)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
     }
 
     // MARK: - Pull Requests Tab内容
@@ -736,7 +736,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)
+        .frame(height: 600)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
     }
 
     // MARK: - 设置Tab内容
@@ -747,7 +747,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)
+        .frame(height: 600)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
     }
 
     // MARK: - Actions Tab内容
@@ -758,7 +758,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)
+        .frame(height: 600)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
     }
 
     // MARK: - 即将上线功能占位
@@ -766,7 +766,7 @@ struct FileBrowserView: View {
     func comingSoonContent(for tab: RepoTab) -> some View {
         VStack(spacing: 16) {
             Image(systemName: "hammer.fill")
-                .font(.system(size: 48))
+                .font(.system(size: 48))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(.gray)
             Text("\(tab.rawValue)功能")
                 .font(.headline)
@@ -775,7 +775,7 @@ struct FileBrowserView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
-        .padding(.vertical, 80)
+        .padding(.vertical, 80)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .frame(maxWidth: .infinity)
     }
 
@@ -790,13 +790,13 @@ struct FileBrowserView: View {
                 if codeSearchProgress > 0 {
                     ProgressView(value: codeSearchProgress)
                         .progressViewStyle(LinearProgressViewStyle())
-                        .padding(.horizontal, 40)
+                        .padding(.horizontal, 40)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
                     Text(String(format: "%.0f%%", codeSearchProgress * 100))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            .padding(.vertical, 20)
+            .padding(.vertical, 20)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         } else if let error = codeSearchError {
             // 错误状态
             VStack(spacing: 12) {
@@ -812,14 +812,14 @@ struct FileBrowserView: View {
                 }
                 .foregroundColor(.blue)
             }
-            .padding(.vertical, 20)
+            .padding(.vertical, 20)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         } else if codeSearchResults.isEmpty && !codeSearchQuery.isEmpty {
             // 无结果
             HStack {
                 Spacer()
                 VStack(spacing: 8) {
                     Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 40))
+                        .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.gray)
                     Text("未找到匹配的代码")
                         .font(.subheadline)
@@ -827,13 +827,13 @@ struct FileBrowserView: View {
                 }
                 Spacer()
             }
-            .padding(.vertical, 20)
+            .padding(.vertical, 20)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         } else if !codeSearchResults.isEmpty {
             // 搜索结果列表
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text("搜索结果 (\(codeSearchResults.count))")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.secondary)
                     Spacer()
                     Button("清除搜索") {
@@ -841,11 +841,11 @@ struct FileBrowserView: View {
                         codeSearchResults = []
                         codeSearchError = nil
                     }
-                    .font(.system(size: 13))
+                    .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.blue)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 .background(Color(.systemGray6))
 
                 ForEach(codeSearchResults) { item in
@@ -856,16 +856,16 @@ struct FileBrowserView: View {
                         HStack(spacing: 12) {
                             Image(systemName: "doc.text")
                                 .foregroundColor(.blue)
-                                .font(.system(size: 18))
-                                .frame(width: 24)
+                                .font(.system(size: 18))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.name)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.system(size: 14, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .foregroundColor(.primary)
                                     .lineLimit(1)
                                 Text(item.path)
-                                    .font(.system(size: 11))
+                                    .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                             }
@@ -874,16 +874,16 @@ struct FileBrowserView: View {
 
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.gray)
-                                .font(.system(size: 12))
+                                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(PlainButtonStyle())
 
                     Divider()
-                        .padding(.leading, 52)
+                        .padding(.leading, 52)  // 这是左侧内边距，控制内容左方与边缘的空白距离，单位是pt；改大左方留白更宽，改小左方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
                 }
             }
         }
@@ -895,9 +895,9 @@ struct FileBrowserView: View {
             if isLoadingLatestCommit {
                 // 加载中状态
                 ProgressView()
-                    .scaleEffect(0.8)
+                    .scaleEffect(0.8)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
                 Text("加载提交信息...")
-                    .font(.system(size: 13))
+                    .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary)
                 Spacer()
             } else if let commit = latestCommit {
@@ -910,32 +910,32 @@ struct FileBrowserView: View {
                                 .aspectRatio(contentMode: .fill)
                         } placeholder: {
                             Image(systemName: "person.circle.fill")
-                                .font(.system(size: 24))
+                                .font(.system(size: 24))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(.gray)
                         }
-                        .frame(width: 24, height: 24)
+                        .frame(width: 24, height: 24)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                         .clipShape(Circle())
                     } else {
                         Image(systemName: "person.circle.fill")
-                            .font(.system(size: 24))
+                            .font(.system(size: 24))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.gray)
                     }
                 }
-                .frame(width: 24, height: 24)
+                .frame(width: 24, height: 24)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
 
                 // 提交者名称 + 提交信息（垂直布局，生产级信息层次）
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(commit.authorName)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.primary)
                             .lineLimit(1)
                         Text("提交了")
-                            .font(.system(size: 12))
+                            .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.secondary)
                     }
                     Text(commit.message)
-                        .font(.system(size: 13))
+                        .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .layoutPriority(1)
@@ -949,12 +949,12 @@ struct FileBrowserView: View {
                     showMessage("提交哈希已复制: \(commit.shortSha)")
                 }) {
                     Text(commit.shortSha)
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.blue)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .background(Color.blue.opacity(0.1))
-                        .cornerRadius(6)
+                        .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                 }
                 .buttonStyle(PlainButtonStyle())
                 .accessibilityLabel("复制提交哈希")
@@ -962,7 +962,7 @@ struct FileBrowserView: View {
 
                 // 提交时间（生产级次要信息）
                 Text(commit.commit.committer.relativeDate)
-                    .font(.system(size: 12))
+                    .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .frame(minWidth: 60, alignment: .trailing)
@@ -972,25 +972,25 @@ struct FileBrowserView: View {
                     showCommits = true
                 }) {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.secondary)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 20, height: 20)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                 }
                 .buttonStyle(PlainButtonStyle())
                 .accessibilityLabel("查看提交历史")
             } else {
                 // 无提交信息（空仓库状态，生产级空态设计）
                 Image(systemName: "exclamationmark.circle")
-                    .font(.system(size: 18))
+                    .font(.system(size: 18))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.orange)
                 Text("此目录暂无提交记录")
-                    .font(.system(size: 13))
+                    .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary)
                 Spacer()
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .frame(minHeight: 44) // 生产级最小行高，符合Apple HIG
         .background(appState.isDarkMode ? Color(red: 0.1, green: 0.1, blue: 0.1) : Color(red: 0.96, green: 0.96, blue: 0.96))
         .contentShape(Rectangle())
@@ -1019,7 +1019,7 @@ struct FileBrowserView: View {
                 HStack {
                     Spacer()
                     Text("README加载失败: \(readmeError)")
-                        .font(.system(size: 13))
+                        .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.secondary)
                         .padding()
                     Spacer()
@@ -1076,10 +1076,10 @@ struct FileBrowserView: View {
                     }
                     .font(.subheadline)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                    .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     .background(selectedFilesForDelete.isEmpty ? Color.gray : Color.red)
-                    .cornerRadius(8)
+                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                 }
                 .disabled(selectedFilesForDelete.isEmpty || isDeleting)
 
@@ -1093,8 +1093,8 @@ struct FileBrowserView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+            .padding(.vertical, 12)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             .background(Color(.systemBackground))
         }
     }
@@ -1302,7 +1302,7 @@ struct FileBrowserView: View {
                 // 头部信息
                 VStack(spacing: 8) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 40))
+                        .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.blue)
                     Text("确认上传文件")
                         .font(.headline)
@@ -1313,7 +1313,7 @@ struct FileBrowserView: View {
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
-                .padding(.vertical, 16)
+                .padding(.vertical, 16)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 .padding(.horizontal)
 
                 Divider()
@@ -1324,11 +1324,11 @@ struct FileBrowserView: View {
                         HStack(spacing: 12) {
                             // 文件图标
                             Image(systemName: fileIcon(for: fileURL))
-                                .font(.system(size: 24))
+                                .font(.system(size: 24))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(fileIconColor(for: fileURL))
-                                .frame(width: 40, height: 40)
+                                .frame(width: 40, height: 40)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                                 .background(Color(.systemGray6))
-                                .cornerRadius(8)
+                                .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
 
                             // 文件信息
                             VStack(alignment: .leading, spacing: 4) {
@@ -1346,11 +1346,11 @@ struct FileBrowserView: View {
                             Text("\(index + 1)")
                                 .font(.caption)
                                 .foregroundColor(.gray)
-                                .frame(width: 24, height: 24)
+                                .frame(width: 24, height: 24)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                                 .background(Color(.systemGray6))
-                                .cornerRadius(12)
+                                .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     }
                     .onDelete(perform: removeSelectedFile)
                 }
@@ -1370,9 +1370,9 @@ struct FileBrowserView: View {
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 14)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                         .background(Color.blue)
-                        .cornerRadius(12)
+                        .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     }
                     .disabled(selectedFiles.isEmpty)
 
@@ -1384,11 +1384,11 @@ struct FileBrowserView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     }
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 16)
+                .padding(.vertical, 16)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 .background(Color(.systemBackground))
             }
             .navigationBarHidden(true)
@@ -1492,7 +1492,7 @@ struct FileBrowserView: View {
             VStack(spacing: 16) {
                 ProgressView(value: downloadProgress)
                     .progressViewStyle(CircularProgressViewStyle())
-                    .scaleEffect(1.5)
+                    .scaleEffect(1.5)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
 
                 Text("正在下载: \(downloadingFileName)")
                     .font(.headline)
@@ -1502,9 +1502,9 @@ struct FileBrowserView: View {
                     .font(.subheadline)
                     .foregroundColor(.black)
             }
-            .padding(32)
+            .padding(32)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
             .background(Color.white)
-            .cornerRadius(16)
+            .cornerRadius(16)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         }
     }
 
@@ -1516,11 +1516,11 @@ struct FileBrowserView: View {
             VStack(spacing: 20) {
                 // 图标
                 Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 40))
+                    .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.blue)
-                    .frame(width: 70, height: 70)
+                    .frame(width: 70, height: 70)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
                     .background(Color(.systemGray6))
-                    .cornerRadius(35)
+                    .cornerRadius(35)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
 
                 // 标题
                 Text("正在上传文件")
@@ -1545,7 +1545,7 @@ struct FileBrowserView: View {
                 VStack(spacing: 8) {
                     ProgressView(value: uploadProgress)
                         .progressViewStyle(LinearProgressViewStyle())
-                        .frame(width: 250)
+                        .frame(width: 250)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
                     Text(String(format: "%.0f%%", uploadProgress * 100))
                         .font(.subheadline)
@@ -1557,9 +1557,9 @@ struct FileBrowserView: View {
                     .font(.caption)
                     .foregroundColor(.gray)
             }
-            .padding(32)
+            .padding(32)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
             .background(Color(.systemBackground))
-            .cornerRadius(20)
+            .cornerRadius(20)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
             .shadow(radius: 20)
         }
     }
@@ -1575,12 +1575,12 @@ struct FileBrowserView: View {
                 }) {
                     Image(systemName: "house.fill")
                         .foregroundColor(.blue)
-                        .font(.system(size: 15))
+                        .font(.system(size: 15))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 }
                 
                 if !currentPath.isEmpty {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.gray)
                     
                     let components = currentPath.components(separatedBy: "/")
@@ -1592,21 +1592,21 @@ struct FileBrowserView: View {
                             loadFiles()
                         }) {
                             Text(component)
-                                .font(.system(size: 15))
+                                .font(.system(size: 15))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(index == components.count - 1 ? .primary : .blue)
                         }
                         if index < components.count - 1 {
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 12))
+                                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                                 .foregroundColor(.gray)
                         }
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .frame(height: 44)
+            .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+            .frame(height: 44)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
         }
-        .frame(height: 44)
+        .frame(height: 44)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
     }
 
     // MARK: - 仓库权限判断
@@ -2312,7 +2312,7 @@ struct FileBrowserView: View {
                 HStack(spacing: 12) {
                     Image(systemName: selectedFilesForDelete.contains(file.path) ? "checkmark.circle.fill" : "circle")
                         .foregroundColor(selectedFilesForDelete.contains(file.path) ? .blue : .gray)
-                        .font(.system(size: 20))
+                        .font(.system(size: 20))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
                 }
             }
@@ -3176,12 +3176,12 @@ struct FileRow: View {
             // 文件/文件夹图标（GitHub官方风格）
             Image(systemName: file.isDirectory ? "folder.fill" : "doc.text")
                 .foregroundColor(file.isDirectory ? Color(red: 0.18, green: 0.49, blue: 0.82) : Color(red: 0.45, green: 0.49, blue: 0.55))
-                .font(.system(size: 20))
-                .frame(width: 28)
+                .font(.system(size: 20))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .frame(width: 28)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
             // 文件/文件夹名称
             Text(file.name)
-                .font(.system(size: 15))
+                .font(.system(size: 15))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(.primary)
                 .lineLimit(1)
 
@@ -3190,23 +3190,23 @@ struct FileRow: View {
             // 最后更新时间（右侧，灰色，GitHub官方相对时间格式）
             if let commit = lastCommit {
                 Text(commit.commit.committer.relativeDate)
-                    .font(.system(size: 13))
+                    .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             } else if isLoadingCommit {
                 Text("--")
-                    .font(.system(size: 13))
+                    .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary.opacity(0.5))
                     .lineLimit(1)
             } else {
                 Text("--")
-                    .font(.system(size: 13))
+                    .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 11)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .contentShape(Rectangle())
         .onAppear {
             loadLastCommit()
@@ -3343,12 +3343,12 @@ struct BranchPickerView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 12)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 .background(Color(.systemGray6))
-                .cornerRadius(8)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
 
                 // 分支列表
                 List {
@@ -3525,11 +3525,11 @@ struct BranchPickerView: View {
                         Text(operationMessage)
                             .font(.subheadline)
                             .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
+                            .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                            .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                             .background(Color.black.opacity(0.8))
-                            .cornerRadius(8)
-                            .padding(.top, 20)
+                            .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                            .padding(.top, 20)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
                             .transition(.move(edge: .top).combined(with: .opacity))
                             .animation(.easeInOut, value: showOperationMessage)
                     }
@@ -3692,7 +3692,7 @@ struct CommitsView: View {
                                     .foregroundColor(.gray)
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                     }
                 }
             }
