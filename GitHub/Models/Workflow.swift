@@ -7,7 +7,7 @@ struct Workflow: Codable, Identifiable {
     let id: Int
     let name: String
     let path: String
-    let state: String
+    var state: String
     let createdAt: String
     let updatedAt: String
     let htmlUrl: String
