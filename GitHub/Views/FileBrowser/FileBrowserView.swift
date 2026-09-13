@@ -207,9 +207,6 @@ struct FileBrowserView: View {
 
     var baseView: some View {
         VStack(spacing: 0) {
-            // 自定义顶部导航栏（替代系统导航栏，避免双重导航栏问题）
-            customNavigationBar
-
             // 文件列表内容（包含仓库头部、分支栏、路径导航栏，均可跟随屏幕滑动）
             fileListContent
 
@@ -218,11 +215,24 @@ struct FileBrowserView: View {
                 deleteActionBar
             }
         }
-        .navigationTitle("")
+        .navigationTitle(repository.name)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarHidden(true)
-        // iOS 16+ 使用toolbar(.hidden)彻底隐藏系统导航栏，避免双重导航栏问题
-        .toolbar(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                // 仓库所有者头像
+                AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.gray)
+                }
+                .frame(width: 28, height: 28)
+                .clipShape(Circle())
+            }
+        }
         // 隐藏的NavigationLink（拆分成单独属性，简化body表达式，避免类型检查超时）
         .background(hiddenNavigationLinks)
         .overlay {
@@ -1050,59 +1060,6 @@ struct FileBrowserView: View {
             .padding(.vertical, 12)
             .background(Color(.systemBackground))
         }
-    }
-
-    // MARK: - 自定义顶部导航栏（替代系统导航栏，避免双重导航栏问题）
-
-    var customNavigationBar: some View {
-        HStack(spacing: 12) {
-            // 返回按钮
-            Button(action: {
-                // 返回上一级页面
-                dismiss()
-            }) {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                    Text("返回")
-                        .font(.system(size: 17))
-                }
-                .foregroundColor(.blue)
-                .frame(height: 44)
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            Spacer()
-
-            // 仓库所有者头像和用户名
-            HStack(spacing: 8) {
-                AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 28))
-                        .foregroundColor(.gray)
-                }
-                .frame(width: 28, height: 28)
-                .clipShape(Circle())
-
-                Text(repository.ownerName)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color(.systemBackground))
-        .overlay(
-            Rectangle()
-                .frame(height: 0.5)
-                .foregroundColor(Color(.separator)),
-            alignment: .bottom
-        )
     }
 
     // MARK: - HTML预览Sheet（拆分成单独属性，简化body表达式，避免类型检查超时）
