@@ -729,9 +729,11 @@ struct JobLogView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
 
+        @ViewBuilder
         private func regexHighlightedText(_ text: String) -> some View {
             var segments: [TextSegment] = []
             var currentIndex = text.startIndex
+            var regexError: Error? = nil
 
             do {
                 let options: NSRegularExpression.Options = isCaseSensitive ? [] : .caseInsensitive
@@ -749,27 +751,31 @@ struct JobLogView: View {
                     }
                 }
             } catch {
+                regexError = error
+            }
+
+            if regexError != nil {
                 // 正则无效，显示普通文本
-                return Text(text)
+                Text(text)
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundColor(colorForLineType(line.type))
                     .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if currentIndex < text.endIndex {
-                segments.append(TextSegment(text: String(text[currentIndex..<text.endIndex]), isHighlighted: false))
-            }
-
-            // 使用Group和ForEach渲染片段
-            return Group {
-                ForEach(segments) { segment in
-                    Text(segment.text)
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(segment.isHighlighted ? .black : colorForLineType(line.type))
-                        .background(segment.isHighlighted ? Color.yellow : Color.clear)
+            } else {
+                if currentIndex < text.endIndex {
+                    segments.append(TextSegment(text: String(text[currentIndex..<text.endIndex]), isHighlighted: false))
                 }
+
+                // 使用Group和ForEach渲染片段
+                Group {
+                    ForEach(segments) { segment in
+                        Text(segment.text)
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(segment.isHighlighted ? .black : colorForLineType(line.type))
+                            .background(segment.isHighlighted ? Color.yellow : Color.clear)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
 
         // 检查是否是全词匹配
