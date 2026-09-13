@@ -82,8 +82,8 @@ struct JobLogView: View {
     // MARK: - 滚动代理
     @State private var scrollProxy: ScrollViewProxy?
 
-    // 自动刷新定时器（作业进行中时2秒刷新一次，实时日志流）
-    private let autoRefreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
+    // 自动刷新定时器（作业进行中时1秒刷新一次，实时日志流）
+    private let autoRefreshTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     // 实时日志流状态
     @State private var lastUpdateTime: Date? = nil
@@ -547,12 +547,7 @@ struct JobLogView: View {
                                     .background(Color.blue.opacity(0.1))
                                     .cornerRadius(3)
                             }
-                            if let lastUpdate = lastUpdateTime {
-                                Spacer()
-                                Text("更新于 \(formatTime(lastUpdate))")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
+                            Spacer()
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 4)
