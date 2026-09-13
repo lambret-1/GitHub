@@ -767,15 +767,10 @@ class GitHubAPI {
         }
     }
 
-    /// 获取作业日志（纯文本）- 优先使用logsUrl
+    /// 获取作业日志（纯文本）- 使用Token请求头，自动处理重定向
     func getJobLogs(owner: String, repo: String, jobId: Int, logsUrl: String? = nil, completion: @escaping (Result<String, Error>) -> Void) {
-        // 如果提供了logsUrl，优先使用（GitHub API返回的直接日志URL，通常是预签名的S3 URL）
-        if let logsUrlString = logsUrl, !logsUrlString.isEmpty, let directURL = URL(string: logsUrlString) {
-            downloadJobLogs(from: directURL, useAuth: false, completion: completion)
-            return
-        }
-
-        // 否则使用标准API端点
+        // 优先使用标准API端点（带Token请求头），GitHub会自动302重定向到预签名S3 URL
+        // URLSession会自动跟随重定向，S3预签名URL不需要Authorization头
         let urlString = APIEndpoints.jobLogs(owner: owner, repo: repo, jobId: jobId).url
         guard let url = URL(string: urlString) else {
             completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
@@ -784,13 +779,13 @@ class GitHubAPI {
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.allHTTPHeaderFields = getHeaders()
+        request.allHTTPHeaderFields = getHeaders() // 包含Token请求头
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
 
-        // 使用自定义URLSession，禁用自动重定向，手动处理302
-        let config = URLSessionConfiguration.default
-        config.httpAdditionalHeaders = getHeaders()
-        let session = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
+        // 使用自定义URLSessionDelegate，确保重定向时正确处理
+        let sessionConfig = URLSessionConfiguration.default
+        sessionConfig.httpAdditionalHeaders = getHeaders()
+        let session = URLSession(configuration: sessionConfig, delegate: JobLogRedirectDelegate.shared, delegateQueue: nil)
 
         session.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
@@ -801,13 +796,6 @@ class GitHubAPI {
 
                 guard let httpResponse = response as? HTTPURLResponse else {
                     completion(.failure(NSError(domain: "GitHubAPI", code: -2, userInfo: [NSLocalizedDescriptionKey: "无效响应"])))
-                    return
-                }
-
-                // 处理302重定向：手动获取重定向URL并下载日志
-                if httpResponse.statusCode == 302, let location = httpResponse.allHeaderFields["Location"] as? String, let redirectURL = URL(string: location) {
-                    // 重定向后的URL是预签名的S3 URL，不需要Authorization头
-                    self.downloadJobLogs(from: redirectURL, useAuth: false, completion: completion)
                     return
                 }
 
@@ -835,10 +823,25 @@ class GitHubAPI {
                 }
 
                 if (200...299).contains(httpResponse.statusCode) {
-                    if let data = data, let logs = String(data: data, encoding: .utf8) {
-                        completion(.success(logs))
+                    if let data = data {
+                        // 尝试UTF8解码
+                        if let logs = String(data: data, encoding: .utf8) {
+                            completion(.success(logs))
+                            return
+                        }
+                        // 尝试其他编码
+                        if let logs = String(data: data, encoding: .ascii) {
+                            completion(.success(logs))
+                            return
+                        }
+                        // 尝试ISO拉丁编码
+                        if let logs = String(data: data, encoding: .isoLatin1) {
+                            completion(.success(logs))
+                            return
+                        }
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -5, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败，无法识别编码格式"])))
                     } else {
-                        completion(.failure(NSError(domain: "GitHubAPI", code: -5, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败"])))
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -6, userInfo: [NSLocalizedDescriptionKey: "日志数据为空"])))
                     }
                 } else {
                     var errorMessage = "请求失败 (HTTP \(httpResponse.statusCode))"
@@ -851,46 +854,24 @@ class GitHubAPI {
         }.resume()
     }
 
-    /// 下载作业日志内容（内部方法）
-    private func downloadJobLogs(from url: URL, useAuth: Bool, completion: @escaping (Result<String, Error>) -> Void) {
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+    // MARK: - 作业日志重定向代理
+    // 确保重定向到S3预签名URL时不传递Authorization头（S3会拒绝带Authorization头的请求）
+    private class JobLogRedirectDelegate: NSObject, URLSessionTaskDelegate {
+        static let shared = JobLogRedirectDelegate()
 
-        if useAuth {
-            request.allHTTPHeaderFields = getHeaders()
-        } else {
-            // 预签名S3 URL不需要Authorization头，只需要基本头
-            request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
-        }
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    completion(.failure(error))
-                    return
-                }
-
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    completion(.failure(NSError(domain: "GitHubAPI", code: -2, userInfo: [NSLocalizedDescriptionKey: "无效响应"])))
-                    return
-                }
-
-                if (200...299).contains(httpResponse.statusCode) {
-                    if let data = data, let logs = String(data: data, encoding: .utf8) {
-                        completion(.success(logs))
-                    } else {
-                        completion(.failure(NSError(domain: "GitHubAPI", code: -3, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败"])))
-                    }
-                } else {
-                    var errorMessage = "日志下载失败 (HTTP \(httpResponse.statusCode))"
-                    if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let message = json["message"] as? String {
-                        errorMessage = message
-                    }
-                    completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
-                }
+        func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+            // 检查重定向目标是否是S3或其他非GitHub域名
+            if let host = request.url?.host, !host.contains("github.com") && !host.contains("githubusercontent.com") {
+                // 重定向到S3等外部域名，移除Authorization头
+                var newRequest = request
+                newRequest.setValue(nil, forHTTPHeaderField: "Authorization")
+                newRequest.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
+                completionHandler(newRequest)
+            } else {
+                // 重定向到GitHub域名，保留Authorization头
+                completionHandler(request)
             }
-        }.resume()
+        }
     }
 
     /// 触发工作流运行（workflow_dispatch）
