@@ -82,8 +82,12 @@ struct JobLogView: View {
     // MARK: - 滚动代理
     @State private var scrollProxy: ScrollViewProxy?
 
-    // 自动刷新定时器
-    private let autoRefreshTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
+    // 自动刷新定时器（作业进行中时2秒刷新一次，实时日志流）
+    private let autoRefreshTimer = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
+
+    // 实时日志流状态
+    @State private var lastUpdateTime: Date? = nil
+    @State private var newLinesCount: Int = 0
 
     // MARK: - 计算属性：当前可见的日志行（考虑分组折叠）
     private var visibleLogLines: [LogLine] {
@@ -523,20 +527,36 @@ struct JobLogView: View {
                         .background(Color.red.opacity(0.1))
                     }
 
-                    // 自动刷新提示
+                    // 实时日志流指示器
                     if isAutoRefreshing && job.status == "in_progress" {
                         HStack {
-                            Image(systemName: "arrow.triangle.2.circlepath")
+                            Image(systemName: "dot.radiowaves.left.and.right")
                                 .font(.caption)
-                                .foregroundColor(.blue)
-                            Text("日志自动刷新中（每5秒）")
+                                .foregroundColor(.green)
+                                .opacity(0.5 + 0.5 * sin(Date().timeIntervalSince1970 * 3))
+                            Text("实时日志流")
                                 .font(.caption)
-                                .foregroundColor(.blue)
-                            Spacer()
+                                .fontWeight(.medium)
+                                .foregroundColor(.green)
+                            if newLinesCount > 0 {
+                                Text("+新增\(newLinesCount)行")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(3)
+                            }
+                            if let lastUpdate = lastUpdateTime {
+                                Spacer()
+                                Text("更新于 \(formatTime(lastUpdate))")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.05))
+                        .background(Color.green.opacity(0.05))
                     }
 
                     // 日志文本视图（虚拟滚动+增量加载）
@@ -1048,6 +1068,9 @@ struct JobLogView: View {
         }
         errorMessage = nil
 
+        // 记录更新前的行数，用于计算新增行数
+        let previousLineCount = logs.isEmpty ? 0 : logs.components(separatedBy: .newlines).count
+
         GitHubAPI.shared.getJobLogs(owner: owner, repo: repo, jobId: job.id) { result in
             DispatchQueue.main.async {
                 if !silent {
@@ -1055,6 +1078,18 @@ struct JobLogView: View {
                 }
                 switch result {
                 case .success(let logs):
+                    // 计算新增行数
+                    let newLineCount = logs.components(separatedBy: .newlines).count - previousLineCount
+                    if silent && newLineCount > 0 {
+                        self.newLinesCount = newLineCount
+                        // 3秒后清除新增行数提示
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            self.newLinesCount = 0
+                        }
+                    }
+                    // 更新最后更新时间
+                    self.lastUpdateTime = Date()
+
                     self.logs = logs
                     // 解析日志行和分组
                     let parsed = parseLogLines(from: logs)
@@ -1074,6 +1109,15 @@ struct JobLogView: View {
                 }
             }
         }
+    }
+
+    // MARK: - 格式化时间
+
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        return formatter.string(from: date)
     }
 
     // MARK: - 从日志中解析退出码

@@ -34,6 +34,14 @@ struct WorkflowRunDetailView: View {
     @State private var showRerunFailedAlert: Bool = false
     @State private var isRefreshing: Bool = false
 
+    // 视图模式：列表视图 / 时间线视图
+    @State private var viewMode: ViewMode = .list
+
+    enum ViewMode {
+        case list      // 列表视图
+        case timeline  // 时间线视图
+    }
+
     // 旋转动画状态
     @State private var rotationAngle: Double = 0
 
@@ -308,40 +316,112 @@ struct WorkflowRunDetailView: View {
     // MARK: - 作业列表
 
     private var jobsSection: some View {
-        Section("作业 (\(jobs.count))") {
-            if isLoadingJobs && jobs.isEmpty {
-                HStack {
-                    Spacer()
-                    ProgressView("加载作业中...")
-                    Spacer()
-                }
-                .listRowSeparator(.hidden)
-            } else if let error = jobsError, jobs.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .foregroundColor(.orange)
-                    Text(error)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                    Button("重试") {
-                        loadJobs()
+        Section {
+            // 视图模式切换
+            Picker("视图模式", selection: $viewMode) {
+                Label("列表", systemImage: "list.bullet").tag(ViewMode.list)
+                Label("时间线", systemImage: "timeline.selection").tag(ViewMode.timeline)
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .listRowSeparator(.hidden)
+            .padding(.bottom, 4)
+
+            if viewMode == .list {
+                // 列表视图
+                if isLoadingJobs && jobs.isEmpty {
+                    HStack {
+                        Spacer()
+                        ProgressView("加载作业中...")
+                        Spacer()
                     }
-                    .font(.caption)
-                }
-                .padding(.vertical)
-                .listRowSeparator(.hidden)
-            } else if jobs.isEmpty {
-                Text("暂无作业")
-                    .foregroundColor(.secondary)
                     .listRowSeparator(.hidden)
+                } else if let error = jobsError, jobs.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button("重试") {
+                            loadJobs()
+                        }
+                        .font(.caption)
+                    }
+                    .padding(.vertical)
+                    .listRowSeparator(.hidden)
+                } else if jobs.isEmpty {
+                    Text("暂无作业")
+                        .foregroundColor(.secondary)
+                        .listRowSeparator(.hidden)
+                } else {
+                    ForEach(jobs) { job in
+                        NavigationLink(destination: JobLogView(owner: owner, repo: repo, job: job)) {
+                            JobRow(job: job)
+                        }
+                    }
+                }
             } else {
-                ForEach(jobs) { job in
-                    NavigationLink(destination: JobLogView(owner: owner, repo: repo, job: job)) {
-                        JobRow(job: job)
+                // 时间线视图
+                if isLoadingJobs && jobs.isEmpty {
+                    HStack {
+                        Spacer()
+                        ProgressView("加载作业中...")
+                        Spacer()
+                    }
+                    .listRowSeparator(.hidden)
+                } else if let error = jobsError, jobs.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button("重试") {
+                            loadJobs()
+                        }
+                        .font(.caption)
+                    }
+                    .padding(.vertical)
+                    .listRowSeparator(.hidden)
+                } else if jobs.isEmpty {
+                    Text("暂无作业")
+                        .foregroundColor(.secondary)
+                        .listRowSeparator(.hidden)
+                } else {
+                    // 每个作业显示一个时间线
+                    ForEach(jobs) { job in
+                        VStack(alignment: .leading, spacing: 8) {
+                            // 作业标题
+                            HStack {
+                                Image(systemName: job.statusIcon)
+                                    .foregroundColor(Color(job.statusColor))
+                                Text(job.name)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Spacer()
+                                Text(job.statusDisplay)
+                                    .font(.caption2)
+                                    .foregroundColor(Color(job.statusColor))
+                            }
+                            .padding(.horizontal, 4)
+
+                            // 时间线视图
+                            JobTimelineView(job: job) { stepIndex in
+                                // 点击步骤跳转到日志视图
+                                // 这里可以传递步骤索引，在日志视图中定位到对应步骤
+                            }
+                            .frame(height: min(CGFloat((job.steps?.count ?? 1) * 70), 400))
+                            .cornerRadius(8)
+                        }
+                        .padding(.vertical, 4)
+                        .listRowSeparator(.hidden)
                     }
                 }
             }
+        } header: {
+            Text("作业 (\(jobs.count))")
         }
     }
 
