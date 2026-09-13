@@ -131,6 +131,16 @@ struct Repository: Codable, Identifiable {
         return 日期工具.相对时间(fromISO: updatedAt)
     }
 
+    var formattedCreateTime: String? {
+        guard let createdAt = createdAt else { return nil }
+        // 使用统一的相对时间工具类
+        return 日期工具.相对时间(fromISO: createdAt)
+    }
+
+    var formattedSize: String {
+        return 大小显示
+    }
+
     var languageColor: String {
         guard let lang = language else { return "#CCCCCC" }
         let colors: [String: String] = [

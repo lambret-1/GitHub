@@ -610,8 +610,8 @@ struct FileBrowserView: View {
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
             case .settings:
-                // 即将上线的功能占位
-                comingSoonContent(for: selectedTab)
+                // 设置Tab：仓库设置
+                settingsTabContent
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
             }
@@ -717,6 +717,17 @@ struct FileBrowserView: View {
 
     var pullRequestsTabContent: some View {
         PullRequestsListView(
+            owner: repository.ownerName,
+            repo: repository.name
+        )
+        .environmentObject(appState)
+        .frame(height: 600)
+    }
+
+    // MARK: - 设置Tab内容
+
+    var settingsTabContent: some View {
+        RepositorySettingsView(
             owner: repository.ownerName,
             repo: repository.name
         )
