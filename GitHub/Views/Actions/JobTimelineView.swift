@@ -255,26 +255,3 @@ struct JobTimelineView: View {
         }
     }
 }
-
-// MARK: - JobStep 扩展
-
-extension JobStep {
-    // 步骤耗时（秒）
-    var durationSeconds: Int? {
-        guard let start = parseDate(startedAt ?? ""),
-              let end = parseDate(completedAt ?? "") else {
-            return nil
-        }
-        return Int(end.timeIntervalSince(start))
-    }
-
-    private func parseDate(_ dateString: String) -> Date? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: dateString) {
-            return date
-        }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: dateString)
-    }
-}
