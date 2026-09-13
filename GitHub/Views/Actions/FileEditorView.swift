@@ -264,20 +264,29 @@ struct FileEditorView: View {
         .padding(8)
     }
 
-    private func highlightText(in line: String) -> Text {
-        guard !searchText.isEmpty else {
-            return Text(line)
+    @ViewBuilder
+    private func highlightText(in line: String) -> some View {
+        if searchText.isEmpty {
+            Text(line)
+        } else {
+            // 使用AttributedString实现高亮
+            if let attributedString = createHighlightedAttributedString(from: line) {
+                Text(attributedString)
+            } else {
+                Text(line)
+            }
         }
-        var result = Text("")
-        var remaining = line
-        while let range = remaining.range(of: searchText, options: .caseInsensitive) {
-            let before = String(remaining[..<range.lowerBound])
-            let match = String(remaining[range])
-            result = result + Text(before) + Text(match).background(Color.yellow).foregroundColor(.black)
-            remaining = String(remaining[range.upperBound...])
+    }
+
+    private func createHighlightedAttributedString(from line: String) -> AttributedString? {
+        guard !searchText.isEmpty else { return nil }
+        var attributed = AttributedString(line)
+        guard let range = attributed.range(of: searchText, options: .caseInsensitive) else {
+            return attributed
         }
-        result = result + Text(remaining)
-        return result
+        attributed[range].backgroundColor = .yellow
+        attributed[range].foregroundColor = .black
+        return attributed
     }
 
     private func isLineMatch(_ line: String) -> Bool {

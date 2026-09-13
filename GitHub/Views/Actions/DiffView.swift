@@ -46,11 +46,7 @@ struct DiffView: View {
 
     @ViewBuilder
     private var editorDestination: some View {
-        if let sha = changedFile.sha {
-            FileEditorView(owner: owner, repo: repo, filePath: changedFile.filename, branch: sha)
-        } else {
-            FileEditorView(owner: owner, repo: repo, filePath: changedFile.filename, branch: "main")
-        }
+        FileEditorView(owner: owner, repo: repo, filePath: changedFile.filename, branch: changedFile.sha)
     }
 
     // MARK: - 文件信息头部
