@@ -19,10 +19,6 @@ struct RepoCodeSearchView: View {
     // 搜索结果总数
     @State private var totalCount: Int = 0
 
-    // 代码片段缓存
-    @State private var codeSnippets: [String: String] = [:]
-    @State private var loadingSnippetPath: String?
-
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -290,22 +286,28 @@ struct CodeSnippetView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(spacing: 0) {
-            // 文件信息头部
-            fileHeader
+        NavigationStack {
+            VStack(spacing: 0) {
+                // 文件信息头部
+                fileHeader
 
-            // 代码片段内容
-            snippetContent
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color(.systemBackground))
-        .navigationTitle("代码片段")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarItems(trailing: Button("完成") {
-            dismiss()
-        })
-        .onAppear {
-            loadFileContent()
+                // 代码片段内容
+                snippetContent
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(Color(.systemBackground))
+            .navigationTitle("代码片段")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                loadFileContent()
+            }
         }
     }
 
@@ -448,25 +450,34 @@ struct CodeSnippetView: View {
         }
     }
 
-    // 计算高亮文本片段（在ViewBuilder之外执行，避免控制流语句错误）
+    // 计算高亮文本片段（使用NSString+NSRange避免特殊字符/emoji导致的String.Index崩溃）
     private func calculateHighlightedParts(_ code: String) -> [AnyView] {
-        let lowercasedCode = code.lowercased()
-        let lowercasedQuery = searchQuery.lowercased()
+        let nsCode = code as NSString
+        let nsQuery = searchQuery.lowercased() as NSString
         let normalFont = Font.system(size: 11, design: .monospaced)
         let boldFont = Font.system(size: 11, weight: .bold, design: .monospaced)
 
-        var searchRange = lowercasedCode.startIndex..<lowercasedCode.endIndex
+        var searchRange = NSRange(location: 0, length: nsCode.length)
         var parts: [AnyView] = []
+        var lastEnd = 0
 
-        while let range = lowercasedCode.range(of: lowercasedQuery, range: searchRange) {
+        while true {
+            // 在小写代码中查找关键词（不区分大小写）
+            let lowercasedCode = nsCode.lowercased as NSString
+            let foundRange = lowercasedCode.range(of: nsQuery as String, options: .caseInsensitive, range: searchRange)
+
+            if foundRange.location == NSNotFound {
+                break
+            }
+
             // 添加关键词之前的文本
-            let beforeText = String(code[searchRange.lowerBound..<range.lowerBound])
-            if !beforeText.isEmpty {
+            if foundRange.location > lastEnd {
+                let beforeText = nsCode.substring(with: NSRange(location: lastEnd, length: foundRange.location - lastEnd))
                 parts.append(AnyView(Text(beforeText).font(normalFont)))
             }
 
-            // 添加高亮的关键词
-            let keyword = String(code[range])
+            // 添加高亮的关键词（从原始代码中提取，保留原始大小写）
+            let keyword = nsCode.substring(with: foundRange)
             parts.append(AnyView(
                 Text(keyword)
                     .font(boldFont)
@@ -474,13 +485,13 @@ struct CodeSnippetView: View {
                     .foregroundColor(.red)
             ))
 
-            // 继续搜索剩余部分
-            searchRange = range.upperBound..<lowercasedCode.endIndex
+            lastEnd = foundRange.location + foundRange.length
+            searchRange = NSRange(location: lastEnd, length: nsCode.length - lastEnd)
         }
 
         // 添加最后剩余的文本
-        let remainingText = String(code[searchRange])
-        if !remainingText.isEmpty {
+        if lastEnd < nsCode.length {
+            let remainingText = nsCode.substring(with: NSRange(location: lastEnd, length: nsCode.length - lastEnd))
             parts.append(AnyView(Text(remainingText).font(normalFont)))
         }
 
@@ -513,7 +524,7 @@ struct CodeSnippetView: View {
         }
     }
 
-    // MARK: - 提取代码片段
+    // MARK: - 提取代码片段（合并连续命中行，避免重复片段）
 
     private func extractSnippets() {
         guard let content = fileContent else { return }
@@ -521,24 +532,58 @@ struct CodeSnippetView: View {
         let lines = content.components(separatedBy: .newlines)
         let lowercasedQuery = searchQuery.lowercased()
 
-        var result: [CodeSnippet] = []
-
+        // 第一步：找出所有包含关键词的行号
+        var matchedLineIndices: [Int] = []
         for (index, line) in lines.enumerated() {
             if line.lowercased().contains(lowercasedQuery) {
-                // 提取包含关键词的行，以及前后各2行作为上下文
-                let start = max(0, index - 2)
-                let end = min(lines.count - 1, index + 2)
-                let snippetCode = lines[start...end].joined(separator: "\n")
+                matchedLineIndices.append(index)
+            }
+        }
 
-                result.append(CodeSnippet(
-                    lineNumber: index + 1,
-                    code: snippetCode
-                ))
+        // 第二步：将连续的行号合并为区间
+        var mergedRanges: [(start: Int, end: Int)] = []
+        var rangeStart: Int?
+        var previousIndex: Int?
 
-                // 最多显示20个片段
-                if result.count >= 20 {
-                    break
+        for index in matchedLineIndices {
+            if let prev = previousIndex {
+                // 如果当前行与上一行连续（差值为1），继续当前区间
+                if index == prev + 1 {
+                    previousIndex = index
+                    continue
+                } else {
+                    // 不连续，结束上一个区间
+                    if let start = rangeStart {
+                        mergedRanges.append((start: start, end: prev))
+                    }
+                    rangeStart = index
+                    previousIndex = index
                 }
+            } else {
+                rangeStart = index
+                previousIndex = index
+            }
+        }
+        // 处理最后一个区间
+        if let start = rangeStart, let prev = previousIndex {
+            mergedRanges.append((start: start, end: prev))
+        }
+
+        // 第三步：对每个合并区间生成一个片段（前后各2行上下文）
+        var result: [CodeSnippet] = []
+        for range in mergedRanges {
+            let contextStart = max(0, range.start - 2)
+            let contextEnd = min(lines.count - 1, range.end + 2)
+            let snippetCode = lines[contextStart...contextEnd].joined(separator: "\n")
+
+            result.append(CodeSnippet(
+                lineNumber: range.start + 1,  // 显示区间第一行的行号
+                code: snippetCode
+            ))
+
+            // 最多显示20个片段
+            if result.count >= 20 {
+                break
             }
         }
 
