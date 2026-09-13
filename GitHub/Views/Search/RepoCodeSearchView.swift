@@ -260,7 +260,9 @@ struct RepoCodeSearchView: View {
         // 捕获当前查询词，回调时校验，防止旧请求覆盖新结果
         let capturedQuery = searchQuery
 
-        let workItem = DispatchWorkItem {
+        // 先声明可选变量，避免闭包捕获未声明变量的编译错误
+        var workItem: DispatchWorkItem?
+        workItem = DispatchWorkItem {
             GitHubAPI.shared.searchCodeInRepo(
                 owner: owner,
                 repo: repo,
@@ -270,7 +272,7 @@ struct RepoCodeSearchView: View {
                 DispatchQueue.main.async {
                     // 校验：如果查询词已变化或任务已取消，忽略旧请求结果
                     guard searchQuery == capturedQuery else { return }
-                    guard !workItem.isCancelled else { return }
+                    guard !(workItem?.isCancelled ?? false) else { return }
 
                     isSearching = false
                     switch result {
@@ -283,8 +285,10 @@ struct RepoCodeSearchView: View {
             }
         }
 
-        currentSearchWorkItem = workItem
-        DispatchQueue.global(qos: .userInitiated).async(execute: workItem)
+        if let item = workItem {
+            currentSearchWorkItem = item
+            DispatchQueue.global(qos: .userInitiated).async(execute: item)
+        }
     }
 }
 
