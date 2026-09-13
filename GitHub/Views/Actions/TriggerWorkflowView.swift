@@ -183,7 +183,8 @@ struct TriggerWorkflowView: View {
             DispatchQueue.main.async {
                 switch result {
                 case .success(let fileContent):
-                    if let content = fileContent.decodedContent {
+                    let content = fileContent.decodedContent
+                    if !content.isEmpty {
                         self.parseInputsFromYAML(content)
                     }
                 case .failure:

@@ -187,7 +187,8 @@ struct WorkflowFileView: View {
                 isLoading = false
                 switch result {
                 case .success(let fileContent):
-                    if let content = fileContent.decodedContent {
+                    let content = fileContent.decodedContent
+                    if !content.isEmpty {
                         self.fileContent = content
                     } else {
                         self.errorMessage = "无法解码文件内容"
