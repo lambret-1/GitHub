@@ -767,10 +767,10 @@ class GitHubAPI {
         }
     }
 
-    /// 获取作业日志（纯文本）- 使用Token请求头，自动处理重定向
+    /// 获取作业日志（纯文本）- 使用Token请求头，URLSession自动处理302重定向
     func getJobLogs(owner: String, repo: String, jobId: Int, logsUrl: String? = nil, completion: @escaping (Result<String, Error>) -> Void) {
-        // 优先使用标准API端点（带Token请求头），GitHub会自动302重定向到预签名S3 URL
-        // URLSession会自动跟随重定向，S3预签名URL不需要Authorization头
+        // 使用标准API端点（带Token请求头），GitHub会返回302重定向到Azure Blob Storage预签名URL
+        // URLSession.shared会自动跟随重定向，并在跨域名重定向时自动移除Authorization头（标准行为）
         let urlString = APIEndpoints.jobLogs(owner: owner, repo: repo, jobId: jobId).url
         guard let url = URL(string: urlString) else {
             completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
@@ -782,12 +782,8 @@ class GitHubAPI {
         request.allHTTPHeaderFields = getHeaders() // 包含Token请求头
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
 
-        // 使用自定义URLSessionDelegate，确保重定向时正确处理
-        let sessionConfig = URLSessionConfiguration.default
-        sessionConfig.httpAdditionalHeaders = getHeaders()
-        let session = URLSession(configuration: sessionConfig, delegate: JobLogRedirectDelegate.shared, delegateQueue: nil)
-
-        session.dataTask(with: request) { data, response, error in
+        // 使用URLSession.shared，自动处理重定向（与curl行为一致）
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     completion(.failure(error))
@@ -823,26 +819,38 @@ class GitHubAPI {
                 }
 
                 if (200...299).contains(httpResponse.statusCode) {
-                    if let data = data {
-                        // 尝试UTF8解码
-                        if let logs = String(data: data, encoding: .utf8) {
-                            completion(.success(logs))
-                            return
-                        }
-                        // 尝试其他编码
-                        if let logs = String(data: data, encoding: .ascii) {
-                            completion(.success(logs))
-                            return
-                        }
-                        // 尝试ISO拉丁编码
-                        if let logs = String(data: data, encoding: .isoLatin1) {
-                            completion(.success(logs))
-                            return
-                        }
-                        completion(.failure(NSError(domain: "GitHubAPI", code: -5, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败，无法识别编码格式"])))
-                    } else {
+                    guard let data = data, !data.isEmpty else {
                         completion(.failure(NSError(domain: "GitHubAPI", code: -6, userInfo: [NSLocalizedDescriptionKey: "日志数据为空"])))
+                        return
                     }
+
+                    // 处理UTF-8 BOM（字节顺序标记），GitHub日志开头可能有BOM
+                    var logData = data
+                    if data.count >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF {
+                        logData = data.subdata(in: 3..<data.count)
+                    }
+
+                    // 尝试UTF8解码
+                    if let logs = String(data: logData, encoding: .utf8) {
+                        completion(.success(logs))
+                        return
+                    }
+                    // 尝试ASCII解码
+                    if let logs = String(data: logData, encoding: .ascii) {
+                        completion(.success(logs))
+                        return
+                    }
+                    // 尝试ISO拉丁编码
+                    if let logs = String(data: logData, encoding: .isoLatin1) {
+                        completion(.success(logs))
+                        return
+                    }
+                    // 尝试UTF16解码
+                    if let logs = String(data: logData, encoding: .utf16) {
+                        completion(.success(logs))
+                        return
+                    }
+                    completion(.failure(NSError(domain: "GitHubAPI", code: -5, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败，无法识别编码格式，数据大小: \(data.count) 字节"])))
                 } else {
                     var errorMessage = "请求失败 (HTTP \(httpResponse.statusCode))"
                     if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let message = json["message"] as? String {
@@ -852,26 +860,6 @@ class GitHubAPI {
                 }
             }
         }.resume()
-    }
-
-    // MARK: - 作业日志重定向代理
-    // 确保重定向到S3预签名URL时不传递Authorization头（S3会拒绝带Authorization头的请求）
-    private class JobLogRedirectDelegate: NSObject, URLSessionTaskDelegate {
-        static let shared = JobLogRedirectDelegate()
-
-        func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
-            // 检查重定向目标是否是S3或其他非GitHub域名
-            if let host = request.url?.host, !host.contains("github.com") && !host.contains("githubusercontent.com") {
-                // 重定向到S3等外部域名，移除Authorization头
-                var newRequest = request
-                newRequest.setValue(nil, forHTTPHeaderField: "Authorization")
-                newRequest.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
-                completionHandler(newRequest)
-            } else {
-                // 重定向到GitHub域名，保留Authorization头
-                completionHandler(request)
-            }
-        }
     }
 
     /// 触发工作流运行（workflow_dispatch）
