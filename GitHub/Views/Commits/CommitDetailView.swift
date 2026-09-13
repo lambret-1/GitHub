@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - 提交详情视图
+// MARK: - 提交详情视图（全新重构，对齐GitHub官方样式）
 struct CommitDetailView: View {
     let owner: String
     let repo: String
@@ -15,9 +15,13 @@ struct CommitDetailView: View {
     // 选中的文件（用于查看diff）
     @State private var selectedFile: ChangedFile?
 
+    // 操作提示
+    @State private var operationMessage: String = ""
+    @State private var showOperationMessage: Bool = false
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 0) {
                 // 提交头部信息
                 commitHeader
 
@@ -25,12 +29,15 @@ struct CommitDetailView: View {
                 commitStats
 
                 Divider()
+                    .padding(.vertical, 8)
 
                 // 变更文件列表
                 changedFilesSection
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
+        .background(appState.isDarkMode ? Color.black : Color(.systemBackground))
         .navigationTitle("提交详情")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -38,6 +45,29 @@ struct CommitDetailView: View {
         }
         .sheet(item: $selectedFile) { file in
             FileDiffView(file: file)
+        }
+        .overlay {
+            if showOperationMessage {
+                VStack {
+                    Spacer()
+                    Text(operationMessage)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.black.opacity(0.8))
+                        .cornerRadius(8)
+                        .padding(.bottom, 40)
+                }
+                .transition(.opacity)
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        withAnimation {
+                            showOperationMessage = false
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -48,6 +78,7 @@ struct CommitDetailView: View {
             Text(commit.message)
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(appState.isDarkMode ? .white : .primary)
+                .fixedSize(horizontal: false, vertical: true)
 
             // 作者信息
             HStack(spacing: 10) {
@@ -58,12 +89,13 @@ struct CommitDetailView: View {
                     Image(systemName: "person.circle.fill")
                         .foregroundColor(.gray)
                 }
-                .frame(width: 36, height: 36)
+                .frame(width: 40, height: 40)
                 .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(commit.authorName)
                         .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(appState.isDarkMode ? .white : .primary)
                     Text("提交于 \(commit.formattedDate)")
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
@@ -72,13 +104,24 @@ struct CommitDetailView: View {
                 Spacer()
 
                 // 提交哈希
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: 4) {
                     Text("提交哈希")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
-                    Text(commit.shortSha)
-                        .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    Button(action: {
+                        UIPasteboard.general.string = commit.sha
+                        operationMessage = "已复制完整提交哈希"
+                        showOperationMessage = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Text(commit.shortSha)
+                                .font(.system(size: 14, weight: .medium, design: .monospaced))
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 12))
+                        }
                         .foregroundColor(.blue)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
 
@@ -94,21 +137,24 @@ struct CommitDetailView: View {
 
                 Button(action: {
                     UIPasteboard.general.string = commit.sha
+                    operationMessage = "已复制完整提交哈希"
+                    showOperationMessage = true
                 }) {
                     Image(systemName: "doc.on.doc")
                         .font(.system(size: 14))
                         .foregroundColor(.blue)
                 }
+                .buttonStyle(PlainButtonStyle())
             }
-            .padding(8)
+            .padding(10)
             .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
-            .cornerRadius(6)
+            .cornerRadius(8)
         }
     }
 
     // MARK: - 提交统计
     private var commitStats: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 20) {
             statItem(
                 icon: "plus.circle.fill",
                 color: .green,
@@ -132,6 +178,7 @@ struct CommitDetailView: View {
 
             Spacer()
         }
+        .padding(.vertical, 12)
     }
 
     // MARK: - 统计项
@@ -152,8 +199,15 @@ struct CommitDetailView: View {
     // MARK: - 变更文件列表
     private var changedFilesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("变更文件 (\(changedFiles.count))")
-                .font(.system(size: 16, weight: .semibold))
+            HStack {
+                Text("变更文件")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(appState.isDarkMode ? .white : .primary)
+                Text("(\(changedFiles.count))")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
 
             if isLoadingFiles {
                 HStack {
@@ -161,10 +215,11 @@ struct CommitDetailView: View {
                     ProgressView("加载变更文件...")
                     Spacer()
                 }
-                .padding()
+                .padding(.vertical, 40)
             } else if let error = filesError {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 32))
                         .foregroundColor(.orange)
                     Text(error)
                         .font(.system(size: 13))
@@ -175,12 +230,19 @@ struct CommitDetailView: View {
                     }
                     .buttonStyle(.bordered)
                 }
-                .padding()
+                .padding(.vertical, 40)
+                .frame(maxWidth: .infinity)
             } else if changedFiles.isEmpty {
-                Text("暂无变更文件")
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding()
+                VStack(spacing: 8) {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 32))
+                        .foregroundColor(.secondary)
+                    Text("暂无变更文件")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 40)
+                .frame(maxWidth: .infinity)
             } else {
                 ForEach(changedFiles) { file in
                     ChangedFileRow(file: file)
@@ -190,6 +252,7 @@ struct CommitDetailView: View {
 
                     if file.id != changedFiles.last?.id {
                         Divider()
+                            .padding(.leading, 32)
                     }
                 }
             }
@@ -198,12 +261,12 @@ struct CommitDetailView: View {
 
     // MARK: - 计算总新增行数
     private var totalAdditions: Int {
-        return changedFiles.reduce(0) { $0 + ($1.additions ?? 0) }
+        return changedFiles.reduce(0) { $0 + $1.additions }
     }
 
     // MARK: - 计算总删除行数
     private var totalDeletions: Int {
-        return changedFiles.reduce(0) { $0 + ($1.deletions ?? 0) }
+        return changedFiles.reduce(0) { $0 + $1.deletions }
     }
 
     // MARK: - 加载变更文件
@@ -225,7 +288,7 @@ struct CommitDetailView: View {
     }
 }
 
-// MARK: - 变更文件行视图
+// MARK: - 变更文件行视图（全新重构，对齐GitHub官方样式）
 struct ChangedFileRow: View {
     let file: ChangedFile
     @EnvironmentObject var appState: AppState
@@ -240,7 +303,7 @@ struct ChangedFileRow: View {
 
             // 文件名
             VStack(alignment: .leading, spacing: 2) {
-                Text(file.filename)
+                Text(fileNameOnly)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
                     .lineLimit(1)
@@ -275,7 +338,7 @@ struct ChangedFileRow: View {
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
         .contentShape(Rectangle())
     }
 
@@ -301,16 +364,25 @@ struct ChangedFileRow: View {
         }
     }
 
+    // MARK: - 文件名（不含路径）
+    private var fileNameOnly: String {
+        return (file.filename as NSString).lastPathComponent
+    }
+
     // MARK: - 文件路径
     private var filePath: String {
         return (file.filename as NSString).deletingLastPathComponent
     }
 }
 
-// MARK: - 文件Diff视图
+// MARK: - 文件Diff视图（全新重构，支持大文件流畅打开）
 struct FileDiffView: View {
     let file: ChangedFile
     @EnvironmentObject var appState: AppState
+
+    // 缩放比例
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
 
     var body: some View {
         NavigationStack {
@@ -318,11 +390,26 @@ struct FileDiffView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     // 文件头部
                     HStack {
-                        Image(systemName: "doc.fill")
-                            .foregroundColor(.blue)
+                        Image(systemName: statusIcon)
+                            .foregroundColor(statusColor)
                         Text(file.filename)
                             .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(appState.isDarkMode ? .white : .primary)
+                            .lineLimit(1)
                         Spacer()
+                        // 变更统计
+                        HStack(spacing: 6) {
+                            if file.additions > 0 {
+                                Text("+\(file.additions)")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.green)
+                            }
+                            if file.deletions > 0 {
+                                Text("-\(file.deletions)")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.red)
+                            }
+                        }
                     }
                     .padding()
                     .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
@@ -345,6 +432,7 @@ struct FileDiffView: View {
                     }
                 }
             }
+            .background(appState.isDarkMode ? Color.black : Color.white)
             .navigationTitle("文件变更")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -354,13 +442,25 @@ struct FileDiffView: View {
                     }
                 }
             }
+            // 双指缩放
+            .gesture(
+                MagnificationGesture()
+                    .onChanged { value in
+                        scale = lastScale * value
+                        // 限制缩放范围
+                        scale = max(0.5, min(scale, 2.0))
+                    }
+                    .onEnded { value in
+                        lastScale = scale
+                    }
+            )
         }
     }
 
-    // MARK: - Diff内容渲染
+    // MARK: - Diff内容渲染（使用LazyVStack优化大文件性能）
     private func diffContent(_ patch: String) -> some View {
         let lines = patch.components(separatedBy: .newlines)
-        return VStack(alignment: .leading, spacing: 0) {
+        return LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
                 HStack(spacing: 0) {
                     // 行号
@@ -382,6 +482,7 @@ struct FileDiffView: View {
             }
         }
         .padding(.vertical, 8)
+        .scaleEffect(scale)
     }
 
     // MARK: - 行颜色
@@ -407,6 +508,28 @@ struct FileDiffView: View {
             return .blue.opacity(0.1)
         } else {
             return .clear
+        }
+    }
+
+    // MARK: - 状态图标
+    private var statusIcon: String {
+        switch file.status.lowercased() {
+        case "added": return "plus.circle.fill"
+        case "modified": return "pencil.circle.fill"
+        case "removed": return "trash.circle.fill"
+        case "renamed": return "arrow.left.arrow.right.circle.fill"
+        default: return "doc.fill"
+        }
+    }
+
+    // MARK: - 状态颜色
+    private var statusColor: Color {
+        switch file.status.lowercased() {
+        case "added": return .green
+        case "modified": return .blue
+        case "removed": return .red
+        case "renamed": return .orange
+        default: return .gray
         }
     }
 }

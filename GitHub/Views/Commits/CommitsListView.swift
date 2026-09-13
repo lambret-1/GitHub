@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - 提交列表视图
+// MARK: - 提交列表视图（全新重构，对齐GitHub官方样式）
 struct CommitsListView: View {
     let owner: String
     let repo: String
@@ -17,6 +17,10 @@ struct CommitsListView: View {
 
     // 选中的提交（用于跳转详情）
     @State private var selectedCommit: Commit?
+
+    // 操作提示
+    @State private var operationMessage: String = ""
+    @State private var showOperationMessage: Bool = false
 
     var body: some View {
         List {
@@ -39,15 +43,17 @@ struct CommitsListView: View {
                             }
                         }
                         .listRowBackground(appState.isDarkMode ? Color.black : Color.white)
+                        .listRowSeparator(.hidden)
                 }
 
                 if isLoadingMore {
                     HStack {
                         Spacer()
-                        ProgressView()
+                        ProgressView("加载更多...")
                         Spacer()
                     }
                     .listRowBackground(Color.clear)
+                    .padding(.vertical, 16)
                 }
             }
         }
@@ -67,6 +73,29 @@ struct CommitsListView: View {
         }
         .sheet(item: $selectedCommit) { commit in
             CommitDetailView(owner: owner, repo: repo, commit: commit)
+        }
+        .overlay {
+            if showOperationMessage {
+                VStack {
+                    Spacer()
+                    Text(operationMessage)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.black.opacity(0.8))
+                        .cornerRadius(8)
+                        .padding(.bottom, 40)
+                }
+                .transition(.opacity)
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        withAnimation {
+                            showOperationMessage = false
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -142,9 +171,13 @@ struct CommitsListView: View {
         isLoadingMore = true
         currentPage += 1
 
-        // GitHub API的commits接口不直接支持分页参数，但可以通过per_page和sha来实现
-        // 这里简化处理，直接重新加载第一页（实际项目中应该使用last commit的sha作为参数）
-        GitHubAPI.shared.getCommits(owner: owner, repo: repo, branch: branch, perPage: 30) { result in
+        // 使用最后一个提交的sha作为分页参数
+        guard let lastSha = commits.last?.sha else {
+            isLoadingMore = false
+            return
+        }
+
+        GitHubAPI.shared.getCommits(owner: owner, repo: repo, branch: lastSha, perPage: 30) { result in
             DispatchQueue.main.async {
                 isLoadingMore = false
                 switch result {
@@ -162,10 +195,13 @@ struct CommitsListView: View {
     }
 }
 
-// MARK: - 提交行视图
+// MARK: - 提交行视图（全新重构，对齐GitHub官方样式）
 struct CommitRow: View {
     let commit: Commit
     @EnvironmentObject var appState: AppState
+
+    // 操作提示
+    @State private var showCopyMessage: Bool = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -173,9 +209,9 @@ struct CommitRow: View {
             Image(systemName: "commit")
                 .font(.system(size: 18))
                 .foregroundColor(.secondary)
-                .padding(.top, 2)
+                .padding(.top, 4)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 // 提交信息
                 Text(commit.message)
                     .font(.system(size: 15, weight: .semibold))
@@ -191,31 +227,59 @@ struct CommitRow: View {
                         Image(systemName: "person.circle.fill")
                             .foregroundColor(.gray)
                     }
-                    .frame(width: 18, height: 18)
+                    .frame(width: 20, height: 20)
                     .clipShape(Circle())
 
                     Text(commit.authorName)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+
+                    Text("提交于")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
 
-                    Text(commit.formattedDate)
+                    Text(commit.relativeDate)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
 
                     Spacer()
 
-                    // 短哈希
-                    Text(commit.shortSha)
-                        .font(.system(size: 12, weight: .medium))
+                    // 短哈希（可点击复制）
+                    Button(action: {
+                        UIPasteboard.general.string = commit.shortSha
+                        showCopyMessage = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            showCopyMessage = false
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: showCopyMessage ? "checkmark" : "doc.on.doc")
+                                .font(.system(size: 11))
+                            Text(commit.shortSha)
+                                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        }
                         .foregroundColor(.blue)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .background(Color.blue.opacity(0.1))
-                        .cornerRadius(4)
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
         .contentShape(Rectangle())
+        .background(
+            appState.isDarkMode ? Color.black : Color.white
+        )
+        .overlay(
+            Rectangle()
+                .fill(appState.isDarkMode ? Color.white.opacity(0.1) : Color.black.opacity(0.05))
+                .frame(height: 1)
+                .padding(.leading, 40),
+            alignment: .bottom
+        )
     }
 }
