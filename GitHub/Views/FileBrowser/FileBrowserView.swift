@@ -910,31 +910,31 @@ struct FileBrowserView: View {
 
                 Spacer()
 
-                // 右侧按钮
-                HStack(spacing: 4) {
+                // 右侧按钮：三个点菜单
+                Menu {
                     Button(action: {
                         // 复制提交哈希
                         UIPasteboard.general.string = commit.shortSha
+                        // 显示复制成功提示
+                        operationMessage = "已复制提交哈希: \(commit.shortSha)"
+                        showOperationMessage = true
                     }) {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 16))
-                            .foregroundColor(.secondary)
-                            .frame(width: 36, height: 36)
-                            .contentShape(Rectangle())
+                        Label("复制提交哈希", systemImage: "doc.on.doc")
                     }
-                    .buttonStyle(PlainButtonStyle())
 
                     Button(action: {
                         showCommits = true
                     }) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 16))
-                            .foregroundColor(.secondary)
-                            .frame(width: 36, height: 36)
-                            .contentShape(Rectangle())
+                        Label("查看提交记录", systemImage: "clock.arrow.circlepath")
                     }
-                    .buttonStyle(PlainButtonStyle())
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
                 }
+                .menuStyle(BorderlessButtonMenuStyle())
             } else {
                 // 无提交信息
                 Spacer()
