@@ -31,7 +31,7 @@ struct DiffView: View {
     private var fileInfoHeader: some View {
         HStack {
             Image(systemName: changedFile.statusIcon)
-                .foregroundColor(Color(changedFile.statusColor))
+                .foregroundColor(changedFile.statusColor)
             VStack(alignment: .leading, spacing: 2) {
                 Text(changedFile.filename)
                     .font(.caption)
@@ -41,7 +41,7 @@ struct DiffView: View {
                     Text(changedFile.statusDisplay)
                         .font(.caption2)
                         .fontWeight(.medium)
-                        .foregroundColor(Color(changedFile.statusColor))
+                        .foregroundColor(changedFile.statusColor)
                     Text("+\(changedFile.additions)")
                         .font(.caption2)
                         .foregroundColor(.green)

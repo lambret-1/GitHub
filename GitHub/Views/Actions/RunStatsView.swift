@@ -267,8 +267,9 @@ struct RunStatsView: View {
     private var durationTrendChart: some View {
         let completedRuns = runs.filter { $0.status == "completed" }.prefix(20)
         let durations = completedRuns.compactMap { run -> Int? in
-            guard let createdAt = run.createdAt, let updatedAt = run.updatedAt,
-                  let createdDate = 日期工具.解析ISO日期(createdAt),
+            let createdAt = run.createdAt
+            let updatedAt = run.updatedAt
+            guard let createdDate = 日期工具.解析ISO日期(createdAt),
                   let updatedDate = 日期工具.解析ISO日期(updatedAt) else {
                 return nil
             }
@@ -338,8 +339,9 @@ struct RunStatsView: View {
                 default: break
                 }
                 // 计算耗时
-                if let createdAt = run.createdAt, let updatedAt = run.updatedAt,
-                   let createdDate = 日期工具.解析ISO日期(createdAt),
+                let createdAt = run.createdAt
+                let updatedAt = run.updatedAt
+                if let createdDate = 日期工具.解析ISO日期(createdAt),
                    let updatedDate = 日期工具.解析ISO日期(updatedAt) {
                     let duration = Int(updatedDate.timeIntervalSince(createdDate))
                     if duration > 0 {
