@@ -221,6 +221,8 @@ struct FileBrowserView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarHidden(true)
+        // iOS 16+ 使用toolbar(.hidden)彻底隐藏系统导航栏，避免双重导航栏问题
+        .toolbar(.hidden, for: .navigationBar)
         // 隐藏的NavigationLink（拆分成单独属性，简化body表达式，避免类型检查超时）
         .background(hiddenNavigationLinks)
         .overlay {
