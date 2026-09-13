@@ -594,7 +594,7 @@ struct JobLogView: View {
         refreshCount += 1
         lastRefreshTime = Date()
 
-        GitHubAPI.shared.getJobLogs(owner: owner, repo: repo, jobId: job.id) { result in
+        GitHubAPI.shared.getJobLogs(owner: owner, repo: repo, jobId: job.id, logsUrl: job.logsUrl) { result in
             DispatchQueue.main.async {
                 if !silent {
                     isLoading = false

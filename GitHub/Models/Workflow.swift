@@ -262,10 +262,11 @@ struct WorkflowJob: Codable, Identifiable {
     let checkRunUrl: String
     let labels: [String]
     let runnerId: Int?
-    let runnerName: String?
+    let runnerName: Int?
     let runnerGroupId: Int?
     let runnerGroupName: String?
     let exitCode: Int? // 作业退出码（失败时非0，成功时为0）
+    let logsUrl: String? // 作业日志下载URL（GitHub API返回的直接日志URL）
 
     enum CodingKeys: String, CodingKey {
         case id, name, status, conclusion, url, steps, labels
@@ -282,6 +283,7 @@ struct WorkflowJob: Codable, Identifiable {
         case runnerGroupId = "runner_group_id"
         case runnerGroupName = "runner_group_name"
         case exitCode = "exit_code"
+        case logsUrl = "logs_url"
     }
 
     // 作业状态显示文本
