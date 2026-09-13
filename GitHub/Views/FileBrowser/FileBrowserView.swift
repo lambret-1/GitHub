@@ -1206,6 +1206,22 @@ struct FileBrowserView: View {
         
 
         Button(action: {
+            copyRepositoryHTTPSURL()
+        }) {
+            Label("复制 HTTPS 链接", systemImage: "link")
+        }
+        .disabled(isDeleteMode)
+
+        Button(action: {
+            copyRepositorySSHURL()
+        }) {
+            Label("复制 SSH 链接", systemImage: "network")
+        }
+        .disabled(isDeleteMode)
+
+        Divider()
+
+        Button(action: {
             showCommits = true
         }) {
             Label("提交记录", systemImage: "clock.arrow.circlepath")
@@ -1573,7 +1589,7 @@ struct FileBrowserView: View {
 
     /// 检查仓库是否已被星标
     func checkStarredStatus() {
-        guard !isOwnRepository else { return }
+        // 修复P0问题：移除自己仓库不检查星标的限制，所有仓库都检查星标状态
         isCheckingStar = true
         GitHubAPI.shared.checkStarred(owner: repository.ownerName, repo: repository.name) { result in
             DispatchQueue.main.async {
@@ -1737,6 +1753,20 @@ struct FileBrowserView: View {
         let repoURL = "https://github.com/\(repository.ownerName)/\(repository.name)"
         UIPasteboard.general.string = repoURL
         showMessage("仓库地址已复制")
+    }
+
+    /// 复制仓库 HTTPS 克隆链接到剪贴板
+    func copyRepositoryHTTPSURL() {
+        let httpsURL = "https://github.com/\(repository.ownerName)/\(repository.name).git"
+        UIPasteboard.general.string = httpsURL
+        showMessage("HTTPS 链接已复制")
+    }
+
+    /// 复制仓库 SSH 克隆链接到剪贴板
+    func copyRepositorySSHURL() {
+        let sshURL = "git@github.com:\(repository.ownerName)/\(repository.name).git"
+        UIPasteboard.general.string = sshURL
+        showMessage("SSH 链接已复制")
     }
 
     // MARK: - 提示消息

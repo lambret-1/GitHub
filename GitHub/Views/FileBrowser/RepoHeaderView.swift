@@ -274,9 +274,9 @@ struct RepoHeaderView: View {
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
-                // 复刻数
+                // 复刻数（修复P0问题：arrow.triangle.branch在小尺寸下渲染异常，改用arrowshape.turn.up.right）
                 HStack(spacing: 4) {
-                    Image(systemName: "arrow.triangle.branch")
+                    Image(systemName: "arrowshape.turn.up.right")
                         .font(.system(size: 11))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     Text("\(repository.forksCount ?? 0)")

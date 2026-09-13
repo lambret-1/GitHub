@@ -67,16 +67,16 @@ struct BranchBarView<MenuContent: View>: View {
 
             Spacer()
 
-            // 右侧：代码下拉按钮（绿色，保持原样式）
+            // 右侧：代码操作下拉按钮（绿色，修复P0问题：文字改为代码操作，箭头移到右侧）
             Menu {
                 menuContent()
             } label: {
                 HStack(spacing: 6) {
+                    Text("代码操作")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
                     Image(systemName: "chevron.down")
                         .font(.system(size: 10))
-                        .foregroundColor(.white)
-                    Text("代码")
-                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white)
                 }
                 .padding(.horizontal, 14)

@@ -40,11 +40,14 @@
   - `showCommits: Bool` - 是否显示提交记录页面
   - `showActions: Bool` - 是否显示Actions页面
 - 核心函数：
-  - `checkStarredStatus()` - 检查仓库是否已被星标
+  - `checkStarredStatus()` - 检查仓库是否已被星标（修复P0：所有仓库都检查，包括自己的仓库）
   - `toggleStar()` - 切换星标状态
   - `starRepository()` - 星标仓库（成功后localStarCount+1）
   - `unstarRepository()` - 取消星标仓库（成功后localStarCount-1）
   - `forkRepository()` - Fork仓库
+  - `copyRepositoryURL()` - 复制仓库网页地址到剪贴板
+  - `copyRepositoryHTTPSURL()` - 复制仓库HTTPS克隆链接到剪贴板
+  - `copyRepositorySSHURL()` - 复制仓库SSH克隆链接到剪贴板
   - `showMessage(_:)` - 显示操作提示Toast
   - `loadFiles()` - 加载文件列表
   - `loadBranches()` - 加载分支列表
@@ -76,6 +79,11 @@
 - `owner: String` - 仓库所有者
 - `repo: String` - 仓库名称
 - `onBranchesChanged: () -> Void` - 分支列表变化回调
+- `menuContent: () -> MenuContent` - 代码操作菜单内容（泛型）
+- 代码操作按钮（修复P0）：
+  - 文字为「代码操作」，箭头在右侧
+  - 绿色背景，对齐GitHub官方品牌色
+  - 点击弹出下拉菜单，包含：复制HTTPS链接、复制SSH链接、提交记录、Actions、下载仓库ZIP、在GitHub打开
 
 ### CreateFileView 新建文件
 - 内部状态：`newFileName: String` - 新文件名
@@ -117,17 +125,19 @@
 11. **复制路径**：支持复制文件Raw地址
 12. **HTML预览**：支持预览HTML文件，带刷新功能
 13. **README展示**：获取Markdown原文并渲染，对齐GitHub官方样式
-14. **仓库头部**：复刻GitHub官方布局，展示仓库信息、Watch/Fork/Star按钮
-15. **星标功能**：支持星标/取消星标，带动画效果（spring缩放、颜色过渡）和数量实时更新
-16. **Fork功能**：支持Fork仓库，带二次确认
-17. **提交记录**：查看仓库提交历史
-18. **Actions**：查看仓库Actions工作流
-19. **Issues/PR**：查看仓库Issues和Pull Requests
-20. **仓库设置**：查看仓库设置和统计信息
-21. **下拉刷新**：支持下拉刷新文件列表
-22. **左滑手势**：支持左滑返回上级目录
-23. **深色模式适配**：所有视图适配深色模式
-24. **操作提示**：操作成功/失败显示Toast提示
+14. **仓库头部**：复刻GitHub官方布局，展示仓库信息、Watch/Fork/Star按钮（修复P0：Fork图标更换为arrowshape.turn.up.right，避免小尺寸渲染异常）
+15. **星标功能**：支持星标/取消星标，带动画效果（spring缩放、颜色过渡）和数量实时更新（修复P0：自己的仓库也检查星标状态，已星标显示填充黄星+黄色背景+「已标星」文字）
+16. **代码操作菜单**：绿色「代码操作 ▾」按钮（修复P0：文字从「代码」改为「代码操作」，箭头移到右侧），包含复制HTTPS链接、复制SSH链接、提交记录、Actions、下载仓库ZIP、在GitHub打开
+17. **复制链接**：支持复制仓库网页地址、HTTPS克隆链接、SSH克隆链接到剪贴板
+18. **Fork功能**：支持Fork仓库，带二次确认
+19. **提交记录**：查看仓库提交历史
+20. **Actions**：查看仓库Actions工作流
+21. **Issues/PR**：查看仓库Issues和Pull Requests
+22. **仓库设置**：查看仓库设置和统计信息
+23. **下拉刷新**：支持下拉刷新文件列表
+24. **左滑手势**：支持左滑返回上级目录
+25. **深色模式适配**：所有视图适配深色模式
+26. **操作提示**：操作成功/失败显示Toast提示
 
 ## 依赖模块
 - `GitHub/Models/Repository.swift` - 仓库数据模型
