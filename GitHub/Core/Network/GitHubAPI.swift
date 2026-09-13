@@ -375,7 +375,8 @@ class GitHubAPI {
     }
 
     /// 在指定仓库内搜索代码（本地仓库代码搜索）
-    func searchCodeInRepo(owner: String, repo: String, query: String, page: Int = 1, completion: @escaping (Result<[CodeSearchItem], Error>) -> Void) {
+    /// 注意：GitHub代码搜索API默认搜索默认分支，branch参数预留用于未来扩展
+    func searchCodeInRepo(owner: String, repo: String, query: String, branch: String = "main", page: Int = 1, completion: @escaping (Result<[CodeSearchItem], Error>) -> Void) {
         let url = APIEndpoints.searchCodeInRepo(owner: owner, repo: repo, query: query, page: page).url
 
         performRequest(url: url) { result in
