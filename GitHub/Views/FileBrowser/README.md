@@ -1,14 +1,14 @@
 # FileBrowser 文件浏览器模块
 
 ## 模块说明
-本模块负责仓库文件的浏览、查看、编辑与操作，是GitHub客户端的核心功能模块，包含文件列表、代码查看、文件操作、仓库头部、分支管理、README展示等功能。
+本模块负责仓库文件的浏览、查看、编辑与操作，是GitHub客户端的核心功能模块，包含文件列表、代码查看、文件操作、仓库头部、分支管理、README展示等功能。星标功能全新优化，支持动画效果和数量实时更新。
 
 ## 文件清单
 
 | 文件名 | 功能说明 |
 |--------|----------|
-| `FileBrowserView.swift` | 文件浏览器主视图，展示仓库文件列表，支持文件浏览、上传、下载、编辑、删除、分支切换、提交记录、Actions等功能 |
-| `RepoHeaderView.swift` | 仓库头部组件，复刻GitHub网页仓库页顶部布局，展示仓库信息、Watch/Fork/Star按钮、描述、Topics、元信息等 |
+| `FileBrowserView.swift` | 文件浏览器主视图，展示仓库文件列表，支持文件浏览、上传、下载、编辑、删除、分支切换、提交记录、Actions、星标/Fork等功能 |
+| `RepoHeaderView.swift` | 仓库头部组件，复刻GitHub网页仓库页顶部布局，展示仓库信息、Watch/Fork/Star按钮（带动画效果）、描述、Topics、元信息等 |
 | `BranchBarView.swift` | 分支栏组件，展示当前分支、分支切换、创建分支、重命名分支、删除分支等功能 |
 | `CreateFileView.swift` | 新建文件视图，支持输入文件名、创建文件、创建成功后自动跳转到编辑状态 |
 | `CreateFolderView.swift` | 创建文件夹视图，支持输入文件夹名、创建文件夹 |
@@ -20,7 +20,7 @@
 
 ### FileBrowserView 文件浏览器
 - `repository: Repository` - 仓库对象，包含仓库信息
-- 内部状态变量：
+- 内部状态变量（核心）：
   - `currentPath: String` - 当前浏览的目录路径
   - `files: [FileItem]` - 当前目录下的文件和文件夹数组
   - `selectedBranch: String` - 当前选中的分支名
@@ -30,8 +30,25 @@
   - `isDeleteMode: Bool` - 是否处于多选删除模式
   - `selectedFilesForDelete: [FileItem]` - 多选删除模式下选中的文件数组
   - `isStarred: Bool` - 仓库是否已星标
+  - `isCheckingStar: Bool` - 检查星标状态中
   - `isStarring: Bool` - 星标操作中状态
+  - `isForking: Bool` - Fork操作中状态
   - `localStarCount: Int?` - 本地星标数量，用于星标状态变化时实时更新
+  - `showOperationMessage: Bool` - 是否显示操作提示
+  - `operationMessage: String` - 操作提示信息
+  - `selectedTab: RepoTab` - 当前选中的Tab（code/issues/pullRequests/actions/settings）
+  - `showCommits: Bool` - 是否显示提交记录页面
+  - `showActions: Bool` - 是否显示Actions页面
+- 核心函数：
+  - `checkStarredStatus()` - 检查仓库是否已被星标
+  - `toggleStar()` - 切换星标状态
+  - `starRepository()` - 星标仓库（成功后localStarCount+1）
+  - `unstarRepository()` - 取消星标仓库（成功后localStarCount-1）
+  - `forkRepository()` - Fork仓库
+  - `showMessage(_:)` - 显示操作提示Toast
+  - `loadFiles()` - 加载文件列表
+  - `loadBranches()` - 加载分支列表
+  - `navigateUp()` - 返回上级目录
 
 ### RepoHeaderView 仓库头部
 - `repository: Repository` - 仓库对象
@@ -43,6 +60,14 @@
 - `onFork: () -> Void` - Fork仓库回调
 - `starCount: Int?` - 星标数量（可选，用于实时更新）
 - `onViewParent: ((RepositoryParent) -> Void)?` - 查看父仓库回调
+- 内部状态：
+  - `isDescriptionExpanded: Bool` - 描述是否展开
+- 星标按钮动画效果：
+  - 点击时spring缩放动画
+  - 星标图标缩放动画（星标时放大1.2倍）
+  - 背景颜色过渡动画（星标时黄色背景）
+  - 边框颜色过渡动画（星标时黄色边框）
+  - 按钮点击时缩放反馈
 
 ### BranchBarView 分支栏
 - `branches: Binding<[Branch]>` - 分支列表绑定
@@ -93,7 +118,7 @@
 12. **HTML预览**：支持预览HTML文件，带刷新功能
 13. **README展示**：获取Markdown原文并渲染，对齐GitHub官方样式
 14. **仓库头部**：复刻GitHub官方布局，展示仓库信息、Watch/Fork/Star按钮
-15. **星标功能**：支持星标/取消星标，带动画效果和数量实时更新
+15. **星标功能**：支持星标/取消星标，带动画效果（spring缩放、颜色过渡）和数量实时更新
 16. **Fork功能**：支持Fork仓库，带二次确认
 17. **提交记录**：查看仓库提交历史
 18. **Actions**：查看仓库Actions工作流
@@ -103,3 +128,14 @@
 22. **左滑手势**：支持左滑返回上级目录
 23. **深色模式适配**：所有视图适配深色模式
 24. **操作提示**：操作成功/失败显示Toast提示
+
+## 依赖模块
+- `GitHub/Models/Repository.swift` - 仓库数据模型
+- `GitHub/Models/FileItem.swift` - 文件项数据模型
+- `GitHub/Models/Branch.swift` - 分支数据模型（在Workflow.swift中）
+- `GitHub/Core/Network/GitHubAPI.swift` - GitHub API网络请求
+- `GitHub/Core/Utils/AppState.swift` - 应用全局状态
+- `GitHub/Core/Utils/FileDownloadManager.swift` - 文件下载管理
+- `GitHub/Views/CodeEditor/CodeEditorView.swift` - 代码编辑器
+- `GitHub/Views/Commits/CommitsListView.swift` - 提交记录列表
+- `GitHub/Views/Actions/ActionsListView.swift` - Actions列表

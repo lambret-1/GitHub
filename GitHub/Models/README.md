@@ -27,8 +27,15 @@
 | `createdAt` | 创建时间 | 仓库创建时间（ISO 8601 格式） |
 | `owner` | 所有者 | 仓库所有者信息（RepositoryOwner 模型） |
 | `ownerName` | 所有者名称 | 计算属性，返回所有者登录名 |
-| `formattedUpdateTime` | 格式化更新时间 | 计算属性，返回北京时间格式的更新时间 |
+| `formattedUpdateTime` | 格式化更新时间 | 计算属性，返回相对时间格式（x分钟前/x小时前/x天前） |
 | `languageColor` | 语言颜色 | 计算属性，返回编程语言对应的十六进制颜色值 |
+| `topics` | 主题标签 | 仓库的主题标签数组（可选） |
+| `license` | 开源协议 | 仓库的开源协议信息（可选） |
+| `size` | 仓库大小 | 仓库大小（KB） |
+| `fork` | 是否Fork | 是否为Fork仓库 |
+| `parent` | 父仓库 | Fork来源的父仓库信息（可选） |
+| `权限` | 权限信息 | 当前用户对仓库的权限信息 |
+| `当前权限` | 当前权限级别 | 计算属性，返回当前用户的权限级别 |
 
 **RepositoryOwner 子模型：**
 
@@ -37,6 +44,13 @@
 | `login` | 登录名 | 所有者的 GitHub 登录名 |
 | `id` | 用户 ID | 所有者的唯一数字标识 |
 | `avatarUrl` | 头像 URL | 所有者的头像图片地址 |
+
+**RepositoryParent 子模型：**
+
+| 属性名 | 中文释义 | 说明 |
+|--------|---------|------|
+| `fullName` | 完整名称 | 父仓库的完整名称 |
+| `htmlUrl` | 网页 URL | 父仓库的 GitHub 网页地址 |
 
 ---
 
@@ -106,7 +120,7 @@
 | `message` | 提交信息 | 计算属性，返回提交信息文本 |
 | `authorName` | 作者名称 | 计算属性，返回作者名称 |
 | `authorDate` | 作者日期 | 计算属性，返回作者提交日期 |
-| `formattedDate` | 格式化日期 | 计算属性，返回北京时间格式的日期 |
+| `formattedDate` | 格式化日期 | 计算属性，返回相对时间格式 |
 
 **CommitDetail 子模型：**
 
@@ -202,7 +216,7 @@
 | `statusColor` | 状态颜色 | 计算属性，返回状态对应的颜色名 |
 | `eventDisplay` | 事件显示文本 | 计算属性，返回中文事件文本 |
 | `shortSha` | 短哈希 | 计算属性，返回前 7 位提交哈希 |
-| `formattedCreatedAt` | 格式化创建时间 | 计算属性，返回北京时间格式 |
+| `formattedCreatedAt` | 格式化创建时间 | 计算属性，返回相对时间格式 |
 
 **WorkflowJob（工作流作业）子模型：**
 
@@ -239,6 +253,22 @@
 | `durationSeconds` | 运行时长（秒） | 计算属性，返回步骤运行时长（可选） |
 | `durationDisplay` | 运行时长显示 | 计算属性，返回人类可读的运行时长 |
 
+**ChangedFile（变更文件）子模型：**
+
+| 属性名 | 中文释义 | 说明 |
+|--------|---------|------|
+| `sha` | 文件哈希 | 文件的 Git SHA 哈希值 |
+| `filename` | 文件名 | 文件的完整路径和名称 |
+| `status` | 状态 | 文件变更状态（added/modified/removed/renamed） |
+| `additions` | 新增行数 | 文件新增的行数 |
+| `deletions` | 删除行数 | 文件删除的行数 |
+| `changes` | 变更行数 | 文件总的变更行数 |
+| `blobUrl` | Blob URL | 文件的 Blob 页面地址（可选） |
+| `rawUrl` | Raw URL | 文件的 Raw 内容地址（可选） |
+| `contentsUrl` | 内容 URL | 文件内容的 API 地址（可选） |
+| `patch` | Diff内容 | 文件的 Diff/Patch 内容（可选） |
+| `previousFilename` | 原文件名 | 重命名前的文件名（可选） |
+
 **HeadCommit（头部提交）子模型：**
 
 | 属性名 | 中文释义 | 说明 |
@@ -270,6 +300,87 @@
 
 ---
 
+### Issue.swift
+**Issues 数据模型**
+
+**功能参数说明：**
+
+| 属性名 | 中文释义 | 说明 |
+|--------|---------|------|
+| `id` | Issue ID | Issue的唯一数字标识 |
+| `number` | Issue编号 | Issue在仓库中的编号 |
+| `title` | 标题 | Issue标题 |
+| `body` | 正文 | Issue正文内容（可选） |
+| `state` | 状态 | Issue状态（open/closed） |
+| `createdAt` | 创建时间 | Issue创建时间 |
+| `updatedAt` | 更新时间 | Issue最后更新时间 |
+| `closedAt` | 关闭时间 | Issue关闭时间（可选） |
+| `user` | 创建者 | 创建Issue的用户信息 |
+| `assignee` | 负责人 | Issue负责人（可选） |
+| `assignees` | 负责人列表 | Issue负责人列表 |
+| `labels` | 标签列表 | Issue标签列表 |
+| `milestone` | 里程碑 | Issue所属里程碑（可选） |
+| `comments` | 评论数 | Issue评论数量 |
+| `htmlUrl` | 网页 URL | Issue的GitHub网页地址 |
+| `stateDisplay` | 状态显示文本 | 计算属性，返回中文状态文本 |
+| `formattedCreatedAt` | 格式化创建时间 | 计算属性，返回相对时间格式 |
+
+---
+
+### PullRequest.swift
+**Pull Requests 数据模型**
+
+**功能参数说明：**
+
+| 属性名 | 中文释义 | 说明 |
+|--------|---------|------|
+| `id` | PR ID | PR的唯一数字标识 |
+| `number` | PR编号 | PR在仓库中的编号 |
+| `title` | 标题 | PR标题 |
+| `body` | 正文 | PR正文内容（可选） |
+| `state` | 状态 | PR状态（open/closed） |
+| `merged` | 是否已合并 | PR是否已合并 |
+| `createdAt` | 创建时间 | PR创建时间 |
+| `updatedAt` | 更新时间 | PR最后更新时间 |
+| `closedAt` | 关闭时间 | PR关闭时间（可选） |
+| `mergedAt` | 合并时间 | PR合并时间（可选） |
+| `user` | 创建者 | 创建PR的用户信息 |
+| `assignee` | 负责人 | PR负责人（可选） |
+| `assignees` | 负责人列表 | PR负责人列表 |
+| `labels` | 标签列表 | PR标签列表 |
+| `milestone` | 里程碑 | PR所属里程碑（可选） |
+| `comments` | 评论数 | PR评论数量 |
+| `reviewComments` | 审查评论数 | PR审查评论数量 |
+| `commits` | 提交数 | PR包含的提交数量 |
+| `additions` | 新增行数 | PR新增的行数 |
+| `deletions` | 删除行数 | PR删除的行数 |
+| `changedFiles` | 变更文件数 | PR变更的文件数量 |
+| `head` | 头部分支 | PR的头部分支信息 |
+| `base` | 目标分支 | PR的目标分支信息 |
+| `htmlUrl` | 网页 URL | PR的GitHub网页地址 |
+| `stateDisplay` | 状态显示文本 | 计算属性，返回中文状态文本 |
+| `formattedCreatedAt` | 格式化创建时间 | 计算属性，返回相对时间格式 |
+
+---
+
+### CodeSearchItem.swift
+**代码搜索结果数据模型**
+
+**功能参数说明：**
+
+| 属性名 | 中文释义 | 说明 |
+|--------|---------|------|
+| `name` | 文件名 | 文件名称 |
+| `path` | 文件路径 | 文件在仓库中的完整路径 |
+| `sha` | 文件哈希 | 文件的Git SHA哈希值 |
+| `repository` | 仓库信息 | 文件所属仓库信息 |
+| `htmlUrl` | 网页 URL | 文件的GitHub网页地址 |
+| `gitUrl` | Git URL | 文件的Git API地址 |
+| `score` | 匹配分数 | 搜索匹配分数 |
+| `textMatches` | 文本匹配 | 文本匹配结果列表（可选） |
+
+---
+
 ## 数据模型规范
 
 1. 所有模型必须遵循 Codable 协议
@@ -278,5 +389,6 @@
 4. 使用 CodingKeys 枚举映射字段名
 5. 可选字段必须使用可选类型（?）
 6. 计算属性用于格式化显示，不参与编码解码
-7. 日期时间使用 ISO 8601 格式存储，显示时转换为北京时间
+7. 日期时间使用 ISO 8601 格式存储，显示时转换为相对时间（x分钟前/x小时前/x天前）
 8. 新增模型时必须更新本 README 说明
+9. 所有时间显示统一使用相对时间格式，不使用时区转换
