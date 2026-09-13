@@ -1093,6 +1093,177 @@ class GitHubAPI {
         }
     }
 
+    // MARK: - Pull Requests 相关API
+
+    /// 获取PR列表
+    func getPullRequests(owner: String, repo: String, state: String = "open", page: Int = 1, perPage: Int = 30, completion: @escaping (Result<[PullRequest], Error>) -> Void) {
+        let url = APIEndpoints.pullRequests(owner: owner, repo: repo, state: state, page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let prs = try JSONDecoder().decode([PullRequest].self, from: data)
+                    completion(.success(prs))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取PR详情
+    func getPullRequestDetail(owner: String, repo: String, number: Int, completion: @escaping (Result<PullRequest, Error>) -> Void) {
+        let url = APIEndpoints.pullRequestDetail(owner: owner, repo: repo, number: number).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let pr = try JSONDecoder().decode(PullRequest.self, from: data)
+                    completion(.success(pr))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取PR评论列表
+    func getPullRequestComments(owner: String, repo: String, number: Int, page: Int = 1, perPage: Int = 30, completion: @escaping (Result<[PullRequestComment], Error>) -> Void) {
+        let url = APIEndpoints.pullRequestComments(owner: owner, repo: repo, number: number, page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let comments = try JSONDecoder().decode([PullRequestComment].self, from: data)
+                    completion(.success(comments))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取PR审查列表
+    func getPullRequestReviews(owner: String, repo: String, number: Int, completion: @escaping (Result<[PullRequestReview], Error>) -> Void) {
+        let url = APIEndpoints.pullRequestReviews(owner: owner, repo: repo, number: number).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let reviews = try JSONDecoder().decode([PullRequestReview].self, from: data)
+                    completion(.success(reviews))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取PR提交列表
+    func getPullRequestCommits(owner: String, repo: String, number: Int, page: Int = 1, perPage: Int = 30, completion: @escaping (Result<[PullRequestCommit], Error>) -> Void) {
+        let url = APIEndpoints.pullRequestCommits(owner: owner, repo: repo, number: number, page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let commits = try JSONDecoder().decode([PullRequestCommit].self, from: data)
+                    completion(.success(commits))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取PR变更文件列表
+    func getPullRequestFiles(owner: String, repo: String, number: Int, page: Int = 1, perPage: Int = 30, completion: @escaping (Result<[PullRequestFile], Error>) -> Void) {
+        let url = APIEndpoints.pullRequestFiles(owner: owner, repo: repo, number: number, page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let files = try JSONDecoder().decode([PullRequestFile].self, from: data)
+                    completion(.success(files))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 创建PR
+    func createPullRequest(owner: String, repo: String, title: String, head: String, base: String, body: String? = nil, completion: @escaping (Result<PullRequest, Error>) -> Void) {
+        let url = APIEndpoints.createPullRequest(owner: owner, repo: repo).url
+        var requestBody: [String: Any] = [
+            "title": title,
+            "head": head,
+            "base": base
+        ]
+        if let body = body {
+            requestBody["body"] = body
+        }
+        performRequest(url: url, method: "POST", body: requestBody) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let pr = try JSONDecoder().decode(PullRequest.self, from: data)
+                    completion(.success(pr))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 合并PR
+    func mergePullRequest(owner: String, repo: String, number: Int, sha: String, mergeMethod: String = "merge", commitTitle: String? = nil, commitMessage: String? = nil, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let url = APIEndpoints.mergePullRequest(owner: owner, repo: repo, number: number).url
+        var requestBody: [String: Any] = [
+            "sha": sha,
+            "merge_method": mergeMethod
+        ]
+        if let commitTitle = commitTitle {
+            requestBody["commit_title"] = commitTitle
+        }
+        if let commitMessage = commitMessage {
+            requestBody["commit_message"] = commitMessage
+        }
+        performSimpleRequest(url: url, method: "PUT", body: requestBody, failureMessage: "合并PR失败", completion: completion)
+    }
+
+    /// 更新PR状态（关闭/重新打开）
+    func updatePullRequestState(owner: String, repo: String, number: Int, state: String, completion: @escaping (Result<PullRequest, Error>) -> Void) {
+        let url = APIEndpoints.updatePullRequest(owner: owner, repo: repo, number: number).url
+        let requestBody: [String: Any] = ["state": state]
+        performRequest(url: url, method: "PATCH", body: requestBody) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let pr = try JSONDecoder().decode(PullRequest.self, from: data)
+                    completion(.success(pr))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     // MARK: - GitHub Actions 扩展API（第一期新增）
 
     /// 获取运行的构建产物列表

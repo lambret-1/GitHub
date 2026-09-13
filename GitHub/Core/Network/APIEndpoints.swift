@@ -65,6 +65,17 @@ enum APIEndpoints {
     case createIssueComment(owner: String, repo: String, number: Int) // 创建Issue评论
     case updateIssue(owner: String, repo: String, number: Int) // 更新Issue（关闭/重新打开）
 
+    // MARK: - Pull Requests 相关端点
+    case pullRequests(owner: String, repo: String, state: String, page: Int, perPage: Int) // 获取PR列表
+    case pullRequestDetail(owner: String, repo: String, number: Int) // 获取PR详情
+    case pullRequestComments(owner: String, repo: String, number: Int, page: Int, perPage: Int) // 获取PR评论
+    case pullRequestReviews(owner: String, repo: String, number: Int) // 获取PR审查列表
+    case pullRequestCommits(owner: String, repo: String, number: Int, page: Int, perPage: Int) // 获取PR提交列表
+    case pullRequestFiles(owner: String, repo: String, number: Int, page: Int, perPage: Int) // 获取PR变更文件列表
+    case createPullRequest(owner: String, repo: String) // 创建PR
+    case mergePullRequest(owner: String, repo: String, number: Int) // 合并PR
+    case updatePullRequest(owner: String, repo: String, number: Int) // 更新PR（关闭/重新打开）
+
     var url: String {
         switch self {
         case .user:
@@ -209,6 +220,26 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/issues/\(number)/comments"
         case .updateIssue(let owner, let repo, let number):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/issues/\(number)"
+
+        // MARK: - Pull Requests 相关端点实现
+        case .pullRequests(let owner, let repo, let state, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/pulls?state=\(state)&page=\(page)&per_page=\(perPage)"
+        case .pullRequestDetail(let owner, let repo, let number):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/pulls/\(number)"
+        case .pullRequestComments(let owner, let repo, let number, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/issues/\(number)/comments?page=\(page)&per_page=\(perPage)"
+        case .pullRequestReviews(let owner, let repo, let number):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/pulls/\(number)/reviews"
+        case .pullRequestCommits(let owner, let repo, let number, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/pulls/\(number)/commits?page=\(page)&per_page=\(perPage)"
+        case .pullRequestFiles(let owner, let repo, let number, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/pulls/\(number)/files?page=\(page)&per_page=\(perPage)"
+        case .createPullRequest(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/pulls"
+        case .mergePullRequest(let owner, let repo, let number):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/pulls/\(number)/merge"
+        case .updatePullRequest(let owner, let repo, let number):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/pulls/\(number)"
         }
     }
 }
