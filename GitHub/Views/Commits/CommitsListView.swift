@@ -238,7 +238,7 @@ struct CommitRow: View {
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
 
-                    Text(commit.relativeDate)
+                    Text(commit.formattedDate)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
 
