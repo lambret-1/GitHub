@@ -889,19 +889,19 @@ struct FileBrowserView: View {
         }
     }
 
-    // 顶部提交信息栏（GitHub官方风格）
+    // 顶部提交信息栏（GitHub官方风格，修复P1：压缩为单行布局，显示提交哈希）
     var latestCommitHeaderView: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             if isLoadingLatestCommit {
                 // 加载中
                 ProgressView()
-                    .scaleEffect(0.8)
+                    .scaleEffect(0.7)
                 Text("加载提交信息...")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
                 Spacer()
             } else if let commit = latestCommit {
-                // 提交者头像
+                // 提交者头像（小尺寸）
                 if let avatarUrl = commit.author?.avatarUrl, let url = URL(string: avatarUrl) {
                     AsyncImage(url: url) { image in
                         image
@@ -909,62 +909,84 @@ struct FileBrowserView: View {
                             .aspectRatio(contentMode: .fill)
                     } placeholder: {
                         Image(systemName: "person.circle.fill")
-                            .font(.system(size: 28))
+                            .font(.system(size: 20))
                             .foregroundColor(.gray)
                     }
-                    .frame(width: 28, height: 28)
+                    .frame(width: 20, height: 20)
                     .clipShape(Circle())
                 } else {
                     Image(systemName: "person.circle.fill")
-                        .font(.system(size: 28))
+                        .font(.system(size: 20))
                         .foregroundColor(.gray)
                 }
 
-                // 提交者名称 + 提交信息
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(commit.authorName)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.primary)
-                        Text(commit.commit.committer.relativeDate)
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                    }
-                    Text(commit.message)
-                        .font(.system(size: 13))
+                // 提交者名称
+                Text(commit.authorName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+
+                // 提交信息（单行截断）
+                Text(commit.message)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .layoutPriority(1)
+
+                Spacer(minLength: 8)
+
+                // 提交哈希（可点击复制）
+                Button(action: {
+                    UIPasteboard.general.string = commit.shortSha
+                    showMessage("提交哈希已复制: \(commit.shortSha)")
+                }) {
+                    Text(commit.shortSha)
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(4)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel("复制提交哈希")
+
+                // 提交时间
+                Text(commit.commit.committer.relativeDate)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+
+                // 查看提交历史按钮
+                Button(action: {
+                    showCommits = true
+                }) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 14))
                         .foregroundColor(.secondary)
-                        .lineLimit(1)
                 }
-
-                Spacer()
-
-                // 右侧按钮
-                HStack(spacing: 12) {
-                    Button(action: {
-                        // 复制提交哈希
-                        UIPasteboard.general.string = commit.shortSha
-                    }) {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 16))
-                            .foregroundColor(.secondary)
-                    }
-
-                    Button(action: {
-                        showCommits = true
-                    }) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 16))
-                            .foregroundColor(.secondary)
-                    }
-                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel("查看提交历史")
             } else {
-                // 无提交信息
+                // 无提交信息（空仓库）
+                Image(systemName: "exclamationmark.circle")
+                    .font(.system(size: 14))
+                    .foregroundColor(.orange)
+                Text("此目录暂无提交记录")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
                 Spacer()
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
         .background(appState.isDarkMode ? Color(red: 0.1, green: 0.1, blue: 0.1) : Color(red: 0.96, green: 0.96, blue: 0.96))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if latestCommit != nil {
+                showCommits = true
+            }
+        }
     }
 
     // README显示区域

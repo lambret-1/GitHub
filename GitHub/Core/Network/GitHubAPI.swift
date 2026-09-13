@@ -233,6 +233,24 @@ class GitHubAPI {
                     return
                 }
 
+                // 修复P1：检测HTTP状态码，处理401未授权错误
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: -2, userInfo: [NSLocalizedDescriptionKey: "无效响应"])))
+                    return
+                }
+
+                // 检测401未授权错误：token失效或权限不足
+                if httpResponse.statusCode == 401 {
+                    self.handleUnauthorizedError()
+                    completion(.failure(NSError(domain: "GitHubAPI", code: 401, userInfo: [NSLocalizedDescriptionKey: "登录已过期，请重新登录"])))
+                    return
+                }
+
+                guard (200...299).contains(httpResponse.statusCode) else {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "下载失败，状态码: \(httpResponse.statusCode)"])))
+                    return
+                }
+
                 guard let data = data, let content = String(data: data, encoding: .utf8) else {
                     completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无法读取内容"])))
                     return
