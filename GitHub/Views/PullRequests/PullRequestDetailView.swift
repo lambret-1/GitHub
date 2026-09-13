@@ -542,14 +542,14 @@ struct PullRequestDetailView: View {
 
                         VStack(alignment: .leading, spacing: 4) {
                             // 提交信息
-                            Text(commit.commit.message ?? "无提交信息")
+                            Text(commit.commit.message)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(appState.isDarkMode ? .white : .primary)
                                 .lineLimit(2)
 
                             // 作者和哈希
                             HStack(spacing: 8) {
-                                Text(commit.commit.author?.name ?? "未知")
+                                Text(commit.commit.author.name)
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
 

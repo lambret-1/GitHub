@@ -262,7 +262,7 @@ struct PullRequestReview: Codable, Identifiable {
 struct PullRequestCommit: Codable, Identifiable {
     let id: String
     let sha: String
-    let commit: CommitInfo
+    let commit: CommitDetail
     let htmlUrl: String?
 
     enum CodingKeys: String, CodingKey {
@@ -273,28 +273,6 @@ struct PullRequestCommit: Codable, Identifiable {
 
     var 短哈希: String {
         return String(sha.prefix(7))
-    }
-}
-
-// MARK: - 提交信息
-struct CommitInfo: Codable {
-    let message: String?
-    let author: CommitAuthor?
-    let committer: CommitAuthor?
-
-    enum CodingKeys: String, CodingKey {
-        case message, author, committer
-    }
-}
-
-// MARK: - 提交作者
-struct CommitAuthor: Codable {
-    let name: String?
-    let email: String?
-    let date: String?
-
-    enum CodingKeys: String, CodingKey {
-        case name, email, date
     }
 }
 
