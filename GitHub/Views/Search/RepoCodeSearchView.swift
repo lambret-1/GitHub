@@ -73,8 +73,8 @@ struct RepoCodeSearchView: View {
                 .textInputAutocapitalization(.never)  // 关闭自动大写，搜索代码时避免首字母大写影响准确性
                 .autocorrectionDisabled()  // 关闭自动拼写纠错，避免搜索词被自动修改
                 .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
-                // 使用iOS16.5兼容的双参数onChange（单参数版本在iOS17已废弃）
-                .onChange(of: searchQuery) { _, newValue in
+                // 使用iOS14+兼容的单参数onChange（双参数版本仅iOS17+可用）
+                .onChange(of: searchQuery) { newValue in
                     // 防抖搜索：取消上一次任务，300ms后执行新搜索
                     searchTask?.cancel()
                     let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -583,26 +583,30 @@ struct CodeSnippetView: View {
             }
 
             // 对每个合并区间生成一个片段（前后各2行上下文）
-            var result: [CodeSnippet] = []
-            for range in mergedRanges {
-                let contextStart = max(0, range.start - 2)
-                let contextEnd = min(lines.count - 1, range.end + 2)
-                let snippetCode = lines[contextStart...contextEnd].joined(separator: "\n")
+            // 使用let常量避免并发代码中的变量捕获问题
+            let snippetsResult: [CodeSnippet] = {
+                var temp: [CodeSnippet] = []
+                for range in mergedRanges {
+                    let contextStart = max(0, range.start - 2)
+                    let contextEnd = min(lines.count - 1, range.end + 2)
+                    let snippetCode = lines[contextStart...contextEnd].joined(separator: "\n")
 
-                result.append(CodeSnippet(
-                    lineNumber: range.start + 1,
-                    code: snippetCode
-                ))
+                    temp.append(CodeSnippet(
+                        lineNumber: range.start + 1,
+                        code: snippetCode
+                    ))
 
-                // 最多显示20个片段
-                if result.count >= 20 {
-                    break
+                    // 最多显示20个片段
+                    if temp.count >= 20 {
+                        break
+                    }
                 }
-            }
+                return temp
+            }()
 
             // 回到主线程更新UI
             await MainActor.run {
-                snippets = result
+                snippets = snippetsResult
             }
         }
     }
