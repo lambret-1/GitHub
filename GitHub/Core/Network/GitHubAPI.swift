@@ -915,12 +915,8 @@ class GitHubAPI {
     /// 检测当前用户是否已Fork该仓库，如果已Fork返回Fork的仓库信息
     func checkUserFork(owner: String, repo: String, completion: @escaping (Result<Repository?, Error>) -> Void) {
         let urlString = "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/forks?per_page=100&sort=oldest"
-        guard let url = URL(string: urlString) else {
-            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
-            return
-        }
 
-        performRequest(url: url) { result in
+        performRequest(url: urlString) { result in
             switch result {
             case .success(let data):
                 do {

@@ -3652,7 +3652,9 @@ struct FileBrowserView_Previews: PreviewProvider {
             stargazersCount: 0, forksCount: 0, watchersCount: 0,
             openIssuesCount: 0, isPrivate: false, htmlUrl: "",
             defaultBranch: "main", updatedAt: "", createdAt: "",
-            owner: RepositoryOwner(login: "test", id: 1, avatarUrl: "")
+            owner: RepositoryOwner(login: "test", id: 1, avatarUrl: ""),
+            size: nil, topics: nil, license: nil, permissions: nil,
+            isFork: nil, parent: nil, archived: nil, disabled: nil
         ))
     }
 }
