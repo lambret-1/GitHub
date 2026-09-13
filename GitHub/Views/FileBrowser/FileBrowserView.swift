@@ -147,7 +147,6 @@ struct FileBrowserView: View {
     @State var showForkConfirm: Bool = false // 复刻二次确认弹窗
     @State var showOperationMessage: Bool = false
     @State var operationMessage: String = ""
-    @State var showCommits: Bool = false // 提交记录页面
 
     // MARK: - 仓库功能Tab（顶部分段控件）
     enum RepoTab: String, CaseIterable {
