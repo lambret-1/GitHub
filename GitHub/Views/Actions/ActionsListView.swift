@@ -235,7 +235,7 @@ struct ActionsListView: View {
             } else {
                 List {
                     ForEach(workflows) { workflow in
-                        WorkflowCard(workflow: workflow) {
+                        WorkflowCard(owner: owner, repo: repo, workflow: workflow) {
                             selectedWorkflow = workflow
                             showTriggerAlert = true
                         }
@@ -497,8 +497,12 @@ struct WorkflowRunRow: View {
 // MARK: - 工作流卡片视图（重做版）
 
 struct WorkflowCard: View {
+    let owner: String
+    let repo: String
     let workflow: Workflow
     var onTrigger: () -> Void
+    @State private var showFileView: Bool = false
+    @State private var showTriggerView: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -532,19 +536,46 @@ struct WorkflowCard: View {
 
             Spacer()
 
-            // 触发按钮
-            Button(action: onTrigger) {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.green)
-                    .cornerRadius(6)
+            // 操作按钮
+            HStack(spacing: 8) {
+                // 查看文件按钮
+                Button(action: {
+                    showFileView = true
+                }) {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 14))
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(6)
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // 触发按钮（带参数）
+                Button(action: {
+                    showTriggerView = true
+                }) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.green)
+                        .cornerRadius(6)
+                }
+                .buttonStyle(PlainButtonStyle())
             }
-            .buttonStyle(PlainButtonStyle())
         }
         .padding(.vertical, 4)
+        .sheet(isPresented: $showFileView) {
+            NavigationView {
+                WorkflowFileView(owner: owner, repo: repo, workflow: workflow)
+            }
+        }
+        .sheet(isPresented: $showTriggerView) {
+            TriggerWorkflowView(owner: owner, repo: repo, workflow: workflow)
+        }
     }
 }
 
