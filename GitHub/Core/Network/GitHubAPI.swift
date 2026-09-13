@@ -769,19 +769,87 @@ class GitHubAPI {
 
     /// 获取作业日志（纯文本）
     func getJobLogs(owner: String, repo: String, jobId: Int, completion: @escaping (Result<String, Error>) -> Void) {
-        let url = APIEndpoints.jobLogs(owner: owner, repo: repo, jobId: jobId).url
-        performRequest(url: url) { result in
-            switch result {
-            case .success(let data):
-                if let logs = String(data: data, encoding: .utf8) {
-                    completion(.success(logs))
-                } else {
-                    completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败"])))
-                }
-            case .failure(let error):
-                completion(.failure(error))
-            }
+        let urlString = APIEndpoints.jobLogs(owner: owner, repo: repo, jobId: jobId).url
+        guard let url = URL(string: urlString) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
         }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.allHTTPHeaderFields = getHeaders()
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+
+        // 使用自定义配置，确保重定向时保留Authorization头
+        let config = URLSessionConfiguration.default
+        config.httpAdditionalHeaders = getHeaders()
+        let session = URLSession(configuration: config)
+
+        session.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: -2, userInfo: [NSLocalizedDescriptionKey: "无效响应"])))
+                    return
+                }
+
+                // 处理302重定向：手动获取重定向URL并下载日志
+                if httpResponse.statusCode == 302, let location = httpResponse.allHeaderFields["Location"] as? String, let redirectURL = URL(string: location) {
+                    // 重定向后的URL不需要Authorization头（通常是预签名的S3 URL）
+                    URLSession.shared.dataTask(with: redirectURL) { redirectData, redirectResponse, redirectError in
+                        DispatchQueue.main.async {
+                            if let redirectError = redirectError {
+                                completion(.failure(redirectError))
+                                return
+                            }
+
+                            guard let redirectData = redirectData else {
+                                completion(.failure(NSError(domain: "GitHubAPI", code: -3, userInfo: [NSLocalizedDescriptionKey: "重定向后无数据"])))
+                                return
+                            }
+
+                            if let logs = String(data: redirectData, encoding: .utf8) {
+                                completion(.success(logs))
+                            } else {
+                                completion(.failure(NSError(domain: "GitHubAPI", code: -4, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败"])))
+                            }
+                        }
+                    }.resume()
+                    return
+                }
+
+                // 处理404错误：作业日志可能还不可用
+                if httpResponse.statusCode == 404 {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: 404, userInfo: [NSLocalizedDescriptionKey: "作业日志暂不可用，请稍后重试"])))
+                    return
+                }
+
+                // 处理401未授权错误
+                if httpResponse.statusCode == 401 {
+                    self.handleUnauthorizedError()
+                    completion(.failure(NSError(domain: "GitHubAPI", code: 401, userInfo: [NSLocalizedDescriptionKey: "登录已过期，请重新登录"])))
+                    return
+                }
+
+                if (200...299).contains(httpResponse.statusCode) {
+                    if let data = data, let logs = String(data: data, encoding: .utf8) {
+                        completion(.success(logs))
+                    } else {
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -5, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败"])))
+                    }
+                } else {
+                    var errorMessage = "请求失败 (HTTP \(httpResponse.statusCode))"
+                    if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let message = json["message"] as? String {
+                        errorMessage = message
+                    }
+                    completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
+                }
+            }
+        }.resume()
     }
 
     /// 触发工作流运行（workflow_dispatch）

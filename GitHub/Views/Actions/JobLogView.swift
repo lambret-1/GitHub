@@ -21,6 +21,10 @@ struct JobLogView: View {
     @State private var showShareSheet: Bool = false
     @State private var exportedFileURL: URL?
     @State private var isExporting: Bool = false
+    @State private var currentStatus: String = ""
+    @State private var currentConclusion: String?
+    @State private var refreshCount: Int = 0
+    @State private var lastRefreshTime: Date?
 
     // 滚动代理
     @State private var scrollProxy: ScrollViewProxy?
@@ -82,15 +86,19 @@ struct JobLogView: View {
             }
         }
         .onAppear {
+            // 初始化当前状态
+            currentStatus = job.status
+            currentConclusion = job.conclusion
+
             if logs.isEmpty {
                 loadLogs()
             }
             // 如果作业进行中，启动自动刷新
-            if job.status == "in_progress" {
+            if currentStatus == "in_progress" || currentStatus == "queued" {
                 isAutoRefreshing = true
             }
             // 如果作业失败，自动滚动到失败步骤
-            if job.conclusion == "failure" {
+            if currentConclusion == "failure" {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     scrollToFailedStep()
                 }
@@ -98,7 +106,7 @@ struct JobLogView: View {
         }
         .onReceive(autoRefreshTimer) { _ in
             // 自动刷新日志（仅进行中时）
-            if isAutoRefreshing && job.status == "in_progress" {
+            if isAutoRefreshing && (currentStatus == "in_progress" || currentStatus == "queued") {
                 loadLogs(silent: true)
             }
         }
@@ -110,45 +118,118 @@ struct JobLogView: View {
     // MARK: - 作业信息头部
 
     private var jobInfoHeader: some View {
-        HStack {
-            Image(systemName: job.statusIcon)
-                .foregroundColor(Color(job.statusColor))
-            Text(job.name)
-                .font(.headline)
-                .lineLimit(1)
-            Spacer()
-            HStack(spacing: 6) {
-                Text(job.statusDisplay)
-                    .font(.caption)
-                    .foregroundColor(Color(job.statusColor))
-                // 失败时显示退出码
-                if job.conclusion == "failure" {
-                    let displayExitCode = job.exitCode ?? parsedExitCode
-                    if let exitCode = displayExitCode {
-                        Text("退出码: \(exitCode)")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.red)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(4)
-                    } else {
-                        Text("退出码: 解析中...")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.orange)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.1))
-                            .cornerRadius(4)
+        VStack(spacing: 4) {
+            HStack {
+                Image(systemName: currentStatusIcon)
+                    .foregroundColor(currentStatusColor)
+                Text(job.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                Spacer()
+                HStack(spacing: 6) {
+                    Text(currentStatusDisplay)
+                        .font(.caption)
+                        .foregroundColor(currentStatusColor)
+                    // 失败时显示退出码
+                    if currentConclusion == "failure" {
+                        let displayExitCode = job.exitCode ?? parsedExitCode
+                        if let exitCode = displayExitCode {
+                            Text("退出码: \(exitCode)")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(4)
+                        } else {
+                            Text("退出码: 解析中...")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(4)
+                        }
                     }
+                }
+            }
+
+            // 自动刷新状态
+            if isAutoRefreshing && (currentStatus == "in_progress" || currentStatus == "queued") {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 10))
+                        .foregroundColor(.blue)
+                    Text("自动刷新中（每5秒）· 已刷新\(refreshCount)次")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                    if let lastRefresh = lastRefreshTime {
+                        Text("· 上次刷新: \(Self.formatRefreshTime(lastRefresh))")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                    }
+                    Spacer()
                 }
             }
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
         .background(Color(.systemGray6))
+    }
+
+    // MARK: - 当前状态计算属性
+
+    private var currentStatusIcon: String {
+        switch currentStatus {
+        case "completed":
+            switch currentConclusion {
+            case "success": return "checkmark.circle.fill"
+            case "failure": return "xmark.circle.fill"
+            case "cancelled": return "xmark.circle"
+            default: return "circle"
+            }
+        case "in_progress": return "hourglass"
+        case "queued": return "clock"
+        default: return "circle"
+        }
+    }
+
+    private var currentStatusColor: Color {
+        switch currentStatus {
+        case "completed":
+            switch currentConclusion {
+            case "success": return .green
+            case "failure": return .red
+            case "cancelled": return .gray
+            default: return .gray
+            }
+        case "in_progress": return .blue
+        case "queued": return .orange
+        default: return .gray
+        }
+    }
+
+    private var currentStatusDisplay: String {
+        switch currentStatus {
+        case "completed":
+            switch currentConclusion {
+            case "success": return "成功"
+            case "failure": return "失败"
+            case "cancelled": return "已取消"
+            default: return "已完成"
+            }
+        case "in_progress": return "进行中"
+        case "queued": return "排队中"
+        default: return currentStatus
+        }
+    }
+
+    private static func formatRefreshTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: date)
     }
 
     // MARK: - 搜索栏
@@ -510,6 +591,8 @@ struct JobLogView: View {
             isLoading = true
         }
         errorMessage = nil
+        refreshCount += 1
+        lastRefreshTime = Date()
 
         GitHubAPI.shared.getJobLogs(owner: owner, repo: repo, jobId: job.id) { result in
             DispatchQueue.main.async {
@@ -521,8 +604,28 @@ struct JobLogView: View {
                     self.logs = logs
                     // 从日志中解析退出码
                     self.parsedExitCode = Self.parseExitCode(from: logs)
+                    // 如果日志非空，说明作业可能已完成，更新状态
+                    if !logs.isEmpty {
+                        // 检查日志中是否包含完成标志
+                        if logs.contains("##[endgroup]") || logs.contains("Process completed") || logs.contains("BUILD_EXIT_CODE") {
+                            // 作业可能已完成，但我们无法确定状态，保持当前状态
+                        }
+                    }
                 case .failure(let error):
-                    self.errorMessage = "加载日志失败: \(error.localizedDescription)"
+                    let nsError = error as NSError
+                    // 处理404错误：作业日志可能还不可用
+                    if nsError.code == 404 {
+                        if self.logs.isEmpty {
+                            self.errorMessage = "作业日志暂不可用，作业可能仍在初始化中，请稍后重试"
+                        }
+                        // 404不停止自动刷新，继续尝试
+                    } else {
+                        self.errorMessage = "加载日志失败: \(error.localizedDescription)"
+                        // 其他错误停止自动刷新
+                        if self.currentStatus == "in_progress" || self.currentStatus == "queued" {
+                            // 保持自动刷新，可能是临时错误
+                        }
+                    }
                 }
             }
         }
