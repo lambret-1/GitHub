@@ -219,18 +219,23 @@ struct FileBrowserView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                // 仓库所有者头像
-                AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.gray)
+                HStack(spacing: 12) {
+                    // 三个点菜单（原代码按钮的所有功能迁移到这里）
+                    moreMenu
+
+                    // 仓库所有者头像
+                    AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Image(systemName: "person.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(width: 28, height: 28)
+                    .clipShape(Circle())
                 }
-                .frame(width: 28, height: 28)
-                .clipShape(Circle())
             }
         }
         // 隐藏的NavigationLink（拆分成单独属性，简化body表达式，避免类型检查超时）
