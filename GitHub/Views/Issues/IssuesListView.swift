@@ -25,47 +25,47 @@ struct IssuesListView: View {
     @State private var selectedIssue: Issue?
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // 状态切换栏
+        VStack(spacing: 0) {
+            // 状态切换栏 + 新建按钮
+            HStack(spacing: 12) {
                 stateSegmentControl
+                    .frame(maxWidth: .infinity)
 
-                // Issues列表
-                if isLoading && issues.isEmpty {
-                    loadingView
-                } else if let error = errorMessage, issues.isEmpty {
-                    errorView(error: error)
-                } else if issues.isEmpty {
-                    emptyView
-                } else {
-                    issuesList
+                Button(action: { showCreateIssue = true }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.blue)
                 }
             }
-            .navigationTitle("Issues")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showCreateIssue = true }) {
-                        Image(systemName: "plus")
-                    }
-                }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            // Issues列表
+            if isLoading && issues.isEmpty {
+                loadingView
+            } else if let error = errorMessage, issues.isEmpty {
+                errorView(error: error)
+            } else if issues.isEmpty {
+                emptyView
+            } else {
+                issuesList
             }
-            .onAppear {
-                if issues.isEmpty {
-                    loadIssues()
-                }
-            }
-            .refreshable {
-                currentPage = 1
-                hasMore = true
+        }
+        .sheet(isPresented: $showCreateIssue) {
+            createIssueSheet
+        }
+        .sheet(item: $selectedIssue) { issue in
+            IssueDetailView(owner: owner, repo: repo, issue: issue)
+        }
+        .onAppear {
+            if issues.isEmpty {
                 loadIssues()
             }
-            .sheet(isPresented: $showCreateIssue) {
-                createIssueSheet
-            }
-            .sheet(item: $selectedIssue) { issue in
-                IssueDetailView(owner: owner, repo: repo, issue: issue)
-            }
+        }
+        .refreshable {
+            currentPage = 1
+            hasMore = true
+            loadIssues()
         }
     }
 
@@ -77,9 +77,6 @@ struct IssuesListView: View {
             Text("全部").tag("all")
         }
         .pickerStyle(.segmented)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(appState.isDarkMode ? Color.black.opacity(0.3) : Color(.systemGray6))
         .onChange(of: selectedState) { _ in
             currentPage = 1
             hasMore = true

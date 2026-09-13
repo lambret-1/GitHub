@@ -27,47 +27,47 @@ struct PullRequestsListView: View {
     @State private var selectedPR: PullRequest?
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // 状态切换栏
+        VStack(spacing: 0) {
+            // 状态切换栏 + 新建按钮
+            HStack(spacing: 12) {
                 stateSegmentControl
+                    .frame(maxWidth: .infinity)
 
-                // PR列表
-                if isLoading && pullRequests.isEmpty {
-                    loadingView
-                } else if let error = errorMessage, pullRequests.isEmpty {
-                    errorView(error: error)
-                } else if pullRequests.isEmpty {
-                    emptyView
-                } else {
-                    prList
+                Button(action: { showCreatePR = true }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.blue)
                 }
             }
-            .navigationTitle("Pull Requests")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showCreatePR = true }) {
-                        Image(systemName: "plus")
-                    }
-                }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            // PR列表
+            if isLoading && pullRequests.isEmpty {
+                loadingView
+            } else if let error = errorMessage, pullRequests.isEmpty {
+                errorView(error: error)
+            } else if pullRequests.isEmpty {
+                emptyView
+            } else {
+                prList
             }
-            .onAppear {
-                if pullRequests.isEmpty {
-                    loadPullRequests()
-                }
-            }
-            .refreshable {
-                currentPage = 1
-                hasMore = true
+        }
+        .sheet(isPresented: $showCreatePR) {
+            createPRSheet
+        }
+        .sheet(item: $selectedPR) { pr in
+            PullRequestDetailView(owner: owner, repo: repo, pullRequest: pr)
+        }
+        .onAppear {
+            if pullRequests.isEmpty {
                 loadPullRequests()
             }
-            .sheet(isPresented: $showCreatePR) {
-                createPRSheet
-            }
-            .sheet(item: $selectedPR) { pr in
-                PullRequestDetailView(owner: owner, repo: repo, pullRequest: pr)
-            }
+        }
+        .refreshable {
+            currentPage = 1
+            hasMore = true
+            loadPullRequests()
         }
     }
 
@@ -79,9 +79,6 @@ struct PullRequestsListView: View {
             Text("全部").tag("all")
         }
         .pickerStyle(.segmented)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(appState.isDarkMode ? Color.black.opacity(0.3) : Color(.systemGray6))
         .onChange(of: selectedState) { _ in
             currentPage = 1
             hasMore = true
