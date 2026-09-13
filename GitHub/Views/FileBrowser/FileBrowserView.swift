@@ -147,6 +147,7 @@ struct FileBrowserView: View {
     @State var showForkConfirm: Bool = false // 复刻二次确认弹窗
     @State var showOperationMessage: Bool = false
     @State var operationMessage: String = ""
+    @State var localStarCount: Int? = nil // 本地星标数量，用于星标状态变化时实时更新
 
     // MARK: - 仓库功能Tab（顶部分段控件）
     enum RepoTab: String, CaseIterable {
@@ -546,7 +547,8 @@ struct FileBrowserView: View {
             isStarring: isStarring,
             isForking: isForking,
             onToggleStar: toggleStar,
-            onFork: forkRepository
+            onFork: forkRepository,
+            starCount: localStarCount
         )
         .environmentObject(appState)
         .listRowInsets(EdgeInsets())
@@ -592,7 +594,8 @@ struct FileBrowserView: View {
                 isStarring: isStarring,
                 isForking: isForking,
                 onToggleStar: toggleStar,
-                onFork: forkRepository
+                onFork: forkRepository,
+                starCount: localStarCount
             )
             .environmentObject(appState)
             .listRowInsets(EdgeInsets())
@@ -1603,6 +1606,9 @@ struct FileBrowserView: View {
                 switch result {
                 case .success:
                     isStarred = true
+                    // 更新本地星标数量
+                    let currentCount = localStarCount ?? repository.stargazersCount ?? 0
+                    localStarCount = currentCount + 1
                     showMessage("已添加星标")
                 case .failure(let error):
                     showMessage("星标失败: \(error.localizedDescription)")
@@ -1620,6 +1626,9 @@ struct FileBrowserView: View {
                 switch result {
                 case .success:
                     isStarred = false
+                    // 更新本地星标数量
+                    let currentCount = localStarCount ?? repository.stargazersCount ?? 0
+                    localStarCount = max(0, currentCount - 1)
                     showMessage("已取消星标")
                 case .failure(let error):
                     showMessage("取消星标失败: \(error.localizedDescription)")

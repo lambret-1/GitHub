@@ -14,6 +14,8 @@ struct RepoHeaderView: View {
     let isForking: Bool
     let onToggleStar: () -> Void
     let onFork: () -> Void
+    // 星标数量（可选，用于星标状态变化时实时更新）
+    var starCount: Int? = nil
     // 新增回调：查看父仓库（Fork来源）
     var onViewParent: ((RepositoryParent) -> Void)? = nil
 
@@ -161,28 +163,49 @@ struct RepoHeaderView: View {
                 .disabled(isForking)
                 .buttonStyle(PlainButtonStyle())
 
-                // 标星按钮
+                // 标星按钮（带动画效果）
                 Button(action: {
-                    onToggleStar()
+                    // 点击时添加缩放动画
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                        onToggleStar()
+                    }
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: isStarred ? "star.fill" : "star")
                             .font(.system(size: 13))
                             .foregroundColor(isStarred ? .yellow : (appState.isDarkMode ? .white : .primary))
+                            // 星标图标缩放动画
+                            .scaleEffect(isStarred ? 1.2 : 1.0)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isStarred)
                         Text(isStarred ? "已标星" : "标星")
                             .font(.system(size: 13, weight: .medium))
-                        Text(formatCount(repository.stargazersCount ?? 0))
+                        Text(formatCount(starCount ?? repository.stargazersCount ?? 0))
                             .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
+                    .background(
+                        // 背景颜色过渡动画
+                        isStarred ?
+                        Color.yellow.opacity(appState.isDarkMode ? 0.2 : 0.15) :
+                        (appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
+                    )
+                    .animation(.easeInOut(duration: 0.2), value: isStarred)
                     .cornerRadius(6)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
-                            .stroke(appState.isDarkMode ? Color(red: 0.3, green: 0.3, blue: 0.3) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
+                            .stroke(
+                                // 边框颜色过渡动画
+                                isStarred ? Color.yellow :
+                                (appState.isDarkMode ? Color(red: 0.3, green: 0.3, blue: 0.3) : Color(red: 0.85, green: 0.85, blue: 0.85)),
+                                lineWidth: 1
+                            )
+                            .animation(.easeInOut(duration: 0.2), value: isStarred)
                     )
+                    // 按钮整体缩放动画
+                    .scaleEffect(isStarring ? 0.95 : 1.0)
+                    .animation(.easeInOut(duration: 0.1), value: isStarring)
                 }
                 .disabled(isStarring || isCheckingStar)
                 .buttonStyle(PlainButtonStyle())
