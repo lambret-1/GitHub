@@ -473,9 +473,12 @@ struct CodeSnippetView: View {
     }
 
     // 构建高亮富文本（使用原始字符串range(of:options:)，避免小写字符串长度不匹配崩溃）
+    // 注意：AttributedString的font/backgroundColor/foregroundColor需使用UIKit类型（UIFont/UIColor）
     private func buildHighlightedAttributedString(_ code: String) -> AttributedString {
         var result = AttributedString(code)
-        let normalFont = Font.system(size: 11, design: .monospaced)
+        // 使用UIFont设置AttributedString字体（UIKit类型，非SwiftUI Font）
+        let normalFont = UIFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+        let boldFont = UIFont.monospacedSystemFont(ofSize: 11, weight: .bold)
         result.font = normalFont
 
         // 直接在原始字符串上使用不区分大小写搜索，返回的range即为原始字符串范围
@@ -485,9 +488,10 @@ struct CodeSnippetView: View {
         while let range = code.range(of: searchQuery, options: .caseInsensitive, range: searchRange) {
             // 转换为AttributedString的范围
             if let attrRange = Range(range, in: result) {
-                result[attrRange].font = Font.system(size: 11, weight: .bold, design: .monospaced)
-                result[attrRange].backgroundColor = .yellow.opacity(0.5)
-                result[attrRange].foregroundColor = .red
+                // 使用UIColor设置背景色和前景色（UIKit类型）
+                result[attrRange].font = boldFont
+                result[attrRange].backgroundColor = UIColor.yellow.withAlphaComponent(0.5)
+                result[attrRange].foregroundColor = UIColor.red
             }
 
             // 继续搜索剩余部分
