@@ -6,6 +6,7 @@ struct DiffView: View {
     let owner: String
     let repo: String
     let changedFile: ChangedFile
+    let branch: String
 
     @State private var diffContent: String = ""
     @State private var isLoading: Bool = true
@@ -46,7 +47,7 @@ struct DiffView: View {
 
     @ViewBuilder
     private var editorDestination: some View {
-        FileEditorView(owner: owner, repo: repo, filePath: changedFile.filename, branch: changedFile.sha)
+        FileEditorView(owner: owner, repo: repo, filePath: changedFile.filename, branch: branch)
     }
 
     // MARK: - 文件信息头部

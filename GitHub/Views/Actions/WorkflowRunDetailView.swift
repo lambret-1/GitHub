@@ -272,7 +272,7 @@ struct WorkflowRunDetailView: View {
                     .listRowSeparator(.hidden)
             } else {
                 ForEach(changedFiles) { file in
-                    NavigationLink(destination: DiffView(owner: owner, repo: repo, changedFile: file)) {
+                    NavigationLink(destination: DiffView(owner: owner, repo: repo, changedFile: file, branch: run.headBranch)) {
                         HStack(spacing: 12) {
                             Image(systemName: file.statusIcon)
                                 .foregroundColor(file.statusColor)
