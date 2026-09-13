@@ -22,6 +22,9 @@ struct WorkflowRunDetailView: View {
     @State private var isLoadingArtifacts: Bool = false
     @State private var artifactsError: String?
     @State private var downloadingArtifactId: Int?
+    @State private var deletingArtifactId: Int?
+    @State private var artifactToDelete: Artifact?
+    @State private var showDeleteArtifactAlert: Bool = false
     @State private var showShareSheet: Bool = false
     @State private var downloadedFileURL: URL?
 
@@ -92,6 +95,20 @@ struct WorkflowRunDetailView: View {
             Button("返回", role: .cancel) {}
         } message: {
             Text("确定只重新运行失败的作业吗？")
+        }
+        .alert("删除构建产物", isPresented: $showDeleteArtifactAlert) {
+            Button("删除", role: .destructive) {
+                if let artifact = artifactToDelete {
+                    deleteArtifact(artifact)
+                }
+            }
+            Button("返回", role: .cancel) {}
+        } message: {
+            if let artifact = artifactToDelete {
+                Text("确定要删除构建产物「\(artifact.name)」吗？此操作不可恢复。")
+            } else {
+                Text("确定要删除此构建产物吗？")
+            }
         }
         .sheet(isPresented: $showShareSheet) {
             if let url = downloadedFileURL {
@@ -247,36 +264,42 @@ struct WorkflowRunDetailView: View {
                     .listRowSeparator(.hidden)
             } else {
                 ForEach(changedFiles) { file in
-                    HStack(spacing: 12) {
-                        Image(systemName: file.statusIcon)
-                            .foregroundColor(file.statusColor)
-                            .frame(width: 20)
+                    NavigationLink(destination: DiffView(owner: owner, repo: repo, changedFile: file)) {
+                        HStack(spacing: 12) {
+                            Image(systemName: file.statusIcon)
+                                .foregroundColor(file.statusColor)
+                                .frame(width: 20)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(file.shortFilename)
-                                .font(.subheadline)
-                                .lineLimit(1)
-                            if !file.filePath.isEmpty {
-                                Text(file.filePath)
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(file.shortFilename)
+                                    .font(.subheadline)
                                     .lineLimit(1)
+                                if !file.filePath.isEmpty {
+                                    Text(file.filePath)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
+
+                            Spacer()
+
+                            // 变更统计
+                            HStack(spacing: 6) {
+                                Text("+\(file.additions)")
+                                    .font(.caption2)
+                                    .foregroundColor(.green)
+                                Text("-\(file.deletions)")
+                                    .font(.caption2)
+                                    .foregroundColor(.red)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.gray)
                             }
                         }
-
-                        Spacer()
-
-                        // 变更统计
-                        HStack(spacing: 6) {
-                            Text("+\(file.additions)")
-                                .font(.caption2)
-                                .foregroundColor(.green)
-                            Text("-\(file.deletions)")
-                                .font(.caption2)
-                                .foregroundColor(.red)
-                        }
+                        .padding(.vertical, 2)
                     }
-                    .padding(.vertical, 2)
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
         }
@@ -363,25 +386,74 @@ struct WorkflowRunDetailView: View {
                             Text(artifact.name)
                                 .font(.subheadline)
                                 .lineLimit(1)
-                            Text("\(artifact.sizeDisplay) · \(artifact.createdDisplay)")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
+                            HStack(spacing: 4) {
+                                Text(artifact.sizeDisplay)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Text("·")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Text(artifact.createdDisplay)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                // 过期时间
+                                if let expiresAt = artifact.expiresAt {
+                                    Text("·")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                    Image(systemName: "clock")
+                                        .font(.system(size: 8))
+                                        .foregroundColor(.orange)
+                                    Text("过期: \(日期工具.相对时间(fromISO: expiresAt))")
+                                        .font(.caption2)
+                                        .foregroundColor(.orange)
+                                }
+                                // 已过期标记
+                                if artifact.expired {
+                                    Text("已过期")
+                                        .font(.caption2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.red)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(Color.red.opacity(0.1))
+                                        .cornerRadius(3)
+                                }
+                            }
                         }
 
                         Spacer()
 
-                        // 下载按钮
-                        if downloadingArtifactId == artifact.id {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Button(action: {
-                                downloadArtifact(artifact)
-                            }) {
-                                Image(systemName: "square.and.arrow.down")
-                                    .foregroundColor(.blue)
+                        // 操作按钮
+                        HStack(spacing: 12) {
+                            // 下载按钮
+                            if downloadingArtifactId == artifact.id {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Button(action: {
+                                    downloadArtifact(artifact)
+                                }) {
+                                    Image(systemName: "square.and.arrow.down")
+                                        .foregroundColor(.blue)
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
-                            .buttonStyle(PlainButtonStyle())
+
+                            // 删除按钮
+                            if deletingArtifactId == artifact.id {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Button(action: {
+                                    showDeleteArtifactAlert = true
+                                    artifactToDelete = artifact
+                                }) {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
                         }
                     }
                     .padding(.vertical, 2)
@@ -539,6 +611,24 @@ struct WorkflowRunDetailView: View {
                     showShareSheet = true
                 case .failure(let error):
                     artifactsError = "下载失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func deleteArtifact(_ artifact: Artifact) {
+        deletingArtifactId = artifact.id
+
+        GitHubAPI.shared.deleteArtifact(owner: owner, repo: repo, artifactId: artifact.id) { result in
+            DispatchQueue.main.async {
+                deletingArtifactId = nil
+                switch result {
+                case .success:
+                    // 从列表中移除已删除的产物
+                    artifacts.removeAll { $0.id == artifact.id }
+                    artifactToDelete = nil
+                case .failure(let error):
+                    artifactsError = "删除失败: \(error.localizedDescription)"
                 }
             }
         }

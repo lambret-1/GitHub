@@ -33,6 +33,7 @@ enum APIEndpoints {
     case rerunWorkflowRun(owner: String, repo: String, runId: Int)
     case runArtifacts(owner: String, repo: String, runId: Int) // 获取运行的构建产物列表
     case artifactDownload(owner: String, repo: String, artifactId: Int) // 下载构建产物
+    case deleteArtifact(owner: String, repo: String, artifactId: Int) // 删除构建产物
     case commitFiles(owner: String, repo: String, sha: String) // 获取提交的变更文件列表
     case enableWorkflow(owner: String, repo: String, workflowId: Int) // 启用工作流
     case disableWorkflow(owner: String, repo: String, workflowId: Int) // 禁用工作流
@@ -133,6 +134,8 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/runs/\(runId)/artifacts"
         case .artifactDownload(let owner, let repo, let artifactId):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/artifacts/\(artifactId)/zip"
+        case .deleteArtifact(let owner, let repo, let artifactId):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/actions/artifacts/\(artifactId)"
         case .commitFiles(let owner, let repo, let sha):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/commits/\(sha)"
         case .enableWorkflow(let owner, let repo, let workflowId):

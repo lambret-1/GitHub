@@ -1015,6 +1015,44 @@ class GitHubAPI {
         task.resume()
     }
 
+    /// 删除构建产物
+    func deleteArtifact(owner: String, repo: String, artifactId: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let urlString = APIEndpoints.deleteArtifact(owner: owner, repo: repo, artifactId: artifactId).url
+        guard let url = URL(string: urlString) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        if let token = TokenKeychain.shared.getToken() {
+            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let task = URLSession.shared.dataTask(with: request) { _, response, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
+                return
+            }
+
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 204 {
+                    DispatchQueue.main.async {
+                        completion(.success(true))
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "删除失败，HTTP状态码: \(httpResponse.statusCode)"])))
+                    }
+                }
+            }
+        }
+        task.resume()
+    }
+
     /// 获取提交的变更文件列表
     func getCommitFiles(owner: String, repo: String, sha: String, completion: @escaping (Result<[ChangedFile], Error>) -> Void) {
         let url = APIEndpoints.commitFiles(owner: owner, repo: repo, sha: sha).url

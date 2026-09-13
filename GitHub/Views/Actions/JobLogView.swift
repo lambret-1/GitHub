@@ -18,6 +18,9 @@ struct JobLogView: View {
     @State private var showSearch: Bool = false
     @State private var autoScrollToBottom: Bool = true
     @State private var stepRanges: [(name: String, range: Range<String.Index>)] = []
+    @State private var showShareSheet: Bool = false
+    @State private var exportedFileURL: URL?
+    @State private var isExporting: Bool = false
 
     // 滚动代理
     @State private var scrollProxy: ScrollViewProxy?
@@ -56,12 +59,28 @@ struct JobLogView: View {
                     Image(systemName: "magnifyingglass")
                 }
                 Button(action: {
+                    exportLogs()
+                }) {
+                    if isExporting {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                .disabled(logs.isEmpty)
+                Button(action: {
                     loadLogs()
                 }) {
                     Image(systemName: "arrow.clockwise")
                 }
             }
         )
+        .sheet(isPresented: $showShareSheet) {
+            if let url = exportedFileURL {
+                ShareSheet(activityItems: [url])
+            }
+        }
         .onAppear {
             if logs.isEmpty {
                 loadLogs()
@@ -551,5 +570,48 @@ struct JobLogView: View {
         }
 
         return nil
+    }
+
+    // MARK: - 导出日志
+
+    private func exportLogs() {
+        guard !logs.isEmpty else { return }
+        isExporting = true
+
+        // 生成文件名：作业名_时间戳.log
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
+        let timestamp = dateFormatter.string(from: Date())
+        let safeJobName = job.name.replacingOccurrences(of: " ", with: "_")
+        let fileName = "\(safeJobName)_\(timestamp).log"
+
+        // 写入临时文件
+        let fileManager = FileManager.default
+        let fileURL = fileManager.temporaryDirectory.appendingPathComponent(fileName)
+
+        do {
+            // 添加日志头部信息
+            var exportContent = "=== GitHub Actions 作业日志导出 ===\n"
+            exportContent += "作业名称: \(job.name)\n"
+            exportContent += "作业ID: \(job.id)\n"
+            exportContent += "状态: \(job.statusDisplay)\n"
+            if let conclusion = job.conclusion {
+                exportContent += "结果: \(conclusion)\n"
+            }
+            if let exitCode = job.exitCode ?? parsedExitCode {
+                exportContent += "退出码: \(exitCode)\n"
+            }
+            exportContent += "导出时间: \(Date())\n"
+            exportContent += "====================================\n\n"
+            exportContent += logs
+
+            try exportContent.write(to: fileURL, atomically: true, encoding: .utf8)
+            exportedFileURL = fileURL
+            showShareSheet = true
+        } catch {
+            errorMessage = "导出失败: \(error.localizedDescription)"
+        }
+
+        isExporting = false
     }
 }

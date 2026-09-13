@@ -27,8 +27,10 @@ struct ActionsListView: View {
 
     // 筛选相关状态
     @State private var showFilter: Bool = false
-    @State private var filterStatus: String = "all" // all/in_progress/success/failure
+    @State private var filterStatus: String = "all" // all/in_progress/success/failure/cancelled
     @State private var filterBranch: String = ""
+    @State private var sortOrder: String = "desc" // desc/asc
+    @State private var showSortMenu: Bool = false
 
     // 触发工作流相关状态
     @State private var showTriggerAlert: Bool = false
@@ -57,6 +59,11 @@ struct ActionsListView: View {
         }
         .navigationTitle("Actions")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarItems(trailing:
+            NavigationLink(destination: RunStatsView(owner: owner, repo: repo)) {
+                Image(systemName: "chart.bar.xaxis")
+            }
+        )
         .onAppear {
             if runs.isEmpty {
                 loadRuns()
@@ -138,6 +145,112 @@ struct ActionsListView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - 筛选和排序后的运行列表
+
+    private var filteredRuns: [WorkflowRun] {
+        var result = runs
+
+        // 按状态筛选
+        if filterStatus != "all" {
+            if filterStatus == "in_progress" {
+                result = result.filter { $0.status == "in_progress" || $0.status == "queued" }
+            } else {
+                result = result.filter { $0.conclusion == filterStatus }
+            }
+        }
+
+        // 按分支筛选
+        if !filterBranch.isEmpty {
+            result = result.filter { $0.headBranch == filterBranch }
+        }
+
+        // 排序
+        if sortOrder == "asc" {
+            result = result.reversed()
+        }
+
+        return result
+    }
+
+    // MARK: - 筛选和排序栏
+
+    private var filterSortBar: some View {
+        HStack(spacing: 8) {
+            // 状态筛选
+            Menu {
+                Button("全部") { filterStatus = "all" }
+                Button("进行中") { filterStatus = "in_progress" }
+                Button("成功") { filterStatus = "success" }
+                Button("失败") { filterStatus = "failure" }
+                Button("已取消") { filterStatus = "cancelled" }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .font(.caption)
+                    Text(statusFilterDisplay)
+                        .font(.caption)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8))
+                }
+                .foregroundColor(.blue)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(6)
+            }
+
+            // 排序
+            Button(action: {
+                sortOrder = sortOrder == "desc" ? "asc" : "desc"
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: sortOrder == "desc" ? "arrow.down.circle" : "arrow.up.circle")
+                        .font(.caption)
+                    Text(sortOrder == "desc" ? "最新" : "最早")
+                        .font(.caption)
+                }
+                .foregroundColor(.blue)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(6)
+            }
+
+            Spacer()
+
+            // 结果计数
+            Text("\(filteredRuns.count) 条")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+
+            // 清除筛选
+            if filterStatus != "all" || !filterBranch.isEmpty {
+                Button(action: {
+                    filterStatus = "all"
+                    filterBranch = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .listRowSeparator(.hidden)
+    }
+
+    private var statusFilterDisplay: String {
+        switch filterStatus {
+        case "all": return "全部状态"
+        case "in_progress": return "进行中"
+        case "success": return "成功"
+        case "failure": return "失败"
+        case "cancelled": return "已取消"
+        default: return "全部状态"
+        }
+    }
+
     // MARK: - 运行记录列表
 
     private var runsListView: some View {
@@ -171,12 +284,15 @@ struct ActionsListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(runs) { run in
+                    // 筛选和排序栏
+                    filterSortBar
+
+                    ForEach(filteredRuns) { run in
                         NavigationLink(destination: WorkflowRunDetailView(owner: owner, repo: repo, run: run)) {
                             WorkflowRunRow(run: run)
                         }
                         .onAppear {
-                            if run.id == runs.last?.id && hasMoreRuns && !isLoadingRuns {
+                            if run.id == filteredRuns.last?.id && hasMoreRuns && !isLoadingRuns {
                                 loadMoreRuns()
                             }
                         }
