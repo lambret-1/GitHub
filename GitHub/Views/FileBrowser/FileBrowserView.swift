@@ -148,6 +148,16 @@ struct FileBrowserView: View {
     @State var showOperationMessage: Bool = false
     @State var operationMessage: String = ""
 
+    // MARK: - 仓库功能Tab（顶部分段控件）
+    enum RepoTab: String, CaseIterable {
+        case code = "代码"
+        case issues = "Issues"
+        case pullRequests = "Pull Requests"
+        case actions = "Actions"
+        case settings = "设置"
+    }
+    @State var selectedTab: RepoTab = .code
+
     // MARK: - README相关状态
     @State var readmeContent: String?
     @State var isLoadingReadme: Bool = false
@@ -471,6 +481,38 @@ struct FileBrowserView: View {
 
     // MARK: - 复用的仓库头部/分支栏/路径导航栏Section
 
+    // MARK: - 仓库功能Tab分段控件
+
+    var repoTabBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(RepoTab.allCases, id: \.self) { tab in
+                    Button(action: {
+                        selectedTab = tab
+                    }) {
+                        VStack(spacing: 4) {
+                            Text(tab.rawValue)
+                                .font(.subheadline)
+                                .fontWeight(selectedTab == tab ? .semibold : .regular)
+                                .foregroundColor(selectedTab == tab ? .blue : .secondary)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+
+                            // 选中态下划线
+                            Rectangle()
+                                .fill(selectedTab == tab ? Color.blue : Color.clear)
+                                .frame(height: 2)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+        }
+        .background(Color(.systemBackground))
+        .listRowInsets(EdgeInsets())
+        .listRowSeparator(.hidden)
+    }
+
     var repoHeaderSection: some View {
         RepoHeaderView(
             repository: repository,
@@ -531,70 +573,24 @@ struct FileBrowserView: View {
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
 
-            // 分支栏（复刻GitHub网页布局，可跟随屏幕滑动）
-            BranchBarView(
-                branches: $branches,
-                selectedBranch: $selectedBranch,
-                onBranchChange: {
-                    loadFiles()
-                },
-                owner: repository.ownerName,
-                repo: repository.name,
-                onBranchesChanged: {
-                    loadBranches()
-                }
-            ) {
-                moreMenuContent
-            }
-            .environmentObject(appState)
-            .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
+            // 仓库功能Tab分段控件（代码/Issues/PR/Actions/设置）
+            repoTabBar
 
-            // 代码搜索框（使用主页仓库搜索框样式）
-            SearchBar(
-                text: $codeSearchQuery,
-                placeholder: "搜索当前仓库代码...",
-                onSearchButtonClicked: {
-                    performCodeSearch()
-                }
-            )
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(Color(.systemGray6))
-            .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
-
-            // 代码搜索结果（搜索时显示，替换文件列表）
-            if isSearchingCode || !codeSearchResults.isEmpty || codeSearchError != nil {
-                codeSearchResultsSection
+            // 根据选中Tab显示不同内容
+            switch selectedTab {
+            case .code:
+                // 代码Tab：分支栏 + 搜索框 + 文件列表 + README
+                codeTabContent
+            case .actions:
+                // Actions Tab：工作流列表
+                actionsTabContent
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
-            } else {
-                // 顶部提交信息栏（GitHub官方风格）
-                latestCommitHeaderView
+            case .issues, .pullRequests, .settings:
+                // 即将上线的功能占位
+                comingSoonContent(for: selectedTab)
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
-
-                // 路径导航栏（仅子目录显示，可跟随屏幕滑动，字号和高度与文件夹行一致）
-                if !currentPath.isEmpty {
-                    pathNavigationBar
-                        .listRowInsets(EdgeInsets())
-                        .listRowSeparator(.hidden)
-                }
-
-                ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
-                    fileRowView(for: file)
-                        .listRowInsets(EdgeInsets())
-                        .listRowSeparator(.visible)
-                }
-
-                // README显示区域（所有文件夹都显示，包括子文件夹和孙文件夹）
-                Section {
-                    readmeSectionView
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
             }
         }
         .listStyle(PlainListStyle())
@@ -610,6 +606,106 @@ struct FileBrowserView: View {
         .refreshable {
             await loadFilesAsync()
         }
+    }
+
+    // MARK: - 代码Tab内容
+
+    @ViewBuilder
+    var codeTabContent: some View {
+        // 分支栏（复刻GitHub网页布局，可跟随屏幕滑动）
+        BranchBarView(
+            branches: $branches,
+            selectedBranch: $selectedBranch,
+            onBranchChange: {
+                loadFiles()
+            },
+            owner: repository.ownerName,
+            repo: repository.name,
+            onBranchesChanged: {
+                loadBranches()
+            }
+        ) {
+            moreMenuContent
+        }
+        .environmentObject(appState)
+        .listRowInsets(EdgeInsets())
+        .listRowSeparator(.hidden)
+
+        // 代码搜索框（使用主页仓库搜索框样式）
+        SearchBar(
+            text: $codeSearchQuery,
+            placeholder: "搜索当前仓库代码...",
+            onSearchButtonClicked: {
+                performCodeSearch()
+            }
+        )
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(Color(.systemGray6))
+        .listRowInsets(EdgeInsets())
+        .listRowSeparator(.hidden)
+
+        // 代码搜索结果（搜索时显示，替换文件列表）
+        if isSearchingCode || !codeSearchResults.isEmpty || codeSearchError != nil {
+            codeSearchResultsSection
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+        } else {
+            // 顶部提交信息栏（GitHub官方风格）
+            latestCommitHeaderView
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+
+            // 路径导航栏（仅子目录显示，可跟随屏幕滑动，字号和高度与文件夹行一致）
+            if !currentPath.isEmpty {
+                pathNavigationBar
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+            }
+
+            ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
+                fileRowView(for: file)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.visible)
+            }
+
+            // README显示区域（所有文件夹都显示，包括子文件夹和孙文件夹）
+            Section {
+                readmeSectionView
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        }
+    }
+
+    // MARK: - Actions Tab内容
+
+    var actionsTabContent: some View {
+        ActionsListView(
+            owner: repository.ownerName,
+            repo: repository.name
+        )
+        .environmentObject(appState)
+        .frame(height: 600)
+    }
+
+    // MARK: - 即将上线功能占位
+
+    func comingSoonContent(for tab: RepoTab) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "hammer.fill")
+                .font(.system(size: 48))
+                .foregroundColor(.gray)
+            Text("\(tab.rawValue)功能")
+                .font(.headline)
+                .foregroundColor(.primary)
+            Text("正在开发中，敬请期待")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 80)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 代码搜索结果区域
