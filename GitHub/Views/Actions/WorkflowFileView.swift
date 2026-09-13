@@ -10,6 +10,7 @@ struct WorkflowFileView: View {
     // 文件内容相关状态
     @State private var fileContent: String = ""
     @State private var originalContent: String = ""  // 原始内容，用于对比是否有修改
+    @State private var fileSha: String = ""  // 文件的SHA，用于更新文件
     @State private var isLoading: Bool = true
     @State private var errorMessage: String?
     @State private var showCopySuccess: Bool = false
@@ -440,6 +441,7 @@ struct WorkflowFileView: View {
                     if !content.isEmpty {
                         self.fileContent = content
                         self.originalContent = content
+                        self.fileSha = fileContent.sha
                     } else {
                         self.errorMessage = "无法解码文件内容"
                     }
@@ -469,7 +471,7 @@ struct WorkflowFileView: View {
             repo: repo,
             path: workflow.path,
             content: fileContent,
-            sha: workflow.sha ?? "",
+            sha: fileSha,
             message: commitMessage
         ) { result in
             DispatchQueue.main.async {

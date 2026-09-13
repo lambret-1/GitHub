@@ -173,7 +173,7 @@ struct RunComparisonView: View {
             comparisonRow(title: "触发事件", value1: run1.eventDisplay, value2: run2.eventDisplay)
             comparisonRow(title: "触发者", value1: run1.actor?.login ?? "-", value2: run2.actor?.login ?? "-")
             comparisonRow(title: "创建时间", value1: run1.formattedCreatedAt, value2: run2.formattedCreatedAt)
-            if let duration1 = run1.durationSeconds, let duration2 = run2.durationSeconds {
+            if let duration1 = calculateRunDuration(run1), let duration2 = calculateRunDuration(run2) {
                 comparisonRow(title: "总耗时", value1: formatDuration(duration1), value2: formatDuration(duration2), highlightDifference: true)
             }
         }
@@ -357,7 +357,7 @@ struct RunComparisonView: View {
                 }
             } else {
                 // 总耗时对比
-                if let duration1 = run1.durationSeconds, let duration2 = run2.durationSeconds {
+                if let duration1 = calculateRunDuration(run1), let duration2 = calculateRunDuration(run2) {
                     VStack(spacing: 8) {
                         Text("总耗时对比")
                             .font(.subheadline)
@@ -551,6 +551,24 @@ struct RunComparisonView: View {
     }
 
     // MARK: - 辅助方法
+
+    private func calculateRunDuration(_ run: WorkflowRun) -> Int? {
+        guard let start = parseDate(run.createdAt),
+              let end = parseDate(run.updatedAt) else {
+            return nil
+        }
+        return Int(end.timeIntervalSince(start))
+    }
+
+    private func parseDate(_ dateString: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: dateString) {
+            return date
+        }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: dateString)
+    }
 
     private func calculateFileStats(_ files: [ChangedFile]) -> (added: Int, modified: Int, removed: Int) {
         var added = 0
