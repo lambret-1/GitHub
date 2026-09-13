@@ -689,28 +689,28 @@ struct JobLogView: View {
 
         private func normalHighlightedText(_ text: String) -> some View {
             let options: String.CompareOptions = isCaseSensitive ? [] : .caseInsensitive
-            var result: Text = Text("")
+            var result: AnyView = AnyView(Text(""))
             var currentIndex = text.startIndex
 
             while let range = text.range(of: searchText, options: options, range: currentIndex..<text.endIndex) {
                 // 添加匹配前的文本
                 if currentIndex < range.lowerBound {
-                    result = result + Text(String(text[currentIndex..<range.lowerBound]))
+                    result = AnyView(result + Text(String(text[currentIndex..<range.lowerBound]))
                         .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(colorForLineType(line.type))
+                        .foregroundColor(colorForLineType(line.type)))
                 }
 
                 // 全词匹配检查
                 if isWholeWord && !isWholeWordMatch(text: text, range: range) {
-                    result = result + Text(String(text[range]))
+                    result = AnyView(result + Text(String(text[range]))
                         .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(colorForLineType(line.type))
+                        .foregroundColor(colorForLineType(line.type)))
                 } else {
                     // 添加高亮文本
-                    result = result + Text(String(text[range]))
+                    result = AnyView(result + Text(String(text[range]))
                         .font(.system(size: 9, design: .monospaced))
                         .foregroundColor(.black)
-                        .background(Color.yellow)
+                        .background(Color.yellow))
                 }
 
                 currentIndex = range.upperBound
@@ -718,9 +718,9 @@ struct JobLogView: View {
 
             // 添加剩余文本
             if currentIndex < text.endIndex {
-                result = result + Text(String(text[currentIndex..<text.endIndex]))
+                result = AnyView(result + Text(String(text[currentIndex..<text.endIndex]))
                     .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(colorForLineType(line.type))
+                    .foregroundColor(colorForLineType(line.type)))
             }
 
             return result
@@ -728,7 +728,7 @@ struct JobLogView: View {
         }
 
         private func regexHighlightedText(_ text: String) -> some View {
-            var result: Text = Text("")
+            var result: AnyView = AnyView(Text(""))
             var currentIndex = text.startIndex
 
             do {
@@ -740,14 +740,14 @@ struct JobLogView: View {
                 for match in matches {
                     if let range = Range(match.range, in: text) {
                         if currentIndex < range.lowerBound {
-                            result = result + Text(String(text[currentIndex..<range.lowerBound]))
+                            result = AnyView(result + Text(String(text[currentIndex..<range.lowerBound]))
                                 .font(.system(size: 9, design: .monospaced))
-                                .foregroundColor(colorForLineType(line.type))
+                                .foregroundColor(colorForLineType(line.type)))
                         }
-                        result = result + Text(String(text[range]))
+                        result = AnyView(result + Text(String(text[range]))
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundColor(.black)
-                            .background(Color.yellow)
+                            .background(Color.yellow))
                         currentIndex = range.upperBound
                     }
                 }
@@ -760,9 +760,9 @@ struct JobLogView: View {
             }
 
             if currentIndex < text.endIndex {
-                result = result + Text(String(text[currentIndex..<text.endIndex]))
+                result = AnyView(result + Text(String(text[currentIndex..<text.endIndex]))
                     .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(colorForLineType(line.type))
+                    .foregroundColor(colorForLineType(line.type)))
             }
 
             return result
