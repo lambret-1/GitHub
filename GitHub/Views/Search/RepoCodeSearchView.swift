@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // MARK: - 仓库内代码搜索页面
 
@@ -14,6 +15,10 @@ struct RepoCodeSearchView: View {
     @State private var errorMessage: String?
     @State private var selectedItem: CodeSearchItem?
     @State private var showCodeSnippet: Bool = false
+    // 防抖搜索计时器
+    @State private var searchTimer: Timer?
+    // 搜索结果总数
+    @State private var totalCount: Int = 0
 
     // 代码片段缓存
     @State private var codeSnippets: [String: String] = [:]
@@ -24,6 +29,11 @@ struct RepoCodeSearchView: View {
             VStack(spacing: 0) {
                 // 搜索框
                 searchBar
+
+                // 搜索结果统计栏
+                if !searchResults.isEmpty {
+                    searchStatsBar
+                }
 
                 // 搜索结果列表
                 searchResultsList
@@ -37,7 +47,15 @@ struct RepoCodeSearchView: View {
                         repo: repo,
                         branch: branch,
                         item: item,
-                        searchQuery: searchQuery
+                        searchQuery: searchQuery,
+                        onJumpToCode: { filePath, lineNumber in
+                            // 跳转到代码编辑页面的通知
+                            NotificationCenter.default.post(
+                                name: NSNotification.Name("JumpToCodeNotification"),
+                                object: nil,
+                                userInfo: ["filePath": filePath, "lineNumber": lineNumber]
+                            )
+                        }
                     )
                 }
             }
@@ -52,16 +70,28 @@ struct RepoCodeSearchView: View {
                 .foregroundColor(.gray)
                 .padding(.leading, 8)  // 这是左侧内边距，控制内容左方与边缘的空白距离，单位是pt；改大左方留白更宽，改小左方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
 
-            TextField("输入关键词搜索代码...", text: $searchQuery, onCommit: {
-                performSearch()
-            })
-            .textFieldStyle(PlainTextFieldStyle())
-            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+            TextField("输入关键词搜索代码...", text: $searchQuery)
+                .textFieldStyle(PlainTextFieldStyle())
+                .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .onChange(of: searchQuery) { newValue in
+                    // 防抖搜索：输入300ms后自动搜索
+                    searchTimer?.invalidate()
+                    if newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        searchResults = []
+                        totalCount = 0
+                        return
+                    }
+                    searchTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { _ in
+                        performSearch()
+                    }
+                }
 
             if !searchQuery.isEmpty {
                 Button(action: {
                     searchQuery = ""
                     searchResults = []
+                    totalCount = 0
+                    searchTimer?.invalidate()
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.gray)
@@ -73,6 +103,20 @@ struct RepoCodeSearchView: View {
         .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         .padding(.horizontal)
         .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+    }
+
+    // MARK: - 搜索结果统计栏
+
+    private var searchStatsBar: some View {
+        HStack {
+            Text("共找到 \(totalCount) 个匹配，分布在 \(searchResults.count) 个文件")
+                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .background(Color(.systemGray6))
     }
 
     // MARK: - 搜索结果列表
@@ -169,6 +213,12 @@ struct RepoCodeSearchView: View {
                     .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary)
                     .lineLimit(1)
+
+                // 匹配提示
+                Text("点击查看匹配的代码片段")
+                    .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .foregroundColor(.blue)
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -188,12 +238,14 @@ struct RepoCodeSearchView: View {
     private func performSearch() {
         guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             searchResults = []
+            totalCount = 0
             return
         }
 
         isSearching = true
         errorMessage = nil
         searchResults = []
+        totalCount = 0
 
         GitHubAPI.shared.searchCodeInRepo(
             owner: owner,
@@ -205,6 +257,7 @@ struct RepoCodeSearchView: View {
                 switch result {
                 case .success(let items):
                     searchResults = items
+                    totalCount = items.count
                 case .failure(let error):
                     errorMessage = "搜索失败: \(error.localizedDescription)"
                 }
