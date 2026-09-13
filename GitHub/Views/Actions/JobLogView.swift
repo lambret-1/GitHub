@@ -729,11 +729,10 @@ struct JobLogView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
 
-        @ViewBuilder
-        private func regexHighlightedText(_ text: String) -> some View {
+        // 计算正则匹配的文本片段
+        private func calculateRegexSegments(_ text: String) -> (segments: [TextSegment], error: Error?) {
             var segments: [TextSegment] = []
             var currentIndex = text.startIndex
-            var regexError: Error? = nil
 
             do {
                 let options: NSRegularExpression.Options = isCaseSensitive ? [] : .caseInsensitive
@@ -751,23 +750,30 @@ struct JobLogView: View {
                     }
                 }
             } catch {
-                regexError = error
+                return (segments, error)
             }
 
-            if regexError != nil {
+            if currentIndex < text.endIndex {
+                segments.append(TextSegment(text: String(text[currentIndex..<text.endIndex]), isHighlighted: false))
+            }
+
+            return (segments, nil)
+        }
+
+        @ViewBuilder
+        private func regexHighlightedText(_ text: String) -> some View {
+            let result = calculateRegexSegments(text)
+
+            if result.error != nil {
                 // 正则无效，显示普通文本
                 Text(text)
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundColor(colorForLineType(line.type))
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                if currentIndex < text.endIndex {
-                    segments.append(TextSegment(text: String(text[currentIndex..<text.endIndex]), isHighlighted: false))
-                }
-
                 // 使用Group和ForEach渲染片段
                 Group {
-                    ForEach(segments) { segment in
+                    ForEach(result.segments) { segment in
                         Text(segment.text)
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundColor(segment.isHighlighted ? .black : colorForLineType(line.type))
