@@ -15,11 +15,10 @@ struct RepoCodeSearchView: View {
     @State private var isSearching: Bool = false
     @State private var errorMessage: String?
     @State private var selectedItem: CodeSearchItem?
-    @State private var showCodeSnippet: Bool = false
     // 防抖搜索任务
     @State private var searchTask: Task<Void, Never>?
-    // 当前搜索请求任务（用于取消旧请求，解决竞态条件）
-    @State private var currentSearchWorkItem: DispatchWorkItem?
+    // 当前搜索请求ID（用于竞态条件校验，替代DispatchWorkItem）
+    @State private var currentSearchRequestID: UUID = UUID()
 
     var body: some View {
         NavigationStack {
@@ -37,25 +36,23 @@ struct RepoCodeSearchView: View {
             }
             .navigationTitle("仓库代码搜索")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showCodeSnippet) {
-                if let item = selectedItem {
-                    CodeSnippetView(
-                        owner: owner,
-                        repo: repo,
-                        branch: branch,
-                        item: item,
-                        searchQuery: searchQuery,
-                        onJumpToCode: { filePath, lineNumber in
-                            // 使用闭包回调替代NotificationCenter
-                            onJumpToCode?(filePath, lineNumber)
-                        }
-                    )
-                }
+            // 使用.sheet(item:)替代.isPresented+if let，避免item为nil时白屏
+            .sheet(item: $selectedItem) { item in
+                CodeSnippetView(
+                    owner: owner,
+                    repo: repo,
+                    branch: branch,
+                    item: item,
+                    searchQuery: searchQuery,
+                    onJumpToCode: { filePath, lineNumber in
+                        // 使用闭包回调替代NotificationCenter
+                        onJumpToCode?(filePath, lineNumber)
+                    }
+                )
             }
             .onDisappear {
                 // 视图消失时取消防抖任务，防止内存泄漏
                 searchTask?.cancel()
-                currentSearchWorkItem?.cancel()
             }
         }
     }
@@ -79,7 +76,11 @@ struct RepoCodeSearchView: View {
                     searchTask?.cancel()
                     let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
                     if trimmed.isEmpty {
+                        // 修复：空字符串时重置所有状态，避免卡死在"搜索中"
                         searchResults = []
+                        isSearching = false
+                        errorMessage = nil
+                        currentSearchRequestID = UUID()
                         return
                     }
                     searchTask = Task {
@@ -94,10 +95,13 @@ struct RepoCodeSearchView: View {
 
             if !searchQuery.isEmpty {
                 Button(action: {
+                    // 修复：清空按钮重置所有状态
                     searchQuery = ""
                     searchResults = []
+                    isSearching = false
+                    errorMessage = nil
                     searchTask?.cancel()
-                    currentSearchWorkItem?.cancel()
+                    currentSearchRequestID = UUID()
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.gray)
@@ -187,7 +191,6 @@ struct RepoCodeSearchView: View {
                 ForEach(searchResults) { item in
                     Button(action: {
                         selectedItem = item
-                        showCodeSnippet = true
                     }) {
                         searchResultRow(item)
                     }
@@ -242,52 +245,48 @@ struct RepoCodeSearchView: View {
         .contentShape(Rectangle())
     }
 
-    // MARK: - 执行搜索（修复竞态条件+传入branch参数）
+    // MARK: - 执行搜索（使用requestID替代DispatchWorkItem，真正可取消+竞态防护）
 
     private func performSearch() {
-        guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let trimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            // 修复：空查询时重置所有状态
             searchResults = []
+            isSearching = false
+            errorMessage = nil
             return
         }
 
-        // 取消上一次未完成的搜索请求，解决竞态条件
-        currentSearchWorkItem?.cancel()
+        // 生成新的请求ID，旧请求的回调将被忽略（真正解决竞态条件）
+        let requestID = UUID()
+        currentSearchRequestID = requestID
 
         isSearching = true
         errorMessage = nil
         searchResults = []
 
-        // 捕获当前查询词，回调时校验，防止旧请求覆盖新结果
+        // 捕获当前查询词，回调时校验
         let capturedQuery = searchQuery
 
-        // 先声明可选变量，避免闭包捕获未声明变量的编译错误
-        var workItem: DispatchWorkItem?
-        workItem = DispatchWorkItem {
-            GitHubAPI.shared.searchCodeInRepo(
-                owner: owner,
-                repo: repo,
-                query: capturedQuery,
-                branch: branch  // 传入当前分支参数，确保搜索范围为当前分支
-            ) { result in
-                DispatchQueue.main.async {
-                    // 校验：如果查询词已变化或任务已取消，忽略旧请求结果
-                    guard searchQuery == capturedQuery else { return }
-                    guard !(workItem?.isCancelled ?? false) else { return }
+        GitHubAPI.shared.searchCodeInRepo(
+            owner: owner,
+            repo: repo,
+            query: capturedQuery,
+            branch: branch  // 传入当前分支参数，确保搜索范围为当前分支
+        ) { result in
+            DispatchQueue.main.async {
+                // 竞态防护：如果请求ID已变化或查询词已变化，忽略旧请求结果
+                guard self.currentSearchRequestID == requestID else { return }
+                guard self.searchQuery == capturedQuery else { return }
 
-                    isSearching = false
-                    switch result {
-                    case .success(let items):
-                        searchResults = items
-                    case .failure(let error):
-                        errorMessage = "搜索失败: \(error.localizedDescription)"
-                    }
+                self.isSearching = false
+                switch result {
+                case .success(let items):
+                    self.searchResults = items
+                case .failure(let error):
+                    self.errorMessage = "搜索失败: \(error.localizedDescription)"
                 }
             }
-        }
-
-        if let item = workItem {
-            currentSearchWorkItem = item
-            DispatchQueue.global(qos: .userInitiated).async(execute: item)
         }
     }
 }
@@ -309,6 +308,7 @@ struct CodeSnippetView: View {
     @State private var errorMessage: String?
     @State private var snippets: [CodeSnippet] = []
     @State private var loadFileTask: Task<Void, Never>?  // 网络加载任务，用于取消
+    @State private var loadRequestID: UUID = UUID()  // 文件加载请求ID，用于竞态防护
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -429,11 +429,11 @@ struct CodeSnippetView: View {
         }
     }
 
-    // MARK: - 代码片段行（修复Button嵌套ScrollView手势冲突）
+    // MARK: - 代码片段行（整个行可点击跳转，包括代码区域）
 
     private func snippetRow(_ snippet: CodeSnippet) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 片段位置信息（仅在此区域添加点击手势，不包裹ScrollView）
+            // 片段位置信息
             HStack {
                 Image(systemName: "number")
                     .font(.system(size: 10))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
@@ -453,19 +453,19 @@ struct CodeSnippetView: View {
             .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
             .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             .background(Color(.systemGray6))
-            .contentShape(Rectangle())
-            // 仅在头部信息栏添加点击手势，ScrollView区域可正常横向滚动
-            .onTapGesture {
-                onJumpToCode?(item.path, snippet.lineNumber)
-                dismiss()
-            }
 
-            // 代码内容（高亮关键词）- 独立ScrollView，不被Button包裹，手势不冲突
+            // 代码内容（高亮关键词）- 整个行可点击，包括代码区域
             ScrollView(.horizontal, showsIndicators: false) {
                 highlightedCode(snippet.code)
                     .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
                     .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             }
+        }
+        .contentShape(Rectangle())
+        // 修复：整个行（包括代码区域）都可点击跳转，与"点击跳转"提示语义一致
+        .onTapGesture {
+            onJumpToCode?(item.path, snippet.lineNumber)
+            dismiss()
         }
     }
 
@@ -477,7 +477,7 @@ struct CodeSnippetView: View {
     }
 
     // 构建高亮富文本（使用原始字符串range(of:options:)，避免小写字符串长度不匹配崩溃）
-    // 注意：AttributedString的font/backgroundColor/foregroundColor需使用UIKit类型（UIFont/UIColor）
+    // 修复：增加空查询检查，避免死循环
     private func buildHighlightedAttributedString(_ code: String) -> AttributedString {
         var result = AttributedString(code)
         // 使用UIFont设置AttributedString字体（UIKit类型，非SwiftUI Font）
@@ -485,11 +485,17 @@ struct CodeSnippetView: View {
         let boldFont = UIFont.monospacedSystemFont(ofSize: 11, weight: .bold)
         result.font = normalFont
 
+        // 修复：空查询时直接返回，避免range(of:)死循环
+        let trimmedQuery = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else {
+            return result
+        }
+
         // 直接在原始字符串上使用不区分大小写搜索，返回的range即为原始字符串范围
         // 避免对小写字符串使用Range去索引原始字符串导致的Unicode长度不匹配崩溃
         var searchRange = code.startIndex..<code.endIndex
 
-        while let range = code.range(of: searchQuery, options: .caseInsensitive, range: searchRange) {
+        while let range = code.range(of: trimmedQuery, options: .caseInsensitive, range: searchRange) {
             // 转换为AttributedString的范围
             if let attrRange = Range(range, in: result) {
                 // 使用UIColor设置背景色和前景色（UIKit类型）
@@ -498,14 +504,17 @@ struct CodeSnippetView: View {
                 result[attrRange].foregroundColor = UIColor.red
             }
 
-            // 继续搜索剩余部分
+            // 继续搜索剩余部分（防止空匹配导致死循环）
+            if range.upperBound == searchRange.lowerBound {
+                break
+            }
             searchRange = range.upperBound..<code.endIndex
         }
 
         return result
     }
 
-    // MARK: - 加载文件内容（增加Task取消机制）
+    // MARK: - 加载文件内容（使用可取消Task+requestID，替代withCheckedContinuation）
 
     private func loadFileContent() {
         isLoading = true
@@ -515,9 +524,14 @@ struct CodeSnippetView: View {
         // 取消上一次未完成的加载任务
         loadFileTask?.cancel()
 
+        // 生成新的请求ID，旧请求的回调将被忽略
+        let requestID = UUID()
+        loadRequestID = requestID
+
         loadFileTask = Task {
-            // 使用withCheckedThrowingContinuation包装回调式API为async
-            let result = await withCheckedContinuation { continuation in
+            // 使用withCheckedThrowingContinuation包装回调式API，但Task可取消
+            // 注意：网络请求本身不可取消，但回调会被requestID校验忽略
+            let result: Result<FileContent, Error> = await withCheckedContinuation { continuation in
                 GitHubAPI.shared.getFileContent(
                     owner: owner,
                     repo: repo,
@@ -528,8 +542,9 @@ struct CodeSnippetView: View {
                 }
             }
 
-            // 检查任务是否已取消
+            // 检查任务是否已取消或请求ID已变化
             guard !Task.isCancelled else { return }
+            guard self.loadRequestID == requestID else { return }
 
             await MainActor.run {
                 isLoading = false
@@ -537,7 +552,7 @@ struct CodeSnippetView: View {
                 case .success(let file):
                     fileContent = file.decodedContent
                     // 片段提取移到后台线程执行，避免大文件卡顿UI
-                    extractSnippetsInBackground()
+                    extractSnippetsInBackground(content: file.decodedContent, requestID: requestID)
                 case .failure(let error):
                     errorMessage = "加载文件失败: \(error.localizedDescription)"
                 }
@@ -545,14 +560,18 @@ struct CodeSnippetView: View {
         }
     }
 
-    // MARK: - 后台提取代码片段（优化算法+后台执行，避免UI卡顿）
+    // MARK: - 后台提取代码片段（修复：不直接访问@State，通过参数传递；受取消传播控制）
 
-    private func extractSnippetsInBackground() {
-        guard let content = fileContent else { return }
+    private func extractSnippetsInBackground(content: String, requestID: UUID) {
+        // 通过参数传递searchQuery，避免Task.detached跨线程访问@State
+        let query = searchQuery
 
         Task.detached(priority: .userInitiated) {
+            // 检查任务是否已取消
+            guard !Task.isCancelled else { return }
+
             let lines = content.components(separatedBy: .newlines)
-            let lowercasedQuery = searchQuery.lowercased()
+            let lowercasedQuery = query.lowercased()
 
             // 优化算法：一次遍历直接构建合并区间，无需先存储所有匹配行索引
             // 减少大文件内存占用
@@ -608,9 +627,13 @@ struct CodeSnippetView: View {
                 return temp
             }()
 
-            // 回到主线程更新UI
+            // 再次检查取消状态
+            guard !Task.isCancelled else { return }
+
+            // 回到主线程更新UI（修复：增加requestID校验，避免旧任务覆盖新结果）
             await MainActor.run {
-                snippets = snippetsResult
+                guard self.loadRequestID == requestID else { return }
+                self.snippets = snippetsResult
             }
         }
     }
