@@ -147,6 +147,7 @@ struct FileBrowserView: View {
     @State var showForkConfirm: Bool = false // 复刻二次确认弹窗
     @State var showOperationMessage: Bool = false
     @State var operationMessage: String = ""
+    @State var showCommits: Bool = false // 提交记录页面
 
     // MARK: - 仓库功能Tab（顶部分段控件）
     enum RepoTab: String, CaseIterable {
@@ -1242,6 +1243,13 @@ struct FileBrowserView: View {
 
         // 通用功能（自己和别人的仓库都显示）
         
+
+        Button(action: {
+            showCommits = true
+        }) {
+            Label("提交记录", systemImage: "clock.arrow.circlepath")
+        }
+        .disabled(isDeleteMode)
 
         Button(action: {
             showActions = true
@@ -3742,7 +3750,10 @@ private struct FileBrowserBranchAndRenameSheetsModifier: ViewModifier {
             }
             .sheet(isPresented: view.$showContextMenuRename, content: view.renameFileSheet)
             .sheet(isPresented: view.$showCommits) {
-                CommitsView(owner: view.repository.ownerName, repo: view.repository.name)
+                NavigationStack {
+                    CommitsListView(owner: view.repository.ownerName, repo: view.repository.name, branch: view.selectedBranch)
+                        .environmentObject(view.appState)
+                }
             }
     }
 }
