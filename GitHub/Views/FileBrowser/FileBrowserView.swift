@@ -158,6 +158,13 @@ struct FileBrowserView: View {
     }
     @State var selectedTab: RepoTab = .code
 
+    // MARK: - 权限感知与Fork流程闭环
+    @State var repoPermission: RepoPermission = .none
+    @State var userForkRepository: Repository?
+    @State var isCheckingFork: Bool = false
+    @State var showForkGuide: Bool = false
+    @State var forkGuideMessage: String = ""
+
     // MARK: - README相关状态
     @State var readmeContent: String?
     @State var isLoadingReadme: Bool = false
@@ -242,6 +249,12 @@ struct FileBrowserView: View {
             // 检查星标状态（仅别人的仓库，自己仓库不需要检查）
             if !isOwnRepository {
                 checkStarredStatus()
+            }
+            // 加载仓库权限信息（权限感知引擎）
+            loadRepositoryPermission()
+            // 检测当前用户是否已Fork该仓库（Fork流程闭环）
+            if !isOwnRepository {
+                checkForkStatus()
             }
             // 强制隐藏系统导航栏，避免双重导航栏问题
             DispatchQueue.main.async {
@@ -1601,6 +1614,75 @@ struct FileBrowserView: View {
                     showMessage("已取消星标")
                 case .failure(let error):
                     showMessage("取消星标失败: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    // MARK: - 权限感知与Fork流程闭环
+
+    /// 加载仓库权限信息
+    func loadRepositoryPermission() {
+        // 如果是自己的仓库，直接设置为管理员权限
+        if isOwnRepository {
+            repoPermission = .admin
+            return
+        }
+
+        GitHubAPI.shared.getRepository(owner: repository.ownerName, repo: repository.name) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let repo):
+                    self.repoPermission = repo.当前权限
+                case .failure:
+                    // 获取失败时默认只读权限
+                    self.repoPermission = .read
+                }
+            }
+        }
+    }
+
+    /// 检测当前用户是否已Fork该仓库
+    func checkForkStatus() {
+        // 自己的仓库不需要检测
+        guard !isOwnRepository else { return }
+
+        isCheckingFork = true
+        GitHubAPI.shared.checkUserFork(owner: repository.ownerName, repo: repository.name) { result in
+            DispatchQueue.main.async {
+                self.isCheckingFork = false
+                switch result {
+                case .success(let forkRepo):
+                    self.userForkRepository = forkRepo
+                case .failure:
+                    self.userForkRepository = nil
+                }
+            }
+        }
+    }
+
+    /// 显示Fork引导弹窗（无权限操作时调用）
+    func showForkGuide(message: String) {
+        forkGuideMessage = message
+        showForkGuide = true
+    }
+
+    /// Fork并编辑（Fork成功后跳转到自己的Fork仓库）
+    func forkAndEdit() {
+        isForking = true
+        GitHubAPI.shared.forkRepository(owner: repository.ownerName, repo: repository.name) { result in
+            DispatchQueue.main.async {
+                self.isForking = false
+                switch result {
+                case .success:
+                    // Fork成功后，延迟检测Fork状态并提示用户
+                    self.showMessage("复刻成功，正在准备您的副本...")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        self.checkForkStatus()
+                        self.showForkGuide = false
+                    }
+                case .failure(let error):
+                    self.showMessage("复刻失败: \(error.localizedDescription)")
                 }
             }
         }
@@ -3749,6 +3831,15 @@ private struct FileBrowserDeleteSheetsModifier: ViewModifier {
                 }
             } message: {
                 Text("确定要复刻仓库「\(view.repository.ownerName)/\(view.repository.name)」吗？复刻后将在您的账户下创建一个副本。")
+            }
+            // Fork引导弹窗（无权限操作时提示用户先Fork）
+            .alert("需要复刻仓库", isPresented: view.$showForkGuide) {
+                Button("取消", role: .cancel) {}
+                Button("立即复刻并编辑") {
+                    view.forkAndEdit()
+                }
+            } message: {
+                Text(view.forkGuideMessage)
             }
             .alert("确认删除", isPresented: view.$showContextMenuDeleteConfirm) {
                 Button("取消", role: .cancel) {

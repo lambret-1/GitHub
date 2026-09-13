@@ -14,8 +14,12 @@ struct RepoHeaderView: View {
     let isForking: Bool
     let onToggleStar: () -> Void
     let onFork: () -> Void
+    // 新增回调：查看父仓库（Fork来源）
+    var onViewParent: ((Repository) -> Void)? = nil
 
     @EnvironmentObject var appState: AppState
+    // 描述展开状态
+    @State private var isDescriptionExpanded: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -63,12 +67,47 @@ struct RepoHeaderView: View {
                 }
             }
 
-            // 第二行：仓库描述
+            // Fork来源标识（如果是Fork仓库）
+            if repository.是Fork, let parent = repository.parent {
+                Button(action: {
+                    onViewParent?(parent)
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.triangle.branch")
+                            .font(.system(size: 11))
+                            .foregroundColor(.blue)
+                        Text("复刻自 ")
+                            .font(.system(size: 12))
+                            .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                        Text("\(parent.ownerName)/\(parent.name)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.blue)
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+
+            // 第二行：仓库描述（可展开/收起）
             if let description = repository.description, !description.isEmpty {
-                Text(description)
-                    .font(.system(size: 14))
-                    .foregroundColor(appState.isDarkMode ? Color(red: 0.8, green: 0.8, blue: 0.8) : .secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(description)
+                        .font(.system(size: 14))
+                        .foregroundColor(appState.isDarkMode ? Color(red: 0.8, green: 0.8, blue: 0.8) : .secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(isDescriptionExpanded ? nil : 2)
+
+                    // 展开/收起按钮
+                    if description.count > 60 {
+                        Button(action: {
+                            isDescriptionExpanded.toggle()
+                        }) {
+                            Text(isDescriptionExpanded ? "收起" : "展开")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
             }
 
             // 第三行：操作按钮组（Watch / Fork / Star）
@@ -151,7 +190,24 @@ struct RepoHeaderView: View {
                 Spacer()
             }
 
-            // 第四行：仓库元信息
+            // 第四行：Topics标签（如果有）
+            if let topics = repository.topics, !topics.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(topics, id: \.self) { topic in
+                            Text(topic)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(12)
+                        }
+                    }
+                }
+            }
+
+            // 第五行：仓库元信息
             HStack(spacing: 16) {
                 // 语言
                 if let language = repository.language, !language.isEmpty {
@@ -163,6 +219,26 @@ struct RepoHeaderView: View {
                             .font(.system(size: 12))
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     }
+                }
+
+                // 开源协议
+                HStack(spacing: 4) {
+                    Image(systemName: "scroll")
+                        .font(.system(size: 11))
+                        .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                    Text(repository.协议名称)
+                        .font(.system(size: 12))
+                        .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                }
+
+                // 仓库大小
+                HStack(spacing: 4) {
+                    Image(systemName: "internaldrive")
+                        .font(.system(size: 11))
+                        .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                    Text(repository.大小显示)
+                        .font(.system(size: 12))
+                        .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
                 // 星标数
@@ -183,6 +259,33 @@ struct RepoHeaderView: View {
                     Text("\(repository.forksCount ?? 0)")
                         .font(.system(size: 12))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                }
+
+                Spacer()
+            }
+
+            // 第六行：创建/更新时间
+            HStack(spacing: 16) {
+                if let createdAt = repository.createdAt {
+                    HStack(spacing: 4) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 11))
+                            .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                        Text("创建于 \(日期工具.相对时间(fromISO: createdAt))")
+                            .font(.system(size: 11))
+                            .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                    }
+                }
+
+                if let updatedAt = repository.updatedAt {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 11))
+                            .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                        Text("更新于 \(日期工具.相对时间(fromISO: updatedAt))")
+                            .font(.system(size: 11))
+                            .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                    }
                 }
 
                 Spacer()

@@ -912,6 +912,36 @@ class GitHubAPI {
         performSimpleRequest(url: url, method: "POST", failureMessage: "Fork仓库失败", completion: completion)
     }
 
+    /// 检测当前用户是否已Fork该仓库，如果已Fork返回Fork的仓库信息
+    func checkUserFork(owner: String, repo: String, completion: @escaping (Result<Repository?, Error>) -> Void) {
+        let urlString = "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/forks?per_page=100&sort=oldest"
+        guard let url = URL(string: urlString) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let forks = try JSONDecoder().decode([Repository].self, from: data)
+                    // 获取当前用户登录名
+                    if let currentUsername = AccountManager.shared.currentAccount?.username {
+                        // 查找当前用户的Fork
+                        let userFork = forks.first { $0.ownerName.lowercased() == currentUsername.lowercased() }
+                        completion(.success(userFork))
+                    } else {
+                        completion(.success(nil))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     /// 删除仓库（需要admin权限）
     func deleteRepository(owner: String, repo: String, completion: @escaping (Result<Bool, Error>) -> Void) {
         let url = APIEndpoints.deleteRepository(owner: owner, repo: repo).url
