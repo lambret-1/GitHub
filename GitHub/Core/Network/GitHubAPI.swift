@@ -767,23 +767,29 @@ class GitHubAPI {
         }
     }
 
-    /// 获取作业日志（纯文本）- 使用Token请求头，URLSession自动处理302重定向
+    /// 获取作业日志（纯文本）- 手动处理302重定向，带详细调试信息
     func getJobLogs(owner: String, repo: String, jobId: Int, logsUrl: String? = nil, completion: @escaping (Result<String, Error>) -> Void) {
-        // 使用标准API端点（带Token请求头），GitHub会返回302重定向到Azure Blob Storage预签名URL
-        // URLSession.shared会自动跟随重定向，并在跨域名重定向时自动移除Authorization头（标准行为）
         let urlString = APIEndpoints.jobLogs(owner: owner, repo: repo, jobId: jobId).url
         guard let url = URL(string: urlString) else {
             completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
             return
         }
 
+        // 第一步：请求GitHub API，获取302重定向URL
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.allHTTPHeaderFields = getHeaders() // 包含Token请求头
-        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        // 只使用必要的请求头，避免Cache-Control等头导致问题
+        if let token = TokenKeychain.shared.getToken() {
+            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        }
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
 
-        // 使用URLSession.shared，自动处理重定向（与curl行为一致）
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        // 使用自定义session，禁用自动重定向，手动处理302
+        let config = URLSessionConfiguration.default
+        let session = URLSession(configuration: config, delegate: NoRedirectDelegate.shared, delegateQueue: nil)
+
+        session.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     completion(.failure(error))
@@ -795,9 +801,60 @@ class GitHubAPI {
                     return
                 }
 
-                // 处理403错误：权限不足或资源访问被禁止
+                // 处理302重定向：手动获取Location头，然后下载实际日志
+                if httpResponse.statusCode == 302 {
+                    guard let location = httpResponse.allHeaderFields["Location"] as? String,
+                          let redirectURL = URL(string: location) else {
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -3, userInfo: [NSLocalizedDescriptionKey: "重定向URL无效"])))
+                        return
+                    }
+
+                    // 第二步：请求重定向后的URL（Azure Blob Storage，不需要Authorization头）
+                    var redirectRequest = URLRequest(url: redirectURL)
+                    redirectRequest.httpMethod = "GET"
+                    redirectRequest.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
+
+                    URLSession.shared.dataTask(with: redirectRequest) { redirectData, redirectResponse, redirectError in
+                        DispatchQueue.main.async {
+                            if let redirectError = redirectError {
+                                completion(.failure(redirectError))
+                                return
+                            }
+
+                            guard let redirectHTTPResponse = redirectResponse as? HTTPURLResponse else {
+                                completion(.failure(NSError(domain: "GitHubAPI", code: -4, userInfo: [NSLocalizedDescriptionKey: "重定向响应无效"])))
+                                return
+                            }
+
+                            if (200...299).contains(redirectHTTPResponse.statusCode) {
+                                guard let logData = redirectData, !logData.isEmpty else {
+                                    completion(.failure(NSError(domain: "GitHubAPI", code: -5, userInfo: [NSLocalizedDescriptionKey: "日志数据为空"])))
+                                    return
+                                }
+
+                                // 解析日志数据
+                                if let logs = Self.parseJobLogData(logData) {
+                                    completion(.success(logs))
+                                } else {
+                                    // 解码失败，输出详细调试信息
+                                    let debugInfo = Self.debugDataInfo(logData)
+                                    completion(.failure(NSError(domain: "GitHubAPI", code: -6, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败，\(debugInfo)"])))
+                                }
+                            } else {
+                                var errorMessage = "日志下载失败 (HTTP \(redirectHTTPResponse.statusCode))"
+                                if let data = redirectData, let text = String(data: data, encoding: .utf8) {
+                                    errorMessage += "，响应内容: \(String(text.prefix(200)))"
+                                }
+                                completion(.failure(NSError(domain: "GitHubAPI", code: redirectHTTPResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
+                            }
+                        }
+                    }.resume()
+                    return
+                }
+
+                // 处理403错误
                 if httpResponse.statusCode == 403 {
-                    var errorMessage = "访问被拒绝 (HTTP 403)：Token权限不足或资源访问被禁止"
+                    var errorMessage = "访问被拒绝 (HTTP 403)：Token权限不足"
                     if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let message = json["message"] as? String {
                         errorMessage = message
                     }
@@ -805,61 +862,100 @@ class GitHubAPI {
                     return
                 }
 
-                // 处理404错误：作业日志可能还不可用
+                // 处理404错误
                 if httpResponse.statusCode == 404 {
                     completion(.failure(NSError(domain: "GitHubAPI", code: 404, userInfo: [NSLocalizedDescriptionKey: "作业日志暂不可用，请稍后重试"])))
                     return
                 }
 
-                // 处理401未授权错误
+                // 处理401错误
                 if httpResponse.statusCode == 401 {
                     self.handleUnauthorizedError()
                     completion(.failure(NSError(domain: "GitHubAPI", code: 401, userInfo: [NSLocalizedDescriptionKey: "登录已过期，请重新登录"])))
                     return
                 }
 
+                // 如果直接返回200（没有重定向），也尝试解析
                 if (200...299).contains(httpResponse.statusCode) {
-                    guard let data = data, !data.isEmpty else {
-                        completion(.failure(NSError(domain: "GitHubAPI", code: -6, userInfo: [NSLocalizedDescriptionKey: "日志数据为空"])))
+                    guard let logData = data, !logData.isEmpty else {
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -7, userInfo: [NSLocalizedDescriptionKey: "日志数据为空"])))
                         return
                     }
 
-                    // 处理UTF-8 BOM（字节顺序标记），GitHub日志开头可能有BOM
-                    var logData = data
-                    if data.count >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF {
-                        logData = data.subdata(in: 3..<data.count)
-                    }
-
-                    // 尝试UTF8解码
-                    if let logs = String(data: logData, encoding: .utf8) {
+                    if let logs = Self.parseJobLogData(logData) {
                         completion(.success(logs))
-                        return
+                    } else {
+                        let debugInfo = Self.debugDataInfo(logData)
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -8, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败，\(debugInfo)"])))
                     }
-                    // 尝试ASCII解码
-                    if let logs = String(data: logData, encoding: .ascii) {
-                        completion(.success(logs))
-                        return
-                    }
-                    // 尝试ISO拉丁编码
-                    if let logs = String(data: logData, encoding: .isoLatin1) {
-                        completion(.success(logs))
-                        return
-                    }
-                    // 尝试UTF16解码
-                    if let logs = String(data: logData, encoding: .utf16) {
-                        completion(.success(logs))
-                        return
-                    }
-                    completion(.failure(NSError(domain: "GitHubAPI", code: -5, userInfo: [NSLocalizedDescriptionKey: "日志数据解析失败，无法识别编码格式，数据大小: \(data.count) 字节"])))
-                } else {
-                    var errorMessage = "请求失败 (HTTP \(httpResponse.statusCode))"
-                    if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let message = json["message"] as? String {
-                        errorMessage = message
-                    }
-                    completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
+                    return
                 }
+
+                // 其他错误
+                var errorMessage = "请求失败 (HTTP \(httpResponse.statusCode))"
+                if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let message = json["message"] as? String {
+                    errorMessage = message
+                }
+                completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
             }
         }.resume()
+    }
+
+    // MARK: - 作业日志数据解析（静态方法，便于测试）
+    private static func parseJobLogData(_ data: Data) -> String? {
+        var logData = data
+
+        // 处理UTF-8 BOM（EF BB BF）
+        if logData.count >= 3 && logData[0] == 0xEF && logData[1] == 0xBB && logData[2] == 0xBF {
+            logData = logData.subdata(in: 3..<logData.count)
+        }
+
+        // 依次尝试多种编码
+        let encodings: [String.Encoding] = [.utf8, .ascii, .isoLatin1, .windowsCP1252, .utf16, .utf16BigEndian, .utf16LittleEndian]
+        for encoding in encodings {
+            if let logs = String(data: logData, encoding: encoding) {
+                return logs
+            }
+        }
+
+        // 最后尝试：逐字节转换为ASCII（丢失非ASCII字符）
+        var bytes = [UInt8](logData)
+        for i in 0..<bytes.count {
+            if bytes[i] > 127 {
+                bytes[i] = 63 // '?'
+            }
+        }
+        return String(bytes: bytes, encoding: .ascii)
+    }
+
+    // MARK: - 数据调试信息（静态方法）
+    private static func debugDataInfo(_ data: Data) -> String {
+        let count = data.count
+        var hexString = ""
+        var asciiString = ""
+
+        let previewCount = min(count, 50)
+        for i in 0..<previewCount {
+            let byte = data[i]
+            hexString += String(format: "%02X ", byte)
+            if byte >= 32 && byte <= 126 {
+                asciiString += String(Character(UnicodeScalar(byte)))
+            } else {
+                asciiString += "."
+            }
+        }
+
+        return "数据大小: \(count) 字节，前\(previewCount)字节十六进制: [\(hexString.trimmingCharacters(in: .whitespaces))]，ASCII: [\(asciiString)]"
+    }
+
+    // MARK: - 禁用重定向代理
+    private class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
+        static let shared = NoRedirectDelegate()
+
+        func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+            // 不跟随重定向，返回nil让任务完成，我们手动处理302
+            completionHandler(nil)
+        }
     }
 
     /// 触发工作流运行（workflow_dispatch）
