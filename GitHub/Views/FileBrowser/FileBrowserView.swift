@@ -425,8 +425,6 @@ struct FileBrowserView: View {
         List {
             // 仓库头部（可跟随屏幕滑动）
             repoHeaderSection
-            // 分支栏（可跟随屏幕滑动）
-            branchBarSection
             // 路径导航栏（可跟随屏幕滑动）
             pathNavSection
             // 加载中
@@ -448,8 +446,6 @@ struct FileBrowserView: View {
         List {
             // 仓库头部（可跟随屏幕滑动）
             repoHeaderSection
-            // 分支栏（可跟随屏幕滑动）
-            branchBarSection
             // 路径导航栏（可跟随屏幕滑动）
             pathNavSection
             // 错误信息
@@ -481,8 +477,6 @@ struct FileBrowserView: View {
         List {
             // 仓库头部（可跟随屏幕滑动）
             repoHeaderSection
-            // 分支栏（可跟随屏幕滑动）
-            branchBarSection
             // 路径导航栏（可跟随屏幕滑动）
             pathNavSection
             // 空目录提示
@@ -546,16 +540,8 @@ struct FileBrowserView: View {
             isStarring: isStarring,
             isForking: isForking,
             onToggleStar: toggleStar,
-            onFork: forkRepository
-        )
-        .environmentObject(appState)
-        .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden)
-    }
-
-    var branchBarSection: some View {
-        BranchBarView(
-            branches: $branches,
+            onFork: forkRepository,
+            branches: branches,
             selectedBranch: $selectedBranch,
             onBranchChange: {
                 loadFiles()
@@ -565,9 +551,7 @@ struct FileBrowserView: View {
             onBranchesChanged: {
                 loadBranches()
             }
-        ) {
-            moreMenuContent
-        }
+        )
         .environmentObject(appState)
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden)
@@ -592,7 +576,17 @@ struct FileBrowserView: View {
                 isStarring: isStarring,
                 isForking: isForking,
                 onToggleStar: toggleStar,
-                onFork: forkRepository
+                onFork: forkRepository,
+                branches: branches,
+                selectedBranch: $selectedBranch,
+                onBranchChange: {
+                    loadFiles()
+                },
+                owner: repository.ownerName,
+                repo: repository.name,
+                onBranchesChanged: {
+                    loadBranches()
+                }
             )
             .environmentObject(appState)
             .listRowInsets(EdgeInsets())
@@ -647,25 +641,6 @@ struct FileBrowserView: View {
 
     @ViewBuilder
     var codeTabContent: some View {
-        // 分支栏（复刻GitHub网页布局，可跟随屏幕滑动）
-        BranchBarView(
-            branches: $branches,
-            selectedBranch: $selectedBranch,
-            onBranchChange: {
-                loadFiles()
-            },
-            owner: repository.ownerName,
-            repo: repository.name,
-            onBranchesChanged: {
-                loadBranches()
-            }
-        ) {
-            moreMenuContent
-        }
-        .environmentObject(appState)
-        .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden)
-
         // 代码搜索框（使用主页仓库搜索框样式）
         SearchBar(
             text: $codeSearchQuery,

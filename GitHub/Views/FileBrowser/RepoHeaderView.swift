@@ -16,10 +16,19 @@ struct RepoHeaderView: View {
     let onFork: () -> Void
     // 新增回调：查看父仓库（Fork来源）
     var onViewParent: ((RepositoryParent) -> Void)? = nil
+    // 分支相关参数
+    let branches: [Branch]
+    @Binding var selectedBranch: String
+    let onBranchChange: () -> Void
+    let owner: String
+    let repo: String
+    let onBranchesChanged: () -> Void
 
     @EnvironmentObject var appState: AppState
     // 描述展开状态
     @State private var isDescriptionExpanded: Bool = false
+    // 分支选择器状态
+    @State private var showBranchPicker: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -241,31 +250,37 @@ struct RepoHeaderView: View {
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
-                // 星标数
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(appState.isDarkMode ? .gray : .secondary)
-                    Text("\(repository.stargazersCount ?? 0)")
-                        .font(.system(size: 12))
-                        .foregroundColor(appState.isDarkMode ? .gray : .secondary)
-                }
-
-                // 复刻数
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.triangle.branch")
-                        .font(.system(size: 11))
-                        .foregroundColor(appState.isDarkMode ? .gray : .secondary)
-                    Text("\(repository.forksCount ?? 0)")
-                        .font(.system(size: 12))
-                        .foregroundColor(appState.isDarkMode ? .gray : .secondary)
-                }
-
                 Spacer()
             }
 
-            // 第六行：创建/更新时间
-            HStack(spacing: 16) {
+            // 第六行：分支按钮 + 创建/更新时间
+            HStack(spacing: 12) {
+                // 分支选择按钮
+                Button(action: {
+                    showBranchPicker = true
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.triangle.branch")
+                            .font(.system(size: 12))
+                            .foregroundColor(appState.isDarkMode ? .white : .primary)
+                        Text(selectedBranch.isEmpty ? "main" : selectedBranch)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(appState.isDarkMode ? .white : .primary)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9))
+                            .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(appState.isDarkMode ? Color(red: 0.12, green: 0.12, blue: 0.12) : Color(red: 0.96, green: 0.96, blue: 0.96))
+                    .cornerRadius(5)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5)
+                            .stroke(appState.isDarkMode ? Color(red: 0.25, green: 0.25, blue: 0.25) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+
                 if let createdAt = repository.createdAt {
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
@@ -294,6 +309,20 @@ struct RepoHeaderView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(appState.isDarkMode ? Color(red: 0.08, green: 0.08, blue: 0.08) : Color(red: 0.98, green: 0.98, blue: 0.98))
+        .sheet(isPresented: $showBranchPicker) {
+            BranchPickerView(
+                branches: .constant(branches),
+                selectedBranch: $selectedBranch,
+                onSelect: {
+                    showBranchPicker = false
+                    onBranchChange()
+                },
+                owner: owner,
+                repo: repo,
+                onBranchesChanged: onBranchesChanged
+            )
+            .environmentObject(appState)
+        }
     }
 
     // 数字格式化（大数字显示为k/M格式）
