@@ -10,6 +10,7 @@ struct DiffView: View {
     @State private var diffContent: String = ""
     @State private var isLoading: Bool = true
     @State private var errorMessage: String?
+    @State private var showEditor: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,8 +22,34 @@ struct DiffView: View {
         }
         .navigationTitle(changedFile.shortFilename)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showEditor = true
+                }) {
+                    Image(systemName: "pencil")
+                }
+            }
+        }
+        .background(
+            NavigationLink(destination: editorDestination, isActive: $showEditor) {
+                EmptyView()
+            }
+            .hidden()
+        )
         .onAppear {
             loadDiff()
+        }
+    }
+
+    // MARK: - 编辑器目标视图
+
+    @ViewBuilder
+    private var editorDestination: some View {
+        if let sha = changedFile.sha {
+            FileEditorView(owner: owner, repo: repo, filePath: changedFile.filename, branch: sha)
+        } else {
+            FileEditorView(owner: owner, repo: repo, filePath: changedFile.filename, branch: "main")
         }
     }
 
