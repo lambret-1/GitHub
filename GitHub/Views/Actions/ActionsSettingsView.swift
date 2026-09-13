@@ -18,7 +18,7 @@ struct ActionsSettingsView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "archivebox")
                             .foregroundColor(.blue)
-                            .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                            .frame(width: 24)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("缓存管理")
                                 .font(.subheadline)
@@ -28,17 +28,17 @@ struct ActionsSettingsView: View {
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
+                            .font(.system(size: 10))
                             .foregroundColor(.gray)
                     }
-                    .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                    .padding(.vertical, 4)
                 }
 
                 NavigationLink(destination: RunnerManagementView(owner: owner, repo: repo)) {
                     HStack(spacing: 12) {
                         Image(systemName: "cpu")
                             .foregroundColor(.purple)
-                            .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                            .frame(width: 24)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Runner管理")
                                 .font(.subheadline)
@@ -48,10 +48,10 @@ struct ActionsSettingsView: View {
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
+                            .font(.system(size: 10))
                             .foregroundColor(.gray)
                     }
-                    .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                    .padding(.vertical, 4)
                 }
             }
 
@@ -102,7 +102,7 @@ struct ActionsSettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                .padding(.vertical, 4)
             }
         }
         .listStyle(InsetGroupedListStyle())
@@ -150,7 +150,7 @@ struct WorkflowSettingsRow: View {
         HStack(spacing: 12) {
             Image(systemName: "bolt.fill")
                 .foregroundColor(workflow.state == "active" ? .green : .gray)
-                .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(workflow.name)
@@ -167,7 +167,7 @@ struct WorkflowSettingsRow: View {
             // 状态开关
             if isUpdating {
                 ProgressView()
-                    .scaleEffect(0.8)  // 缩放比例0.8倍，控制视图整体放大缩小
+                    .scaleEffect(0.8)
             } else {
                 Toggle("", isOn: Binding(
                     get: { workflow.state == "active" },
@@ -179,7 +179,7 @@ struct WorkflowSettingsRow: View {
                 .toggleStyle(SwitchToggleStyle(tint: .green))
             }
         }
-        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+        .padding(.vertical, 4)
         .alert("操作结果", isPresented: $showAlert) {
             Button("确定", role: .cancel) {}
         } message: {

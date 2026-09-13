@@ -31,7 +31,7 @@ struct ProfileView: View {
                         VStack(spacing: 16) {
                             // 头像（双击切换暗黑模式）
                             CachedImageView(urlString: user.avatarUrl, placeholder: Image(systemName: "person.circle.fill"))
-                                .frame(width: 80, height: 80)  // 视图尺寸宽80pt高80pt，控制组件显示大小
+                                .frame(width: 80, height: 80)
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(Color.white, lineWidth: 2))
                                 .shadow(radius: 4)
@@ -62,10 +62,10 @@ struct ProfileView: View {
                                 StatView(number: user.followers ?? 0, label: "粉丝")
                                 StatView(number: user.following ?? 0, label: "关注")
                             }
-                            .padding(.top, 8)  // 顶部内边距8pt，控制上方留白间距
+                            .padding(.top, 8)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 20)  // 垂直内边距20pt，控制上下留白间距
+                        .padding(.vertical, 20)
                     }
                     
                     // 详细信息
@@ -74,7 +74,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "building.2")
                                     .foregroundColor(.gray)
-                                    .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                                    .frame(width: 30)
                                 Text("公司")
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -86,7 +86,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "location.fill")
                                     .foregroundColor(.gray)
-                                    .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                                    .frame(width: 30)
                                 Text("位置")
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -98,7 +98,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "link")
                                     .foregroundColor(.gray)
-                                    .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                                    .frame(width: 30)
                                 Text("博客")
                                     .foregroundColor(.secondary)
                                 Spacer()
@@ -110,7 +110,7 @@ struct ProfileView: View {
                         HStack {
                             Image(systemName: "calendar")
                                 .foregroundColor(.gray)
-                                .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                                .frame(width: 30)
                             Text("注册时间")
                                 .foregroundColor(.secondary)
                             Spacer()
@@ -126,7 +126,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "person.2.circle")
                                     .foregroundColor(.blue)
-                                    .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                                    .frame(width: 30)
                                 Text("账号管理")
                                     .foregroundColor(.primary)
                                 Spacer()
@@ -152,7 +152,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "safari")
                                     .foregroundColor(.blue)
-                                    .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                                    .frame(width: 30)
                                 Text("在 GitHub 查看主页")
                                     .foregroundColor(.primary)
                                 Spacer()
@@ -168,11 +168,11 @@ struct ProfileView: View {
                             HStack {
                                 if isCheckingUpdate {
                                     ProgressView()
-                                        .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                                        .frame(width: 30)
                                 } else {
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                         .foregroundColor(.blue)
-                                        .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                                        .frame(width: 30)
                                 }
                                 Text(isCheckingUpdate ? "正在检查更新..." : "检查更新")
                                     .foregroundColor(.primary)
@@ -189,7 +189,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "info.circle")
                                     .foregroundColor(.blue)
-                                    .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                                    .frame(width: 30)
                                 Text("关于")
                                     .foregroundColor(.primary)
                                 Spacer()
@@ -213,7 +213,7 @@ struct ProfileView: View {
                             HStack {
                                 Image(systemName: "arrow.right.square")
                                     .foregroundColor(.red)
-                                    .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                                    .frame(width: 30)
                                 Text("退出登录")
                                     .foregroundColor(.red)
                             }
@@ -226,7 +226,7 @@ struct ProfileView: View {
                             ProgressView("加载中...")
                             Spacer()
                         }
-                        .padding(.vertical, 40)  // 垂直内边距40pt，控制上下留白间距
+                        .padding(.vertical, 40)
                     }
                 }
             }
@@ -270,7 +270,7 @@ struct ProfileView: View {
                         VStack(spacing: 16) {
                             ProgressView(value: downloadProgress)
                                 .progressViewStyle(CircularProgressViewStyle(tint: .black))
-                                .scaleEffect(1.5)  // 缩放比例1.5倍，控制视图整体放大缩小
+                                .scaleEffect(1.5)
 
                             Text("正在下载更新...")
                                 .font(.headline)
@@ -284,9 +284,9 @@ struct ProfileView: View {
                                 .font(.caption)
                                 .foregroundColor(.black.opacity(0.7))
                         }
-                        .padding(32)  // 四向统一内边距32pt，控制上下左右留白
+                        .padding(32)
                         .background(Color.white)
-                        .cornerRadius(16)  // 圆角半径16pt，控制视图边角圆润程度
+                        .cornerRadius(16)
                     }
                 }
             }

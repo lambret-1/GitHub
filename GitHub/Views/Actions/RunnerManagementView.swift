@@ -74,7 +74,7 @@ struct RunnerManagementView: View {
                                     .font(.headline)
                             }
                         }
-                        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                        .padding(.vertical, 4)
                     }
 
                     // Runner列表
@@ -135,7 +135,7 @@ struct RunnerManagementView: View {
         HStack(spacing: 12) {
             Image(systemName: runner.osIcon)
                 .foregroundColor(.blue)
-                .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
@@ -144,7 +144,7 @@ struct RunnerManagementView: View {
                         .lineLimit(1)
 
                     Image(systemName: runner.statusIcon)
-                        .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
+                        .font(.system(size: 10))
                         .foregroundColor(runner.statusColor)
                 }
 
@@ -173,7 +173,7 @@ struct RunnerManagementView: View {
             // 删除按钮
             if deletingRunnerId == runner.id {
                 ProgressView()
-                    .scaleEffect(0.8)  // 缩放比例0.8倍，控制视图整体放大缩小
+                    .scaleEffect(0.8)
             } else {
                 Button(action: {
                     runnerToDelete = runner
@@ -185,7 +185,7 @@ struct RunnerManagementView: View {
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+        .padding(.vertical, 4)
     }
 
     // MARK: - 计算属性

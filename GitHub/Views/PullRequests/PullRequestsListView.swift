@@ -35,12 +35,12 @@ struct PullRequestsListView: View {
 
                 Button(action: { showCreatePR = true }) {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 24))  // 字体大小24pt，控制文字显示尺寸
+                        .font(.system(size: 24))
                         .foregroundColor(.blue)
                 }
             }
-            .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
 
             // PR列表
             if isLoading && pullRequests.isEmpty {
@@ -131,7 +131,7 @@ struct PullRequestsListView: View {
     private func errorView(error: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
+                .font(.system(size: 40))
                 .foregroundColor(.orange)
             Text(error)
                 .foregroundColor(.secondary)
@@ -151,7 +151,7 @@ struct PullRequestsListView: View {
     private var emptyView: some View {
         VStack(spacing: 12) {
             Image(systemName: "arrow.right.circle")
-                .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
+                .font(.system(size: 40))
                 .foregroundColor(.secondary)
             Text(selectedState == "open" ? "暂无开放的Pull Request" : "暂无已关闭的Pull Request")
                 .foregroundColor(.secondary)
@@ -204,7 +204,7 @@ struct PullRequestsListView: View {
                     ProgressView("创建中...")
                         .padding()
                         .background(.ultraThinMaterial)
-                        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                        .cornerRadius(8)
                 }
             }
         }
@@ -288,25 +288,25 @@ struct PullRequestRow: View {
             // 状态图标
             Image(systemName: pr.state.图标名称)
                 .foregroundColor(pr.state.颜色)
-                .font(.system(size: 18))  // 字体大小18pt，控制文字显示尺寸
-                .padding(.top, 2)  // 顶部内边距2pt，控制上方留白间距
+                .font(.system(size: 18))
+                .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: 4) {
                 // 标题
                 HStack(spacing: 6) {
                     Text(pr.title)
-                        .font(.system(size: 15, weight: .semibold))  // 字体大小15pt，控制文字显示尺寸
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(appState.isDarkMode ? .white : .primary)
                         .lineLimit(2)
 
                     if pr.是草稿 {
                         Text("草稿")
-                            .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
-                            .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
-                            .padding(.vertical, 1)  // 垂直内边距1pt，控制上下留白间距
+                            .font(.system(size: 10))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
                             .background(Color.gray.opacity(0.3))
                             .foregroundColor(.secondary)
-                            .cornerRadius(3)  // 圆角半径3pt，控制视图边角圆润程度
+                            .cornerRadius(3)
                     }
                 }
 
@@ -315,16 +315,16 @@ struct PullRequestRow: View {
                     HStack(spacing: 4) {
                         ForEach(labels.prefix(3)) { label in
                             Text(label.name)
-                                .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
-                                .padding(.horizontal, 6)  // 水平内边距6pt，控制左右留白间距
-                                .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
+                                .font(.system(size: 11))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
                                 .background(label.背景颜色)
                                 .foregroundColor(label.文字颜色)
-                                .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
+                                .cornerRadius(4)
                         }
                         if labels.count > 3 {
                             Text("+\(labels.count - 3)")
-                                .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                                .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
                     }
@@ -333,36 +333,36 @@ struct PullRequestRow: View {
                 // 分支信息
                 HStack(spacing: 4) {
                     Text(pr.head.分支名称)
-                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12))
                         .foregroundColor(.blue)
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
+                        .font(.system(size: 10))
                         .foregroundColor(.secondary)
                     Text(pr.base.分支名称)
-                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12))
                         .foregroundColor(.blue)
                 }
 
                 // 底部信息
                 HStack(spacing: 8) {
                     Text("#\(pr.number)")
-                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
 
                     Text(pr.user.login)
-                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
 
                     Text(pr.创建时间显示)
-                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
 
                     if let comments = pr.comments, comments > 0 {
                         HStack(spacing: 2) {
                             Image(systemName: "bubble.right")
-                                .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                                .font(.system(size: 11))
                             Text("\(comments)")
-                                .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                                .font(.system(size: 12))
                         }
                         .foregroundColor(.secondary)
                     }
@@ -371,7 +371,7 @@ struct PullRequestRow: View {
 
             Spacer()
         }
-        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+        .padding(.vertical, 8)
         .contentShape(Rectangle())
     }
 }

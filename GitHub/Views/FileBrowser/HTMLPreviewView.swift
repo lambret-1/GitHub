@@ -53,7 +53,7 @@ struct HTMLPreviewView: View {
                     VStack(spacing: 16) {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-                            .scaleEffect(1.5)  // 缩放比例1.5倍，控制视图整体放大缩小
+                            .scaleEffect(1.5)
                         Text("加载网页中...")
                             .foregroundColor(.secondary)
                     }
@@ -67,12 +67,12 @@ struct HTMLPreviewView: View {
                         .edgesIgnoringSafeArea(.all)
                     VStack(spacing: 16) {
                         Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 50))  // 字体大小50pt，控制文字显示尺寸
+                            .font(.system(size: 50))
                             .foregroundColor(.orange)
                         Text(error)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)  // 水平内边距32pt，控制左右留白间距
+                            .padding(.horizontal, 32)
                     }
                 }
             }

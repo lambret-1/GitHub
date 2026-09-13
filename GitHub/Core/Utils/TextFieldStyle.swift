@@ -8,8 +8,8 @@ struct 自适应输入框样式: TextFieldStyle {
 
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
-            .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
-            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.95, green: 0.95, blue: 0.95))

@@ -28,19 +28,19 @@ struct RepoHeaderView: View {
             // 第一行：仓库名称 + 图标
             HStack(spacing: 8) {
                 Image(systemName: "book.closed")
-                    .font(.system(size: 18))  // 字体大小18pt，控制文字显示尺寸
+                    .font(.system(size: 18))
                     .foregroundColor(appState.isDarkMode ? .gray : .secondary)
 
                 Text(repository.ownerName)
-                    .font(.system(size: 17))  // 字体大小17pt，控制文字显示尺寸
+                    .font(.system(size: 17))
                     .foregroundColor(.blue)
 
                 Text("/")
-                    .font(.system(size: 17))  // 字体大小17pt，控制文字显示尺寸
+                    .font(.system(size: 17))
                     .foregroundColor(appState.isDarkMode ? .gray : .secondary)
 
                 Text(repository.name)
-                    .font(.system(size: 17, weight: .semibold))  // 字体大小17pt，控制文字显示尺寸
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.blue)
 
                 Spacer()
@@ -48,20 +48,20 @@ struct RepoHeaderView: View {
                 // 仓库可见性标签
                 if repository.isPrivate {
                     Text("私有")
-                        .font(.system(size: 11, weight: .medium))  // 字体大小11pt，控制文字显示尺寸
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
-                        .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
-                        .padding(.vertical, 3)  // 垂直内边距3pt，控制上下留白间距
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(appState.isDarkMode ? Color.gray.opacity(0.4) : Color.secondary.opacity(0.4), lineWidth: 1)
                         )
                 } else {
                     Text("公开")
-                        .font(.system(size: 11, weight: .medium))  // 字体大小11pt，控制文字显示尺寸
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
-                        .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
-                        .padding(.vertical, 3)  // 垂直内边距3pt，控制上下留白间距
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(appState.isDarkMode ? Color.gray.opacity(0.4) : Color.secondary.opacity(0.4), lineWidth: 1)
@@ -76,13 +76,13 @@ struct RepoHeaderView: View {
                 }) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.triangle.branch")
-                            .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                            .font(.system(size: 11))
                             .foregroundColor(.blue)
                         Text("复刻自 ")
-                            .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                            .font(.system(size: 12))
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                         Text("\(parent.ownerName)/\(parent.name)")
-                            .font(.system(size: 12, weight: .medium))  // 字体大小12pt，控制文字显示尺寸
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.blue)
                     }
                 }
@@ -93,7 +93,7 @@ struct RepoHeaderView: View {
             if let description = repository.description, !description.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(description)
-                        .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
+                        .font(.system(size: 14))
                         .foregroundColor(appState.isDarkMode ? Color(red: 0.8, green: 0.8, blue: 0.8) : .secondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineLimit(isDescriptionExpanded ? nil : 2)
@@ -104,7 +104,7 @@ struct RepoHeaderView: View {
                             isDescriptionExpanded.toggle()
                         }) {
                             Text(isDescriptionExpanded ? "收起" : "展开")
-                                .font(.system(size: 12, weight: .medium))  // 字体大小12pt，控制文字显示尺寸
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.blue)
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -120,17 +120,17 @@ struct RepoHeaderView: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "eye")
-                            .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                            .font(.system(size: 13))
                         Text("关注")
-                            .font(.system(size: 13, weight: .medium))  // 字体大小13pt，控制文字显示尺寸
+                            .font(.system(size: 13, weight: .medium))
                         Text(formatCount(repository.watchersCount ?? 0))
-                            .font(.system(size: 13, weight: .semibold))  // 字体大小13pt，控制文字显示尺寸
+                            .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
-                    .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
-                    .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .background(appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
-                    .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
+                    .cornerRadius(6)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
                             .stroke(appState.isDarkMode ? Color(red: 0.3, green: 0.3, blue: 0.3) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
@@ -144,17 +144,17 @@ struct RepoHeaderView: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.triangle.branch")
-                            .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                            .font(.system(size: 13))
                         Text("复刻")
-                            .font(.system(size: 13, weight: .medium))  // 字体大小13pt，控制文字显示尺寸
+                            .font(.system(size: 13, weight: .medium))
                         Text(formatCount(repository.forksCount ?? 0))
-                            .font(.system(size: 13, weight: .semibold))  // 字体大小13pt，控制文字显示尺寸
+                            .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
-                    .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
-                    .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .background(appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
-                    .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
+                    .cornerRadius(6)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
                             .stroke(appState.isDarkMode ? Color(red: 0.3, green: 0.3, blue: 0.3) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
@@ -172,19 +172,19 @@ struct RepoHeaderView: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: isStarred ? "star.fill" : "star")
-                            .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                            .font(.system(size: 13))
                             .foregroundColor(isStarred ? .yellow : (appState.isDarkMode ? .white : .primary))
                             // 星标图标缩放动画
                             .scaleEffect(isStarred ? 1.2 : 1.0)
                             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isStarred)
                         Text(isStarred ? "已标星" : "标星")
-                            .font(.system(size: 13, weight: .medium))  // 字体大小13pt，控制文字显示尺寸
+                            .font(.system(size: 13, weight: .medium))
                         Text(formatCount(starCount ?? repository.stargazersCount ?? 0))
-                            .font(.system(size: 13, weight: .semibold))  // 字体大小13pt，控制文字显示尺寸
+                            .font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
-                    .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
-                    .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .background(
                         // 背景颜色过渡动画
                         isStarred ?
@@ -192,7 +192,7 @@ struct RepoHeaderView: View {
                         (appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
                     )
                     .animation(.easeInOut(duration: 0.2), value: isStarred)
-                    .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
+                    .cornerRadius(6)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
                             .stroke(
@@ -219,12 +219,12 @@ struct RepoHeaderView: View {
                     HStack(spacing: 6) {
                         ForEach(topics, id: \.self) { topic in
                             Text(topic)
-                                .font(.system(size: 11, weight: .medium))  // 字体大小11pt，控制文字显示尺寸
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.blue)
-                                .padding(.horizontal, 10)  // 水平内边距10pt，控制左右留白间距
-                                .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
                                 .background(Color.blue.opacity(0.1))
-                                .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
+                                .cornerRadius(12)
                         }
                     }
                 }
@@ -237,9 +237,9 @@ struct RepoHeaderView: View {
                     HStack(spacing: 5) {
                         Circle()
                             .fill(languageColor(language))
-                            .frame(width: 12, height: 12)  // 视图尺寸宽12pt高12pt，控制组件显示大小
+                            .frame(width: 12, height: 12)
                         Text(language)
-                            .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                            .font(.system(size: 12))
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     }
                 }
@@ -247,40 +247,40 @@ struct RepoHeaderView: View {
                 // 开源协议
                 HStack(spacing: 4) {
                     Image(systemName: "scroll")
-                        .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                        .font(.system(size: 11))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     Text(repository.协议名称)
-                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
                 // 仓库大小
                 HStack(spacing: 4) {
                     Image(systemName: "internaldrive")
-                        .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                        .font(.system(size: 11))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     Text(repository.大小显示)
-                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
                 // 星标数
                 HStack(spacing: 4) {
                     Image(systemName: "star.fill")
-                        .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                        .font(.system(size: 11))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     Text("\(repository.stargazersCount ?? 0)")
-                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
                 // 复刻数（修复P0问题：arrow.triangle.branch在小尺寸下渲染异常，改用arrowshape.turn.up.right）
                 HStack(spacing: 4) {
                     Image(systemName: "arrowshape.turn.up.right")
-                        .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                        .font(.system(size: 11))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     Text("\(repository.forksCount ?? 0)")
-                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
@@ -292,10 +292,10 @@ struct RepoHeaderView: View {
                 if let createdAt = repository.createdAt {
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
-                            .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                            .font(.system(size: 11))
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                         Text("创建于 \(日期工具.相对时间(fromISO: createdAt))")
-                            .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                            .font(.system(size: 11))
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     }
                 }
@@ -303,10 +303,10 @@ struct RepoHeaderView: View {
                 if let updatedAt = repository.updatedAt {
                     HStack(spacing: 4) {
                         Image(systemName: "clock")
-                            .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                            .font(.system(size: 11))
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                         Text("更新于 \(日期工具.相对时间(fromISO: updatedAt))")
-                            .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                            .font(.system(size: 11))
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                     }
                 }
@@ -314,8 +314,8 @@ struct RepoHeaderView: View {
                 Spacer()
             }
         }
-        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-        .padding(.vertical, 14)  // 垂直内边距14pt，控制上下留白间距
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .background(appState.isDarkMode ? Color(red: 0.08, green: 0.08, blue: 0.08) : Color(red: 0.98, green: 0.98, blue: 0.98))
     }
 

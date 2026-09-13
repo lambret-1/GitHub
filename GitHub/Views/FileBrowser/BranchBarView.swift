@@ -45,19 +45,19 @@ struct BranchBarView<MenuContent: View>: View {
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.triangle.branch")
-                        .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
+                        .font(.system(size: 14))
                         .foregroundColor(appState.isDarkMode ? .white : .primary)
                     Text(selectedBranch.isEmpty ? "main" : selectedBranch)
-                        .font(.system(size: 14, weight: .medium))  // 字体大小14pt，控制文字显示尺寸
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundColor(appState.isDarkMode ? .white : .primary)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
+                        .font(.system(size: 10))
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
-                .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
-                .padding(.vertical, 7)  // 垂直内边距7pt，控制上下留白间距
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
                 .background(appState.isDarkMode ? Color(red: 0.12, green: 0.12, blue: 0.12) : Color(red: 0.96, green: 0.96, blue: 0.96))
-                .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
+                .cornerRadius(6)
                 .overlay(
                     RoundedRectangle(cornerRadius: 6)
                         .stroke(appState.isDarkMode ? Color(red: 0.25, green: 0.25, blue: 0.25) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
@@ -73,21 +73,21 @@ struct BranchBarView<MenuContent: View>: View {
             } label: {
                 HStack(spacing: 6) {
                     Text("代码操作")
-                        .font(.system(size: 14, weight: .semibold))  // 字体大小14pt，控制文字显示尺寸
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
+                        .font(.system(size: 10))
                         .foregroundColor(.white)
                 }
-                .padding(.horizontal, 14)  // 水平内边距14pt，控制左右留白间距
-                .padding(.vertical, 7)  // 垂直内边距7pt，控制上下留白间距
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
                 .background(Color(red: 0.13, green: 0.55, blue: 0.27))
-                .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
+                .cornerRadius(6)
             }
             .menuStyle(BorderlessButtonMenuStyle())
         }
-        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-        .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .background(appState.isDarkMode ? Color(red: 0.08, green: 0.08, blue: 0.08) : Color(red: 0.98, green: 0.98, blue: 0.98))
         .sheet(isPresented: $showBranchPicker) {
             BranchPickerView(

@@ -20,7 +20,7 @@ struct AddAccountView: View {
                 // 提示信息
                 VStack(spacing: 8) {
                     Image(systemName: "person.crop.circle.badge.plus")
-                        .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
+                        .font(.system(size: 40))
                         .foregroundColor(.blue)
                     Text("添加 GitHub 账号")
                         .font(.headline)
@@ -29,7 +29,7 @@ struct AddAccountView: View {
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                .padding(.vertical, 24)  // 垂直内边距24pt，控制上下留白间距
+                .padding(.vertical, 24)
                 .padding(.horizontal)
 
                 Divider()
@@ -62,7 +62,7 @@ struct AddAccountView: View {
                             }) {
                                 Image(systemName: showToken ? "eye.slash.fill" : "eye.fill")
                                     .foregroundColor(.gray)
-                                    .frame(width: 30, height: 30)  // 视图尺寸宽30pt高30pt，控制组件显示大小
+                                    .frame(width: 30, height: 30)
                             }
                         }
 
@@ -88,8 +88,8 @@ struct AddAccountView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                .padding(.vertical, 16)  // 垂直内边距16pt，控制上下留白间距
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
 
                 Spacer()
 
@@ -109,10 +109,10 @@ struct AddAccountView: View {
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)  // 垂直内边距14pt，控制上下留白间距
+                        .padding(.vertical, 14)
                         .background(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isVerifying ? Color.gray : Color.blue)
                         .foregroundColor(.white)
-                        .cornerRadius(10)  // 圆角半径10pt，控制视图边角圆润程度
+                        .cornerRadius(10)
                     }
                     .disabled(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isVerifying)
 
@@ -122,15 +122,15 @@ struct AddAccountView: View {
                         Text("取消")
                             .fontWeight(.medium)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)  // 垂直内边距14pt，控制上下留白间距
+                            .padding(.vertical, 14)
                             .background(Color(.systemGray6))
                             .foregroundColor(.primary)
-                            .cornerRadius(10)  // 圆角半径10pt，控制视图边角圆润程度
+                            .cornerRadius(10)
                     }
                     .disabled(isVerifying)
                 }
-                .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                .padding(.bottom, 20)  // 底部内边距20pt，控制下方留白间距
+                .padding(.horizontal, 16)
+                .padding(.bottom, 20)
             }
             .navigationBarHidden(true)
         }

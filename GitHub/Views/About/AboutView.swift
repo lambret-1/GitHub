@@ -25,8 +25,8 @@ struct AboutView: View {
                     Image("AppIconImage")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 80, height: 80)  // 视图尺寸宽80pt高80pt，控制组件显示大小
-                        .cornerRadius(18)  // 圆角半径18pt，控制视图边角圆润程度
+                        .frame(width: 80, height: 80)
+                        .cornerRadius(18)
                         .shadow(radius: 6)
 
                     // 应用名称
@@ -39,7 +39,7 @@ struct AboutView: View {
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)  // 垂直内边距20pt，控制上下留白间距
+                .padding(.vertical, 20)
             }
 
             // 版本信息
@@ -82,7 +82,7 @@ struct AboutView: View {
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
+                .padding(.vertical, 10)
             }
         }
         .listStyle(InsetGroupedListStyle())
@@ -118,7 +118,7 @@ struct AboutView: View {
         HStack {
             Image(systemName: icon)
                 .foregroundColor(color)
-                .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                .frame(width: 30)
             Text(title)
                 .foregroundColor(.secondary)
             Spacer()
@@ -137,7 +137,7 @@ struct AboutView: View {
             HStack {
                 Image(systemName: icon)
                     .foregroundColor(color)
-                    .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                    .frame(width: 30)
                 Text(title)
                     .foregroundColor(.primary)
                 Spacer()
@@ -156,11 +156,11 @@ struct AboutView: View {
             HStack {
                 if isCheckingUpdate {
                     ProgressView()
-                        .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                        .frame(width: 30)
                 } else {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .foregroundColor(.blue)
-                        .frame(width: 30)  // 视图宽度30pt，控制组件水平尺寸
+                        .frame(width: 30)
                 }
                 Text(isCheckingUpdate ? "正在检查更新..." : "检查更新")
                     .foregroundColor(.primary)
@@ -234,13 +234,13 @@ struct AboutView: View {
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
+                    .padding(.vertical, 10)
                     .background(Color.blue)
-                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                    .cornerRadius(8)
                 }
                 .disabled(isDownloadingUpdate)
             }
-            .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+            .padding(.vertical, 4)
         case .checkFailed(let error):
             HStack {
                 Image(systemName: "xmark.circle.fill")
@@ -268,7 +268,7 @@ struct AboutView: View {
                     .foregroundColor(.black)
             }
         }
-        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+        .padding(.vertical, 4)
         .background(Color.white)
     }
 
@@ -282,7 +282,7 @@ struct AboutView: View {
             VStack(spacing: 16) {
                 ProgressView(value: downloadProgress)
                     .progressViewStyle(CircularProgressViewStyle(tint: .black))
-                    .scaleEffect(1.5)  // 缩放比例1.5倍，控制视图整体放大缩小
+                    .scaleEffect(1.5)
 
                 Text("正在下载更新...")
                     .font(.headline)
@@ -296,9 +296,9 @@ struct AboutView: View {
                     .font(.caption)
                     .foregroundColor(.black.opacity(0.7))
             }
-            .padding(32)  // 四向统一内边距32pt，控制上下左右留白
+            .padding(32)
             .background(Color.white)
-            .cornerRadius(16)  // 圆角半径16pt，控制视图边角圆润程度
+            .cornerRadius(16)
         }
     }
 

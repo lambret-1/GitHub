@@ -54,7 +54,7 @@ struct RepositoryStatsView: View {
         Section {
             VStack(spacing: 12) {
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
+                    .font(.system(size: 40))
                     .foregroundColor(.orange)
                 Text(error)
                     .foregroundColor(.secondary)
@@ -103,7 +103,7 @@ struct RepositoryStatsView: View {
                     value: "\(repo.openIssuesCount ?? 0)"
                 )
             }
-            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+            .padding(.vertical, 8)
             .listRowBackground(Color.clear)
         }
     }
@@ -112,21 +112,21 @@ struct RepositoryStatsView: View {
     private func statCard(icon: String, color: Color, title: String, value: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 24))  // 字体大小24pt，控制文字显示尺寸
+                .font(.system(size: 24))
                 .foregroundColor(color)
 
             Text(value)
-                .font(.system(size: 22, weight: .bold))  // 字体大小22pt，控制文字显示尺寸
+                .font(.system(size: 22, weight: .bold))
                 .foregroundColor(appState.isDarkMode ? .white : .primary)
 
             Text(title)
-                .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)  // 垂直内边距16pt，控制上下留白间距
+        .padding(.vertical, 16)
         .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemBackground))
-        .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
+        .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 
@@ -136,7 +136,7 @@ struct RepositoryStatsView: View {
             HStack {
                 Image(systemName: "doc.text")
                     .foregroundColor(.blue)
-                    .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                    .frame(width: 24)
                 Text("仓库大小")
                 Spacer()
                 Text(repo.formattedSize)
@@ -147,7 +147,7 @@ struct RepositoryStatsView: View {
                 HStack {
                     Image(systemName: "chevron.left.forwardslash.chevron.right")
                         .foregroundColor(.orange)
-                        .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                        .frame(width: 24)
                     Text("主要语言")
                     Spacer()
                     Text(language)
@@ -159,7 +159,7 @@ struct RepositoryStatsView: View {
                 HStack {
                     Image(systemName: "scroll")
                         .foregroundColor(.green)
-                        .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                        .frame(width: 24)
                     Text("开源协议")
                     Spacer()
                     Text(license.name)
@@ -170,7 +170,7 @@ struct RepositoryStatsView: View {
             HStack {
                 Image(systemName: "lock")
                     .foregroundColor(repo.isPrivate ? .orange : .green)
-                    .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                    .frame(width: 24)
                 Text("可见性")
                 Spacer()
                 Text(repo.isPrivate ? "私有" : "公开")
@@ -181,7 +181,7 @@ struct RepositoryStatsView: View {
                 HStack {
                     Image(systemName: "branch")
                         .foregroundColor(.purple)
-                        .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                        .frame(width: 24)
                     Text("默认分支")
                     Spacer()
                     Text(defaultBranch)
@@ -193,7 +193,7 @@ struct RepositoryStatsView: View {
                 HStack {
                     Image(systemName: "tuningfork")
                         .foregroundColor(.purple)
-                        .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                        .frame(width: 24)
                     Text("Fork来源")
                     Spacer()
                     if let parent = repo.parent {
@@ -210,7 +210,7 @@ struct RepositoryStatsView: View {
                 HStack {
                     Image(systemName: "archivebox")
                         .foregroundColor(.gray)
-                        .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                        .frame(width: 24)
                     Text("已归档")
                     Spacer()
                     Text("是")
@@ -226,7 +226,7 @@ struct RepositoryStatsView: View {
             HStack {
                 Image(systemName: "calendar")
                     .foregroundColor(.blue)
-                    .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                    .frame(width: 24)
                 Text("创建时间")
                 Spacer()
                 Text(repo.formattedCreateTime ?? "未知")
@@ -236,7 +236,7 @@ struct RepositoryStatsView: View {
             HStack {
                 Image(systemName: "clock.arrow.circlepath")
                     .foregroundColor(.orange)
-                    .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                    .frame(width: 24)
                 Text("更新时间")
                 Spacer()
                 Text(repo.formattedUpdateTime)
@@ -246,7 +246,7 @@ struct RepositoryStatsView: View {
             HStack {
                 Image(systemName: "link")
                     .foregroundColor(.gray)
-                    .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                    .frame(width: 24)
                 Text("仓库地址")
                 Spacer()
                 Text(repo.fullName)

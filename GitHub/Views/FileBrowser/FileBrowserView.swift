@@ -227,10 +227,10 @@ struct FileBrowserView: View {
                         .aspectRatio(contentMode: .fill)
                 } placeholder: {
                     Image(systemName: "person.circle.fill")
-                        .font(.system(size: 20))  // 字体大小20pt，控制文字显示尺寸
+                        .font(.system(size: 20))
                         .foregroundColor(.gray)
                 }
-                .frame(width: 28, height: 28)  // 视图尺寸宽28pt高28pt，控制组件显示大小
+                .frame(width: 28, height: 28)
                 .clipShape(Circle())
             }
         }
@@ -303,11 +303,11 @@ struct FileBrowserView: View {
                     Text(operationMessage)
                         .font(.subheadline)
                         .foregroundColor(.white)
-                        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                        .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
                         .background(Color.black.opacity(0.8))
-                        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
-                        .padding(.top, 20)  // 顶部内边距20pt，控制上方留白间距
+                        .cornerRadius(8)
+                        .padding(.top, 20)
                         .transition(.move(edge: .top).combined(with: .opacity))
                         .animation(.easeInOut, value: showOperationMessage)
                 }
@@ -321,14 +321,14 @@ struct FileBrowserView: View {
                     VStack(spacing: 16) {
                         ProgressView(value: zipDownloadProgress)
                             .progressViewStyle(LinearProgressViewStyle())
-                            .frame(width: 200)  // 视图宽度200pt，控制组件水平尺寸
+                            .frame(width: 200)
                         Text(zipDownloadMessage)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
-                    .padding(24)  // 四向统一内边距24pt，控制上下左右留白
+                    .padding(24)
                     .background(Color(.systemBackground).opacity(0.95))
-                    .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
+                    .cornerRadius(12)
                     .shadow(radius: 8)
                 }
             }
@@ -440,7 +440,7 @@ struct FileBrowserView: View {
             }
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
-            .padding(.top, 100)  // 顶部内边距100pt，控制上方留白间距
+            .padding(.top, 100)
         }
         .listStyle(PlainListStyle())
     }
@@ -472,7 +472,7 @@ struct FileBrowserView: View {
             }
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
-            .padding(.top, 80)  // 顶部内边距80pt，控制上方留白间距
+            .padding(.top, 80)
             .padding()
         }
         .listStyle(PlainListStyle())
@@ -500,7 +500,7 @@ struct FileBrowserView: View {
             }
             .listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
-            .padding(.top, 100)  // 顶部内边距100pt，控制上方留白间距
+            .padding(.top, 100)
         }
         .listStyle(PlainListStyle())
     }
@@ -521,13 +521,13 @@ struct FileBrowserView: View {
                                 .font(.subheadline)
                                 .fontWeight(selectedTab == tab ? .semibold : .regular)
                                 .foregroundColor(selectedTab == tab ? .blue : .secondary)
-                                .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                                .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
 
                             // 选中态下划线
                             Rectangle()
                                 .fill(selectedTab == tab ? Color.blue : Color.clear)
-                                .frame(height: 2)  // 视图高度2pt，控制组件垂直尺寸
+                                .frame(height: 2)
                         }
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -678,7 +678,7 @@ struct FileBrowserView: View {
             }
         )
         .padding(.horizontal)
-        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+        .padding(.vertical, 8)
         .background(Color(.systemGray6))
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden)
@@ -725,7 +725,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)  // 视图高度600pt，控制组件垂直尺寸
+        .frame(height: 600)
     }
 
     // MARK: - Pull Requests Tab内容
@@ -736,7 +736,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)  // 视图高度600pt，控制组件垂直尺寸
+        .frame(height: 600)
     }
 
     // MARK: - 设置Tab内容
@@ -747,7 +747,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)  // 视图高度600pt，控制组件垂直尺寸
+        .frame(height: 600)
     }
 
     // MARK: - Actions Tab内容
@@ -758,7 +758,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)  // 视图高度600pt，控制组件垂直尺寸
+        .frame(height: 600)
     }
 
     // MARK: - 即将上线功能占位
@@ -766,7 +766,7 @@ struct FileBrowserView: View {
     func comingSoonContent(for tab: RepoTab) -> some View {
         VStack(spacing: 16) {
             Image(systemName: "hammer.fill")
-                .font(.system(size: 48))  // 字体大小48pt，控制文字显示尺寸
+                .font(.system(size: 48))
                 .foregroundColor(.gray)
             Text("\(tab.rawValue)功能")
                 .font(.headline)
@@ -775,7 +775,7 @@ struct FileBrowserView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
-        .padding(.vertical, 80)  // 垂直内边距80pt，控制上下留白间距
+        .padding(.vertical, 80)
         .frame(maxWidth: .infinity)
     }
 
@@ -790,13 +790,13 @@ struct FileBrowserView: View {
                 if codeSearchProgress > 0 {
                     ProgressView(value: codeSearchProgress)
                         .progressViewStyle(LinearProgressViewStyle())
-                        .padding(.horizontal, 40)  // 水平内边距40pt，控制左右留白间距
+                        .padding(.horizontal, 40)
                     Text(String(format: "%.0f%%", codeSearchProgress * 100))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            .padding(.vertical, 20)  // 垂直内边距20pt，控制上下留白间距
+            .padding(.vertical, 20)
         } else if let error = codeSearchError {
             // 错误状态
             VStack(spacing: 12) {
@@ -812,14 +812,14 @@ struct FileBrowserView: View {
                 }
                 .foregroundColor(.blue)
             }
-            .padding(.vertical, 20)  // 垂直内边距20pt，控制上下留白间距
+            .padding(.vertical, 20)
         } else if codeSearchResults.isEmpty && !codeSearchQuery.isEmpty {
             // 无结果
             HStack {
                 Spacer()
                 VStack(spacing: 8) {
                     Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
+                        .font(.system(size: 40))
                         .foregroundColor(.gray)
                     Text("未找到匹配的代码")
                         .font(.subheadline)
@@ -827,13 +827,13 @@ struct FileBrowserView: View {
                 }
                 Spacer()
             }
-            .padding(.vertical, 20)  // 垂直内边距20pt，控制上下留白间距
+            .padding(.vertical, 20)
         } else if !codeSearchResults.isEmpty {
             // 搜索结果列表
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text("搜索结果 (\(codeSearchResults.count))")
-                        .font(.system(size: 13, weight: .medium))  // 字体大小13pt，控制文字显示尺寸
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                     Spacer()
                     Button("清除搜索") {
@@ -841,11 +841,11 @@ struct FileBrowserView: View {
                         codeSearchResults = []
                         codeSearchError = nil
                     }
-                    .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                    .font(.system(size: 13))
                     .foregroundColor(.blue)
                 }
-                .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
                 .background(Color(.systemGray6))
 
                 ForEach(codeSearchResults) { item in
@@ -856,16 +856,16 @@ struct FileBrowserView: View {
                         HStack(spacing: 12) {
                             Image(systemName: "doc.text")
                                 .foregroundColor(.blue)
-                                .font(.system(size: 18))  // 字体大小18pt，控制文字显示尺寸
-                                .frame(width: 24)  // 视图宽度24pt，控制组件水平尺寸
+                                .font(.system(size: 18))
+                                .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.name)
-                                    .font(.system(size: 14, weight: .medium))  // 字体大小14pt，控制文字显示尺寸
+                                    .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.primary)
                                     .lineLimit(1)
                                 Text(item.path)
-                                    .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                                    .font(.system(size: 11))
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                             }
@@ -874,10 +874,10 @@ struct FileBrowserView: View {
 
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.gray)
-                                .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                                .font(.system(size: 12))
                         }
-                        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                        .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -895,9 +895,9 @@ struct FileBrowserView: View {
             if isLoadingLatestCommit {
                 // 加载中状态
                 ProgressView()
-                    .scaleEffect(0.8)  // 缩放比例0.8倍，控制视图整体放大缩小
+                    .scaleEffect(0.8)
                 Text("加载提交信息...")
-                    .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                 Spacer()
             } else if let commit = latestCommit {
@@ -910,32 +910,32 @@ struct FileBrowserView: View {
                                 .aspectRatio(contentMode: .fill)
                         } placeholder: {
                             Image(systemName: "person.circle.fill")
-                                .font(.system(size: 24))  // 字体大小24pt，控制文字显示尺寸
+                                .font(.system(size: 24))
                                 .foregroundColor(.gray)
                         }
-                        .frame(width: 24, height: 24)  // 视图尺寸宽24pt高24pt，控制组件显示大小
+                        .frame(width: 24, height: 24)
                         .clipShape(Circle())
                     } else {
                         Image(systemName: "person.circle.fill")
-                            .font(.system(size: 24))  // 字体大小24pt，控制文字显示尺寸
+                            .font(.system(size: 24))
                             .foregroundColor(.gray)
                     }
                 }
-                .frame(width: 24, height: 24)  // 视图尺寸宽24pt高24pt，控制组件显示大小
+                .frame(width: 24, height: 24)
 
                 // 提交者名称 + 提交信息（垂直布局，生产级信息层次）
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(commit.authorName)
-                            .font(.system(size: 13, weight: .semibold))  // 字体大小13pt，控制文字显示尺寸
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.primary)
                             .lineLimit(1)
                         Text("提交了")
-                            .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                            .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     }
                     Text(commit.message)
-                        .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                        .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .layoutPriority(1)
@@ -949,12 +949,12 @@ struct FileBrowserView: View {
                     showMessage("提交哈希已复制: \(commit.shortSha)")
                 }) {
                     Text(commit.shortSha)
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
                         .foregroundColor(.blue)
-                        .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
-                        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .background(Color.blue.opacity(0.1))
-                        .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
+                        .cornerRadius(6)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .accessibilityLabel("复制提交哈希")
@@ -962,7 +962,7 @@ struct FileBrowserView: View {
 
                 // 提交时间（生产级次要信息）
                 Text(commit.commit.committer.relativeDate)
-                    .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .frame(minWidth: 60, alignment: .trailing)
@@ -972,25 +972,25 @@ struct FileBrowserView: View {
                     showCommits = true
                 }) {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))  // 字体大小14pt，控制文字显示尺寸
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
-                        .frame(width: 20, height: 20)  // 视图尺寸宽20pt高20pt，控制组件显示大小
+                        .frame(width: 20, height: 20)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .accessibilityLabel("查看提交历史")
             } else {
                 // 无提交信息（空仓库状态，生产级空态设计）
                 Image(systemName: "exclamationmark.circle")
-                    .font(.system(size: 18))  // 字体大小18pt，控制文字显示尺寸
+                    .font(.system(size: 18))
                     .foregroundColor(.orange)
                 Text("此目录暂无提交记录")
-                    .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                 Spacer()
             }
         }
-        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-        .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .frame(minHeight: 44) // 生产级最小行高，符合Apple HIG
         .background(appState.isDarkMode ? Color(red: 0.1, green: 0.1, blue: 0.1) : Color(red: 0.96, green: 0.96, blue: 0.96))
         .contentShape(Rectangle())
@@ -1019,7 +1019,7 @@ struct FileBrowserView: View {
                 HStack {
                     Spacer()
                     Text("README加载失败: \(readmeError)")
-                        .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                        .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .padding()
                     Spacer()
@@ -1076,10 +1076,10 @@ struct FileBrowserView: View {
                     }
                     .font(.subheadline)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                    .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                     .background(selectedFilesForDelete.isEmpty ? Color.gray : Color.red)
-                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                    .cornerRadius(8)
                 }
                 .disabled(selectedFilesForDelete.isEmpty || isDeleting)
 
@@ -1093,8 +1093,8 @@ struct FileBrowserView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-            .padding(.vertical, 12)  // 垂直内边距12pt，控制上下留白间距
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .background(Color(.systemBackground))
         }
     }
@@ -1302,7 +1302,7 @@ struct FileBrowserView: View {
                 // 头部信息
                 VStack(spacing: 8) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
+                        .font(.system(size: 40))
                         .foregroundColor(.blue)
                     Text("确认上传文件")
                         .font(.headline)
@@ -1313,7 +1313,7 @@ struct FileBrowserView: View {
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
-                .padding(.vertical, 16)  // 垂直内边距16pt，控制上下留白间距
+                .padding(.vertical, 16)
                 .padding(.horizontal)
 
                 Divider()
@@ -1324,11 +1324,11 @@ struct FileBrowserView: View {
                         HStack(spacing: 12) {
                             // 文件图标
                             Image(systemName: fileIcon(for: fileURL))
-                                .font(.system(size: 24))  // 字体大小24pt，控制文字显示尺寸
+                                .font(.system(size: 24))
                                 .foregroundColor(fileIconColor(for: fileURL))
-                                .frame(width: 40, height: 40)  // 视图尺寸宽40pt高40pt，控制组件显示大小
+                                .frame(width: 40, height: 40)
                                 .background(Color(.systemGray6))
-                                .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                                .cornerRadius(8)
 
                             // 文件信息
                             VStack(alignment: .leading, spacing: 4) {
@@ -1346,11 +1346,11 @@ struct FileBrowserView: View {
                             Text("\(index + 1)")
                                 .font(.caption)
                                 .foregroundColor(.gray)
-                                .frame(width: 24, height: 24)  // 视图尺寸宽24pt高24pt，控制组件显示大小
+                                .frame(width: 24, height: 24)
                                 .background(Color(.systemGray6))
-                                .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
+                                .cornerRadius(12)
                         }
-                        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                        .padding(.vertical, 4)
                     }
                     .onDelete(perform: removeSelectedFile)
                 }
@@ -1370,9 +1370,9 @@ struct FileBrowserView: View {
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)  // 垂直内边距14pt，控制上下留白间距
+                        .padding(.vertical, 14)
                         .background(Color.blue)
-                        .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
+                        .cornerRadius(12)
                     }
                     .disabled(selectedFiles.isEmpty)
 
@@ -1384,11 +1384,11 @@ struct FileBrowserView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
+                            .padding(.vertical, 10)
                     }
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 16)  // 垂直内边距16pt，控制上下留白间距
+                .padding(.vertical, 16)
                 .background(Color(.systemBackground))
             }
             .navigationBarHidden(true)
@@ -1492,7 +1492,7 @@ struct FileBrowserView: View {
             VStack(spacing: 16) {
                 ProgressView(value: downloadProgress)
                     .progressViewStyle(CircularProgressViewStyle())
-                    .scaleEffect(1.5)  // 缩放比例1.5倍，控制视图整体放大缩小
+                    .scaleEffect(1.5)
 
                 Text("正在下载: \(downloadingFileName)")
                     .font(.headline)
@@ -1502,9 +1502,9 @@ struct FileBrowserView: View {
                     .font(.subheadline)
                     .foregroundColor(.black)
             }
-            .padding(32)  // 四向统一内边距32pt，控制上下左右留白
+            .padding(32)
             .background(Color.white)
-            .cornerRadius(16)  // 圆角半径16pt，控制视图边角圆润程度
+            .cornerRadius(16)
         }
     }
 
@@ -1516,11 +1516,11 @@ struct FileBrowserView: View {
             VStack(spacing: 20) {
                 // 图标
                 Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
+                    .font(.system(size: 40))
                     .foregroundColor(.blue)
-                    .frame(width: 70, height: 70)  // 视图尺寸宽70pt高70pt，控制组件显示大小
+                    .frame(width: 70, height: 70)
                     .background(Color(.systemGray6))
-                    .cornerRadius(35)  // 圆角半径35pt，控制视图边角圆润程度
+                    .cornerRadius(35)
 
                 // 标题
                 Text("正在上传文件")
@@ -1545,7 +1545,7 @@ struct FileBrowserView: View {
                 VStack(spacing: 8) {
                     ProgressView(value: uploadProgress)
                         .progressViewStyle(LinearProgressViewStyle())
-                        .frame(width: 250)  // 视图宽度250pt，控制组件水平尺寸
+                        .frame(width: 250)
 
                     Text(String(format: "%.0f%%", uploadProgress * 100))
                         .font(.subheadline)
@@ -1557,9 +1557,9 @@ struct FileBrowserView: View {
                     .font(.caption)
                     .foregroundColor(.gray)
             }
-            .padding(32)  // 四向统一内边距32pt，控制上下左右留白
+            .padding(32)
             .background(Color(.systemBackground))
-            .cornerRadius(20)  // 圆角半径20pt，控制视图边角圆润程度
+            .cornerRadius(20)
             .shadow(radius: 20)
         }
     }
@@ -1575,12 +1575,12 @@ struct FileBrowserView: View {
                 }) {
                     Image(systemName: "house.fill")
                         .foregroundColor(.blue)
-                        .font(.system(size: 15))  // 字体大小15pt，控制文字显示尺寸
+                        .font(.system(size: 15))
                 }
                 
                 if !currentPath.isEmpty {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12))
                         .foregroundColor(.gray)
                     
                     let components = currentPath.components(separatedBy: "/")
@@ -1592,21 +1592,21 @@ struct FileBrowserView: View {
                             loadFiles()
                         }) {
                             Text(component)
-                                .font(.system(size: 15))  // 字体大小15pt，控制文字显示尺寸
+                                .font(.system(size: 15))
                                 .foregroundColor(index == components.count - 1 ? .primary : .blue)
                         }
                         if index < components.count - 1 {
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                                .font(.system(size: 12))
                                 .foregroundColor(.gray)
                         }
                     }
                 }
             }
-            .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-            .frame(height: 44)  // 视图高度44pt，控制组件垂直尺寸
+            .padding(.horizontal, 16)
+            .frame(height: 44)
         }
-        .frame(height: 44)  // 视图高度44pt，控制组件垂直尺寸
+        .frame(height: 44)
     }
 
     // MARK: - 仓库权限判断
@@ -2312,7 +2312,7 @@ struct FileBrowserView: View {
                 HStack(spacing: 12) {
                     Image(systemName: selectedFilesForDelete.contains(file.path) ? "checkmark.circle.fill" : "circle")
                         .foregroundColor(selectedFilesForDelete.contains(file.path) ? .blue : .gray)
-                        .font(.system(size: 20))  // 字体大小20pt，控制文字显示尺寸
+                        .font(.system(size: 20))
                     FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
                 }
             }
@@ -3176,12 +3176,12 @@ struct FileRow: View {
             // 文件/文件夹图标（GitHub官方风格）
             Image(systemName: file.isDirectory ? "folder.fill" : "doc.text")
                 .foregroundColor(file.isDirectory ? Color(red: 0.18, green: 0.49, blue: 0.82) : Color(red: 0.45, green: 0.49, blue: 0.55))
-                .font(.system(size: 20))  // 字体大小20pt，控制文字显示尺寸
-                .frame(width: 28)  // 视图宽度28pt，控制组件水平尺寸
+                .font(.system(size: 20))
+                .frame(width: 28)
 
             // 文件/文件夹名称
             Text(file.name)
-                .font(.system(size: 15))  // 字体大小15pt，控制文字显示尺寸
+                .font(.system(size: 15))
                 .foregroundColor(.primary)
                 .lineLimit(1)
 
@@ -3190,23 +3190,23 @@ struct FileRow: View {
             // 最后更新时间（右侧，灰色，GitHub官方相对时间格式）
             if let commit = lastCommit {
                 Text(commit.commit.committer.relativeDate)
-                    .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             } else if isLoadingCommit {
                 Text("--")
-                    .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary.opacity(0.5))
                     .lineLimit(1)
             } else {
                 Text("--")
-                    .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-        .padding(.vertical, 11)  // 垂直内边距11pt，控制上下留白间距
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
         .contentShape(Rectangle())
         .onAppear {
             loadLastCommit()
@@ -3343,12 +3343,12 @@ struct BranchPickerView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
-                .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .background(Color(.systemGray6))
-                .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
-                .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+                .cornerRadius(8)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
 
                 // 分支列表
                 List {
@@ -3525,11 +3525,11 @@ struct BranchPickerView: View {
                         Text(operationMessage)
                             .font(.subheadline)
                             .foregroundColor(.white)
-                            .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                            .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
                             .background(Color.black.opacity(0.8))
-                            .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
-                            .padding(.top, 20)  // 顶部内边距20pt，控制上方留白间距
+                            .cornerRadius(8)
+                            .padding(.top, 20)
                             .transition(.move(edge: .top).combined(with: .opacity))
                             .animation(.easeInOut, value: showOperationMessage)
                     }
@@ -3692,7 +3692,7 @@ struct CommitsView: View {
                                     .foregroundColor(.gray)
                             }
                         }
-                        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                        .padding(.vertical, 4)
                     }
                 }
             }

@@ -76,12 +76,12 @@ struct RunComparisonView: View {
                     .font(.headline)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
-                    .padding(.vertical, 6)  // 垂直内边距6pt，控制上下留白间距
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .background(Color.blue)
-                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                    .cornerRadius(8)
             }
-            .frame(width: 60)  // 视图宽度60pt，控制组件水平尺寸
+            .frame(width: 60)
 
             // 运行2
             runCard(run: run2, isLeft: false)
@@ -127,9 +127,9 @@ struct RunComparisonView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)  // 四向统一内边距12pt，控制上下左右留白
+        .padding(12)
         .background(Color(.systemBackground))
-        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+        .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(isLeft ? Color.blue.opacity(0.3) : Color.orange.opacity(0.3), lineWidth: 2)
@@ -149,17 +149,17 @@ struct RunComparisonView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(selectedDimension == dimension ? .white : .primary)
-                            .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
                             .background(selectedDimension == dimension ? Color.blue : Color(.systemGray6))
-                            .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                            .cornerRadius(8)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
             }
             .padding(.horizontal)
         }
-        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+        .padding(.vertical, 8)
         .background(Color(.systemBackground))
     }
 
@@ -179,7 +179,7 @@ struct RunComparisonView: View {
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+        .cornerRadius(8)
     }
 
     // MARK: - 作业对比
@@ -219,7 +219,7 @@ struct RunComparisonView: View {
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+        .cornerRadius(8)
     }
 
     private func jobComparisonRow(job1: WorkflowJob?, job2: WorkflowJob?, index: Int) -> some View {
@@ -253,9 +253,9 @@ struct RunComparisonView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(8)  // 四向统一内边距8pt，控制上下左右留白
+            .padding(8)
             .background(job1?.conclusion == "failure" ? Color.red.opacity(0.1) : Color(.systemGray6))
-            .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
+            .cornerRadius(6)
 
             // 箭头
             Image(systemName: "arrow.right")
@@ -291,9 +291,9 @@ struct RunComparisonView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(8)  // 四向统一内边距8pt，控制上下左右留白
+            .padding(8)
             .background(job2?.conclusion == "failure" ? Color.red.opacity(0.1) : Color(.systemGray6))
-            .cornerRadius(6)  // 圆角半径6pt，控制视图边角圆润程度
+            .cornerRadius(6)
         }
     }
 
@@ -338,7 +338,7 @@ struct RunComparisonView: View {
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+        .cornerRadius(8)
     }
 
     // MARK: - 耗时分析
@@ -389,7 +389,7 @@ struct RunComparisonView: View {
                     }
                     .padding()
                     .background(Color(.systemGray6))
-                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                    .cornerRadius(8)
                 }
 
                 // 各作业耗时对比
@@ -412,14 +412,14 @@ struct RunComparisonView: View {
                                 timingBar(duration: duration2, maxDuration: max(duration1, duration2), color: .orange, label: formatDuration(duration2))
                             }
                         }
-                        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                        .padding(.vertical, 4)
                     }
                 }
             }
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+        .cornerRadius(8)
     }
 
     private func timingBar(duration: Int, maxDuration: Int, color: Color, label: String) -> some View {
@@ -429,7 +429,7 @@ struct RunComparisonView: View {
                     .fill(color)
                     .frame(width: max(CGFloat(duration) / CGFloat(max(maxDuration, 1)) * geometry.size.width, 20), height: 12)
             }
-            .frame(height: 12)  // 视图高度12pt，控制组件垂直尺寸
+            .frame(height: 12)
 
             Text(label)
                 .font(.caption2)
@@ -451,9 +451,9 @@ struct RunComparisonView: View {
                 .font(.subheadline)
                 .foregroundColor(color1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(6)  // 四向统一内边距6pt，控制上下左右留白
+                .padding(6)
                 .background(highlightDifference && value1 != value2 ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
+                .cornerRadius(4)
 
             Image(systemName: "arrow.right")
                 .font(.caption)
@@ -463,9 +463,9 @@ struct RunComparisonView: View {
                 .font(.subheadline)
                 .foregroundColor(color2)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(6)  // 四向统一内边距6pt，控制上下左右留白
+                .padding(6)
                 .background(highlightDifference && value1 != value2 ? Color.orange.opacity(0.1) : Color(.systemGray6))
-                .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
+                .cornerRadius(4)
         }
     }
 

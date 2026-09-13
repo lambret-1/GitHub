@@ -77,7 +77,7 @@ struct DiffView: View {
             Spacer()
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+        .padding(.vertical, 8)
         .background(Color(.systemGray6))
     }
 
@@ -125,7 +125,7 @@ struct DiffView: View {
                             diffLineView(line: line, lineNumber: index + 1)
                         }
                     }
-                    .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                    .padding(.vertical, 4)
                 }
                 .background(Color(.systemBackground))
             }
@@ -164,23 +164,23 @@ struct DiffView: View {
         return HStack(alignment: .top, spacing: 0) {
             // 行号
             Text("\(lineNumber)")
-                .font(.system(size: 9, design: .monospaced))  // 字体大小9pt，控制文字显示尺寸
+                .font(.system(size: 9, design: .monospaced))
                 .foregroundColor(.gray)
                 .frame(width: 35, alignment: .trailing)
                 .padding(.trailing, 6)
             // 前缀符号
             Text(prefix)
-                .font(.system(size: 9, design: .monospaced))  // 字体大小9pt，控制文字显示尺寸
+                .font(.system(size: 9, design: .monospaced))
                 .foregroundColor(textColor)
-                .frame(width: 10)  // 视图宽度10pt，控制组件水平尺寸
+                .frame(width: 10)
             // Diff内容
             Text(line)
-                .font(.system(size: 9, design: .monospaced))  // 字体大小9pt，控制文字显示尺寸
+                .font(.system(size: 9, design: .monospaced))
                 .foregroundColor(textColor)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
-        .padding(.vertical, 0.5)  // 垂直内边距0.5pt，控制上下留白间距
+        .padding(.horizontal, 4)
+        .padding(.vertical, 0.5)
         .background(backgroundColor)
     }
 

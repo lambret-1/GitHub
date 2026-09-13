@@ -159,7 +159,7 @@ struct WorkflowRunDetailView: View {
                                 .foregroundColor(Color(run.statusColor))
                         }
                     }
-                    .frame(width: 40)  // 视图宽度40pt，控制组件水平尺寸
+                    .frame(width: 40)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(run.name)
@@ -177,10 +177,10 @@ struct WorkflowRunDetailView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(Color(run.statusColor))
-                        .padding(.horizontal, 12)  // 水平内边距12pt，控制左右留白间距
-                        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
                         .background(Color(run.statusColor).opacity(0.1))
-                        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                        .cornerRadius(8)
 
                     Spacer()
 
@@ -219,7 +219,7 @@ struct WorkflowRunDetailView: View {
                     }
                 }
             }
-            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+            .padding(.vertical, 8)
         }
     }
 
@@ -276,7 +276,7 @@ struct WorkflowRunDetailView: View {
                         HStack(spacing: 12) {
                             Image(systemName: file.statusIcon)
                                 .foregroundColor(file.statusColor)
-                                .frame(width: 20)  // 视图宽度20pt，控制组件水平尺寸
+                                .frame(width: 20)
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(file.shortFilename)
@@ -301,11 +301,11 @@ struct WorkflowRunDetailView: View {
                                     .font(.caption2)
                                     .foregroundColor(.red)
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 10))  // 字体大小10pt，控制文字显示尺寸
+                                    .font(.system(size: 10))
                                     .foregroundColor(.gray)
                             }
                         }
-                        .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
+                        .padding(.vertical, 2)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -324,7 +324,7 @@ struct WorkflowRunDetailView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .listRowSeparator(.hidden)
-            .padding(.bottom, 4)  // 底部内边距4pt，控制下方留白间距
+            .padding(.bottom, 4)
 
             if viewMode == .list {
                 // 列表视图
@@ -405,7 +405,7 @@ struct WorkflowRunDetailView: View {
                                     .font(.caption2)
                                     .foregroundColor(Color(job.statusColor))
                             }
-                            .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
+                            .padding(.horizontal, 4)
 
                             // 时间线视图
                             JobTimelineView(job: job) { stepIndex in
@@ -413,9 +413,9 @@ struct WorkflowRunDetailView: View {
                                 // 这里可以传递步骤索引，在日志视图中定位到对应步骤
                             }
                             .frame(height: min(CGFloat((job.steps?.count ?? 1) * 70), 400))
-                            .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                            .cornerRadius(8)
                         }
-                        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+                        .padding(.vertical, 4)
                         .listRowSeparator(.hidden)
                     }
                 }
@@ -460,7 +460,7 @@ struct WorkflowRunDetailView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "archivebox.fill")
                             .foregroundColor(.blue)
-                            .frame(width: 20)  // 视图宽度20pt，控制组件水平尺寸
+                            .frame(width: 20)
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(artifact.name)
@@ -482,7 +482,7 @@ struct WorkflowRunDetailView: View {
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                     Image(systemName: "clock")
-                                        .font(.system(size: 8))  // 字体大小8pt，控制文字显示尺寸
+                                        .font(.system(size: 8))
                                         .foregroundColor(.orange)
                                     Text("过期: \(日期工具.相对时间(fromISO: expiresAt))")
                                         .font(.caption2)
@@ -494,10 +494,10 @@ struct WorkflowRunDetailView: View {
                                         .font(.caption2)
                                         .fontWeight(.bold)
                                         .foregroundColor(.red)
-                                        .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
-                                        .padding(.vertical, 1)  // 垂直内边距1pt，控制上下留白间距
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
                                         .background(Color.red.opacity(0.1))
-                                        .cornerRadius(3)  // 圆角半径3pt，控制视图边角圆润程度
+                                        .cornerRadius(3)
                                 }
                             }
                         }
@@ -509,7 +509,7 @@ struct WorkflowRunDetailView: View {
                             // 下载按钮
                             if downloadingArtifactId == artifact.id {
                                 ProgressView()
-                                    .scaleEffect(0.8)  // 缩放比例0.8倍，控制视图整体放大缩小
+                                    .scaleEffect(0.8)
                             } else {
                                 Button(action: {
                                     downloadArtifact(artifact)
@@ -523,7 +523,7 @@ struct WorkflowRunDetailView: View {
                             // 删除按钮
                             if deletingArtifactId == artifact.id {
                                 ProgressView()
-                                    .scaleEffect(0.8)  // 缩放比例0.8倍，控制视图整体放大缩小
+                                    .scaleEffect(0.8)
                             } else {
                                 Button(action: {
                                     showDeleteArtifactAlert = true
@@ -536,7 +536,7 @@ struct WorkflowRunDetailView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
+                    .padding(.vertical, 2)
                 }
             }
         }
@@ -547,9 +547,9 @@ struct WorkflowRunDetailView: View {
     private func detailRow(icon: String, title: String, value: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
+                .font(.system(size: 14))
                 .foregroundColor(.secondary)
-                .frame(width: 20)  // 视图宽度20pt，控制组件水平尺寸
+                .frame(width: 20)
 
             Text(title)
                 .font(.subheadline)
@@ -563,7 +563,7 @@ struct WorkflowRunDetailView: View {
 
             Spacer()
         }
-        .padding(.vertical, 2)  // 垂直内边距2pt，控制上下留白间距
+        .padding(.vertical, 2)
     }
 
     // MARK: - 数据加载
@@ -786,7 +786,7 @@ struct JobRow: View {
                         .foregroundColor(Color(job.statusColor))
                 }
             }
-            .frame(width: 28)  // 视图宽度28pt，控制组件水平尺寸
+            .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 4) {
                 // 作业名称
@@ -826,7 +826,7 @@ struct JobRow: View {
                 }
             }
         }
-        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+        .padding(.vertical, 4)
     }
 }
 

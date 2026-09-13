@@ -29,13 +29,13 @@ struct CommitDetailView: View {
                 commitStats
 
                 Divider()
-                    .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+                    .padding(.vertical, 8)
 
                 // 变更文件列表
                 changedFilesSection
             }
-            .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-            .padding(.vertical, 12)  // 垂直内边距12pt，控制上下留白间距
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
         .background(appState.isDarkMode ? Color.black : Color(.systemBackground))
         .navigationTitle("提交详情")
@@ -51,13 +51,13 @@ struct CommitDetailView: View {
                 VStack {
                     Spacer()
                     Text(operationMessage)
-                        .font(.system(size: 14, weight: .medium))  // 字体大小14pt，控制文字显示尺寸
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 16)  // 水平内边距16pt，控制左右留白间距
-                        .padding(.vertical, 10)  // 垂直内边距10pt，控制上下留白间距
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
                         .background(Color.black.opacity(0.8))
-                        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
-                        .padding(.bottom, 40)  // 底部内边距40pt，控制下方留白间距
+                        .cornerRadius(8)
+                        .padding(.bottom, 40)
                 }
                 .transition(.opacity)
                 .onAppear {
@@ -76,7 +76,7 @@ struct CommitDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             // 提交信息
             Text(commit.message)
-                .font(.system(size: 18, weight: .bold))  // 字体大小18pt，控制文字显示尺寸
+                .font(.system(size: 18, weight: .bold))
                 .foregroundColor(appState.isDarkMode ? .white : .primary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -89,15 +89,15 @@ struct CommitDetailView: View {
                     Image(systemName: "person.circle.fill")
                         .foregroundColor(.gray)
                 }
-                .frame(width: 40, height: 40)  // 视图尺寸宽40pt高40pt，控制组件显示大小
+                .frame(width: 40, height: 40)
                 .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(commit.authorName)
-                        .font(.system(size: 15, weight: .semibold))  // 字体大小15pt，控制文字显示尺寸
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(appState.isDarkMode ? .white : .primary)
                     Text("提交于 \(commit.formattedDate)")
-                        .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                        .font(.system(size: 13))
                         .foregroundColor(.secondary)
                 }
 
@@ -106,7 +106,7 @@ struct CommitDetailView: View {
                 // 提交哈希
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("提交哈希")
-                        .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     Button(action: {
                         UIPasteboard.general.string = commit.sha
@@ -115,9 +115,9 @@ struct CommitDetailView: View {
                     }) {
                         HStack(spacing: 4) {
                             Text(commit.shortSha)
-                                .font(.system(size: 14, weight: .medium, design: .monospaced))  // 字体大小14pt，控制文字显示尺寸
+                                .font(.system(size: 14, weight: .medium, design: .monospaced))
                             Image(systemName: "doc.on.doc")
-                                .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                                .font(.system(size: 12))
                         }
                         .foregroundColor(.blue)
                     }
@@ -128,7 +128,7 @@ struct CommitDetailView: View {
             // 完整哈希
             HStack {
                 Text(commit.sha)
-                    .font(.system(size: 12, design: .monospaced))  // 字体大小12pt，控制文字显示尺寸
+                    .font(.system(size: 12, design: .monospaced))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
@@ -141,14 +141,14 @@ struct CommitDetailView: View {
                     showOperationMessage = true
                 }) {
                     Image(systemName: "doc.on.doc")
-                        .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
+                        .font(.system(size: 14))
                         .foregroundColor(.blue)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
-            .padding(10)  // 四向统一内边距10pt，控制上下左右留白
+            .padding(10)
             .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
-            .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+            .cornerRadius(8)
         }
     }
 
@@ -178,20 +178,20 @@ struct CommitDetailView: View {
 
             Spacer()
         }
-        .padding(.vertical, 12)  // 垂直内边距12pt，控制上下留白间距
+        .padding(.vertical, 12)
     }
 
     // MARK: - 统计项
     private func statItem(icon: String, color: Color, title: String, value: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 16))  // 字体大小16pt，控制文字显示尺寸
+                .font(.system(size: 16))
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 16, weight: .bold))  // 字体大小16pt，控制文字显示尺寸
+                .font(.system(size: 16, weight: .bold))
                 .foregroundColor(appState.isDarkMode ? .white : .primary)
             Text(title)
-                .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
     }
@@ -201,10 +201,10 @@ struct CommitDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("变更文件")
-                    .font(.system(size: 16, weight: .semibold))  // 字体大小16pt，控制文字显示尺寸
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
                 Text("(\(changedFiles.count))")
-                    .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
                 Spacer()
             }
@@ -215,14 +215,14 @@ struct CommitDetailView: View {
                     ProgressView("加载变更文件...")
                     Spacer()
                 }
-                .padding(.vertical, 40)  // 垂直内边距40pt，控制上下留白间距
+                .padding(.vertical, 40)
             } else if let error = filesError {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 32))  // 字体大小32pt，控制文字显示尺寸
+                        .font(.system(size: 32))
                         .foregroundColor(.orange)
                     Text(error)
-                        .font(.system(size: 13))  // 字体大小13pt，控制文字显示尺寸
+                        .font(.system(size: 13))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                     Button("重试") {
@@ -230,18 +230,18 @@ struct CommitDetailView: View {
                     }
                     .buttonStyle(.bordered)
                 }
-                .padding(.vertical, 40)  // 垂直内边距40pt，控制上下留白间距
+                .padding(.vertical, 40)
                 .frame(maxWidth: .infinity)
             } else if changedFiles.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "doc.text")
-                        .font(.system(size: 32))  // 字体大小32pt，控制文字显示尺寸
+                        .font(.system(size: 32))
                         .foregroundColor(.secondary)
                     Text("暂无变更文件")
-                        .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
+                        .font(.system(size: 14))
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 40)  // 垂直内边距40pt，控制上下留白间距
+                .padding(.vertical, 40)
                 .frame(maxWidth: .infinity)
             } else {
                 ForEach(changedFiles) { file in
@@ -297,21 +297,21 @@ struct ChangedFileRow: View {
         HStack(spacing: 10) {
             // 文件状态图标
             Image(systemName: statusIcon)
-                .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
+                .font(.system(size: 14))
                 .foregroundColor(statusColor)
-                .frame(width: 20)  // 视图宽度20pt，控制组件水平尺寸
+                .frame(width: 20)
 
             // 文件名
             VStack(alignment: .leading, spacing: 2) {
                 Text(fileNameOnly)
-                    .font(.system(size: 14, weight: .medium))  // 字体大小14pt，控制文字显示尺寸
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
                     .lineLimit(1)
 
                 // 文件路径
                 if !filePath.isEmpty {
                     Text(filePath)
-                        .font(.system(size: 11))  // 字体大小11pt，控制文字显示尺寸
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
@@ -323,22 +323,22 @@ struct ChangedFileRow: View {
             HStack(spacing: 8) {
                 if file.additions > 0 {
                     Text("+\(file.additions)")
-                        .font(.system(size: 12, weight: .medium))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.green)
                 }
 
                 if file.deletions > 0 {
                     Text("-\(file.deletions)")
-                        .font(.system(size: 12, weight: .medium))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.red)
                 }
             }
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
+                .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
-        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+        .padding(.vertical, 8)
         .contentShape(Rectangle())
     }
 
@@ -393,7 +393,7 @@ struct FileDiffView: View {
                         Image(systemName: statusIcon)
                             .foregroundColor(statusColor)
                         Text(file.filename)
-                            .font(.system(size: 14, weight: .medium))  // 字体大小14pt，控制文字显示尺寸
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(appState.isDarkMode ? .white : .primary)
                             .lineLimit(1)
                         Spacer()
@@ -401,12 +401,12 @@ struct FileDiffView: View {
                         HStack(spacing: 6) {
                             if file.additions > 0 {
                                 Text("+\(file.additions)")
-                                    .font(.system(size: 12, weight: .medium))  // 字体大小12pt，控制文字显示尺寸
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.green)
                             }
                             if file.deletions > 0 {
                                 Text("-\(file.deletions)")
-                                    .font(.system(size: 12, weight: .medium))  // 字体大小12pt，控制文字显示尺寸
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.red)
                             }
                         }
@@ -420,15 +420,15 @@ struct FileDiffView: View {
                     } else {
                         VStack(spacing: 12) {
                             Image(systemName: "doc.text")
-                                .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
+                                .font(.system(size: 40))
                                 .foregroundColor(.secondary)
                             Text("此文件为二进制文件或无可用的Diff内容")
-                                .font(.system(size: 14))  // 字体大小14pt，控制文字显示尺寸
+                                .font(.system(size: 14))
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 60)  // 垂直内边距60pt，控制上下留白间距
+                        .padding(.vertical, 60)
                     }
                 }
             }
@@ -465,23 +465,23 @@ struct FileDiffView: View {
                 HStack(spacing: 0) {
                     // 行号
                     Text("\(index + 1)")
-                        .font(.system(size: 11, design: .monospaced))  // 字体大小11pt，控制文字显示尺寸
+                        .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(.gray)
                         .frame(width: 40, alignment: .trailing)
                         .padding(.trailing, 8)
 
                     // 行内容
                     Text(line)
-                        .font(.system(size: 12, design: .monospaced))  // 字体大小12pt，控制文字显示尺寸
+                        .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(lineColor(line))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
-                .padding(.vertical, 1)  // 垂直内边距1pt，控制上下留白间距
+                .padding(.horizontal, 8)
+                .padding(.vertical, 1)
                 .background(lineBackground(line))
             }
         }
-        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+        .padding(.vertical, 8)
         .scaleEffect(scale)
     }
 

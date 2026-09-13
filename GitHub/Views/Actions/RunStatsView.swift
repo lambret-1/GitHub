@@ -19,7 +19,7 @@ struct RunStatsView: View {
                         ProgressView("加载统计数据中...")
                         Spacer()
                     }
-                    .frame(height: 300)  // 视图高度300pt，控制组件垂直尺寸
+                    .frame(height: 300)
                 } else if let error = errorMessage {
                     VStack(spacing: 16) {
                         Spacer()
@@ -35,7 +35,7 @@ struct RunStatsView: View {
                         .foregroundColor(.blue)
                         Spacer()
                     }
-                    .frame(height: 300)  // 视图高度300pt，控制组件垂直尺寸
+                    .frame(height: 300)
                     .padding()
                 } else {
                     // 时间范围选择
@@ -83,9 +83,9 @@ struct RunStatsView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+        .padding(.vertical, 8)
         .background(Color(.systemGray6))
-        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+        .cornerRadius(8)
     }
 
     // MARK: - 统计概览卡片
@@ -110,7 +110,7 @@ struct RunStatsView: View {
                 Divider()
                 statItem(title: "取消", value: "\(stats.cancelledCount)", color: .gray)
             }
-            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+            .padding(.vertical, 8)
 
             HStack(spacing: 0) {
                 statItem(title: "成功率", value: String(format: "%.1f%%", stats.successRate), color: .green)
@@ -119,11 +119,11 @@ struct RunStatsView: View {
                 Divider()
                 statItem(title: "进行中", value: "\(stats.inProgressCount)", color: .blue)
             }
-            .padding(.vertical, 8)  // 垂直内边距8pt，控制上下留白间距
+            .padding(.vertical, 8)
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
+        .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 
@@ -188,7 +188,7 @@ struct RunStatsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-                .frame(width: 120, height: 120)  // 视图尺寸宽120pt高120pt，控制组件显示大小
+                .frame(width: 120, height: 120)
 
                 // 图例
                 VStack(alignment: .leading, spacing: 8) {
@@ -200,7 +200,7 @@ struct RunStatsView: View {
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
+        .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 
@@ -208,7 +208,7 @@ struct RunStatsView: View {
         HStack(spacing: 8) {
             Circle()
                 .fill(color)
-                .frame(width: 10, height: 10)  // 视图尺寸宽10pt高10pt，控制组件显示大小
+                .frame(width: 10, height: 10)
             Text(label)
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -240,11 +240,11 @@ struct RunStatsView: View {
                 barItem(label: "取消", count: stats.cancelledCount, maxCount: maxCount, color: .gray)
                 barItem(label: "进行中", count: stats.inProgressCount, maxCount: maxCount, color: .blue)
             }
-            .frame(height: 120)  // 视图高度120pt，控制组件垂直尺寸
+            .frame(height: 120)
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
+        .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 
@@ -290,32 +290,32 @@ struct RunStatsView: View {
                 Text("暂无已完成的运行数据")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                    .frame(height: 80)  // 视图高度80pt，控制组件垂直尺寸
+                    .frame(height: 80)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .bottom, spacing: 4) {
                         ForEach(Array(durations.enumerated()), id: \.offset) { index, duration in
                             VStack(spacing: 2) {
                                 Text(formatDuration(duration))
-                                    .font(.system(size: 8))  // 字体大小8pt，控制文字显示尺寸
+                                    .font(.system(size: 8))
                                     .foregroundColor(.secondary)
                                 RoundedRectangle(cornerRadius: 2)
                                     .fill(LinearGradient(gradient: Gradient(colors: [.blue, .purple]), startPoint: .bottom, endPoint: .top))
                                     .frame(width: 12, height: CGFloat(Double(duration) / Double(maxDuration) * 60))
                                 Text("#\(durations.count - index)")
-                                    .font(.system(size: 7))  // 字体大小7pt，控制文字显示尺寸
+                                    .font(.system(size: 7))
                                     .foregroundColor(.secondary)
                             }
                         }
                     }
-                    .padding(.horizontal, 4)  // 水平内边距4pt，控制左右留白间距
+                    .padding(.horizontal, 4)
                 }
-                .frame(height: 100)  // 视图高度100pt，控制组件垂直尺寸
+                .frame(height: 100)
             }
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
+        .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
 

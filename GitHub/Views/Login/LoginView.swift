@@ -38,7 +38,7 @@ struct LoginView: View {
                             .font(.subheadline)
                             .foregroundColor(.green.opacity(0.7))
                     }
-                    .padding(.top, 60)  // 顶部内边距60pt，控制上方留白间距
+                    .padding(.top, 60)
 
                     // 登录表单
                     VStack(alignment: .leading, spacing: 12) {
@@ -48,7 +48,7 @@ struct LoginView: View {
                        HStack(spacing: 8) {
     TextField("请输入 GitHub 个人访问令牌", text: $tokenText)
         .textFieldStyle(RoundedBorderTextFieldStyle())
-        .font(.system(size: 14, design: .monospaced))  // 字体大小14pt，控制文字显示尺寸
+        .font(.system(size: 14, design: .monospaced))
         .autocapitalization(.none)
         .disableAutocorrection(true)
         .colorScheme(.dark)
@@ -60,7 +60,7 @@ struct LoginView: View {
         }) {
             Image(systemName: "xmark.circle.fill")
                 .foregroundColor(.gray)
-                .font(.system(size: 20))  // 字体大小20pt，控制文字显示尺寸
+                .font(.system(size: 20))
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -89,9 +89,9 @@ struct LoginView: View {
                             }
                             .font(.caption)
                             .foregroundColor(.green.opacity(0.7))
-                            .padding(10)  // 四向统一内边距10pt，控制上下左右留白
+                            .padding(10)
                             .background(Color.green.opacity(0.1))
-                            .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                            .cornerRadius(8)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.green.opacity(0.3), lineWidth: 1)
@@ -111,7 +111,7 @@ struct LoginView: View {
                         }
                         .padding()
                         .background(Color.red.opacity(0.1))
-                        .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                        .cornerRadius(8)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.red.opacity(0.5), lineWidth: 1)
@@ -133,10 +133,10 @@ struct LoginView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.green)
                         }
-                       .frame(width: 150)  // 视图宽度150pt，控制组件水平尺寸
-                        .frame(height: 50)  // 视图高度50pt，控制组件垂直尺寸
+                       .frame(width: 150)
+                        .frame(height: 50)
                         .background(Color.black)
-                        .cornerRadius(12)  // 圆角半径12pt，控制视图边角圆润程度
+                        .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(Color.green.opacity(0.6), lineWidth: 1.5)
@@ -158,8 +158,8 @@ struct LoginView: View {
                             .foregroundColor(.green.opacity(0.6))
                             .multilineTextAlignment(.center)
                     }
-                    .padding(.horizontal, 40)  // 水平内边距40pt，控制左右留白间距
-                    .padding(.bottom, 30)  // 底部内边距30pt，控制下方留白间距
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 30)
                 }
             }
         }

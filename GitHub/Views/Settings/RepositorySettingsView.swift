@@ -110,7 +110,7 @@ struct RepositorySettingsView: View {
                 ProgressView("处理中...")
                     .padding()
                     .background(.ultraThinMaterial)
-                    .cornerRadius(8)  // 圆角半径8pt，控制视图边角圆润程度
+                    .cornerRadius(8)
             }
         }
     }
@@ -132,7 +132,7 @@ struct RepositorySettingsView: View {
         Section {
             VStack(spacing: 12) {
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 40))  // 字体大小40pt，控制文字显示尺寸
+                    .font(.system(size: 40))
                     .foregroundColor(.orange)
                 Text(error)
                     .foregroundColor(.secondary)
@@ -346,12 +346,12 @@ struct RepositorySettingsView: View {
                     FlowLayout(spacing: 6) {
                         ForEach(topics, id: \.self) { topic in
                             Text(topic)
-                                .font(.system(size: 12))  // 字体大小12pt，控制文字显示尺寸
-                                .padding(.horizontal, 8)  // 水平内边距8pt，控制左右留白间距
-                                .padding(.vertical, 3)  // 垂直内边距3pt，控制上下留白间距
+                                .font(.system(size: 12))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
                                 .background(Color.blue.opacity(0.15))
                                 .foregroundColor(.blue)
-                                .cornerRadius(4)  // 圆角半径4pt，控制视图边角圆润程度
+                                .cornerRadius(4)
                         }
                     }
                 }

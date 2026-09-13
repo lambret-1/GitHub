@@ -70,7 +70,7 @@ struct AccountManagerView: View {
                     .resizable()
                     .foregroundColor(.gray)
             }
-            .frame(width: 40, height: 40)  // 视图尺寸宽40pt高40pt，控制组件显示大小
+            .frame(width: 40, height: 40)
             .clipShape(Circle())
 
             // 账号信息
@@ -98,7 +98,7 @@ struct AccountManagerView: View {
                 }
             }
         }
-        .padding(.vertical, 4)  // 垂直内边距4pt，控制上下留白间距
+        .padding(.vertical, 4)
         .contextMenu {
             if !isCurrent {
                 Button(role: .destructive, action: {
