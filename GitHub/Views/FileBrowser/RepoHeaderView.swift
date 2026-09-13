@@ -15,7 +15,7 @@ struct RepoHeaderView: View {
     let onToggleStar: () -> Void
     let onFork: () -> Void
     // 新增回调：查看父仓库（Fork来源）
-    var onViewParent: ((Repository) -> Void)? = nil
+    var onViewParent: ((RepositoryParent) -> Void)? = nil
 
     @EnvironmentObject var appState: AppState
     // 描述展开状态

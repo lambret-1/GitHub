@@ -63,6 +63,23 @@ struct RepoLicense: Codable {
     }
 }
 
+// MARK: - 仓库父仓库信息（用于Fork来源，避免递归引用）
+struct RepositoryParent: Codable {
+    let id: Int
+    let name: String
+    let fullName: String
+    let owner: RepositoryOwner
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, owner
+        case fullName = "full_name"
+    }
+
+    var ownerName: String {
+        return owner.login
+    }
+}
+
 struct Repository: Codable, Identifiable {
     let id: Int
     let name: String
@@ -85,7 +102,7 @@ struct Repository: Codable, Identifiable {
     let license: RepoLicense?
     let permissions: RepoPermissions?
     let isFork: Bool?
-    let parent: Repository?
+    let parent: RepositoryParent?
     let archived: Bool?
     let disabled: Bool?
 
