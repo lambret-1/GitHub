@@ -57,6 +57,14 @@ enum APIEndpoints {
     case createRepository // 创建新仓库
     case userStarred(page: Int, perPage: Int) // 获取用户星标列表
 
+    // MARK: - Issues 相关端点
+    case issues(owner: String, repo: String, state: String, page: Int, perPage: Int) // 获取Issues列表
+    case issueDetail(owner: String, repo: String, number: Int) // 获取Issue详情
+    case issueComments(owner: String, repo: String, number: Int, page: Int, perPage: Int) // 获取Issue评论
+    case createIssue(owner: String, repo: String) // 创建Issue
+    case createIssueComment(owner: String, repo: String, number: Int) // 创建Issue评论
+    case updateIssue(owner: String, repo: String, number: Int) // 更新Issue（关闭/重新打开）
+
     var url: String {
         switch self {
         case .user:
@@ -187,6 +195,20 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/user/repos"
         case .userStarred(let page, let perPage):
             return "\(APIEndpoints.baseURL)/user/starred?page=\(page)&per_page=\(perPage)"
+
+        // MARK: - Issues 相关端点实现
+        case .issues(let owner, let repo, let state, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/issues?state=\(state)&page=\(page)&per_page=\(perPage)"
+        case .issueDetail(let owner, let repo, let number):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/issues/\(number)"
+        case .issueComments(let owner, let repo, let number, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/issues/\(number)/comments?page=\(page)&per_page=\(perPage)"
+        case .createIssue(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/issues"
+        case .createIssueComment(let owner, let repo, let number):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/issues/\(number)/comments"
+        case .updateIssue(let owner, let repo, let number):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/issues/\(number)"
         }
     }
 }

@@ -599,7 +599,12 @@ struct FileBrowserView: View {
                 actionsTabContent
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
-            case .issues, .pullRequests, .settings:
+            case .issues:
+                // Issues Tab：Issues列表
+                issuesTabContent
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+            case .pullRequests, .settings:
                 // 即将上线的功能占位
                 comingSoonContent(for: selectedTab)
                     .listRowInsets(EdgeInsets())
@@ -690,6 +695,17 @@ struct FileBrowserView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
         }
+    }
+
+    // MARK: - Issues Tab内容
+
+    var issuesTabContent: some View {
+        IssuesListView(
+            owner: repository.ownerName,
+            repo: repository.name
+        )
+        .environmentObject(appState)
+        .frame(height: 600)
     }
 
     // MARK: - Actions Tab内容

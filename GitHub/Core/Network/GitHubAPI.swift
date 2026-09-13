@@ -972,6 +972,127 @@ class GitHubAPI {
         performSimpleRequest(url: url, method: "POST", body: body, failureMessage: "创建仓库失败", completion: completion)
     }
 
+    // MARK: - Issues 相关API
+
+    /// 获取Issues列表
+    func getIssues(owner: String, repo: String, state: String = "open", page: Int = 1, perPage: Int = 30, completion: @escaping (Result<[Issue], Error>) -> Void) {
+        let url = APIEndpoints.issues(owner: owner, repo: repo, state: state, page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let issues = try JSONDecoder().decode([Issue].self, from: data)
+                    // 过滤掉Pull Request（GitHub API中Issues和PR共用一个接口）
+                    let onlyIssues = issues.filter { !$0.是PullRequest }
+                    completion(.success(onlyIssues))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取Issue详情
+    func getIssueDetail(owner: String, repo: String, number: Int, completion: @escaping (Result<Issue, Error>) -> Void) {
+        let url = APIEndpoints.issueDetail(owner: owner, repo: repo, number: number).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let issue = try JSONDecoder().decode(Issue.self, from: data)
+                    completion(.success(issue))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 获取Issue评论列表
+    func getIssueComments(owner: String, repo: String, number: Int, page: Int = 1, perPage: Int = 30, completion: @escaping (Result<[IssueComment], Error>) -> Void) {
+        let url = APIEndpoints.issueComments(owner: owner, repo: repo, number: number, page: page, perPage: perPage).url
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let comments = try JSONDecoder().decode([IssueComment].self, from: data)
+                    completion(.success(comments))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 创建Issue
+    func createIssue(owner: String, repo: String, title: String, body: String? = nil, labels: [String]? = nil, completion: @escaping (Result<Issue, Error>) -> Void) {
+        let url = APIEndpoints.createIssue(owner: owner, repo: repo).url
+        var requestBody: [String: Any] = ["title": title]
+        if let body = body {
+            requestBody["body"] = body
+        }
+        if let labels = labels {
+            requestBody["labels"] = labels
+        }
+        performRequest(url: url, method: "POST", body: requestBody) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let issue = try JSONDecoder().decode(Issue.self, from: data)
+                    completion(.success(issue))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 创建Issue评论
+    func createIssueComment(owner: String, repo: String, number: Int, body: String, completion: @escaping (Result<IssueComment, Error>) -> Void) {
+        let url = APIEndpoints.createIssueComment(owner: owner, repo: repo, number: number).url
+        let requestBody: [String: Any] = ["body": body]
+        performRequest(url: url, method: "POST", body: requestBody) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let comment = try JSONDecoder().decode(IssueComment.self, from: data)
+                    completion(.success(comment))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// 更新Issue状态（关闭/重新打开）
+    func updateIssueState(owner: String, repo: String, number: Int, state: String, completion: @escaping (Result<Issue, Error>) -> Void) {
+        let url = APIEndpoints.updateIssue(owner: owner, repo: repo, number: number).url
+        let requestBody: [String: Any] = ["state": state]
+        performRequest(url: url, method: "PATCH", body: requestBody) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let issue = try JSONDecoder().decode(Issue.self, from: data)
+                    completion(.success(issue))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     // MARK: - GitHub Actions 扩展API（第一期新增）
 
     /// 获取运行的构建产物列表
