@@ -78,6 +78,12 @@ struct CodeEditorView: View {
 
     // 撤销/重做管理器（第二期：编辑体验增强）
     @ObservedObject private var undoManager = EditorUndoManager.shared
+    // 撤销/重做触发器（用于触发CodeTextView内部UITextView的撤销/重做操作）
+    @State private var undoTrigger: Int = 0
+    @State private var redoTrigger: Int = 0
+    // 撤销/重做可用状态（由CodeTextView回调更新）
+    @State private var canUndo: Bool = false
+    @State private var canRedo: Bool = false
 
     // 草稿管理器（第二期：编辑体验增强）
     @ObservedObject private var draftManager = DraftManager.shared
@@ -553,23 +559,23 @@ struct CodeEditorView: View {
         HStack(spacing: 8) {
             // 撤销按钮
             Button(action: {
-                undoManager.undo()
+                undoTrigger += 1
             }) {
                 Image(systemName: "arrow.uturn.backward")
-                    .foregroundColor(undoManager.canUndo ? .blue : .gray)
+                    .foregroundColor(canUndo ? .blue : .gray)
                     .frame(width: 40, height: 44)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
             }
-            .disabled(!undoManager.canUndo)
+            .disabled(!canUndo)
 
             // 重做按钮
             Button(action: {
-                undoManager.redo()
+                redoTrigger += 1
             }) {
                 Image(systemName: "arrow.uturn.forward")
-                    .foregroundColor(undoManager.canRedo ? .blue : .gray)
+                    .foregroundColor(canRedo ? .blue : .gray)
                     .frame(width: 40, height: 44)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
             }
-            .disabled(!undoManager.canRedo)
+            .disabled(!canRedo)
 
             // 取消按钮
             Button(action: {
@@ -904,11 +910,19 @@ struct CodeEditorView: View {
                     currentMatchIndex = 0
                     showSearch = true
                 },
-                scrollToLine: scrollTargetLine
+                scrollToLine: scrollTargetLine,
+                // 撤销/重做触发器（外部按钮触发UITextView的撤销/重做操作）
+                undoTrigger: undoTrigger,
+                redoTrigger: redoTrigger,
+                // 撤销/重做状态更新回调
+                onUndoRedoStateChange: { canUndo, canRedo in
+                    self.canUndo = canUndo
+                    self.canRedo = canRedo
+                }
             )
             // 代码区域跟随键盘弹出向上移动（使用KeyboardManager统一管理，彻底解决键盘跟随问题）
-            // 仅编辑模式下生效，底部padding = 键盘高度（不含安全区域）
-            .padding(.bottom, isEditing ? keyboardManager.keyboardHeightWithoutSafeArea : 0)
+            // 仅编辑模式下生效，底部padding = 键盘高度（不含安全区域）+ 底部工具栏高度（44pt）
+            .padding(.bottom, isEditing ? keyboardManager.keyboardHeightWithoutSafeArea + 44 : 0)
             .animation(.easeOut(duration: keyboardManager.animationDuration), value: keyboardManager.keyboardHeightWithoutSafeArea)
         }
     }

@@ -40,6 +40,12 @@ struct CodeTextView: UIViewRepresentable {
     // 滚动到指定行（用于从代码搜索结果跳转时快速定位）
     var scrollToLine: Int? = nil
 
+    // 撤销/重做触发器（用于外部按钮触发UITextView的撤销/重做操作）
+    var undoTrigger: Int = 0
+    var redoTrigger: Int = 0
+    // 撤销/重做状态更新回调
+    var onUndoRedoStateChange: ((Bool, Bool) -> Void)?
+
     func makeUIView(context: Context) -> UITextView {
         // 使用自定义 LayoutManager 绘制行号
         let layoutManager = LineNumberLayoutManager()
@@ -208,6 +214,29 @@ struct CodeTextView: UIViewRepresentable {
                 }
             }
         }
+
+        // 处理撤销/重做触发器（外部按钮触发UITextView的撤销/重做操作）
+        if context.coordinator.lastUndoTrigger != undoTrigger {
+            context.coordinator.lastUndoTrigger = undoTrigger
+            if textView.undoManager?.canUndo == true {
+                textView.undoManager?.undo()
+            }
+        }
+        if context.coordinator.lastRedoTrigger != redoTrigger {
+            context.coordinator.lastRedoTrigger = redoTrigger
+            if textView.undoManager?.canRedo == true {
+                textView.undoManager?.redo()
+            }
+        }
+
+        // 更新撤销/重做状态
+        let canUndo = textView.undoManager?.canUndo ?? false
+        let canRedo = textView.undoManager?.canRedo ?? false
+        if context.coordinator.lastCanUndo != canUndo || context.coordinator.lastCanRedo != canRedo {
+            context.coordinator.lastCanUndo = canUndo
+            context.coordinator.lastCanRedo = canRedo
+            onUndoRedoStateChange?(canUndo, canRedo)
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -226,6 +255,12 @@ struct CodeTextView: UIViewRepresentable {
         var onLookupSelectedText: ((String) -> Void)?
         // 记录上一次的行号显示状态，用于判断是否需要更新行号布局（避免不必要的重新布局导致光标乱跳）
         var lastShowLineNumbers: Bool = true
+        // 撤销/重做触发器状态（用于检测外部按钮触发）
+        var lastUndoTrigger: Int = 0
+        var lastRedoTrigger: Int = 0
+        // 上一次的撤销/重做状态（用于状态变化检测）
+        var lastCanUndo: Bool = false
+        var lastCanRedo: Bool = false
         // 是否可编辑（用于判断是否禁用语法高亮，避免光标乱跳换行问题）
         var isEditable: Bool = false
         // 文件名（用于语法高亮语言检测）
