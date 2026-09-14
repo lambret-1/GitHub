@@ -15,11 +15,10 @@ final class CodeSearchService {
             throw NSError(domain: "CodeSearch", code: -1, userInfo: [NSLocalizedDescriptionKey: "搜索词不能为空"])
         }
 
+        // 注意：GitHub代码搜索API的branch筛选器存在索引延迟问题，可能返回0结果
+        // 因此暂不使用branch筛选器，搜索默认分支（通常是main/master）
         var components = URLComponents(string: "https://api.github.com/search/code")!
-        var q = "repo:\(owner)/\(repo) \(trimmed)"
-        if let branch = branch, !branch.isEmpty {
-            q += " branch:\(branch)"
-        }
+        let q = "repo:\(owner)/\(repo) \(trimmed)"
         components.queryItems = [
             URLQueryItem(name: "q", value: q),
             URLQueryItem(name: "per_page", value: "30")
