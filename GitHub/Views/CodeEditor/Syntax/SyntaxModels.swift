@@ -181,7 +181,7 @@ enum ProgrammingLanguage: String, CaseIterable {
         switch self {
         case .swift, .javascript, .typescript, .java, .go, .c, .cpp, .objectiveC, .rust, .kotlin, .csharp, .scala, .dart, .css, .php, .sql:
             return "/*"
-        case .python, .ruby, .shell, .yaml, .r, .lua, .html, .xml, .markdown, .json, .plainText:
+        case .python, .ruby, .shell, .yaml, .r, .lua, .html, .xml, .markdown, .json, .ini, .toml, .plainText:
             return nil
         }
     }
@@ -191,7 +191,7 @@ enum ProgrammingLanguage: String, CaseIterable {
         switch self {
         case .swift, .javascript, .typescript, .java, .go, .c, .cpp, .objectiveC, .rust, .kotlin, .csharp, .scala, .dart, .css, .php, .sql:
             return "*/"
-        case .python, .ruby, .shell, .yaml, .r, .lua, .html, .xml, .markdown, .json, .plainText:
+        case .python, .ruby, .shell, .yaml, .r, .lua, .html, .xml, .markdown, .json, .ini, .toml, .plainText:
             return nil
         }
     }
