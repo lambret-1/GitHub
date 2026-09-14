@@ -609,6 +609,21 @@ struct CodeTextView: UIViewRepresentable {
 
             // 标记内部更新，防止SwiftUI的updateUIView在文本更新时重置光标位置
             isInternalUpdate = true
+
+            // 编辑模式下延迟更新@Binding，切断同步循环（避免父视图重绘触发updateUIView中行号更新导致重新布局，进而再次触发textViewDidChange形成无限循环）
+            if isEditable {
+                let currentText = textView.text
+                DispatchQueue.main.async { [weak self] in
+                    self?.text = currentText
+                    self?.onTextChange?(currentText)
+                    self?.isInternalUpdate = false
+                }
+                // 更新撤销/重做按钮状态（文本变更后canUndo/canRedo可能变化）
+                updateUndoRedoState()
+                return
+            }
+
+            // 查看模式下同步更新@Binding
             text = textView.text
             onTextChange?(textView.text)
 
