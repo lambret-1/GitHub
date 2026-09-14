@@ -3854,26 +3854,6 @@ private struct FileBrowserCreateFileSheetsModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: view.$showCodeSearchSnippet) {
-                if let item = view.selectedCodeSearchItem {
-                    NavigationView {
-                        CodeSnippetView(
-                            owner: view.repository.ownerName,
-                            repo: view.repository.name,
-                            branch: view.selectedBranch,
-                            item: item,
-                            searchQuery: view.codeSearchQuery,
-                            onJumpToCode: { filePath, lineNumber in
-                                // 跳转到代码编辑页面
-                                view.selectedFilePath = filePath
-                                view.selectedFileName = (filePath as NSString).lastPathComponent
-                                view.jumpToLineNumber = lineNumber
-                                view.navigateToFileEditor = true
-                            }
-                        )
-                    }
-                }
-            }
             .sheet(isPresented: view.$showCodeSearch) {
                 RepoCodeSearchView(
                     owner: view.repository.ownerName,

@@ -144,21 +144,22 @@ final class RepoCodeSearchViewModel: ObservableObject {
                 // 检查任务是否被取消
                 guard !Task.isCancelled else { return }
 
-                // 在后台线程提取片段
-                let extractedSnippets = try await Task.detached(priority: .userInitiated) {
+                // 在后台线程提取片段（显式使用self，避免闭包捕获语义错误）
+                let extractedSnippets = Task.detached(priority: .userInitiated) { [service] in
                     return service.extractSnippets(
                         content: content,
                         query: query,
                         contextLines: 2
                     )
-                }.value
+                }
+                let snippetsResult = try await extractedSnippets.value
 
                 // 检查任务是否被取消
                 guard !Task.isCancelled else { return }
 
                 // 更新UI
                 await MainActor.run {
-                    self.snippets = extractedSnippets
+                    self.snippets = snippetsResult
                     self.snippetLoading = false
                 }
             } catch let error as CodeSearchError {
