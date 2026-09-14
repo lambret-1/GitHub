@@ -54,16 +54,3 @@ struct CodeSearchRepositoryOwner: Codable {
         case avatarUrl = "avatar_url"
     }
 }
-
-/// 代码搜索结果包装
-struct CodeSearchResult: Codable {
-    let totalCount: Int
-    let incompleteResults: Bool
-    let items: [CodeSearchItem]
-
-    enum CodingKeys: String, CodingKey {
-        case totalCount = "total_count"
-        case incompleteResults = "incomplete_results"
-        case items
-    }
-}
