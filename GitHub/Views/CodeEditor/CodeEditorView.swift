@@ -119,7 +119,9 @@ struct CodeEditorView: View {
         VStack(spacing: 0) {
             contentView
         }
-        // 使用系统自动键盘避让，UITextView会自动调整contentInset
+        // 忽略键盘安全区域，避免删除底部工具栏后编辑模式下底部出现空白区域
+        // UITextView会自动调整contentInset处理键盘遮挡，用户仍可滚动查看编辑内容
+        .ignoresSafeArea(.keyboard)
         .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏系统默认返回按钮，使用自定义返回按钮实现编辑保护
