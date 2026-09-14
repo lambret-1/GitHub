@@ -180,7 +180,7 @@ class RTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
 
     /// 检查是否是R运算符
     func isROperator(_ char: Character) -> Bool {
-        let operators: Set<Character> = ["+", "-", "*", "/", "^", "%%", "=", "<", ">", "!", "&", "|", "~", ":", ",", ";", "$", "@", "(", ")", "{", "}", "[", "]"]
+        let operators: Set<Character> = ["+", "-", "*", "/", "^", "%", "=", "<", ">", "!", "&", "|", "~", ":", ",", ";", "$", "@", "(", ")", "{", "}", "[", "]"]
         return operators.contains(char)
     }
 
