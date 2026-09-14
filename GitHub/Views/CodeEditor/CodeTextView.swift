@@ -101,6 +101,7 @@ struct CodeTextView: UIViewRepresentable {
         context.coordinator.onSearchResult = onSearchResult
         context.coordinator.onSelectedText = onSelectedText
         context.coordinator.onLookupSelectedText = onLookupSelectedText
+        context.coordinator.isEditable = isEditable
 
         // 双指缩放手势
         let pinchGesture = UIPinchGestureRecognizer(
@@ -114,6 +115,7 @@ struct CodeTextView: UIViewRepresentable {
 
     func updateUIView(_ textView: UITextView, context: Context) {
         textView.isEditable = isEditable
+        context.coordinator.isEditable = isEditable
 
         // 更新查找回调
         if let codeEditorTextView = textView as? CodeEditorTextView {
@@ -220,6 +222,8 @@ struct CodeTextView: UIViewRepresentable {
         var onLookupSelectedText: ((String) -> Void)?
         // 记录上一次的行号显示状态，用于判断是否需要更新行号布局（避免不必要的重新布局导致光标乱跳）
         var lastShowLineNumbers: Bool = true
+        // 是否可编辑（用于判断是否禁用语法高亮，避免光标乱跳换行问题）
+        var isEditable: Bool = false
 
         private var highlightWorkItem: DispatchWorkItem?
         private var searchWorkItem: DispatchWorkItem?
