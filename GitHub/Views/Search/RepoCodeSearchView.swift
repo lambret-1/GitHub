@@ -5,6 +5,7 @@ struct RepoCodeSearchView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var debounceTask: Task<Void, Never>?
     @State private var showSortMenu: Bool = false
+    @FocusState private var isSearchFieldFocused: Bool // 搜索输入框聚焦状态，控制光标显示和键盘弹出
     private let onJumpToCode: (String, Int) -> Void
 
     init(owner: String, repo: String, branch: String, onJumpToCode: @escaping (String, Int) -> Void) {
@@ -71,6 +72,12 @@ struct RepoCodeSearchView: View {
                     }
                 )
             }
+            .onAppear {
+                // 打开搜索页面时自动聚焦输入框并弹出键盘，提升用户体验
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isSearchFieldFocused = true
+                }
+            }
             .onDisappear { viewModel.cancel() }
         }
     }
@@ -92,6 +99,7 @@ struct RepoCodeSearchView: View {
                 .textFieldStyle(.plain)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .focused($isSearchFieldFocused) // 绑定聚焦状态，控制光标显示和键盘弹出
                 .onSubmit {
                     viewModel.showSuggestions = false
                     viewModel.search()
@@ -286,11 +294,25 @@ struct RepoCodeSearchView: View {
                                 Text(file.name)
                                     .font(.body)
                                     .foregroundColor(.primary)
-                                Text(file.path)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
+                                HStack(spacing: 6) {
+                                    Text(file.path)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                    Text("·")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                    // 最后编辑时间：xx分钟/小时/日/月/年之前
+                                    HStack(spacing: 2) {
+                                        Image(systemName: "clock")
+                                            .font(.caption2)
+                                            .foregroundColor(.gray)
+                                        Text(file.lastModifiedRelativeString)
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                }
                             }
                             Spacer()
                             Image(systemName: "chevron.right")

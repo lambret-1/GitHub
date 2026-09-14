@@ -252,6 +252,102 @@ final class CodeSearchService {
         return sortSearchResults(result.items, sortOption: sortOption)
     }
 
+    // MARK: - 获取文件最后编辑时间
+
+    // Git提交信息模型
+    private struct GitCommit: Codable {
+        let commit: CommitDetail
+
+        struct CommitDetail: Codable {
+            let committer: Committer
+        }
+
+        struct Committer: Codable {
+            let date: String
+        }
+    }
+
+    // 获取单个文件的最后编辑时间（通过commits API）
+    func getFileLastModified(
+        owner: String,
+        repo: String,
+        path: String,
+        branch: String
+    ) async throws -> Date? {
+        var components = URLComponents(string: "https://api.github.com/repos/\(owner)/\(repo)/commits")!
+        components.queryItems = [
+            URLQueryItem(name: "path", value: path),
+            URLQueryItem(name: "sha", value: branch),
+            URLQueryItem(name: "per_page", value: "1")
+        ]
+
+        guard let url = components.url else {
+            return nil
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        if let token = TokenKeychain.shared.getToken() {
+            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let commits = try JSONDecoder().decode([GitCommit].self, from: data)
+        guard let firstCommit = commits.first else {
+            return nil
+        }
+
+        // 解析ISO 8601日期格式
+        let dateFormatter = ISO8601DateFormatter()
+        return dateFormatter.date(from: firstCommit.commit.committer.date)
+    }
+
+    // 批量获取文件最后编辑时间（并发请求，提升性能）
+    func loadLastModifiedForFiles(
+        _ files: [CodeSearchFile],
+        owner: String,
+        repo: String,
+        branch: String
+    ) async -> [CodeSearchFile] {
+        var updatedFiles = files
+
+        // 使用withTaskGroup并发请求，限制最大并发数为5，避免触发API速率限制
+        await withTaskGroup(of: (Int, Date?).self) { group in
+            for (index, file) in files.enumerated() {
+                // 限制并发数
+                if group.taskCount >= 5 {
+                    if let result = await group.next() {
+                        if let date = result.1 {
+                            updatedFiles[result.0].lastModified = date
+                        }
+                    }
+                }
+                group.addTask {
+                    do {
+                        let date = try await self.getFileLastModified(
+                            owner: owner,
+                            repo: repo,
+                            path: file.path,
+                            branch: branch
+                        )
+                        return (index, date)
+                    } catch {
+                        return (index, nil)
+                    }
+                }
+            }
+
+            // 收集剩余结果
+            for await result in group {
+                if let date = result.1 {
+                    updatedFiles[result.0].lastModified = date
+                }
+            }
+        }
+
+        return updatedFiles
+    }
+
     // MARK: - 代码片段提取
 
     func extractSnippets(content: String, query: String, contextLines: Int = 2) -> [CodeSnippet] {

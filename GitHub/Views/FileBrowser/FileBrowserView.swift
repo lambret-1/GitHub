@@ -398,7 +398,9 @@ struct FileBrowserView: View {
                     path: filePath,
                     branch: selectedBranch,
                     fileName: fileName,
-                    initialSearchText: jumpToLineNumber != nil ? codeSearchQuery : ""
+                    // 不使用编辑器内部搜索功能，直接跳转到指定行
+                    initialSearchText: "",
+                    initialLineNumber: jumpToLineNumber
                 )
             }
         }, isActive: $navigateToFileEditor) {

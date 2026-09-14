@@ -10,6 +10,8 @@ struct CodeEditorView: View {
     var autoEnterEditMode: Bool = false
     // 初始搜索关键词（用于从代码搜索结果跳转时自动定位）
     var initialSearchText: String = ""
+    // 初始跳转到指定行（用于从代码搜索结果跳转时快速定位，不使用编辑器内部搜索功能）
+    var initialLineNumber: Int? = nil
 
     // 用于退出页面
     @Environment(\.dismiss) private var dismiss
@@ -49,6 +51,9 @@ struct CodeEditorView: View {
     @State private var searchText: String = ""
     @State private var currentMatchIndex: Int = 0
     @State private var totalMatches: Int = 0
+
+    // 滚动到指定行（用于从代码搜索结果跳转时快速定位）
+    @State private var scrollTargetLine: Int? = nil
 
     // 选中文字查找相关状态
     @State private var getSelectedTextTrigger: Int = 0
@@ -738,7 +743,8 @@ struct CodeEditorView: View {
                     searchText = selectedText
                     currentMatchIndex = 0
                     showSearch = true
-                }
+                },
+                scrollToLine: scrollTargetLine
             )
             // 代码区域跟随键盘弹出向上移动（仅编辑模式下生效，底部padding = 键盘高度 - 安全区域）
             .padding(.bottom, isEditing ? max(0, keyboardHeight - (UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0)) : 0)
@@ -880,6 +886,13 @@ struct CodeEditorView: View {
                         searchText = initialSearchText
                         currentMatchIndex = 0
                         showSearch = true
+                    }
+
+                    // 如果设置了初始跳转到指定行，则延迟滚动到指定行（等待视图渲染完成）
+                    if let line = initialLineNumber, line > 0 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            scrollTargetLine = line
+                        }
                     }
 
                     // 获取文件最后编辑时间

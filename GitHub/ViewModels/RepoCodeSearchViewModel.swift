@@ -116,6 +116,23 @@ final class RepoCodeSearchViewModel: ObservableObject {
                     // 重新加载搜索历史（因为搜索成功后会添加新记录）
                     self.loadSearchHistory()
                 }
+
+                // 异步加载文件最后编辑时间（不阻塞UI显示）
+                if !items.isEmpty {
+                    Task { [weak self] in
+                        guard let self = self else { return }
+                        let updatedFiles = await CodeSearchService.shared.loadLastModifiedForFiles(
+                            items,
+                            owner: self.owner,
+                            repo: self.repo,
+                            branch: self.branch
+                        )
+                        if Task.isCancelled { return }
+                        await MainActor.run {
+                            self.results = updatedFiles
+                        }
+                    }
+                }
             } catch is CancellationError {
             } catch {
                 if Task.isCancelled { return }

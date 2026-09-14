@@ -67,10 +67,20 @@ struct CodeSearchFile: Identifiable, Codable {
     let path: String
     let sha: String
     let htmlUrl: String
+    // 最后编辑时间（搜索API不返回，需要额外通过commits API获取）
+    var lastModified: Date?
 
     enum CodingKeys: String, CodingKey {
         case name, path, sha
         case htmlUrl = "html_url"
+    }
+
+    // 相对时间显示：xx分钟/小时/日/月/年之前
+    var lastModifiedRelativeString: String {
+        guard let date = lastModified else {
+            return "未知时间"
+        }
+        return date.relativeTimeString
     }
 }
 
@@ -99,4 +109,55 @@ struct CodeSnippet: Identifiable {
     let startLine: Int
     let endLine: Int
     let lines: [CodeLine]
+}
+
+// MARK: - 相对时间显示扩展
+
+extension Date {
+    // 格式化为相对时间：xx分钟/小时/日/月/年之前
+    var relativeTimeString: String {
+        let calendar = Calendar.current
+        let now = Date()
+        let components = calendar.dateComponents([.minute, .hour, .day, .month, .year], from: self, to: now)
+
+        if let year = components.year, year >= 1 {
+            return year == 1 ? "1年前" : "\(year)年前"
+        }
+        if let month = components.month, month >= 1 {
+            return month == 1 ? "1个月前" : "\(month)个月前"
+        }
+        if let day = components.day, day >= 1 {
+            return day == 1 ? "1天前" : "\(day)天前"
+        }
+        if let hour = components.hour, hour >= 1 {
+            return hour == 1 ? "1小时前" : "\(hour)小时前"
+        }
+        if let minute = components.minute, minute >= 1 {
+            return minute == 1 ? "1分钟前" : "\(minute)分钟前"
+        }
+        return "刚刚"
+    }
+}
+
+// 时间格式化工具
+enum TimeFormatter {
+    // 将ISO8601字符串转换为Date
+    static func date(fromISO8601 string: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: string) {
+            return date
+        }
+        // 尝试不带毫秒的格式
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: string)
+    }
+
+    // 将时间字符串转换为相对时间显示
+    static func relativeTime(from string: String) -> String {
+        guard let date = date(fromISO8601: string) else {
+            return "未知时间"
+        }
+        return date.relativeTimeString
+    }
 }

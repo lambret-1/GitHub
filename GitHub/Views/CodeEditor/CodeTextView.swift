@@ -35,6 +35,9 @@ struct CodeTextView: UIViewRepresentable {
     var getSelectedTextTrigger: Int = 0
     var onSelectedText: ((String) -> Void)?
 
+    // 滚动到指定行（用于从代码搜索结果跳转时快速定位）
+    var scrollToLine: Int? = nil
+
     func makeUIView(context: Context) -> UITextView {
         // 使用自定义 LayoutManager 绘制行号
         let layoutManager = LineNumberLayoutManager()
@@ -153,6 +156,30 @@ struct CodeTextView: UIViewRepresentable {
 
         // 处理选中文字获取
         context.coordinator.checkSelectedTextTrigger(trigger: getSelectedTextTrigger)
+
+        // 滚动到指定行（用于从代码搜索结果跳转时快速定位）
+        if let line = scrollToLine, line > 0 {
+            DispatchQueue.main.async {
+                let nsText = textView.text as NSString
+                var lineNumber = 1
+                var charIndex = 0
+                // 遍历找到指定行的起始位置
+                while charIndex < nsText.length && lineNumber < line {
+                    let char = nsText.character(at: charIndex)
+                    if char == 10 { // 换行符
+                        lineNumber += 1
+                    }
+                    charIndex += 1
+                }
+                // 滚动到指定行
+                if charIndex < nsText.length {
+                    let range = NSRange(location: charIndex, length: 1)
+                    textView.scrollRangeToVisible(range)
+                    // 选中指定行，高亮显示
+                    textView.selectedRange = range
+                }
+            }
+        }
     }
 
     func makeCoordinator() -> Coordinator {
