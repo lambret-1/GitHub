@@ -82,10 +82,14 @@ struct FileBrowserView: View {
     @State var downloadingFileName: String = ""
     @State var showActionSheet: Bool = false
     @State var selectedFile: FileItem?
+    @State var showCodeSearch: Bool = false
+    @State var codeSearchQuery: String = ""
+    @State var codeSearchResults: [CodeSearchItem] = []
+    @State var isSearchingCode: Bool = false
     @State var codeSearchError: String?
     @State var codeSearchProgress: Double = 0
     @State var selectedCodeSearchItem: CodeSearchItem?
-    @State var showCodeSearch: Bool = false
+    @State var showCodeSearchSnippet: Bool = false
     @State var showUploadSuccess: Bool = false
     @State var uploadErrorMessage: String?
     @State var showCreateFolderDialog: Bool = false
@@ -775,6 +779,266 @@ struct FileBrowserView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - 代码搜索结果区域
+
+    @ViewBuilder
+    var codeSearchResultsSection: some View {
+        if isSearchingCode {
+            // 加载中（带进度条）
+            VStack(spacing: 12) {
+                ProgressView("搜索中...")
+                if codeSearchProgress > 0 {
+                    ProgressView(value: codeSearchProgress)
+                        .progressViewStyle(LinearProgressViewStyle())
+                        .padding(.horizontal, 40)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                    Text(String(format: "%.0f%%", codeSearchProgress * 100))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.vertical, 20)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        } else if let error = codeSearchError {
+            // 错误状态
+            VStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.largeTitle)
+                    .foregroundColor(.orange)
+                Text(error)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Button("重试") {
+                    performCodeSearch()
+                }
+                .foregroundColor(.blue)
+            }
+            .padding(.vertical, 20)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        } else if codeSearchResults.isEmpty && !codeSearchQuery.isEmpty {
+            // 无结果
+            HStack {
+                Spacer()
+                VStack(spacing: 8) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .foregroundColor(.gray)
+                    Text("未找到匹配的代码")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.vertical, 20)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        } else if !codeSearchResults.isEmpty {
+            // 搜索结果列表
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("搜索结果 (\(codeSearchResults.count))")
+                        .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("清除搜索") {
+                        codeSearchQuery = ""
+                        codeSearchResults = []
+                        codeSearchError = nil
+                    }
+                    .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .background(Color(.systemGray6))
+
+                ForEach(codeSearchResults) { item in
+                    Button(action: {
+                        // 跳转到代码片段页面
+                        showCodeSnippet(for: item)
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "doc.text")
+                                .foregroundColor(.blue)
+                                .font(.system(size: 18))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.name)
+                                    .font(.system(size: 14, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                Text(item.path)
+                                    .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        }
+                        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Divider()
+                        .padding(.leading, 52)  // 这是左侧内边距，控制内容左方与边缘的空白距离，单位是pt；改大左方留白更宽，改小左方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
+                }
+            }
+        }
+    }
+
+    // 顶部提交信息栏（GitHub官方风格，生产级高度设计：行高44pt，符合Apple HIG）
+    var latestCommitHeaderView: some View {
+        HStack(spacing: 10) {
+            if isLoadingLatestCommit {
+                // 加载中状态
+                ProgressView()
+                    .scaleEffect(0.8)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
+                Text("加载提交信息...")
+                    .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .foregroundColor(.secondary)
+                Spacer()
+            } else if let commit = latestCommit {
+                // 提交者头像（24pt，生产级尺寸）
+                Group {
+                    if let avatarUrl = commit.author?.avatarUrl, let url = URL(string: avatarUrl) {
+                        AsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 24))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .foregroundColor(.gray)
+                        }
+                        .frame(width: 24, height: 24)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                        .clipShape(Circle())
+                    } else {
+                        Image(systemName: "person.circle.fill")
+                            .font(.system(size: 24))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .foregroundColor(.gray)
+                    }
+                }
+                .frame(width: 24, height: 24)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+
+                // 提交者名称 + 提交信息（垂直布局，生产级信息层次）
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(commit.authorName)
+                            .font(.system(size: 13, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                        Text("提交了")
+                            .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .foregroundColor(.secondary)
+                    }
+                    Text(commit.message)
+                        .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                }
+
+                Spacer(minLength: 12)
+
+                // 提交哈希（生产级等宽字体，可点击复制）
+                Button(action: {
+                    UIPasteboard.general.string = commit.shortSha
+                    showMessage("提交哈希已复制: \(commit.shortSha)")
+                }) {
+                    Text(commit.shortSha)
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel("复制提交哈希")
+                .frame(minWidth: 56)
+
+                // 提交时间（生产级次要信息）
+                Text(commit.commit.committer.relativeDate)
+                    .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .frame(minWidth: 60, alignment: .trailing)
+
+                // 查看提交历史按钮（生产级点击区域44pt）
+                Button(action: {
+                    showCommits = true
+                }) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .foregroundColor(.secondary)
+                        .frame(width: 20, height: 20)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel("查看提交历史")
+            } else {
+                // 无提交信息（空仓库状态，生产级空态设计）
+                Image(systemName: "exclamationmark.circle")
+                    .font(.system(size: 18))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .foregroundColor(.orange)
+                Text("此目录暂无提交记录")
+                    .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+        }
+        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .frame(minHeight: 44) // 生产级最小行高，符合Apple HIG
+        .background(appState.isDarkMode ? Color(red: 0.1, green: 0.1, blue: 0.1) : Color(red: 0.96, green: 0.96, blue: 0.96))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if latestCommit != nil {
+                showCommits = true
+            }
+        }
+    }
+
+    // README显示区域
+    var readmeSectionView: some View {
+        Group {
+            if isLoadingReadme {
+                HStack {
+                    Spacer()
+                    ProgressView("加载README...")
+                        .padding()
+                    Spacer()
+                }
+            } else if let readmeContent = readmeContent {
+                ReadmeView(markdownContent: readmeContent, owner: repository.ownerName, repo: repository.name, branch: selectedBranch.isEmpty ? "main" : selectedBranch)
+                    .environmentObject(appState)
+                    .listRowInsets(EdgeInsets())
+            } else if let readmeError = readmeError {
+                HStack {
+                    Spacer()
+                    Text("README加载失败: \(readmeError)")
+                        .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .foregroundColor(.secondary)
+                        .padding()
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    // 异步加载文件，用于下拉刷新
+    func loadFilesAsync() async {
+        await withCheckedContinuation { continuation in
+            loadFiles {
+                // 最小延迟确保刷新动画流畅
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    continuation.resume()
+                }
+            }
+        }
+    }
 
     // MARK: - 删除模式底部操作栏
 
@@ -1551,6 +1815,324 @@ struct FileBrowserView: View {
         }
     }
 
+    // MARK: - 代码搜索（本地搜索方案，GitHub代码搜索API限制太多）
+
+    func performCodeSearch() {
+        let query = codeSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            codeSearchResults = []
+            codeSearchError = nil
+            return
+        }
+
+        isSearchingCode = true
+        codeSearchError = nil
+        codeSearchResults = []
+
+        // 使用本地搜索方案：获取仓库文件列表，逐个下载文件内容，在本地搜索
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.localSearchCode(query: query)
+        }
+    }
+
+    // 本地代码搜索实现
+    private func localSearchCode(query: String) {
+        let lowercasedQuery = query.lowercased()
+        var results: [CodeSearchItem] = []
+        var searchError: String?
+
+        // 1. 获取仓库文件列表（递归）
+        let treesURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/git/trees/\(selectedBranch)?recursive=1"
+
+        guard let url = URL(string: treesURL) else {
+            DispatchQueue.main.async {
+                self.isSearchingCode = false
+                self.codeSearchError = "无效的仓库地址"
+            }
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("token \(TokenKeychain.shared.getToken() ?? "")", forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var treeItems: [GitTreeItem] = []
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            defer { semaphore.signal() }
+            if let error = error {
+                searchError = "获取文件列表失败: \(error.localizedDescription)"
+                return
+            }
+            guard let data = data else {
+                searchError = "获取文件列表失败: 无数据"
+                return
+            }
+            do {
+                let treeResult = try JSONDecoder().decode(GitTreeResult.self, from: data)
+                treeItems = treeResult.tree.filter { $0.type == "blob" }
+            } catch {
+                searchError = "解析文件列表失败: \(error.localizedDescription)"
+            }
+        }.resume()
+
+        semaphore.wait()
+
+        if let error = searchError {
+            DispatchQueue.main.async {
+                self.isSearchingCode = false
+                self.codeSearchError = error
+            }
+            return
+        }
+
+        // 2. 只搜索文本文件（跳过二进制文件和大文件）
+        let textFileExtensions = ["swift", "md", "yml", "yaml", "json", "plist", "txt", "sh", "py", "js", "ts", "html", "css", "xml", "gitignore", "env", "config"]
+        let textFiles = treeItems.filter { item in
+            let path = item.path
+            let ext = (path as NSString).pathExtension.lowercased()
+            let size = item.size ?? 0
+            // 支持有扩展名的文本文件，以及无扩展名的文本文件（如.gitignore, Dockerfile等）
+            let isTextFile = textFileExtensions.contains(ext) || ext.isEmpty
+            return isTextFile && size < 1024 * 1024 // 小于1MB
+        }
+
+        // 限制最多搜索500个文件，确保覆盖仓库所有文件
+        let filesToSearch = Array(textFiles.prefix(500))
+        let totalFiles = filesToSearch.count
+
+        // 3. 限制并发下载数量为5个，避免网络拥塞和API速率限制
+        let semaphoreDownload = DispatchSemaphore(value: 5)
+        let group = DispatchGroup()
+        let lock = NSLock()
+        var searchedCount = 0
+        var errorCount = 0
+        var failedFiles: [String] = []
+
+        for fileItem in filesToSearch {
+            group.enter()
+            semaphoreDownload.wait()
+
+            // 对路径中的每个组件进行编码，避免特殊字符问题
+            // 使用urlPathAllowed字符集，但排除/字符，因为我们是逐个组件编码
+            let pathComponents = fileItem.path.split(separator: "/").map { component -> String in
+                let allowed = CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))
+                return String(component).addingPercentEncoding(withAllowedCharacters: allowed) ?? String(component)
+            }
+            let encodedPath = pathComponents.joined(separator: "/")
+            let contentURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/contents/\(encodedPath)?ref=\(selectedBranch)"
+
+            guard let fileURL = URL(string: contentURL) else {
+                lock.lock()
+                errorCount += 1
+                failedFiles.append(fileItem.path)
+                searchedCount += 1
+                lock.unlock()
+                semaphoreDownload.signal()
+                group.leave()
+                continue
+            }
+
+            // 下载文件内容，最多重试2次
+            self.downloadFileContentWithRetry(fileURL: fileURL, maxRetries: 2) { result in
+                defer {
+                    semaphoreDownload.signal()
+                    group.leave()
+                }
+
+                lock.lock()
+                searchedCount += 1
+                // 实时更新搜索进度
+                let progress = Double(searchedCount) / Double(totalFiles)
+                DispatchQueue.main.async {
+                    self.codeSearchProgress = progress
+                }
+                lock.unlock()
+
+                switch result {
+                case .success(let data):
+                    do {
+                        let fileContent = try JSONDecoder().decode(FileContent.self, from: data)
+                        let content = fileContent.decodedContent
+
+                        if content.lowercased().contains(lowercasedQuery) {
+                            // 构建CodeSearchItem
+                            let fileName = (fileItem.path as NSString).lastPathComponent
+                            let searchItem = CodeSearchItem(
+                                name: fileName,
+                                path: fileItem.path,
+                                sha: fileItem.sha,
+                                url: "",
+                                gitUrl: "",
+                                htmlUrl: "",
+                                repository: CodeSearchRepository(
+                                    id: 0,
+                                    name: self.repository.name,
+                                    fullName: "\(self.repository.ownerName)/\(self.repository.name)",
+                                    isPrivate: false,
+                                    htmlUrl: "",
+                                    owner: CodeSearchRepositoryOwner(
+                                        login: self.repository.ownerName,
+                                        id: 0,
+                                        avatarUrl: self.repository.owner.avatarUrl
+                                    )
+                                )
+                            )
+                            lock.lock()
+                            results.append(searchItem)
+                            lock.unlock()
+                        }
+                    } catch {
+                        lock.lock()
+                        errorCount += 1
+                        failedFiles.append(fileItem.path)
+                        lock.unlock()
+                    }
+                case .failure:
+                    lock.lock()
+                    errorCount += 1
+                    failedFiles.append(fileItem.path)
+                    lock.unlock()
+                }
+            }
+        }
+
+        // 等待所有下载完成，最多等待120秒
+        let timeout = group.wait(timeout: .now() + 120)
+
+        DispatchQueue.main.async {
+            self.isSearchingCode = false
+            self.codeSearchProgress = 0
+            if results.isEmpty && timeout == .timedOut {
+                self.codeSearchError = "搜索超时（已搜索\(searchedCount)/\(totalFiles)个文件），请尝试更具体的关键词"
+            } else if results.isEmpty {
+                var errorMsg = "未找到匹配的代码（已搜索\(searchedCount)/\(totalFiles)个文件"
+                if errorCount > 0 {
+                    errorMsg += "，\(errorCount)个文件失败"
+                    if failedFiles.count > 0 {
+                        errorMsg += "：\(failedFiles.prefix(3).joined(separator: ", "))"
+                        if failedFiles.count > 3 {
+                            errorMsg += "等"
+                        }
+                    }
+                }
+                errorMsg += "）"
+                self.codeSearchError = errorMsg
+            } else {
+                self.codeSearchResults = results
+            }
+        }
+    }
+
+    // 下载文件内容，带重试机制
+    private func downloadFileContentWithRetry(fileURL: URL, maxRetries: Int, completion: @escaping (Result<Data, Error>) -> Void) {
+        func attempt(currentRetry: Int) {
+            var fileRequest = URLRequest(url: fileURL)
+            fileRequest.setValue("token \(TokenKeychain.shared.getToken() ?? "")", forHTTPHeaderField: "Authorization")
+            // 文件内容下载使用raw格式，返回文件原始内容而不是JSON
+            fileRequest.setValue("application/vnd.github.v3.raw", forHTTPHeaderField: "Accept")
+            fileRequest.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
+            fileRequest.timeoutInterval = 30
+
+            URLSession.shared.dataTask(with: fileRequest) { data, response, error in
+                if let error = error {
+                    if currentRetry < maxRetries {
+                        // 延迟1秒后重试
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+                            attempt(currentRetry: currentRetry + 1)
+                        }
+                    } else {
+                        completion(.failure(error))
+                    }
+                    return
+                }
+
+                guard let data = data else {
+                    if currentRetry < maxRetries {
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+                            attempt(currentRetry: currentRetry + 1)
+                        }
+                    } else {
+                        completion(.failure(NSError(domain: "CodeSearch", code: -1, userInfo: [NSLocalizedDescriptionKey: "无数据"])))
+                    }
+                    return
+                }
+
+                completion(.success(data))
+            }.resume()
+        }
+
+        attempt(currentRetry: 0)
+    }
+
+    // 显示代码片段页面
+    func showCodeSnippet(for item: CodeSearchItem) {
+        // 使用sheet显示代码片段页面
+        selectedCodeSearchItem = item
+        showCodeSearchSnippet = true
+    }
+
+    func loadFiles(completion: (() -> Void)? = nil) {
+        isLoading = true
+        errorMessage = nil
+
+        // 清除当前仓库和分支的提交缓存，确保获取最新的提交时间（与官方GitHub一致）
+        LastCommitCache.shared.clearCacheForRepo(
+            owner: repository.ownerName,
+            repo: repository.name,
+            branch: selectedBranch
+        )
+
+        GitHubAPI.shared.getDirectoryContents(
+            owner: repository.ownerName,
+            repo: repository.name,
+            path: currentPath,
+            branch: selectedBranch
+        ) { result in
+            DispatchQueue.main.async {
+                isLoading = false
+                switch result {
+                case .success(let files):
+                    self.files = files
+                case .failure(let error):
+                    errorMessage = error.localizedDescription
+                }
+                // 所有文件夹都加载README（包括子文件夹和孙文件夹）
+                self.loadReadme()
+                // 加载当前目录最新提交（用于顶部提交栏）
+                self.loadLatestCommit()
+                completion?()
+            }
+        }
+    }
+
+    /// 加载仓库README内容（支持子文件夹）
+    func loadReadme() {
+        isLoadingReadme = true
+        readmeError = nil
+        readmeContent = nil
+
+        GitHubAPI.shared.getReadme(
+            owner: repository.ownerName,
+            repo: repository.name,
+            branch: selectedBranch.isEmpty ? nil : selectedBranch,
+            path: currentPath.isEmpty ? nil : currentPath
+        ) { result in
+            DispatchQueue.main.async {
+                isLoadingReadme = false
+                switch result {
+                case .success(let content):
+                    self.readmeContent = content
+                case .failure(let error):
+                    // 404表示没有README，不显示错误
+                    if (error as NSError).code != 404 {
+                        self.readmeError = error.localizedDescription
+                    }
+                }
+            }
+        }
+    }
 
     // MARK: - 下载仓库ZIP
 
