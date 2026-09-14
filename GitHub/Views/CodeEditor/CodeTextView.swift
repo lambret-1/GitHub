@@ -115,28 +115,39 @@ struct CodeTextView: UIViewRepresentable {
         }
         context.coordinator.onLookupSelectedText = onLookupSelectedText
 
-        // 更新字体
+        // 更新字体（仅当字体大小真的变化时才更新，避免每次updateUIView都触发重新布局导致光标乱跳）
         let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        textView.font = font
-        context.coordinator.fontSize = fontSize
+        if context.coordinator.fontSize != fontSize {
+            textView.font = font
+            context.coordinator.fontSize = fontSize
+        }
 
-        // 更新行号显示
+        // 更新行号显示（仅当行号宽度或显示状态真的变化时才更新，避免每次updateUIView都触发重新布局导致光标乱跳）
         if let layoutManager = textView.layoutManager as? LineNumberLayoutManager {
             let lineNumberFont = UIFont.monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
-            layoutManager.lineNumberFont = lineNumberFont
             let calculatedLineNumberWidth = showLineNumbers
                 ? LineNumberLayoutManager.calculateLineNumberWidth(for: textView.text, font: lineNumberFont)
                 : 0
             let clampedLineNumberWidth = min(max(calculatedLineNumberWidth, 30), 80)
-            layoutManager.lineNumberWidth = clampedLineNumberWidth
-            textView.textContainerInset = UIEdgeInsets(
-                top: 8,
-                left: showLineNumbers ? clampedLineNumberWidth + 8 : 8,
-                bottom: 8,
-                right: 8
-            )
-            layoutManager.containerInset = textView.textContainerInset
-            layoutManager.invalidateDisplay(forCharacterRange: NSRange(location: 0, length: textView.text.count))
+
+            // 仅当行号宽度、字体或显示状态真的变化时才更新，避免不必要的重新布局
+            let needsUpdate = layoutManager.lineNumberWidth != clampedLineNumberWidth ||
+                              layoutManager.lineNumberFont != lineNumberFont ||
+                              context.coordinator.lastShowLineNumbers != showLineNumbers
+
+            if needsUpdate {
+                layoutManager.lineNumberFont = lineNumberFont
+                layoutManager.lineNumberWidth = clampedLineNumberWidth
+                textView.textContainerInset = UIEdgeInsets(
+                    top: 8,
+                    left: showLineNumbers ? clampedLineNumberWidth + 8 : 8,
+                    bottom: 8,
+                    right: 8
+                )
+                layoutManager.containerInset = textView.textContainerInset
+                layoutManager.invalidateDisplay(forCharacterRange: NSRange(location: 0, length: textView.text.count))
+                context.coordinator.lastShowLineNumbers = showLineNumbers
+            }
         }
 
         // 外部文本变化时更新
@@ -196,6 +207,8 @@ struct CodeTextView: UIViewRepresentable {
         var onSearchResult: ((Int, Int) -> Void)?
         var onSelectedText: ((String) -> Void)?
         var onLookupSelectedText: ((String) -> Void)?
+        // 记录上一次的行号显示状态，用于判断是否需要更新行号布局（避免不必要的重新布局导致光标乱跳）
+        var lastShowLineNumbers: Bool = true
 
         private var highlightWorkItem: DispatchWorkItem?
         private var searchWorkItem: DispatchWorkItem?
@@ -317,7 +330,9 @@ struct CodeTextView: UIViewRepresentable {
             highlightWorkItem = workItem
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
 
-            DispatchQueue.main.async { [weak self] in
+            // 延迟设置isInternalUpdate = false，确保SwiftUI的updateUIView在当前runloop中先执行
+            // 避免updateUIView中的文本更新逻辑被触发，导致光标位置丢失
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
                 self?.isInternalUpdate = false
             }
         }
@@ -335,7 +350,8 @@ struct CodeTextView: UIViewRepresentable {
             textView.textStorage.setAttributedString(highlightedText)
             textView.selectedRange = selectedRange
 
-            DispatchQueue.main.async { [weak self] in
+            // 延迟设置isInternalUpdate = false，确保SwiftUI的updateUIView在当前runloop中先执行
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
                 self?.isInternalUpdate = false
             }
         }
