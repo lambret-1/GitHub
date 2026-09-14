@@ -572,7 +572,7 @@ struct CodeEditorView: View {
             .disabled(!canRedo)
 
             // 取消按钮
-            /*Button(action: {
+            Button(action: {
                 // 取消按钮二次确认
                 if hasChanges {
                     showCancelConfirm = true
@@ -616,7 +616,7 @@ struct CodeEditorView: View {
         .background(Color(.systemGray6))
         .edgesIgnoringSafeArea(.bottom)
     }
-*/
+
     // MARK: - 文件信息栏
 
     private var fileInfoBar: some View {
