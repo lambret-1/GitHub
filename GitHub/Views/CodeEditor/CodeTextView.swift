@@ -612,7 +612,7 @@ struct CodeTextView: UIViewRepresentable {
 
             // 编辑模式下延迟更新@Binding，切断同步循环（避免父视图重绘触发updateUIView中行号更新导致重新布局，进而再次触发textViewDidChange形成无限循环）
             if isEditable {
-                let currentText = textView.text
+                let currentText = textView.text ?? ""
                 DispatchQueue.main.async { [weak self] in
                     self?.text = currentText
                     self?.onTextChange?(currentText)
