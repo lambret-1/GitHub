@@ -255,44 +255,7 @@ struct RepoHeaderView: View {
                 }
 
 
-// 右侧：代码操作下拉按钮（绿色，修复P0问题：文字改为代码操作，箭头移到右侧）
-            Menu {
-                menuContent()
-            } label: {
-                HStack(spacing: 6) {
-                    Text("代码操作")
-                        .font(.system(size: 14, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                        .foregroundColor(.white)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal, 14)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                .padding(.vertical, 7)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
-                .background(Color(red: 0.13, green: 0.55, blue: 0.27))
-                .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
-            }
-            .menuStyle(BorderlessButtonMenuStyle())
-        }
-        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-        .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
-        .background(appState.isDarkMode ? Color(red: 0.08, green: 0.08, blue: 0.08) : Color(red: 0.98, green: 0.98, blue: 0.98))
-        .sheet(isPresented: $showBranchPicker) {
-            BranchPickerView(
-                branches: $branches,
-                selectedBranch: $selectedBranch,
-                onSelect: {
-                    showBranchPicker = false
-                    onBranchChange()
-                },
-                owner: owner,
-                repo: repo,
-                onBranchesChanged: onBranchesChanged
-            )
-            .environmentObject(appState)
-        }
-    }
-}
+
 
 
 
