@@ -282,6 +282,7 @@ struct CodeTextView: UIViewRepresentable {
         init(text: Binding<String>, onTextChange: ((String) -> Void)?) {
             _text = text
             self.onTextChange = onTextChange
+            super.init()
             // 监听撤销/重做通知（由外部按钮发送）
             NotificationCenter.default.addObserver(
                 self,
