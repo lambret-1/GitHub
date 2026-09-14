@@ -4,6 +4,7 @@ struct RepoCodeSearchView: View {
     @StateObject private var viewModel: RepoCodeSearchViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var debounceTask: Task<Void, Never>?
+    @State private var showSortMenu: Bool = false
     private let onJumpToCode: (String, Int) -> Void
 
     init(owner: String, repo: String, branch: String, onJumpToCode: @escaping (String, Int) -> Void) {
@@ -15,6 +16,9 @@ struct RepoCodeSearchView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 searchBar
+                if viewModel.showSuggestions && !viewModel.searchSuggestions.isEmpty {
+                    suggestionsList
+                }
                 content
             }
             .navigationTitle("仓库内搜索")
@@ -22,6 +26,38 @@ struct RepoCodeSearchView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Picker("排序方式", selection: $viewModel.sortOption) {
+                            ForEach(CodeSearchSortOption.allCases) { option in
+                                Label(option.rawValue, systemImage: sortIcon(for: option))
+                                    .tag(option)
+                            }
+                        }
+                        .onChange(of: viewModel.sortOption) { _ in
+                            viewModel.changeSortOption(viewModel.sortOption)
+                        }
+
+                        Divider()
+
+                        Button {
+                            viewModel.refresh()
+                        } label: {
+                            Label("刷新搜索（清除缓存）", systemImage: "arrow.clockwise")
+                        }
+
+                        if !viewModel.searchHistory.isEmpty {
+                            Divider()
+                            Button(role: .destructive) {
+                                viewModel.clearAllHistory()
+                            } label: {
+                                Label("清除搜索历史", systemImage: "trash")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
                 }
             }
             .sheet(item: $viewModel.selectedFile) { file in
@@ -39,6 +75,15 @@ struct RepoCodeSearchView: View {
         }
     }
 
+    // 排序选项图标
+    private func sortIcon(for option: CodeSearchSortOption) -> String {
+        switch option {
+        case .updated: return "clock"
+        case .path: return "folder"
+        case .relevance: return "star"
+        }
+    }
+
     private var searchBar: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
@@ -47,12 +92,18 @@ struct RepoCodeSearchView: View {
                 .textFieldStyle(.plain)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .onSubmit { viewModel.search() }
+                .onSubmit {
+                    viewModel.showSuggestions = false
+                    viewModel.search()
+                }
                 .onChange(of: viewModel.query) { _ in
+                    viewModel.updateSuggestions()
+                    viewModel.showSuggestions = true
                     debounceTask?.cancel()
                     debounceTask = Task {
                         try? await Task.sleep(nanoseconds: 300_000_000)
                         if !Task.isCancelled {
+                            viewModel.showSuggestions = false
                             viewModel.search()
                         }
                     }
@@ -72,23 +123,98 @@ struct RepoCodeSearchView: View {
         .background(Color(.systemGray6))
     }
 
+    // 搜索建议列表
+    private var suggestionsList: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(viewModel.searchSuggestions, id: \.self) { suggestion in
+                    Button {
+                        viewModel.selectSuggestion(suggestion)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.gray)
+                                .frame(width: 20)
+                            Text(suggestion)
+                                .foregroundColor(.primary)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .contentShape(Rectangle())
+                    }
+                    Divider()
+                        .padding(.leading, 46)
+                }
+            }
+        }
+        .frame(maxHeight: 200)
+        .background(Color(.systemBackground))
+        .overlay(
+            Rectangle()
+                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+        )
+    }
+
     @ViewBuilder
     private var content: some View {
         switch viewModel.state {
         case .idle:
-            Spacer()
-            VStack(spacing: 12) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 48))
-                    .foregroundColor(.gray)
-                Text("在仓库内搜索代码")
-                    .font(.headline)
-                    .foregroundColor(.gray)
-                Text("支持搜索函数名、类名、变量名等")
-                    .font(.subheadline)
-                    .foregroundColor(.gray.opacity(0.8))
+            if viewModel.searchHistory.isEmpty {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 48))
+                        .foregroundColor(.gray)
+                    Text("在仓库内搜索代码")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                    Text("支持搜索函数名、类名、变量名等")
+                        .font(.subheadline)
+                        .foregroundColor(.gray.opacity(0.8))
+                }
+                Spacer()
+            } else {
+                List {
+                    Section {
+                        HStack {
+                            Text("搜索历史")
+                                .font(.headline)
+                            Spacer()
+                            Button("清除") {
+                                viewModel.clearAllHistory()
+                            }
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                        }
+                    }
+                    ForEach(viewModel.searchHistory) { item in
+                        HStack {
+                            Button {
+                                viewModel.selectHistory(item)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                        .foregroundColor(.gray)
+                                        .frame(width: 20)
+                                    Text(item.query)
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            Button {
+                                viewModel.removeHistory(item)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .listStyle(.plain)
             }
-            Spacer()
         case .searching:
             Spacer()
             ProgressView("搜索中...")
@@ -122,9 +248,31 @@ struct RepoCodeSearchView: View {
         case .success:
             List {
                 Section {
-                    Text("共找到 \(viewModel.results.count) 个文件包含匹配")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                    HStack {
+                        Text("共找到 \(viewModel.results.count) 个文件包含匹配")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Spacer()
+                        Menu {
+                            Picker("排序", selection: $viewModel.sortOption) {
+                                ForEach(CodeSearchSortOption.allCases) { option in
+                                    Text(option.rawValue).tag(option)
+                                }
+                            }
+                            .onChange(of: viewModel.sortOption) { _ in
+                                viewModel.changeSortOption(viewModel.sortOption)
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(viewModel.sortOption.rawValue)
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                                Image(systemName: "chevron.down")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
                 }
                 ForEach(viewModel.results) { file in
                     Button {
@@ -154,6 +302,9 @@ struct RepoCodeSearchView: View {
                 }
             }
             .listStyle(.plain)
+            .refreshable {
+                viewModel.refresh()
+            }
         }
     }
 }

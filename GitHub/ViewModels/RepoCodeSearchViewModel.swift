@@ -10,6 +10,18 @@ final class RepoCodeSearchViewModel: ObservableObject {
     @Published var snippets: [CodeSnippet] = []
     @Published var snippetLoading: Bool = false
 
+    // 排序选项（默认按更新时间降序）
+    @Published var sortOption: CodeSearchSortOption = .updated
+
+    // 搜索历史记录
+    @Published var searchHistory: [SearchHistoryItem] = []
+
+    // 搜索建议
+    @Published var searchSuggestions: [String] = []
+
+    // 是否显示搜索建议（输入框聚焦且有输入时显示）
+    @Published var showSuggestions: Bool = false
+
     private let owner: String
     private let repo: String
     private let branch: String
@@ -20,6 +32,59 @@ final class RepoCodeSearchViewModel: ObservableObject {
         self.owner = owner
         self.repo = repo
         self.branch = branch
+        loadSearchHistory()
+    }
+
+    // 加载搜索历史记录
+    func loadSearchHistory() {
+        searchHistory = CodeSearchService.shared.getSearchHistory()
+    }
+
+    // 更新搜索建议
+    func updateSuggestions() {
+        searchSuggestions = CodeSearchService.shared.getSearchSuggestions(for: query)
+    }
+
+    // 选择搜索建议
+    func selectSuggestion(_ suggestion: String) {
+        query = suggestion
+        showSuggestions = false
+        search()
+    }
+
+    // 选择搜索历史
+    func selectHistory(_ item: SearchHistoryItem) {
+        query = item.query
+        showSuggestions = false
+        search()
+    }
+
+    // 删除单条搜索历史
+    func removeHistory(_ item: SearchHistoryItem) {
+        CodeSearchService.shared.removeSearchHistory(item)
+        loadSearchHistory()
+    }
+
+    // 清除所有搜索历史
+    func clearAllHistory() {
+        CodeSearchService.shared.clearSearchHistory()
+        loadSearchHistory()
+    }
+
+    // 切换排序选项并重新排序
+    func changeSortOption(_ option: CodeSearchSortOption) {
+        sortOption = option
+        if !results.isEmpty {
+            results = CodeSearchService.shared.sortSearchResults(results, sortOption: option)
+        }
+    }
+
+    // 刷新搜索（清除缓存并重新搜索）
+    func refresh() {
+        // 清除所有文件内容缓存
+        CodeSearchService.shared.clearAllFileContentCache()
+        // 重新搜索
+        search()
     }
 
     func search() {
@@ -31,6 +96,7 @@ final class RepoCodeSearchViewModel: ObservableObject {
             return
         }
         state = .searching
+        showSuggestions = false
         searchTask = Task { [weak self] in
             guard let self = self else { return }
             do {
@@ -40,12 +106,15 @@ final class RepoCodeSearchViewModel: ObservableObject {
                     owner: self.owner,
                     repo: self.repo,
                     query: trimmed,
-                    branch: self.branch
+                    branch: self.branch,
+                    sortOption: self.sortOption
                 )
                 if Task.isCancelled { return }
                 await MainActor.run {
                     self.results = items
                     self.state = items.isEmpty ? .empty : .success
+                    // 重新加载搜索历史（因为搜索成功后会添加新记录）
+                    self.loadSearchHistory()
                 }
             } catch is CancellationError {
             } catch {
@@ -102,5 +171,6 @@ final class RepoCodeSearchViewModel: ObservableObject {
         results = []
         selectedFile = nil
         snippets = []
+        showSuggestions = false
     }
 }
