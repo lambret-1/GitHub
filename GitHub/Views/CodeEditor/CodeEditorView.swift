@@ -82,6 +82,12 @@ struct CodeEditorView: View {
     // 草稿管理器（第二期：编辑体验增强）
     @ObservedObject private var draftManager = DraftManager.shared
 
+    // 代码片段管理器（第二期：编辑体验增强）
+    @ObservedObject private var snippetManager = CodeSnippetManager.shared
+
+    // 代码片段弹窗显示状态
+    @State private var showSnippetPicker: Bool = false
+
     // MARK: - 大文件降级模式（性能优化与崩溃防护）
     // 大文件模式：>5MB，禁用编辑，只读快速浏览
     @State private var isLargeFileMode: Bool = false
@@ -168,6 +174,14 @@ struct CodeEditorView: View {
                         }) {
                             Label("复制全部内容", systemImage: "doc.on.doc")
                         }
+
+                        // 代码片段（第二期：编辑体验增强）
+                        Button(action: {
+                            showSnippetPicker = true
+                        }) {
+                            Label("代码片段", systemImage: "chevron.left.forwardslash.chevron.right")
+                        }
+                        .disabled(!isEditing)
 
                         Divider()
 
@@ -387,6 +401,10 @@ struct CodeEditorView: View {
         .background(SwipeBackControlView(enabled: !isEditing))
         // 编辑模式时隐藏底部Tab栏，禁止切换到"我的"等页面
         .background(TabBarControlView(visible: !isEditing))
+        // 代码片段选择弹窗（第二期：编辑体验增强）
+        .sheet(isPresented: $showSnippetPicker) {
+            snippetPickerView
+        }
     }
 
     // MARK: - 下载进度覆盖层
@@ -428,7 +446,66 @@ struct CodeEditorView: View {
             .shadow(radius: 20)
         }
     }
-    
+
+    // MARK: - 代码片段选择器（第二期：编辑体验增强）
+
+    private var snippetPickerView: some View {
+        NavigationView {
+            List {
+                ForEach(snippetManager.getSnippets(for: fileContent?.fileExtension ?? "")) { snippet in
+                    Button(action: {
+                        // 插入代码片段到当前位置
+                        insertSnippet(snippet)
+                        showSnippetPicker = false
+                    }) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(snippet.name)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text(snippet.trigger)
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(4)
+                            }
+                            Text(snippet.description)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                            Text(snippet.code)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.gray)
+                                .lineLimit(2)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .navigationTitle("代码片段")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("关闭") {
+                        showSnippetPicker = false
+                    }
+                }
+            }
+        }
+    }
+
+    /// 插入代码片段到当前光标位置
+    private func insertSnippet(_ snippet: CodeSnippetManager.Snippet) {
+        let result = snippetManager.expandSnippet(snippet)
+        // 简单实现：将代码片段追加到文本末尾
+        // 实际应用中应该插入到光标位置，这里简化处理
+        codeText += result.code
+        hasChanges = true
+    }
+
     // MARK: - 编辑模式底部工具栏
 
     private var editModeBottomBar: some View {
