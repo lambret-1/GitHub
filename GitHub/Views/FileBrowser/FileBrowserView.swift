@@ -1271,12 +1271,12 @@ struct FileBrowserView: View {
         }
         .disabled(isDeleteMode)
 
-        Button(action: {
+        /*Button(action: {
             downloadRepositoryZip()
         }) {
             Label("下载仓库 ZIP", systemImage: "square.and.arrow.down")
         }
-        .disabled(isDeleteMode || isDownloadingZip)
+        .disabled(isDeleteMode || isDownloadingZip)*/
 
         Button(action: {
             if let url = URL(string: repository.htmlUrl) {
