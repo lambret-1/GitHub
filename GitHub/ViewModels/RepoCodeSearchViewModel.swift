@@ -144,15 +144,12 @@ final class RepoCodeSearchViewModel: ObservableObject {
                 // 检查任务是否被取消
                 guard !Task.isCancelled else { return }
 
-                // 在后台线程提取片段（显式使用self，避免闭包捕获语义错误）
-                let extractedSnippets = Task.detached(priority: .userInitiated) { [service] in
-                    return service.extractSnippets(
-                        content: content,
-                        query: query,
-                        contextLines: 2
-                    )
-                }
-                let snippetsResult = try await extractedSnippets.value
+                // 提取代码片段（在当前Task中执行，避免Task.detached闭包捕获语义问题）
+                let snippetsResult = service.extractSnippets(
+                    content: content,
+                    query: query,
+                    contextLines: 2
+                )
 
                 // 检查任务是否被取消
                 guard !Task.isCancelled else { return }
