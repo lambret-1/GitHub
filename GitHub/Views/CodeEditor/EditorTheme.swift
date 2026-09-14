@@ -22,7 +22,7 @@ class EditorThemeManager: ObservableObject {
     // MARK: - 主题数据模型
 
     struct EditorTheme: Codable, Identifiable, Equatable {
-        let id: String
+        var id: String
         var name: String
         var description: String
         var isBuiltIn: Bool
