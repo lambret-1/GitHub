@@ -47,7 +47,7 @@ final class CrashLogger {
 
         // 将目录路径转换为C字符串，保存到全局变量（用于Signal Handler）
         let pathString = crashLogDirectory.path
-        crashLogDirCString = pathString.utf8CString.map { $0 }
+        CrashLogger.crashLogDirCString = pathString.utf8CString.map { $0 }
     }
 
     // MARK: - 安装崩溃处理器
@@ -64,8 +64,7 @@ final class CrashLogger {
             CrashLogger.handleObjectiveCException(exception)
         }
 
-        // 使用sigaction安装Signal Handler（捕获Mach异常，如段错误、总线错误等）
-        // sigaction比signal更可靠，不会被系统重置
+        // 使用signal安装Signal Handler（捕获Mach异常，如段错误、总线错误等）
         let signals: [Int32] = [
             SIGABRT,  // 程序中止（如assert失败、abort()调用、Swift运行时崩溃）
             SIGSEGV,  // 段错误（非法内存访问）
@@ -77,21 +76,11 @@ final class CrashLogger {
         ]
 
         for sig in signals {
-            var action = sigaction()
-            action.sa_flags = SA_SIGINFO | SA_RESTART
-            action.sa_sigaction = { (signalNumber, _, _) in
-                CrashLogger.handleSignal(signalNumber)
+            // 保存之前的Handler并设置新的Handler
+            let previousHandler = signal(sig) { signalValue in
+                CrashLogger.handleSignal(signalValue)
             }
-            sigemptyset(&action.sa_mask)
-
-            // 保存之前的Handler
-            var oldAction = sigaction()
-            if sigaction(sig, &action, &oldAction) == 0 {
-                // 保存之前的Handler（用于恢复和链式调用）
-                if let handler = oldAction.__sigaction_u.__sa_handler {
-                    CrashLogger.previousSignalHandlers[sig] = handler
-                }
-            }
+            CrashLogger.previousSignalHandlers[sig] = previousHandler
         }
     }
 
