@@ -311,17 +311,9 @@ final class CodeSearchService {
     ) async -> [CodeSearchFile] {
         var updatedFiles = files
 
-        // 使用withTaskGroup并发请求，限制最大并发数为5，避免触发API速率限制
+        // 使用withTaskGroup并发请求（搜索结果最多30个，不会超过GitHub API速率限制）
         await withTaskGroup(of: (Int, Date?).self) { group in
             for (index, file) in files.enumerated() {
-                // 限制并发数
-                if group.taskCount >= 5 {
-                    if let result = await group.next() {
-                        if let date = result.1 {
-                            updatedFiles[result.0].lastModified = date
-                        }
-                    }
-                }
                 group.addTask {
                     do {
                         let date = try await self.getFileLastModified(
