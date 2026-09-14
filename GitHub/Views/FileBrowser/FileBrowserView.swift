@@ -669,30 +669,31 @@ struct FileBrowserView: View {
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden)
 
-        // 代码搜索框（使用主页仓库搜索框样式）
-        SearchBar(
-            text: $codeSearchQuery,
-            placeholder: "搜索当前仓库代码...",
-            onSearchButtonClicked: {
-                performCodeSearch()
+        // 代码搜索入口按钮（点击弹出新的RepoCodeSearchView，使用GitHub官方搜索API）
+        Button {
+            showCodeSearch = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+                Text("搜索当前仓库代码...")
+                    .foregroundColor(.gray)
+                Spacer()
             }
-        )
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color(.systemGray6))
+            .cornerRadius(8)
+        }
         .padding(.horizontal)
-        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
-        .background(Color(.systemGray6))
+        .padding(.vertical, 8)
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden)
 
-        // 代码搜索结果（搜索时显示，替换文件列表）
-        if isSearchingCode || !codeSearchResults.isEmpty || codeSearchError != nil {
-            codeSearchResultsSection
-                .listRowInsets(EdgeInsets())
-                .listRowSeparator(.hidden)
-        } else {
-            // 顶部提交信息栏（GitHub官方风格）
-            latestCommitHeaderView
-                .listRowInsets(EdgeInsets())
-                .listRowSeparator(.hidden)
+        // 顶部提交信息栏（GitHub官方风格）
+        latestCommitHeaderView
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
 
             // 路径导航栏（仅子目录显示，可跟随屏幕滑动，字号和高度与文件夹行一致）
             if !currentPath.isEmpty {
@@ -714,7 +715,6 @@ struct FileBrowserView: View {
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-        }
     }
 
     // MARK: - Issues Tab内容
