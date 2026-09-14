@@ -376,8 +376,26 @@ class GitHubAPI {
 
     /// 在指定仓库内搜索代码（本地仓库代码搜索）
     /// 注意：GitHub代码搜索API默认搜索默认分支，branch参数预留用于未来扩展
+    /// 使用URLComponents构建URL，确保查询参数正确编码，避免特殊字符导致URL解析错误
     func searchCodeInRepo(owner: String, repo: String, query: String, branch: String = "main", page: Int = 1, completion: @escaping (Result<[CodeSearchItem], Error>) -> Void) {
-        let url = APIEndpoints.searchCodeInRepo(owner: owner, repo: repo, query: query, page: page).url
+        // 使用URLComponents构建URL，确保查询参数正确编码
+        guard var urlComponents = URLComponents(string: "\(APIEndpoints.baseURL)/search/code") else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "URL构建失败"])))
+            return
+        }
+
+        // 构建查询字符串：repo:owner/repo + 搜索词
+        let repoQuery = "repo:\(owner)/\(repo) \(query)"
+        urlComponents.queryItems = [
+            URLQueryItem(name: "q", value: repoQuery),
+            URLQueryItem(name: "page", value: "\(page)"),
+            URLQueryItem(name: "per_page", value: "30")
+        ]
+
+        guard let url = urlComponents.url?.absoluteString else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "URL构建失败"])))
+            return
+        }
 
         performRequest(url: url) { result in
             switch result {
@@ -386,7 +404,13 @@ class GitHubAPI {
                     let searchResult = try JSONDecoder().decode(CodeSearchResult.self, from: data)
                     completion(.success(searchResult.items))
                 } catch {
-                    completion(.failure(error))
+                    // JSON解析失败时，尝试解析错误信息
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let message = json["message"] as? String {
+                        completion(.failure(NSError(domain: "GitHubAPI", code: -10, userInfo: [NSLocalizedDescriptionKey: "搜索失败: \(message)"])))
+                    } else {
+                        completion(.failure(error))
+                    }
                 }
             case .failure(let error):
                 completion(.failure(error))
