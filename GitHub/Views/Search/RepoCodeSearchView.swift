@@ -4,56 +4,48 @@ import SwiftUI
 
 /// 仓库内代码搜索页面，支持搜索代码并显示代码片段
 struct RepoCodeSearchView: View {
-    let owner: String
-    let repo: String
-    let branch: String
-    // 点击代码片段后的跳转回调（替代NotificationCenter，更SwiftUI风格）
+    // ViewModel
+    @StateObject private var viewModel: RepoCodeSearchViewModel
+
+    // 点击代码片段后的跳转回调
     var onJumpToCode: ((_ filePath: String, _ lineNumber: Int) -> Void)?
 
-    @State private var searchQuery: String = ""
-    @State private var searchResults: [CodeSearchItem] = []
-    @State private var isSearching: Bool = false
-    @State private var errorMessage: String?
-    @State private var selectedItem: CodeSearchItem?
-    // 防抖搜索任务
-    @State private var searchTask: Task<Void, Never>?
-    // 当前搜索请求ID（用于竞态条件校验，替代DispatchWorkItem）
-    @State private var currentSearchRequestID: UUID = UUID()
+    // 初始化
+    init(
+        owner: String,
+        repo: String,
+        branch: String,
+        onJumpToCode: ((_ filePath: String, _ lineNumber: Int) -> Void)? = nil
+    ) {
+        _viewModel = StateObject(wrappedValue: RepoCodeSearchViewModel(
+            owner: owner,
+            repo: repo,
+            branch: branch
+        ))
+        self.onJumpToCode = onJumpToCode
+    }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // 搜索框
-                searchBar
+        VStack(spacing: 0) {
+            // 搜索框
+            searchBar
 
-                // 搜索结果统计栏（修正文案语义）
-                if !searchResults.isEmpty {
-                    searchStatsBar
-                }
-
-                // 搜索结果列表
-                searchResultsList
-            }
-            .navigationTitle("仓库代码搜索")
-            .navigationBarTitleDisplayMode(.inline)
-            // 使用.sheet(item:)替代.isPresented+if let，避免item为nil时白屏
-            .sheet(item: $selectedItem) { item in
-                CodeSnippetView(
-                    owner: owner,
-                    repo: repo,
-                    branch: branch,
-                    item: item,
-                    searchQuery: searchQuery,
-                    onJumpToCode: { filePath, lineNumber in
-                        // 使用闭包回调替代NotificationCenter
-                        onJumpToCode?(filePath, lineNumber)
-                    }
-                )
-            }
-            .onDisappear {
-                // 视图消失时取消防抖任务，防止内存泄漏
-                searchTask?.cancel()
-            }
+            // 状态内容
+            content
+        }
+        .navigationTitle("仓库代码搜索")
+        .navigationBarTitleDisplayMode(.inline)
+        // 使用.sheet(item:)替代.isPresented+if let，避免item为nil时白屏
+        .sheet(item: $viewModel.selectedResult) { result in
+            CodeSnippetView(
+                result: result,
+                viewModel: viewModel,
+                onJumpToCode: onJumpToCode
+            )
+        }
+        .onDisappear {
+            // 视图消失时取消所有任务，防止内存泄漏
+            viewModel.cancel()
         }
     }
 
@@ -63,136 +55,100 @@ struct RepoCodeSearchView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.gray)
-                .padding(.leading, 8)  // 这是左侧内边距，控制内容左方与边缘的空白距离，单位是pt；改大左方留白更宽，改小左方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
+                .padding(.leading, 8)  // 这是左侧内边距，控制搜索图标左方与边缘的空白距离，单位是pt；改大左方留白更宽图标更靠右，改小左方留白更窄图标更靠左；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
 
-            TextField("输入关键词搜索代码...", text: $searchQuery)
+            TextField("输入关键词搜索代码...", text: $viewModel.query)
                 .textFieldStyle(.plain)  // 使用iOS16+推荐简写样式
                 .textInputAutocapitalization(.never)  // 关闭自动大写，搜索代码时避免首字母大写影响准确性
                 .autocorrectionDisabled()  // 关闭自动拼写纠错，避免搜索词被自动修改
-                .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .padding(.vertical, 8)  // 这是垂直内边距，控制输入框上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽输入框更高，改小上下留白更窄输入框更矮；还能改成.top/.bottom单独控制某一侧
                 // 使用iOS14+兼容的单参数onChange（双参数版本仅iOS17+可用）
-                .onChange(of: searchQuery) { newValue in
-                    // 防抖搜索：取消上一次任务，300ms后执行新搜索
-                    searchTask?.cancel()
-                    let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if trimmed.isEmpty {
-                        // 修复：空字符串时重置所有状态，避免卡死在"搜索中"
-                        searchResults = []
-                        isSearching = false
-                        errorMessage = nil
-                        currentSearchRequestID = UUID()
-                        return
-                    }
-                    searchTask = Task {
-                        // 等待300ms防抖
-                        try? await Task.sleep(nanoseconds: 300_000_000)
-                        // 检查任务是否被取消
-                        if !Task.isCancelled {
-                            performSearch()
-                        }
-                    }
+                .onChange(of: viewModel.query) { newValue in
+                    viewModel.search(with: newValue)
                 }
 
-            if !searchQuery.isEmpty {
+            // 清空按钮（输入框非空时显示）
+            if !viewModel.query.isEmpty {
                 Button(action: {
-                    // 修复：清空按钮重置所有状态
-                    searchQuery = ""
-                    searchResults = []
-                    isSearching = false
-                    errorMessage = nil
-                    searchTask?.cancel()
-                    currentSearchRequestID = UUID()
+                    viewModel.clearSearch()
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.gray)
                 }
-                .padding(.trailing, 8)  // 这是右侧内边距，控制内容右方与边缘的空白距离，单位是pt；改大右方留白更宽，改小右方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
+                .padding(.trailing, 8)  // 这是右侧内边距，控制清空按钮右方与边缘的空白距离，单位是pt；改大右方留白更宽按钮更靠左，改小右方留白更窄按钮更靠右；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
             }
         }
         .background(Color(.systemGray6))
-        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+        .cornerRadius(8)  // 这是圆角半径尺寸，控制搜索框四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         .padding(.horizontal)
-        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.vertical, 8)  // 这是垂直内边距，控制搜索框上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽搜索框更靠中间，改小上下留白更窄搜索框更靠边；还能改成.top/.bottom单独控制某一侧
     }
 
-    // MARK: - 搜索结果统计栏（修正文案语义）
-
-    private var searchStatsBar: some View {
-        HStack {
-            // 修正文案：items.count是文件数，不是匹配数
-            Text("共找到 \(searchResults.count) 个文件包含匹配")
-                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                .foregroundColor(.secondary)
-            Spacer()
-        }
-        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-        .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
-        .background(Color(.systemGray6))
-    }
-
-    // MARK: - 搜索结果列表
+    // MARK: - 状态内容（状态机）
 
     @ViewBuilder
-    private var searchResultsList: some View {
-        if isSearching {
-            // 加载中
-            VStack {
-                Spacer()
-                ProgressView("搜索中...")
-                Spacer()
-            }
-        } else if let error = errorMessage {
-            // 错误状态
-            VStack(spacing: 16) {
-                Spacer()
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.largeTitle)
-                    .foregroundColor(.orange)
-                Text(error)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
-                Button("重试") {
-                    performSearch()
-                }
-                .foregroundColor(.blue)
-                Spacer()
-            }
-            .padding()
-        } else if searchResults.isEmpty && !searchQuery.isEmpty {
-            // 无结果
-            VStack {
-                Spacer()
-                Image(systemName: "doc.text.magnifyingglass")
-                    .font(.largeTitle)
-                    .foregroundColor(.gray)
-                Text("未找到匹配的代码")
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-        } else if searchResults.isEmpty {
-            // 初始状态
-            VStack {
-                Spacer()
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 60))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                    .foregroundColor(.gray)
-                Text("在当前仓库中搜索代码")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                Text("支持搜索代码内容、文件名等")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
-                Spacer()
-            }
-        } else {
-            // 搜索结果列表（使用.plain简写样式，移除默认行内边距避免双重padding）
+    private var content: some View {
+        switch viewModel.state {
+        case .idle:
+            idleView
+        case .searching:
+            loadingView
+        case .success:
+            resultsListView
+        case .empty:
+            emptyView
+        case .error(let message):
+            errorView(message)
+        }
+    }
+
+    // MARK: - 初始状态视图
+
+    private var idleView: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 60))  // 这是字体大小尺寸，控制放大镜图标的显示大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .foregroundColor(.gray)
+            Text("在当前仓库中搜索代码")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            Text("支持搜索代码内容、文件名等")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .padding(.top, 4)  // 这是顶部内边距，控制提示文字上方与标题的空白距离，单位是pt；改大上方留白更宽两行间距更大，改小上方留白更窄两行间距更小；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+    }
+
+    // MARK: - 加载中视图
+
+    private var loadingView: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            ProgressView("搜索中...")
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+    }
+
+    // MARK: - 搜索结果列表视图
+
+    private var resultsListView: some View {
+        VStack(spacing: 0) {
+            // 搜索结果统计栏
+            searchStatsBar
+
+            // 搜索结果列表
             List {
-                ForEach(searchResults) { item in
+                ForEach(viewModel.results) { result in
                     Button(action: {
-                        selectedItem = item
+                        viewModel.selectResult(result)
                     }) {
-                        searchResultRow(item)
+                        searchResultRow(result)
                     }
                     .buttonStyle(.plain)  // 使用iOS16+推荐简写样式
                     .listRowInsets(EdgeInsets())  // 移除List默认行内边距，由searchResultRow统一控制
@@ -202,33 +158,48 @@ struct RepoCodeSearchView: View {
         }
     }
 
+    // MARK: - 搜索结果统计栏
+
+    private var searchStatsBar: some View {
+        HStack {
+            // 修正文案：results.count是文件数，不是匹配数
+            Text("共找到 \(viewModel.results.count) 个文件包含匹配")
+                .font(.system(size: 12))  // 这是字体大小尺寸，控制统计文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 16)  // 这是水平内边距，控制统计栏左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 6)  // 这是垂直内边距，控制统计栏上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .background(Color(.systemGray6))
+    }
+
     // MARK: - 搜索结果行
 
-    private func searchResultRow(_ item: CodeSearchItem) -> some View {
+    private func searchResultRow(_ result: CodeSearchResult) -> some View {
         HStack(spacing: 12) {
             // 文件图标
             Image(systemName: "doc.text")
                 .foregroundColor(.blue)
-                .font(.system(size: 20))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                .frame(width: 28)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
+                .font(.system(size: 20))  // 这是字体大小尺寸，控制文件图标的显示大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .frame(width: 28)  // 这是视图宽度尺寸，控制文件图标区域的水平显示宽度，单位是pt；改大区域横向更宽，改小区域横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
             VStack(alignment: .leading, spacing: 4) {
                 // 文件名
-                Text(item.name)
-                    .font(.system(size: 15, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                Text(result.fileName)
+                    .font(.system(size: 15, weight: .medium))  // 这是字体大小尺寸，控制文件名的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
                 // 文件路径（长路径中间截断）
-                Text(item.path)
-                    .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                Text(result.filePath)
+                    .font(.system(size: 12))  // 这是字体大小尺寸，控制文件路径的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)  // 长路径中间截断，保留首尾关键信息
 
                 // 匹配提示
                 Text("点击查看匹配的代码片段")
-                    .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 11))  // 这是字体大小尺寸，控制提示文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.blue)
                     .lineLimit(1)
             }
@@ -238,56 +209,56 @@ struct RepoCodeSearchView: View {
             // 右箭头
             Image(systemName: "chevron.right")
                 .foregroundColor(.gray)
-                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .font(.system(size: 12))  // 这是字体大小尺寸，控制右箭头的显示大小，单位是pt；改大箭头更醒目易读但占空间，改小箭头更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
         }
-        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-        .padding(.vertical, 12)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.horizontal, 16)  // 这是水平内边距，控制搜索结果行左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 12)  // 这是垂直内边距，控制搜索结果行上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .contentShape(Rectangle())
     }
 
-    // MARK: - 执行搜索（使用requestID替代DispatchWorkItem，真正可取消+竞态防护）
+    // MARK: - 空结果视图
 
-    private func performSearch() {
-        let trimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            // 修复：空查询时重置所有状态
-            searchResults = []
-            isSearching = false
-            errorMessage = nil
-            return
+    private var emptyView: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 40))  // 这是字体大小尺寸，控制空结果图标的显示大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .foregroundColor(.gray)
+            Text("未找到匹配的代码")
+                .font(.system(size: 14))  // 这是字体大小尺寸，控制空结果文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .foregroundColor(.secondary)
+            Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
+    }
 
-        // 生成新的请求ID，旧请求的回调将被忽略（真正解决竞态条件）
-        let requestID = UUID()
-        currentSearchRequestID = requestID
+    // MARK: - 错误视图
 
-        isSearching = true
-        errorMessage = nil
-        searchResults = []
-
-        // 捕获当前查询词，回调时校验
-        let capturedQuery = searchQuery
-
-        GitHubAPI.shared.searchCodeInRepo(
-            owner: owner,
-            repo: repo,
-            query: capturedQuery,
-            branch: branch  // 传入当前分支参数，确保搜索范围为当前分支
-        ) { result in
-            DispatchQueue.main.async {
-                // 竞态防护：如果请求ID已变化或查询词已变化，忽略旧请求结果
-                guard self.currentSearchRequestID == requestID else { return }
-                guard self.searchQuery == capturedQuery else { return }
-
-                self.isSearching = false
-                switch result {
-                case .success(let items):
-                    self.searchResults = items
-                case .failure(let error):
-                    self.errorMessage = "搜索失败: \(error.localizedDescription)"
-                }
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 40))  // 这是字体大小尺寸，控制错误图标的显示大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .foregroundColor(.orange)
+            Text(message)
+                .font(.system(size: 14))  // 这是字体大小尺寸，控制错误文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+            Button("重试") {
+                viewModel.retry()
             }
+            .font(.system(size: 15, weight: .medium))  // 这是字体大小尺寸，控制重试按钮文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+            .foregroundColor(.blue)
+            .padding(.horizontal, 24)  // 这是水平内边距，控制重试按钮左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽按钮更宽，改小左右留白更窄按钮更窄；还能改成.leading/.trailing单独控制某一侧
+            .padding(.vertical, 10)  // 这是垂直内边距，控制重试按钮上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽按钮更高，改小上下留白更窄按钮更矮；还能改成.top/.bottom单独控制某一侧
+            .background(Color(.systemGray6))
+            .cornerRadius(8)  // 这是圆角半径尺寸，控制重试按钮四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+            Spacer()
         }
+        .padding(.horizontal, 24)  // 这是水平内边距，控制错误视图左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
     }
 }
 
@@ -295,20 +266,10 @@ struct RepoCodeSearchView: View {
 
 /// 代码片段显示页面，获取文件内容并显示包含关键词的代码片段
 struct CodeSnippetView: View {
-    let owner: String
-    let repo: String
-    let branch: String
-    let item: CodeSearchItem
-    let searchQuery: String
-    // 点击代码片段后的回调，传递文件路径和行号
+    let result: CodeSearchResult
+    @ObservedObject var viewModel: RepoCodeSearchViewModel
     var onJumpToCode: ((_ filePath: String, _ lineNumber: Int) -> Void)?
 
-    @State private var fileContent: String?
-    @State private var isLoading: Bool = true
-    @State private var errorMessage: String?
-    @State private var snippets: [CodeSnippet] = []
-    @State private var loadFileTask: Task<Void, Never>?  // 网络加载任务，用于取消
-    @State private var loadRequestID: UUID = UUID()  // 文件加载请求ID，用于竞态防护
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -331,13 +292,6 @@ struct CodeSnippetView: View {
                     }
                 }
             }
-            .onAppear {
-                loadFileContent()
-            }
-            .onDisappear {
-                // 视图消失时取消网络请求，防止回调更新已销毁视图
-                loadFileTask?.cancel()
-            }
         }
     }
 
@@ -348,11 +302,11 @@ struct CodeSnippetView: View {
             Image(systemName: "doc.text")
                 .foregroundColor(.blue)
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.name)
-                    .font(.system(size: 15, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                Text(result.fileName)
+                    .font(.system(size: 15, weight: .medium))  // 这是字体大小尺寸，控制文件名的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 // 文件路径（长路径中间截断）
-                Text(item.path)
-                    .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                Text(result.filePath)
+                    .font(.system(size: 12))  // 这是字体大小尺寸，控制文件路径的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)  // 长路径中间截断，保留首尾关键信息
@@ -360,7 +314,7 @@ struct CodeSnippetView: View {
             Spacer()
         }
         .padding(.horizontal)
-        .padding(.vertical, 12)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.vertical, 12)  // 这是垂直内边距，控制文件信息头上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .background(Color(.systemGray6))
     }
 
@@ -368,45 +322,45 @@ struct CodeSnippetView: View {
 
     @ViewBuilder
     private var snippetContent: some View {
-        if isLoading {
+        if viewModel.snippetLoading {
             VStack(spacing: 12) {
                 ProgressView()
-                    .scaleEffect(1.2)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
+                    .scaleEffect(1.2)  // 这是视图缩放比例，控制加载指示器整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大指示器放大更醒目，改小指示器缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
                 Text("加载文件内容...")
-                    .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 14))  // 这是字体大小尺寸，控制加载文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(.systemBackground))
-        } else if let error = errorMessage {
+        } else if let error = viewModel.snippetError {
             VStack(spacing: 16) {
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 40))  // 这是字体大小尺寸，控制错误图标的显示大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.orange)
                 Text(error)
-                    .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 14))  // 这是字体大小尺寸，控制错误文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                 Button("重试") {
-                    loadFileContent()
+                    viewModel.loadSnippets(for: result)
                 }
-                .font(.system(size: 15, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .font(.system(size: 15, weight: .medium))  // 这是字体大小尺寸，控制重试按钮文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                 .foregroundColor(.blue)
-                .padding(.horizontal, 24)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .padding(.horizontal, 24)  // 这是水平内边距，控制重试按钮左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽按钮更宽，改小左右留白更窄按钮更窄；还能改成.leading/.trailing单独控制某一侧
+                .padding(.vertical, 10)  // 这是垂直内边距，控制重试按钮上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽按钮更高，改小上下留白更窄按钮更矮；还能改成.top/.bottom单独控制某一侧
                 .background(Color(.systemGray6))
-                .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .cornerRadius(8)  // 这是圆角半径尺寸，控制重试按钮四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
             }
-            .padding(.horizontal, 24)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+            .padding(.horizontal, 24)  // 这是水平内边距，控制错误视图左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(.systemBackground))
-        } else if snippets.isEmpty {
+        } else if viewModel.snippets.isEmpty {
             VStack(spacing: 12) {
                 Image(systemName: "doc.text.magnifyingglass")
-                    .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 40))  // 这是字体大小尺寸，控制空结果图标的显示大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.gray)
                 Text("未找到包含关键词的代码片段")
-                    .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 14))  // 这是字体大小尺寸，控制空结果文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -415,15 +369,15 @@ struct CodeSnippetView: View {
             // 代码片段列表
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(snippets) { snippet in
+                    ForEach(viewModel.snippets) { snippet in
                         snippetRow(snippet)
-                        if snippet.id != snippets.last?.id {
+                        if snippet.id != viewModel.snippets.last?.id {
                             Divider()
-                                .padding(.leading, 40)  // 这是左侧内边距，控制内容左方与边缘的空白距离，单位是pt；改大左方留白更宽，改小左方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
+                                .padding(.leading, 40)  // 这是左侧内边距，控制分隔线左方与边缘的空白距离，单位是pt；改大左方留白更宽分隔线更短，改小左方留白更窄分隔线更长；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
                         }
                     }
                 }
-                .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .padding(.vertical, 8)  // 这是垂直内边距，控制片段列表上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             }
             .background(Color(.systemBackground))
         }
@@ -436,48 +390,70 @@ struct CodeSnippetView: View {
             // 片段位置信息
             HStack {
                 Image(systemName: "number")
-                    .font(.system(size: 10))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 10))  // 这是字体大小尺寸，控制行号图标的显示大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.gray)
-                Text("第 \(snippet.lineNumber) 行")
-                    .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                Text("第 \(snippet.startLine)-\(snippet.endLine) 行")
+                    .font(.system(size: 11))  // 这是字体大小尺寸，控制行号文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.gray)
                 Spacer()
                 Text("点击跳转")
-                    .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 11))  // 这是字体大小尺寸，控制跳转提示文字的显示大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.blue)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 10))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 10))  // 这是字体大小尺寸，控制右箭头的显示大小，单位是pt；改大箭头更醒目易读但占空间，改小箭头更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.gray)
-                    .padding(.leading, 4)  // 这是左侧内边距，控制内容左方与边缘的空白距离，单位是pt；改大左方留白更宽，改小左方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
+                    .padding(.leading, 4)  // 这是左侧内边距，控制右箭头左方与文字的空白距离，单位是pt；改大左方留白更宽箭头更靠右，改小左方留白更窄箭头更靠左；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
             }
-            .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-            .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+            .padding(.horizontal, 16)  // 这是水平内边距，控制位置信息栏左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+            .padding(.vertical, 6)  // 这是垂直内边距，控制位置信息栏上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             .background(Color(.systemGray6))
 
             // 代码内容（高亮关键词）- 整个行可点击，包括代码区域
             ScrollView(.horizontal, showsIndicators: false) {
-                highlightedCode(snippet.code)
-                    .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                    .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(snippet.lines) { line in
+                        codeLineView(line)
+                    }
+                }
+                .padding(.horizontal, 16)  // 这是水平内边距，控制代码内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                .padding(.vertical, 8)  // 这是垂直内边距，控制代码内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
             }
         }
         .contentShape(Rectangle())
         // 修复：整个行（包括代码区域）都可点击跳转，与"点击跳转"提示语义一致
         .onTapGesture {
-            onJumpToCode?(item.path, snippet.lineNumber)
+            // 跳转到第一个匹配行
+            let jumpLine = snippet.matchLineNumbers.first ?? snippet.startLine
+            onJumpToCode?(result.filePath, jumpLine)
             dismiss()
         }
     }
 
-    // MARK: - 高亮关键词（使用AttributedString替代AnyView，提升性能）
+    // MARK: - 代码行视图（带行号和高亮）
 
-    private func highlightedCode(_ code: String) -> Text {
-        let attributed = buildHighlightedAttributedString(code)
+    private func codeLineView(_ line: CodeLine) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            // 行号
+            Text("\(line.lineNumber)")
+                .font(.system(size: 11, design: .monospaced))  // 这是字体大小尺寸，控制行号的显示大小，单位是pt；改大行号更醒目易读但占空间，改小行号更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .foregroundColor(.gray)
+                .frame(width: 40, alignment: .trailing)  // 这是视图宽度尺寸，控制行号区域的水平显示宽度，单位是pt；改大区域横向更宽行号更靠右，改小区域横向更窄行号更靠左；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
+
+            // 代码内容（高亮关键词）
+            highlightedLine(line)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - 高亮关键词（使用AttributedString）
+
+    private func highlightedLine(_ line: CodeLine) -> Text {
+        let attributed = buildHighlightedAttributedString(line.content)
         return Text(attributed)
     }
 
     // 构建高亮富文本（使用原始字符串range(of:options:)，避免小写字符串长度不匹配崩溃）
-    // 修复：增加空查询检查，避免死循环
+    // 注意：AttributedString的font/backgroundColor/foregroundColor需使用UIKit类型（UIFont/UIColor）
     private func buildHighlightedAttributedString(_ code: String) -> AttributedString {
         var result = AttributedString(code)
         // 使用UIFont设置AttributedString字体（UIKit类型，非SwiftUI Font）
@@ -486,7 +462,7 @@ struct CodeSnippetView: View {
         result.font = normalFont
 
         // 修复：空查询时直接返回，避免range(of:)死循环
-        let trimmedQuery = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedQuery = viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else {
             return result
         }
@@ -513,137 +489,4 @@ struct CodeSnippetView: View {
 
         return result
     }
-
-    // MARK: - 加载文件内容（使用可取消Task+requestID，替代withCheckedContinuation）
-
-    private func loadFileContent() {
-        isLoading = true
-        errorMessage = nil
-        snippets = []
-
-        // 取消上一次未完成的加载任务
-        loadFileTask?.cancel()
-
-        // 生成新的请求ID，旧请求的回调将被忽略
-        let requestID = UUID()
-        loadRequestID = requestID
-
-        loadFileTask = Task {
-            // 使用withCheckedThrowingContinuation包装回调式API，但Task可取消
-            // 注意：网络请求本身不可取消，但回调会被requestID校验忽略
-            let result: Result<FileContent, Error> = await withCheckedContinuation { continuation in
-                GitHubAPI.shared.getFileContent(
-                    owner: owner,
-                    repo: repo,
-                    path: item.path,
-                    branch: branch
-                ) { result in
-                    continuation.resume(returning: result)
-                }
-            }
-
-            // 检查任务是否已取消或请求ID已变化
-            guard !Task.isCancelled else { return }
-            guard self.loadRequestID == requestID else { return }
-
-            await MainActor.run {
-                isLoading = false
-                switch result {
-                case .success(let file):
-                    fileContent = file.decodedContent
-                    // 片段提取移到后台线程执行，避免大文件卡顿UI
-                    extractSnippetsInBackground(content: file.decodedContent, requestID: requestID)
-                case .failure(let error):
-                    errorMessage = "加载文件失败: \(error.localizedDescription)"
-                }
-            }
-        }
-    }
-
-    // MARK: - 后台提取代码片段（修复：不直接访问@State，通过参数传递；受取消传播控制）
-
-    private func extractSnippetsInBackground(content: String, requestID: UUID) {
-        // 通过参数传递searchQuery，避免Task.detached跨线程访问@State
-        let query = searchQuery
-
-        Task.detached(priority: .userInitiated) {
-            // 检查任务是否已取消
-            guard !Task.isCancelled else { return }
-
-            let lines = content.components(separatedBy: .newlines)
-            let lowercasedQuery = query.lowercased()
-
-            // 优化算法：一次遍历直接构建合并区间，无需先存储所有匹配行索引
-            // 减少大文件内存占用
-            var mergedRanges: [(start: Int, end: Int)] = []
-            var rangeStart: Int?
-            var previousIndex: Int?
-
-            for (index, line) in lines.enumerated() {
-                if line.lowercased().contains(lowercasedQuery) {
-                    if let prev = previousIndex {
-                        if index == prev + 1 {
-                            // 连续命中，扩展当前区间
-                            previousIndex = index
-                            continue
-                        } else {
-                            // 不连续，结束上一个区间
-                            if let start = rangeStart {
-                                mergedRanges.append((start: start, end: prev))
-                            }
-                            rangeStart = index
-                            previousIndex = index
-                        }
-                    } else {
-                        rangeStart = index
-                        previousIndex = index
-                    }
-                }
-            }
-            // 处理最后一个区间
-            if let start = rangeStart, let prev = previousIndex {
-                mergedRanges.append((start: start, end: prev))
-            }
-
-            // 对每个合并区间生成一个片段（前后各2行上下文）
-            // 使用let常量避免并发代码中的变量捕获问题
-            let snippetsResult: [CodeSnippet] = {
-                var temp: [CodeSnippet] = []
-                for range in mergedRanges {
-                    let contextStart = max(0, range.start - 2)
-                    let contextEnd = min(lines.count - 1, range.end + 2)
-                    let snippetCode = lines[contextStart...contextEnd].joined(separator: "\n")
-
-                    temp.append(CodeSnippet(
-                        lineNumber: range.start + 1,
-                        code: snippetCode
-                    ))
-
-                    // 最多显示20个片段
-                    if temp.count >= 20 {
-                        break
-                    }
-                }
-                return temp
-            }()
-
-            // 再次检查取消状态
-            guard !Task.isCancelled else { return }
-
-            // 回到主线程更新UI（修复：增加requestID校验，避免旧任务覆盖新结果）
-            await MainActor.run {
-                guard self.loadRequestID == requestID else { return }
-                self.snippets = snippetsResult
-            }
-        }
-    }
-}
-
-// MARK: - 代码片段模型
-
-/// 代码片段模型
-struct CodeSnippet: Identifiable {
-    let id = UUID()
-    let lineNumber: Int
-    let code: String
 }

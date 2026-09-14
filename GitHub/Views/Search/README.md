@@ -211,3 +211,75 @@
 - 移除循环内重复小写字符串计算，直接使用原始字符串.caseInsensitive搜索
 - 连续命中行合并算法优化，一次遍历直接构建区间，减少内存占用
 - 所有网络请求和耗时操作均可取消，视图销毁后不执行状态更新
+
+---
+
+## 仓库内代码搜索功能重构（v4.4.0+）
+
+### 架构设计
+
+采用四层分层架构，职责清晰，可测试性强：
+
+```
+┌─────────────────────────────────────────┐
+│              UI 层 (SwiftUI)             │
+│  RepoCodeSearchView / CodeSnippetView    │
+├─────────────────────────────────────────┤
+│           ViewModel 层 (ObservableObject) │
+│        RepoCodeSearchViewModel             │
+│  - 状态管理  - 防抖  - 竞态防护  - 取消   │
+├─────────────────────────────────────────┤
+│            Service 层 (业务逻辑)           │
+│        CodeSearchService                    │
+│  - API调用  - 结果解析  - 片段提取  - 缓存  │
+├─────────────────────────────────────────┤
+│            API 层 (网络请求)               │
+│        GitHubAPI + URLComponents            │
+└─────────────────────────────────────────┘
+```
+
+### 新增文件
+
+| 文件路径 | 说明 |
+|---------|------|
+| `Models/CodeSearchModels.swift` | 搜索数据模型（SearchState、CodeSearchError、CodeSearchResult、CodeMatch、CodeLine、CodeSnippet） |
+| `Core/Service/CodeSearchService.swift` | 搜索业务逻辑服务（搜索API、文件内容、片段提取、缓存管理） |
+| `ViewModels/RepoCodeSearchViewModel.swift` | 搜索ViewModel（状态机、防抖、竞态防护、任务取消） |
+
+### 状态机设计
+
+搜索状态使用枚举明确管理：
+
+| 状态 | 说明 | UI表现 |
+|-----|------|--------|
+| `idle` | 初始状态，未搜索 | 显示搜索提示 |
+| `searching` | 搜索中 | 显示加载指示器 |
+| `success` | 搜索成功（有结果） | 显示搜索结果列表 |
+| `empty` | 搜索成功但无结果 | 显示空结果提示 |
+| `error(String)` | 搜索失败 | 显示错误信息+重试按钮 |
+
+### 核心特性
+
+1. **URLComponents安全构建URL**：所有查询参数通过URLQueryItem设置，自动正确编码，避免特殊字符导致URL解析错误
+2. **Task取消传播**：从UI到网络请求的完整取消链，视图消失时自动取消所有任务
+3. **竞态防护**：新搜索取消旧任务，Task.isCancelled检查确保旧结果不更新UI
+4. **300ms防抖搜索**：输入停止300ms后自动搜索，避免频繁请求
+5. **三级缓存机制**：搜索结果缓存（5分钟）、文件内容缓存（10分钟）、片段提取缓存（10分钟）
+6. **后台片段提取**：大文件片段提取在Task.detached后台线程执行，避免UI卡顿
+7. **AttributedString高亮**：使用原始字符串range(of:options:.caseInsensitive)搜索，避免Unicode长度不匹配崩溃
+8. **错误分层处理**：API错误、网络错误、解析错误、速率限制等分类处理，用户友好文案
+
+### 错误类型
+
+| 错误类型 | 用户文案 |
+|---------|---------|
+| `invalidURL` | URL构建失败，请重试 |
+| `networkError` | 网络连接失败，请检查网络后重试 |
+| `httpError(Int, String)` | 请求失败（状态码）：消息 |
+| `parsingError` | 数据解析失败，请重试 |
+| `rateLimited` | 请求过于频繁，请稍后再试 |
+| `unauthorized` | 登录已过期，请重新登录 |
+| `emptyQuery` | 请输入搜索关键词 |
+| `cancelled` | 请求已取消 |
+| `fileNotFound` | 文件不存在 |
+| `fileTooLarge` | 文件过大，无法显示代码片段 |
