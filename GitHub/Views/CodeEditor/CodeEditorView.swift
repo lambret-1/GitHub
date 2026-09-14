@@ -76,6 +76,12 @@ struct CodeEditorView: View {
     // 键盘管理器（统一管理键盘状态，彻底解决键盘跟随问题）
     @ObservedObject private var keyboardManager = KeyboardManager.shared
 
+    // 撤销/重做管理器（第二期：编辑体验增强）
+    @ObservedObject private var undoManager = EditorUndoManager.shared
+
+    // 草稿管理器（第二期：编辑体验增强）
+    @ObservedObject private var draftManager = DraftManager.shared
+
     // MARK: - 大文件降级模式（性能优化与崩溃防护）
     // 大文件模式：>5MB，禁用编辑，只读快速浏览
     @State private var isLargeFileMode: Bool = false
@@ -338,6 +344,9 @@ struct CodeEditorView: View {
             // 重置键盘管理器状态，避免状态残留
             KeyboardManager.shared.reset()
 
+            // 结束草稿编辑（自动保存未保存的草稿）
+            draftManager.endEditing()
+
             // 取消正在进行的图片加载任务，避免回调访问已销毁的视图
             imageLoadTask?.cancel()
             imageLoadTask = nil
@@ -367,6 +376,12 @@ struct CodeEditorView: View {
         .onChange(of: isEditing) { _ in
             // 强制刷新SwipeBackControlView和TabBarControlView
             // UIViewRepresentable的updateUIView会自动调用
+        }
+        // 监听文本变化，自动更新草稿（第二期：编辑体验增强）
+        .onChange(of: codeText) { _ in
+            if isEditing {
+                draftManager.updateDraftContent(codeText)
+            }
         }
         // 编辑模式时禁用手势返回
         .background(SwipeBackControlView(enabled: !isEditing))
@@ -417,7 +432,28 @@ struct CodeEditorView: View {
     // MARK: - 编辑模式底部工具栏
 
     private var editModeBottomBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
+            // 撤销按钮
+            Button(action: {
+                undoManager.undo()
+            }) {
+                Image(systemName: "arrow.uturn.backward")
+                    .foregroundColor(undoManager.canUndo ? .blue : .gray)
+                    .frame(width: 40, height: 44)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+            }
+            .disabled(!undoManager.canUndo)
+
+            // 重做按钮
+            Button(action: {
+                undoManager.redo()
+            }) {
+                Image(systemName: "arrow.uturn.forward")
+                    .foregroundColor(undoManager.canRedo ? .blue : .gray)
+                    .frame(width: 40, height: 44)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+            }
+            .disabled(!undoManager.canRedo)
+
+            // 取消按钮
             Button(action: {
                 // 取消按钮二次确认
                 if hasChanges {
@@ -436,6 +472,7 @@ struct CodeEditorView: View {
                     .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
             }
 
+            // 提交修改按钮
             Button(action: {
                 // 提交修改按钮二次确认
                 showSubmitConfirm = true
@@ -882,6 +919,18 @@ struct CodeEditorView: View {
                     codeText = file.decodedContent
                     originalContent = codeText
 
+                    // 初始化撤销/重做管理器（设置当前文件路径，隔离不同文件的撤销栈）
+                    undoManager.setCurrentFile("\(owner)/\(repo)/\(branch)/\(path)")
+                    undoManager.clear()
+
+                    // 初始化草稿管理器
+                    draftManager.startEditing(
+                        filePath: path,
+                        branch: branch,
+                        content: codeText,
+                        fileSha: file.sha
+                    )
+
                     // 文件大小检测与降级策略（崩溃防护）
                     let fileSize = file.size
                     fileSizeDisplay = formatFileSize(fileSize)
@@ -979,6 +1028,12 @@ struct CodeEditorView: View {
                 switch result {
                 case .success:
                     showSaveSuccess = true
+                    // 提交成功后更新原始内容
+                    originalContent = codeText
+                    // 清除撤销/重做栈
+                    undoManager.clear()
+                    // 清除草稿
+                    draftManager.clearDraft(for: path, branch: branch)
                 case .failure(let error):
                     errorMessage = error.localizedDescription
                 }

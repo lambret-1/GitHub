@@ -245,6 +245,25 @@ struct CodeTextView: UIViewRepresentable {
         private let minFontSize: CGFloat = 8
         private let maxFontSize: CGFloat = 24
 
+        // MARK: - 编辑体验增强配置（第二期）
+        /// 是否启用括号自动闭合
+        var autoCloseBrackets: Bool = true
+        /// 是否启用自动缩进
+        var autoIndent: Bool = true
+        /// 缩进宽度（空格数）
+        var indentWidth: Int = 4
+        /// 是否使用Tab缩进
+        var useTabIndent: Bool = false
+        /// 括号匹配对（开括号:闭括号）
+        private let bracketPairs: [Character: Character] = [
+            "(": ")",
+            "[": "]",
+            "{": "}",
+            "\"": "\"",
+            "'": "'",
+            "`": "`"
+        ]
+
         init(text: Binding<String>, onTextChange: ((String) -> Void)?) {
             _text = text
             self.onTextChange = onTextChange
@@ -335,6 +354,170 @@ struct CodeTextView: UIViewRepresentable {
         }
 
         // MARK: - UITextViewDelegate
+
+        /// 处理文本变更前的拦截（括号自动闭合、自动缩进）
+        func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+            guard isEditable else { return true }
+
+            // 括号自动闭合
+            if autoCloseBrackets, let openBracket = bracketPairs[Character(text)], text.count == 1 {
+                return handleBracketAutoClose(textView: textView, range: range, openBracket: openBracket, closeBracket: bracketPairs[Character(text)]!)
+            }
+
+            // 自动缩进（换行时）
+            if autoIndent, text == "\n" {
+                return handleAutoIndent(textView: textView, range: range)
+            }
+
+            // 退格键处理：如果光标在括号对中间，同时删除左右括号
+            if text == "", range.length == 1, range.location > 0 {
+                let nsText = textView.text as NSString
+                let charBefore = nsText.substring(with: NSRange(location: range.location - 1, length: 1))
+                if let openBracket = Character(charBefore), let closeBracket = bracketPairs[openBracket], openBracket != closeBracket {
+                    // 检查光标后是否是对应的闭括号
+                    if range.location < nsText.length {
+                        let charAfter = nsText.substring(with: NSRange(location: range.location, length: 1))
+                        if Character(charAfter) == closeBracket {
+                            // 同时删除左右括号
+                            let newRange = NSRange(location: range.location - 1, length: 2)
+                            textView.text = nsText.replacingCharacters(in: newRange, with: "")
+                            textView.selectedRange = NSRange(location: range.location - 1, length: 0)
+                            self.text = textView.text
+                            onTextChange?(textView.text)
+                            return false
+                        }
+                    }
+                }
+            }
+
+            return true
+        }
+
+        /// 处理括号自动闭合
+        private func handleBracketAutoClose(textView: UITextView, range: NSRange, openBracket: Character, closeBracket: Character) -> Bool {
+            let nsText = textView.text as NSString
+
+            // 如果有选中文字，用括号包裹选中文字
+            if range.length > 0 {
+                let selectedText = nsText.substring(with: range)
+                let newText = "\(openBracket)\(selectedText)\(closeBracket)"
+                textView.text = nsText.replacingCharacters(in: range, with: newText)
+                // 光标定位到闭括号前
+                textView.selectedRange = NSRange(location: range.location + newText.count - 1, length: 0)
+                self.text = textView.text
+                onTextChange?(textView.text)
+                return false
+            }
+
+            // 检查光标后是否已经是闭括号（避免重复闭合）
+            if range.location < nsText.length {
+                let charAfter = nsText.substring(with: NSRange(location: range.location, length: 1))
+                if Character(charAfter) == closeBracket && openBracket != closeBracket {
+                    // 光标跳过已有的闭括号
+                    textView.selectedRange = NSRange(location: range.location + 1, length: 0)
+                    return false
+                }
+            }
+
+            // 引号特殊处理：如果光标前已经是引号，不自动闭合
+            if openBracket == closeBracket && range.location > 0 {
+                let charBefore = nsText.substring(with: NSRange(location: range.location - 1, length: 1))
+                if Character(charBefore) == openBracket {
+                    // 检查是否是字符串中的引号（简单判断：前面是否有反斜杠）
+                    if range.location >= 2 {
+                        let charBefore2 = nsText.substring(with: NSRange(location: range.location - 2, length: 1))
+                        if charBefore2 != "\\" {
+                            // 不是转义引号，正常输入
+                            return true
+                        }
+                    }
+                }
+            }
+
+            // 正常自动闭合：插入开括号+闭括号，光标定位到中间
+            let newText = "\(openBracket)\(closeBracket)"
+            textView.text = nsText.replacingCharacters(in: range, with: newText)
+            textView.selectedRange = NSRange(location: range.location + 1, length: 0)
+            self.text = textView.text
+            onTextChange?(textView.text)
+            return false
+        }
+
+        /// 处理自动缩进
+        private func handleAutoIndent(textView: UITextView, range: NSRange) -> Bool {
+            let nsText = textView.text as NSString
+
+            // 获取当前行的内容
+            let currentLineRange = (textView.text as NSString).lineRange(for: range)
+            let currentLineText = nsText.substring(with: currentLineRange)
+
+            // 提取当前行的前导空白（缩进）
+            var indent = ""
+            for char in currentLineText {
+                if char == " " || char == "\t" {
+                    indent.append(char)
+                } else {
+                    break
+                }
+            }
+
+            // 检查当前行是否以开括号结尾（需要增加缩进）
+            let trimmedLine = currentLineText.trimmingCharacters(in: .whitespaces)
+            var shouldIncreaseIndent = false
+            if let lastChar = trimmedLine.last {
+                if lastChar == "{" || lastChar == "(" || lastChar == "[" {
+                    shouldIncreaseIndent = true
+                }
+            }
+
+            // 检查下一行是否以闭括号开头（需要减少缩进，用于闭括号自动对齐）
+            var nextLineStartsWithCloseBracket = false
+            if range.location < nsText.length {
+                let afterCursor = nsText.substring(from: range.location)
+                if let firstNewline = afterCursor.firstIndex(of: "\n") {
+                    let nextLineStart = afterCursor.index(after: firstNewline)
+                    if nextLineStart < afterCursor.endIndex {
+                        let nextLine = String(afterCursor[nextLineStart...])
+                        let trimmedNextLine = nextLine.trimmingCharacters(in: .whitespaces)
+                        if let firstChar = trimmedNextLine.first {
+                            if firstChar == "}" || firstChar == ")" || firstChar == "]" {
+                                nextLineStartsWithCloseBracket = true
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 构建缩进字符串
+            var finalIndent = indent
+            if shouldIncreaseIndent {
+                if useTabIndent {
+                    finalIndent += "\t"
+                } else {
+                    finalIndent += String(repeating: " ", count: indentWidth)
+                }
+            }
+
+            // 如果下一行以闭括号开头，在当前行后插入一个减少缩进的空行（用于闭括号对齐）
+            if nextLineStartsWithCloseBracket && shouldIncreaseIndent {
+                // 插入换行+增加缩进+换行+原缩进（闭括号会自动对齐）
+                let insertText = "\n\(finalIndent)\n\(indent)"
+                textView.text = nsText.replacingCharacters(in: range, with: insertText)
+                // 光标定位到中间的空行
+                textView.selectedRange = NSRange(location: range.location + 1 + finalIndent.count, length: 0)
+                self.text = textView.text
+                onTextChange?(textView.text)
+                return false
+            }
+
+            // 正常换行+缩进
+            let insertText = "\n\(finalIndent)"
+            textView.text = nsText.replacingCharacters(in: range, with: insertText)
+            textView.selectedRange = NSRange(location: range.location + insertText.count, length: 0)
+            self.text = textView.text
+            onTextChange?(textView.text)
+            return false
+        }
 
         func textViewDidChange(_ textView: UITextView) {
             guard !isSearching else { return }
