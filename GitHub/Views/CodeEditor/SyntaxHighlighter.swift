@@ -109,13 +109,46 @@ class SyntaxHighlighter {
             tokenizer = SwiftTokenizer()
         case .python:
             tokenizer = PythonTokenizer()
-        case .javascript, .typescript:
+        case .javascript:
             tokenizer = JavaScriptTokenizer()
+        case .typescript:
+            tokenizer = TypeScriptTokenizer()
         case .markdown:
             tokenizer = MarkdownTokenizer()
-        default:
-            // 其他语言暂时使用纯文本Tokenizer兜底
-            tokenizer = PlainTextTokenizer()
+        case .java:
+            tokenizer = JavaTokenizer()
+        case .go:
+            tokenizer = GoTokenizer()
+        case .c:
+            tokenizer = CTokenizer()
+        case .cpp:
+            tokenizer = CppTokenizer()
+        case .objectiveC:
+            tokenizer = CppTokenizer() // Objective-C使用C++Tokenizer（语法相似）
+        case .ruby:
+            tokenizer = RubyTokenizer()
+        case .php:
+            tokenizer = PHPTokenizer()
+        case .rust:
+            tokenizer = RustTokenizer()
+        case .kotlin:
+            tokenizer = KotlinTokenizer()
+        case .csharp:
+            tokenizer = CppTokenizer() // C#使用C++Tokenizer（语法相似）
+        case .scala:
+            tokenizer = JavaTokenizer() // Scala使用JavaTokenizer（语法相似）
+        case .dart:
+            tokenizer = JavaTokenizer() // Dart使用JavaTokenizer（语法相似）
+        case .lua:
+            tokenizer = LuaTokenizer()
+        case .r:
+            tokenizer = RTokenizer()
+        case .shell:
+            tokenizer = ShellTokenizer()
+        case .yaml:
+            tokenizer = YAMLTokenizer()
+        case .json, .xml, .html, .css, .sql, .plainText:
+            tokenizer = PlainTextTokenizer() // 非编程语言暂时使用纯文本Tokenizer兜底
         }
 
         // 缓存
