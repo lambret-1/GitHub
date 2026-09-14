@@ -233,12 +233,13 @@ class HighlightTaskManager {
         // 取消当前任务
         currentTask?.cancel()
 
-        // 创建新任务
-        let workItem = DispatchWorkItem { [weak self] in
+        // 创建新任务（先声明为可选，避免循环引用）
+        var workItem: DispatchWorkItem?
+        workItem = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
 
             // 检查任务是否被取消
-            if workItem.isCancelled {
+            if workItem?.isCancelled ?? true {
                 return
             }
 
@@ -266,7 +267,7 @@ class HighlightTaskManager {
             let tokens = tokenizer.tokenize(text)
 
             // 检查任务是否被取消
-            if workItem.isCancelled {
+            if workItem?.isCancelled ?? true {
                 return
             }
 
@@ -282,7 +283,7 @@ class HighlightTaskManager {
             HighlightCache.shared.set(attributedString: result, key: cacheKey)
 
             // 检查任务是否被取消
-            if workItem.isCancelled {
+            if workItem?.isCancelled ?? true {
                 return
             }
 
@@ -296,7 +297,9 @@ class HighlightTaskManager {
         currentTask = workItem
 
         // 提交任务到队列
-        taskQueue.async(execute: workItem)
+        if let workItem = workItem {
+            taskQueue.async(execute: workItem)
+        }
 
         return taskId
     }
