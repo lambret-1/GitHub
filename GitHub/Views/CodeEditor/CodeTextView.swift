@@ -170,8 +170,8 @@ struct CodeTextView: UIViewRepresentable {
             }
         }
 
-        // 外部文本变化时更新
-        if textView.text != text && !context.coordinator.isInternalUpdate {
+        // 外部文本变化时更新（编辑模式下完全禁用外部文本回写，避免状态更新导致视图重绘进而触发文本回写循环）
+        if !isEditable && textView.text != text && !context.coordinator.isInternalUpdate {
             let selectedRange = textView.selectedRange
             // 编辑模式下使用纯文本，避免语法高亮导致光标乱跳换行问题
             if isEditable {
@@ -308,7 +308,7 @@ struct CodeTextView: UIViewRepresentable {
             updateUndoRedoState()
         }
 
-        /// 更新撤销/重做状态并通知外部（在主线程同步调用，避免异步导致的状态延迟）
+        /// 更新撤销/重做状态并通知外部（延迟到下一个runloop周期，避免在textViewDidChange中同步触发视图重绘导致文本回写循环）
         private func updateUndoRedoState() {
             guard let textView = textView else { return }
             let canUndo = textView.undoManager?.canUndo ?? false
@@ -316,22 +316,41 @@ struct CodeTextView: UIViewRepresentable {
             if lastCanUndo != canUndo || lastCanRedo != canRedo {
                 lastCanUndo = canUndo
                 lastCanRedo = canRedo
-                onUndoRedoStateChange?(canUndo, canRedo)
+                // 延迟到下一个runloop周期，确保text绑定已同步，避免updateUIView中文本回写循环
+                DispatchQueue.main.async { [weak self] in
+                    self?.onUndoRedoStateChange?(canUndo, canRedo)
+                }
             }
         }
 
         /// 处理撤销通知
         @objc private func handleUndoNotification() {
             guard let textView = textView, textView.undoManager?.canUndo == true else { return }
+            // 标记内部更新，避免撤销操作触发的textViewDidChange导致文本回写循环
+            isInternalUpdate = true
             textView.undoManager?.undo()
-            updateUndoRedoState()
+            // 强制刷新textView确保UI同步更新
+            textView.setNeedsDisplay()
+            // 延迟重置内部更新标志
+            DispatchQueue.main.async { [weak self] in
+                self?.isInternalUpdate = false
+                self?.updateUndoRedoState()
+            }
         }
 
         /// 处理重做通知
         @objc private func handleRedoNotification() {
             guard let textView = textView, textView.undoManager?.canRedo == true else { return }
+            // 标记内部更新，避免重做操作触发的textViewDidChange导致文本回写循环
+            isInternalUpdate = true
             textView.undoManager?.redo()
-            updateUndoRedoState()
+            // 强制刷新textView确保UI同步更新
+            textView.setNeedsDisplay()
+            // 延迟重置内部更新标志
+            DispatchQueue.main.async { [weak self] in
+                self?.isInternalUpdate = false
+                self?.updateUndoRedoState()
+            }
         }
 
         // MARK: - iOS 16+ 自定义编辑菜单
