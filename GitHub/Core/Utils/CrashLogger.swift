@@ -69,11 +69,11 @@ final class CrashLogger {
             SIGSYS    // 非法系统调用
         ]
 
-        for signal in signals {
-            let previousHandler = signal(signal) { sig in
-                CrashLogger.shared.handleSignal(sig)
+        for sig in signals {
+            let previousHandler = signal(sig) { signalValue in
+                CrashLogger.shared.handleSignal(signalValue)
             }
-            previousSignalHandlers[signal] = previousHandler
+            previousSignalHandlers[sig] = previousHandler
         }
     }
 
@@ -106,10 +106,10 @@ final class CrashLogger {
 
     // MARK: - 处理Signal
     /// 处理Signal异常
-    private func handleSignal(_ signal: Int32) {
+    private func handleSignal(_ sigValue: Int32) {
         let crashType = "Signal"
-        let signalName = signalName(for: signal)
-        let crashReason = "Signal \(signal) (\(signalName))"
+        let signalName = signalName(for: sigValue)
+        let crashReason = "Signal \(sigValue) (\(signalName))"
 
         // 获取调用栈（使用backtrace_symbols）
         let callStack = getCallStack()
@@ -119,7 +119,7 @@ final class CrashLogger {
             crashReason: crashReason,
             callStack: callStack,
             additionalInfo: [
-                "signal_number": "\(signal)",
+                "signal_number": "\(sigValue)",
                 "signal_name": signalName
             ]
         )
@@ -127,12 +127,12 @@ final class CrashLogger {
         saveCrashLog(crashInfo)
 
         // 恢复之前的Handler并重新抛出Signal（确保系统能够正常终止进程）
-        if let previousHandler = previousSignalHandlers[signal] {
-            signal(signal, previousHandler)
+        if let previousHandler = previousSignalHandlers[sigValue] {
+            signal(sigValue, previousHandler)
         } else {
-            signal(signal, SIG_DFL)
+            signal(sigValue, SIG_DFL)
         }
-        raise(signal)
+        raise(sigValue)
     }
 
     // MARK: - 获取调用栈
