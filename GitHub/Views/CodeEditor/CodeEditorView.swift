@@ -503,7 +503,7 @@ struct CodeEditorView: View {
         // 简单实现：将代码片段追加到文本末尾
         // 实际应用中应该插入到光标位置，这里简化处理
         codeText += result.code
-        hasChanges = true
+        // hasChanges是计算属性，通过codeText != originalContent自动判断，无需手动设置
     }
 
     // MARK: - 编辑模式底部工具栏
