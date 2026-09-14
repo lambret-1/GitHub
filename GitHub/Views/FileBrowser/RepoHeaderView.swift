@@ -292,7 +292,7 @@ struct RepoHeaderView: View {
                             .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
 
-                       Text("更新于 \(commit.formattedDate)")
+         Text("更新于 \(时间工具.(commit.formattedDate))")
 
                             .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(appState.isDarkMode ? .gray : .secondary)
