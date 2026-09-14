@@ -9,7 +9,7 @@ import Foundation
 class MarkdownTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
     // MARK: - 初始化
 
-    override init() {
+    init() {
         super.init(language: .markdown)
     }
 

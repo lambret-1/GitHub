@@ -30,7 +30,7 @@ class SwiftTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
 
     // MARK: - 初始化
 
-    override init() {
+    init() {
         super.init(language: .swift)
     }
 
@@ -147,13 +147,6 @@ class SwiftTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
     }
 
     // MARK: - 私有方法
-
-    /// 创建Token（使用String.Index范围）
-    private func makeToken(type: SyntaxTokenType, text: String, start: String.Index, end: String.Index) -> SyntaxToken {
-        let nsRange = NSRange(start..<end, in: text)
-        let tokenText = String(text[start..<end])
-        return SyntaxToken(type: type, range: nsRange, text: tokenText)
-    }
 
     /// 读取多行字符串 """
     private func readMultilineString(_ text: String, index: inout String.Index) -> String {

@@ -9,7 +9,7 @@ import Foundation
 class PlainTextTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
     // MARK: - 初始化
 
-    override init() {
+    init() {
         super.init(language: .plainText)
     }
 
