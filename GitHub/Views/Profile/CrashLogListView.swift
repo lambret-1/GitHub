@@ -274,16 +274,3 @@ struct CrashLogDetailView: View {
         dismiss()
     }
 }
-
-// MARK: - 分享面板封装
-/// UIActivityViewController封装
-struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
