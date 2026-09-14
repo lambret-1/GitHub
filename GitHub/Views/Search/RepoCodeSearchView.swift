@@ -3,6 +3,7 @@ import SwiftUI
 struct RepoCodeSearchView: View {
     @StateObject private var viewModel: RepoCodeSearchViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var debounceTask: Task<Void, Never>?
     private let onJumpToCode: (String, Int) -> Void
 
     init(owner: String, repo: String, branch: String, onJumpToCode: @escaping (String, Int) -> Void) {
@@ -47,8 +48,13 @@ struct RepoCodeSearchView: View {
                 .autocorrectionDisabled()
                 .onSubmit { viewModel.search() }
                 .onChange(of: viewModel.query) { _ in
-                    NSObject.cancelPreviousPerformRequests(withTarget: self)
-                    perform(#selector(triggerSearch), with: nil, afterDelay: 0.3)
+                    debounceTask?.cancel()
+                    debounceTask = Task {
+                        try? await Task.sleep(nanoseconds: 300_000_000)
+                        if !Task.isCancelled {
+                            viewModel.search()
+                        }
+                    }
                 }
             if !viewModel.query.isEmpty {
                 Button {
@@ -63,10 +69,6 @@ struct RepoCodeSearchView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(Color(.systemGray6))
-    }
-
-    @objc private func triggerSearch() {
-        viewModel.search()
     }
 
     @ViewBuilder
