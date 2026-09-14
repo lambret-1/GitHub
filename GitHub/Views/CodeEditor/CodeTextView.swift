@@ -444,7 +444,7 @@ struct CodeTextView: UIViewRepresentable {
             guard isEditable else { return true }
 
             // 括号自动闭合（先检查text.count == 1，避免Character(text)在多字符时崩溃）
-            if autoCloseBrackets, text.count == 1, let char = Character(text), let openBracket = bracketPairs[char] {
+            if autoCloseBrackets, text.count == 1, let char = text.first, let openBracket = bracketPairs[char] {
                 return handleBracketAutoClose(textView: textView, range: range, openBracket: openBracket, closeBracket: bracketPairs[char]!)
             }
 
