@@ -3878,7 +3878,14 @@ private struct FileBrowserCreateFileSheetsModifier: ViewModifier {
                 RepoCodeSearchView(
                     owner: view.repository.ownerName,
                     repo: view.repository.name,
-                    branch: view.selectedBranch
+                    branch: view.selectedBranch,
+                    onJumpToCode: { filePath, lineNumber in
+                        // 跳转到代码编辑页面
+                        view.selectedFilePath = filePath
+                        view.selectedFileName = (filePath as NSString).lastPathComponent
+                        view.jumpToLineNumber = lineNumber
+                        view.navigateToFileEditor = true
+                    }
                 )
             }
             .sheet(isPresented: view.$showCreateFileDialog) {
