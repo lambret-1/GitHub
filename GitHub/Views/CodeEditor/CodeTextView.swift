@@ -40,9 +40,6 @@ struct CodeTextView: UIViewRepresentable {
     // 滚动到指定行（用于从代码搜索结果跳转时快速定位）
     var scrollToLine: Int? = nil
 
-    // 撤销/重做触发器（用于外部按钮触发UITextView的撤销/重做操作）
-    var undoTrigger: Int = 0
-    var redoTrigger: Int = 0
     // 撤销/重做状态更新回调
     var onUndoRedoStateChange: ((Bool, Bool) -> Void)?
 
@@ -111,6 +108,10 @@ struct CodeTextView: UIViewRepresentable {
         context.coordinator.onLookupSelectedText = onLookupSelectedText
         context.coordinator.isEditable = isEditable
         context.coordinator.fileName = fileName
+        context.coordinator.onUndoRedoStateChange = onUndoRedoStateChange
+
+        // 设置textView并添加撤销/重做状态观察
+        context.coordinator.setupTextView(textView)
 
         // 双指缩放手势
         let pinchGesture = UIPinchGestureRecognizer(
@@ -132,6 +133,7 @@ struct CodeTextView: UIViewRepresentable {
             codeEditorTextView.onLookupSelectedText = onLookupSelectedText
         }
         context.coordinator.onLookupSelectedText = onLookupSelectedText
+        context.coordinator.onUndoRedoStateChange = onUndoRedoStateChange
 
         // 更新字体（仅当字体大小真的变化时才更新，避免每次updateUIView都触发重新布局导致光标乱跳）
         let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
@@ -214,29 +216,6 @@ struct CodeTextView: UIViewRepresentable {
                 }
             }
         }
-
-        // 处理撤销/重做触发器（外部按钮触发UITextView的撤销/重做操作）
-        if context.coordinator.lastUndoTrigger != undoTrigger {
-            context.coordinator.lastUndoTrigger = undoTrigger
-            if textView.undoManager?.canUndo == true {
-                textView.undoManager?.undo()
-            }
-        }
-        if context.coordinator.lastRedoTrigger != redoTrigger {
-            context.coordinator.lastRedoTrigger = redoTrigger
-            if textView.undoManager?.canRedo == true {
-                textView.undoManager?.redo()
-            }
-        }
-
-        // 更新撤销/重做状态
-        let canUndo = textView.undoManager?.canUndo ?? false
-        let canRedo = textView.undoManager?.canRedo ?? false
-        if context.coordinator.lastCanUndo != canUndo || context.coordinator.lastCanRedo != canRedo {
-            context.coordinator.lastCanUndo = canUndo
-            context.coordinator.lastCanRedo = canRedo
-            onUndoRedoStateChange?(canUndo, canRedo)
-        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -255,12 +234,13 @@ struct CodeTextView: UIViewRepresentable {
         var onLookupSelectedText: ((String) -> Void)?
         // 记录上一次的行号显示状态，用于判断是否需要更新行号布局（避免不必要的重新布局导致光标乱跳）
         var lastShowLineNumbers: Bool = true
-        // 撤销/重做触发器状态（用于检测外部按钮触发）
-        var lastUndoTrigger: Int = 0
-        var lastRedoTrigger: Int = 0
+        // 撤销/重做状态更新回调
+        var onUndoRedoStateChange: ((Bool, Bool) -> Void)?
         // 上一次的撤销/重做状态（用于状态变化检测）
-        var lastCanUndo: Bool = false
-        var lastCanRedo: Bool = false
+        private var lastCanUndo: Bool = false
+        private var lastCanRedo: Bool = false
+        // 撤销/重做状态观察对象
+        private var undoManagerObserver: NSKeyValueObservation?
         // 是否可编辑（用于判断是否禁用语法高亮，避免光标乱跳换行问题）
         var isEditable: Bool = false
         // 文件名（用于语法高亮语言检测）
@@ -302,6 +282,71 @@ struct CodeTextView: UIViewRepresentable {
         init(text: Binding<String>, onTextChange: ((String) -> Void)?) {
             _text = text
             self.onTextChange = onTextChange
+            // 监听撤销/重做通知（由外部按钮发送）
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleUndoNotification),
+                name: NSNotification.Name("CodeEditorUndo"),
+                object: nil
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleRedoNotification),
+                name: NSNotification.Name("CodeEditorRedo"),
+                object: nil
+            )
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+            undoManagerObserver?.invalidate()
+        }
+
+        /// 设置textView并添加撤销/重做状态观察
+        /// - Parameter textView: UITextView实例
+        func setupTextView(_ textView: UITextView) {
+            self.textView = textView
+            // 观察撤销管理器的canUndo和canRedo状态变化
+            undoManagerObserver = textView.undoManager?.observe(\.canUndo, options: [.new]) { [weak self] _, _ in
+                self?.updateUndoRedoState()
+            }
+            // 同时观察canRedo
+            textView.undoManager?.addObserver(self, forKeyPath: "canRedo", options: [.new], context: nil)
+            updateUndoRedoState()
+        }
+
+        override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+            if keyPath == "canRedo" {
+                updateUndoRedoState()
+            }
+        }
+
+        /// 更新撤销/重做状态并通知外部
+        private func updateUndoRedoState() {
+            guard let textView = textView else { return }
+            let canUndo = textView.undoManager?.canUndo ?? false
+            let canRedo = textView.undoManager?.canRedo ?? false
+            if lastCanUndo != canUndo || lastCanRedo != canRedo {
+                lastCanUndo = canUndo
+                lastCanRedo = canRedo
+                DispatchQueue.main.async {
+                    self.onUndoRedoStateChange?(canUndo, canRedo)
+                }
+            }
+        }
+
+        /// 处理撤销通知
+        @objc private func handleUndoNotification() {
+            guard let textView = textView, textView.undoManager?.canUndo == true else { return }
+            textView.undoManager?.undo()
+            updateUndoRedoState()
+        }
+
+        /// 处理重做通知
+        @objc private func handleRedoNotification() {
+            guard let textView = textView, textView.undoManager?.canRedo == true else { return }
+            textView.undoManager?.redo()
+            updateUndoRedoState()
         }
 
         // MARK: - iOS 16+ 自定义编辑菜单

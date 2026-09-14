@@ -78,9 +78,6 @@ struct CodeEditorView: View {
 
     // 撤销/重做管理器（第二期：编辑体验增强）
     @ObservedObject private var undoManager = EditorUndoManager.shared
-    // 撤销/重做触发器（用于触发CodeTextView内部UITextView的撤销/重做操作）
-    @State private var undoTrigger: Int = 0
-    @State private var redoTrigger: Int = 0
     // 撤销/重做可用状态（由CodeTextView回调更新）
     @State private var canUndo: Bool = false
     @State private var canRedo: Bool = false
@@ -121,15 +118,12 @@ struct CodeEditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             contentView
-        }
-        // 编辑模式底部工具栏使用overlay，确保不跟随键盘移动
-        .overlay(alignment: .bottom) {
+            // 编辑模式底部工具栏放在VStack中，自动跟随键盘移动
             if isEditing && (fileContent?.isTextFile ?? false) {
                 editModeBottomBar
             }
         }
-        // 使用KeyboardManager统一管理键盘状态，代码区域自动避让键盘
-        // 不再使用.ignoresSafeArea(.keyboard)，避免UITextView contentInset计算异常
+        // 使用系统自动键盘避让，UITextView会自动调整contentInset
         .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏系统默认返回按钮，使用自定义返回按钮实现编辑保护
@@ -559,7 +553,7 @@ struct CodeEditorView: View {
         HStack(spacing: 8) {
             // 撤销按钮
             Button(action: {
-                undoTrigger += 1
+                NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
             }) {
                 Image(systemName: "arrow.uturn.backward")
                     .foregroundColor(canUndo ? .blue : .gray)
@@ -569,7 +563,7 @@ struct CodeEditorView: View {
 
             // 重做按钮
             Button(action: {
-                redoTrigger += 1
+                NotificationCenter.default.post(name: NSNotification.Name("CodeEditorRedo"), object: nil)
             }) {
                 Image(systemName: "arrow.uturn.forward")
                     .foregroundColor(canRedo ? .blue : .gray)
@@ -911,19 +905,13 @@ struct CodeEditorView: View {
                     showSearch = true
                 },
                 scrollToLine: scrollTargetLine,
-                // 撤销/重做触发器（外部按钮触发UITextView的撤销/重做操作）
-                undoTrigger: undoTrigger,
-                redoTrigger: redoTrigger,
                 // 撤销/重做状态更新回调
                 onUndoRedoStateChange: { canUndo, canRedo in
                     self.canUndo = canUndo
                     self.canRedo = canRedo
                 }
             )
-            // 代码区域跟随键盘弹出向上移动（使用KeyboardManager统一管理，彻底解决键盘跟随问题）
-            // 仅编辑模式下生效，底部padding = 键盘高度（不含安全区域）+ 底部工具栏高度（44pt）
-            .padding(.bottom, isEditing ? keyboardManager.keyboardHeightWithoutSafeArea + 44 : 0)
-            .animation(.easeOut(duration: keyboardManager.animationDuration), value: keyboardManager.keyboardHeightWithoutSafeArea)
+            // 使用系统自动键盘避让，UITextView会自动调整contentInset，无需手动添加padding
         }
     }
 
