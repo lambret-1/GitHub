@@ -443,9 +443,9 @@ struct CodeTextView: UIViewRepresentable {
         func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
             guard isEditable else { return true }
 
-            // 括号自动闭合
-            if autoCloseBrackets, let openBracket = bracketPairs[Character(text)], text.count == 1 {
-                return handleBracketAutoClose(textView: textView, range: range, openBracket: openBracket, closeBracket: bracketPairs[Character(text)]!)
+            // 括号自动闭合（先检查text.count == 1，避免Character(text)在多字符时崩溃）
+            if autoCloseBrackets, text.count == 1, let char = Character(text), let openBracket = bracketPairs[char] {
+                return handleBracketAutoClose(textView: textView, range: range, openBracket: openBracket, closeBracket: bracketPairs[char]!)
             }
 
             // 自动缩进（换行时）
@@ -456,6 +456,8 @@ struct CodeTextView: UIViewRepresentable {
             // 退格键处理：如果光标在括号对中间，同时删除左右括号
             if text == "", range.length == 1, range.location > 0 {
                 let nsText = textView.text as NSString
+                // 安全检查：确保range.location不越界
+                guard range.location <= nsText.length else { return true }
                 let charBefore = nsText.substring(with: NSRange(location: range.location - 1, length: 1))
                 let openBracket = Character(charBefore)
                 if let closeBracket = bracketPairs[openBracket], openBracket != closeBracket {
