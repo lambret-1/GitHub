@@ -15,6 +15,12 @@ class EditorThemeManager: ObservableObject {
     static let shared = EditorThemeManager()
 
     private init() {
+        // 先初始化内置主题列表
+        builtInThemes = builtInThemesList()
+        customThemes = []
+        // 给currentTheme一个默认值
+        currentTheme = builtInThemes[0]
+        // 然后加载用户选中的主题和自定义主题
         loadSelectedTheme()
         loadCustomThemes()
     }
@@ -459,9 +465,7 @@ class EditorThemeManager: ObservableObject {
 
     /// 加载选中的主题
     private func loadSelectedTheme() {
-        builtInThemes = builtInThemesList()
-        customThemes = []
-
+        // builtInThemes和customThemes已在init方法中初始化
         if let themeId = UserDefaults.standard.string(forKey: selectedThemeKey),
            let theme = allThemes.first(where: { $0.id == themeId }) {
             currentTheme = theme
