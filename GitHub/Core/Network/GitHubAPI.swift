@@ -1,19 +1,5 @@
 import Foundation
 
-// MARK: - GitHub代码搜索API响应模型（私有，避免与业务模型冲突）
-
-private struct GitHubCodeSearchResponse: Codable {
-    let totalCount: Int
-    let incompleteResults: Bool
-    let items: [CodeSearchItem]
-
-    enum CodingKeys: String, CodingKey {
-        case totalCount = "total_count"
-        case incompleteResults = "incomplete_results"
-        case items
-    }
-}
-
 class GitHubAPI {
     static let shared = GitHubAPI()
 
@@ -369,68 +355,7 @@ class GitHubAPI {
         }
     }
 
-    /// 搜索代码
-    func searchCode(query: String, page: Int = 1, completion: @escaping (Result<[CodeSearchItem], Error>) -> Void) {
-        let url = APIEndpoints.searchCode(query: query, page: page).url
 
-        performRequest(url: url) { result in
-            switch result {
-            case .success(let data):
-                do {
-                    let searchResult = try JSONDecoder().decode(GitHubCodeSearchResponse.self, from: data)
-                    completion(.success(searchResult.items))
-                } catch {
-                    completion(.failure(error))
-                }
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
-    }
-
-    /// 在指定仓库内搜索代码（本地仓库代码搜索）
-    /// 注意：GitHub代码搜索API默认搜索默认分支，branch参数预留用于未来扩展
-    /// 使用URLComponents构建URL，确保查询参数正确编码，避免特殊字符导致URL解析错误
-    func searchCodeInRepo(owner: String, repo: String, query: String, branch: String = "main", page: Int = 1, completion: @escaping (Result<[CodeSearchItem], Error>) -> Void) {
-        // 使用URLComponents构建URL，确保查询参数正确编码
-        guard var urlComponents = URLComponents(string: "\(APIEndpoints.baseURL)/search/code") else {
-            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "URL构建失败"])))
-            return
-        }
-
-        // 构建查询字符串：repo:owner/repo + 搜索词
-        let repoQuery = "repo:\(owner)/\(repo) \(query)"
-        urlComponents.queryItems = [
-            URLQueryItem(name: "q", value: repoQuery),
-            URLQueryItem(name: "page", value: "\(page)"),
-            URLQueryItem(name: "per_page", value: "30")
-        ]
-
-        guard let url = urlComponents.url?.absoluteString else {
-            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "URL构建失败"])))
-            return
-        }
-
-        performRequest(url: url) { result in
-            switch result {
-            case .success(let data):
-                do {
-                    let searchResult = try JSONDecoder().decode(GitHubCodeSearchResponse.self, from: data)
-                    completion(.success(searchResult.items))
-                } catch {
-                    // JSON解析失败时，尝试解析错误信息
-                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let message = json["message"] as? String {
-                        completion(.failure(NSError(domain: "GitHubAPI", code: -10, userInfo: [NSLocalizedDescriptionKey: "搜索失败: \(message)"])))
-                    } else {
-                        completion(.failure(error))
-                    }
-                }
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
-    }
     
     // MARK: - 文件内容
     
