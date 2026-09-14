@@ -72,10 +72,22 @@ struct CodeEditorView: View {
     @State private var imageOffset: CGSize = .zero
     // 图片加载任务，用于在页面消失时取消
     @State private var imageLoadTask: URLSessionDataTask?
-    
-    // 键盘高度（用于代码区域跟随键盘向上移动）
-    @State private var keyboardHeight: CGFloat = 0
-    
+
+    // 键盘管理器（统一管理键盘状态，彻底解决键盘跟随问题）
+    @ObservedObject private var keyboardManager = KeyboardManager.shared
+
+    // MARK: - 大文件降级模式（性能优化与崩溃防护）
+    // 大文件模式：>5MB，禁用编辑，只读快速浏览
+    @State private var isLargeFileMode: Bool = false
+    // 超大文件模式：>20MB，禁用语法高亮，纯文本显示
+    @State private var isUltraLargeFileMode: Bool = false
+    // 文件大小显示（格式化后的字符串）
+    @State private var fileSizeDisplay: String = ""
+
+    // 大文件阈值常量
+    private let largeFileThreshold: Int = 5 * 1024 * 1024 // 5MB
+    private let ultraLargeFileThreshold: Int = 20 * 1024 * 1024 // 20MB
+
     var body: some View {
         VStack(spacing: 0) {
             contentView
@@ -86,9 +98,8 @@ struct CodeEditorView: View {
                 editModeBottomBar
             }
         }
-        // 彻底解决键盘跟随问题：整个页面忽略键盘安全区域，不跟随键盘移动
-        // UITextView本身会自动调整contentInset处理键盘遮挡，用户仍可看到编辑内容
-        .ignoresSafeArea(.keyboard)
+        // 使用KeyboardManager统一管理键盘状态，代码区域自动避让键盘
+        // 不再使用.ignoresSafeArea(.keyboard)，避免UITextView contentInset计算异常
         .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏系统默认返回按钮，使用自定义返回按钮实现编辑保护
@@ -144,6 +155,7 @@ struct CodeEditorView: View {
                         }) {
                             Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark" : "pencil")
                         }
+                        .disabled(isLargeFileMode) // 大文件模式下禁用编辑
 
                         Button(action: {
                             UIPasteboard.general.string = codeText
@@ -306,45 +318,26 @@ struct CodeEditorView: View {
         }
         .onAppear {
             loadFile()
-            
-            // 监听键盘弹出
-            NotificationCenter.default.addObserver(
-                forName: UIResponder.keyboardWillShowNotification,
-                object: nil,
-                queue: .main
-            ) { notification in
-                if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                    keyboardHeight = frame.height
-                }
-            }
-            // 监听键盘收起
-            NotificationCenter.default.addObserver(
-                forName: UIResponder.keyboardWillHideNotification,
-                object: nil,
-                queue: .main
-            ) { _ in
-                keyboardHeight = 0
-            }
-            // 监听应用进入前台（修复退后台再进来工具栏位置异常bug）
+
+            // 键盘状态由KeyboardManager统一管理，无需本地监听
+            // 进入前台时重置键盘状态，避免状态残留
             NotificationCenter.default.addObserver(
                 forName: UIApplication.didBecomeActiveNotification,
                 object: nil,
                 queue: .main
             ) { _ in
-                // 进入前台时重置键盘高度，避免状态残留
-                keyboardHeight = 0
+                // 进入前台时重置键盘管理器状态
+                KeyboardManager.shared.reset()
             }
         }
         // 页面消失时强制恢复TabBar显示，防止编辑模式下返回导致TabBar一直隐藏
         .onDisappear {
-            // 移除键盘监听，避免内存泄漏和状态残留
-            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
-            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+            // 移除应用进入前台监听
             NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
-            
-            // 重置键盘高度，避免状态残留
-            keyboardHeight = 0
-            
+
+            // 重置键盘管理器状态，避免状态残留
+            KeyboardManager.shared.reset()
+
             // 取消正在进行的图片加载任务，避免回调访问已销毁的视图
             imageLoadTask?.cancel()
             imageLoadTask = nil
@@ -478,6 +471,17 @@ struct CodeEditorView: View {
                 Label(content.size.formattedFileSize, systemImage: "doc")
                     .font(.caption2)
                     .foregroundColor(.secondary)
+            }
+
+            // 大文件模式提示（性能优化与崩溃防护）
+            if isUltraLargeFileMode {
+                Label("超大文件·纯文本模式", systemImage: "exclamationmark.triangle")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+            } else if isLargeFileMode {
+                Label("大文件·只读模式", systemImage: "exclamationmark.triangle")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
             }
 
             Spacer()
@@ -747,9 +751,10 @@ struct CodeEditorView: View {
                 },
                 scrollToLine: scrollTargetLine
             )
-            // 代码区域跟随键盘弹出向上移动（仅编辑模式下生效，底部padding = 键盘高度 - 安全区域）
-            .padding(.bottom, isEditing ? max(0, keyboardHeight - (UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0)) : 0)
-            .animation(.easeOut(duration: 0.25), value: keyboardHeight)
+            // 代码区域跟随键盘弹出向上移动（使用KeyboardManager统一管理，彻底解决键盘跟随问题）
+            // 仅编辑模式下生效，底部padding = 键盘高度（不含安全区域）
+            .padding(.bottom, isEditing ? keyboardManager.keyboardHeightWithoutSafeArea : 0)
+            .animation(.easeOut(duration: keyboardManager.animationDuration), value: keyboardManager.keyboardHeightWithoutSafeArea)
         }
     }
 
@@ -877,8 +882,29 @@ struct CodeEditorView: View {
                     codeText = file.decodedContent
                     originalContent = codeText
 
+                    // 文件大小检测与降级策略（崩溃防护）
+                    let fileSize = file.size
+                    fileSizeDisplay = formatFileSize(fileSize)
+
+                    if fileSize >= ultraLargeFileThreshold {
+                        // 超大文件（>20MB）：禁用语法高亮，纯文本显示，禁用编辑
+                        isUltraLargeFileMode = true
+                        isLargeFileMode = true
+                        isEditing = false
+                    } else if fileSize >= largeFileThreshold {
+                        // 大文件（>5MB）：禁用编辑，只读快速浏览
+                        isLargeFileMode = true
+                        isUltraLargeFileMode = false
+                        isEditing = false
+                    } else {
+                        // 正常文件
+                        isLargeFileMode = false
+                        isUltraLargeFileMode = false
+                    }
+
                     // 如果设置了自动进入编辑模式，则在文件加载成功后自动进入编辑状态
-                    if autoEnterEditMode {
+                    // 大文件模式下强制禁用编辑
+                    if autoEnterEditMode && !isLargeFileMode {
                         isEditing = true
                     }
 
@@ -916,6 +942,18 @@ struct CodeEditorView: View {
                 }
             }
         }
+    }
+
+    // MARK: - 文件大小格式化（性能优化辅助）
+
+    /// 格式化文件大小为人类可读字符串
+    /// - Parameter size: 文件大小（字节）
+    /// - Returns: 格式化后的字符串
+    private func formatFileSize(_ size: Int) -> String {
+        let byteCountFormatter = ByteCountFormatter()
+        byteCountFormatter.allowedUnits = [.useBytes, .useKB, .useMB, .useGB]
+        byteCountFormatter.countStyle = .file
+        return byteCountFormatter.string(fromByteCount: Int64(size))
     }
     
     private func commitChanges() {
