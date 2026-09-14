@@ -15,11 +15,36 @@ class EditorThemeManager: ObservableObject {
     static let shared = EditorThemeManager()
 
     private init() {
-        // 先初始化内置主题列表
-        builtInThemes = builtInThemesList()
+        // 先给currentTheme一个临时默认值（避免初始化顺序问题）
+        currentTheme = EditorTheme(
+            id: "temp",
+            name: "临时",
+            description: "",
+            isBuiltIn: true,
+            backgroundColor: "#FFFFFF",
+            textColor: "#000000",
+            lineNumberBackgroundColor: "#F5F5F5",
+            lineNumberTextColor: "#A0A0A0",
+            currentLineHighlightColor: "#ECF5FF",
+            selectionColor: "#BBDFFF",
+            cursorColor: "#000000",
+            keywordColor: "#9B2393",
+            stringColor: "#C41A16",
+            numberColor: "#1C00CF",
+            commentColor: "#5D6C79",
+            functionColor: "#3900A0",
+            typeColor: "#3900A0",
+            variableColor: "#000000",
+            operatorColor: "#000000",
+            attributeColor: "#1C00CF",
+            regexColor: "#C41A16",
+            searchMatchColor: "#FFF8C5",
+            searchMatchActiveColor: "#FFE58F",
+            bracketMatchColor: "#BBDFFF"
+        )
+        // 初始化内置主题列表
+        builtInThemes = Self.builtInThemesList()
         customThemes = []
-        // 给currentTheme一个默认值
-        currentTheme = builtInThemes[0]
         // 然后加载用户选中的主题和自定义主题
         loadSelectedTheme()
         loadCustomThemes()
@@ -111,7 +136,7 @@ class EditorThemeManager: ObservableObject {
     // MARK: - 内置主题定义
 
     /// 获取所有内置主题
-    private func builtInThemesList() -> [EditorTheme] {
+    private static func builtInThemesList() -> [EditorTheme] {
         return [
             // GitHub 浅色主题
             EditorTheme(
