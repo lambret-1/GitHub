@@ -147,8 +147,22 @@ class SyntaxHighlighter {
             tokenizer = ShellTokenizer()
         case .yaml:
             tokenizer = YAMLTokenizer()
-        case .json, .xml, .html, .css, .sql, .plainText:
-            tokenizer = PlainTextTokenizer() // 非编程语言暂时使用纯文本Tokenizer兜底
+        case .json:
+            tokenizer = JSONTokenizer()
+        case .xml:
+            tokenizer = XMLTokenizer()
+        case .html:
+            tokenizer = HTMLTokenizer()
+        case .css:
+            tokenizer = CSSTokenizer()
+        case .sql:
+            tokenizer = SQLTokenizer()
+        case .ini:
+            tokenizer = INITokenizer()
+        case .toml:
+            tokenizer = TOMLTokenizer()
+        case .plainText:
+            tokenizer = PlainTextTokenizer()
         }
 
         // 缓存

@@ -86,6 +86,8 @@ enum ProgrammingLanguage: String, CaseIterable {
     case dart               // Dart
     case lua                // Lua
     case r                  // R
+    case ini                // INI配置文件
+    case toml               // TOML配置文件
     case plainText          // 纯文本（兜底）
 
     /// 语言显示名称（中文）
@@ -117,6 +119,8 @@ enum ProgrammingLanguage: String, CaseIterable {
         case .dart: return "Dart"
         case .lua: return "Lua"
         case .r: return "R"
+        case .ini: return "INI"
+        case .toml: return "TOML"
         case .plainText: return "纯文本"
         }
     }
@@ -150,6 +154,8 @@ enum ProgrammingLanguage: String, CaseIterable {
         case .dart: return ["dart"]
         case .lua: return ["lua"]
         case .r: return ["r", "R", "Rmd"]
+        case .ini: return ["ini", "cfg", "conf", "properties"]
+        case .toml: return ["toml"]
         case .plainText: return ["txt", "text"]
         }
     }
@@ -159,7 +165,7 @@ enum ProgrammingLanguage: String, CaseIterable {
         switch self {
         case .swift, .javascript, .typescript, .java, .go, .c, .cpp, .objectiveC, .rust, .kotlin, .csharp, .scala, .dart, .css, .php:
             return "//"
-        case .python, .ruby, .shell, .yaml, .r:
+        case .python, .ruby, .shell, .yaml, .r, .ini, .toml:
             return "#"
         case .sql, .lua:
             return "--"
