@@ -45,6 +45,10 @@ struct WorkflowRunDetailView: View {
     // 旋转动画状态
     @State private var rotationAngle: Double = 0
 
+    // 文件编辑器导航状态（推倒重做：点击🖊️编辑图标跳转到代码编辑器视图）
+    @State private var selectedFileForEdit: ChangedFile?
+    @State private var showFileEditor: Bool = false
+
     var body: some View {
         List {
             // 状态横幅
@@ -65,6 +69,13 @@ struct WorkflowRunDetailView: View {
         .listStyle(InsetGroupedListStyle())
         .navigationTitle("运行详情")
         .navigationBarTitleDisplayMode(.inline)
+        // 推倒重做：隐藏的NavigationLink，用于跳转到代码编辑器（点击🖊️编辑图标触发）
+        .background(
+            NavigationLink(destination: fileEditorDestination, isActive: $showFileEditor) {
+                EmptyView()
+            }
+            .hidden()
+        )
         .onAppear {
             if jobs.isEmpty {
                 loadJobs()
@@ -240,6 +251,26 @@ struct WorkflowRunDetailView: View {
         }
     }
 
+    // MARK: - 文件编辑器目标视图（推倒重做：点击🖊️编辑图标跳转到代码编辑器视图）
+
+    @ViewBuilder
+    private var fileEditorDestination: some View {
+        if let file = selectedFileForEdit {
+            // 使用项目统一的CodeEditorView代码编辑器，支持查看/编辑/搜索/保存提交
+            CodeEditorView(
+                owner: owner,
+                repo: repo,
+                path: file.filename,
+                branch: run.headBranch,
+                fileName: file.shortFilename,
+                // 自动进入编辑模式，方便用户直接修改代码
+                autoEnterEditMode: true
+            )
+        } else {
+            EmptyView()
+        }
+    }
+
     // MARK: - 变更文件
 
     private var changedFilesSection: some View {
@@ -272,42 +303,55 @@ struct WorkflowRunDetailView: View {
                     .listRowSeparator(.hidden)
             } else {
                 ForEach(changedFiles) { file in
-                    NavigationLink(destination: DiffView(owner: owner, repo: repo, changedFile: file, branch: run.headBranch)) {
-                        HStack(spacing: 12) {
-                            Image(systemName: file.statusIcon)
-                                .foregroundColor(file.statusColor)
-                                .frame(width: 20)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
+                    // 推倒重做：只有点击🖊️编辑图标才跳转到代码编辑器，点击文件名查看Diff
+                    HStack(spacing: 12) {
+                        // 左侧：文件状态图标 + 文件名（点击查看Diff）
+                        Button(action: {
+                            // 点击文件名查看Diff（后续可实现Diff查看）
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: file.statusIcon)
+                                    .foregroundColor(file.statusColor)
+                                    .frame(width: 20)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(file.shortFilename)
-                                    .font(.subheadline)
-                                    .lineLimit(1)
-                                if !file.filePath.isEmpty {
-                                    Text(file.filePath)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(file.shortFilename)
+                                        .font(.subheadline)
                                         .lineLimit(1)
+                                    if !file.filePath.isEmpty {
+                                        Text(file.filePath)
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(1)
+                                    }
                                 }
                             }
-
-                            Spacer()
-
-                            // 变更统计
-                            HStack(spacing: 6) {
-                                Text("+\(file.additions)")
-                                    .font(.caption2)
-                                    .foregroundColor(.green)
-                                Text("-\(file.deletions)")
-                                    .font(.caption2)
-                                    .foregroundColor(.red)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 10))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                                    .foregroundColor(.gray)
-                            }
                         }
-                        .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                        .buttonStyle(PlainButtonStyle())
+
+                        Spacer()
+
+                        // 右侧：变更统计 + 🖊️编辑图标（点击跳转到代码编辑器）
+                        HStack(spacing: 6) {
+                            Text("+\(file.additions)")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                            Text("-\(file.deletions)")
+                                .font(.caption2)
+                                .foregroundColor(.red)
+                            // 🖊️编辑图标：点击跳转到代码编辑器视图
+                            Button(action: {
+                                selectedFileForEdit = file
+                                showFileEditor = true
+                            }) {
+                                Image(systemName: "pencil.circle")
+                                    .font(.system(size: 16))  // 这是字体大小尺寸，控制图标显示的字号大小，单位是pt；改大图标更醒目易点击但占空间，改小图标更精致节省空间但可能难点击；还能配合.weight设粗体/设字重
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 }
             }
         }
