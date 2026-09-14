@@ -744,7 +744,8 @@ struct CodeEditorView: View {
                     currentMatchIndex = 0
                     showSearch = true
                 },
-                scrollToLine: scrollTargetLine
+                scrollToLine: scrollTargetLine,
+                fileName: fileName
             )
             // 代码区域跟随键盘弹出向上移动（仅编辑模式下生效，底部padding = 键盘高度 - 安全区域）
             .padding(.bottom, isEditing ? max(0, keyboardHeight - (UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0)) : 0)

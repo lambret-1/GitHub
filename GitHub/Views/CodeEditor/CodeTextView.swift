@@ -21,6 +21,8 @@ struct CodeTextView: UIViewRepresentable {
     var showLineNumbers: Bool
     @Binding var fontSize: CGFloat
     var onTextChange: ((String) -> Void)?
+    // 文件名（用于语法高亮语言检测）
+    var fileName: String = ""
 
     // 查找相关回调
     var onSearchResult: ((Int, Int) -> Void)?       // (当前匹配索引, 总匹配数)
@@ -90,7 +92,7 @@ struct CodeTextView: UIViewRepresentable {
         if isEditable {
             textStorage.setAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.label]))
         } else {
-            let highlightedText = SyntaxHighlighter.highlight(text, font: font)
+            let highlightedText = SyntaxHighlighter.highlight(text, font: font, fileName: fileName)
             textStorage.setAttributedString(highlightedText)
         }
 
@@ -102,6 +104,7 @@ struct CodeTextView: UIViewRepresentable {
         context.coordinator.onSelectedText = onSelectedText
         context.coordinator.onLookupSelectedText = onLookupSelectedText
         context.coordinator.isEditable = isEditable
+        context.coordinator.fileName = fileName
 
         // 双指缩放手势
         let pinchGesture = UIPinchGestureRecognizer(
@@ -116,6 +119,7 @@ struct CodeTextView: UIViewRepresentable {
     func updateUIView(_ textView: UITextView, context: Context) {
         textView.isEditable = isEditable
         context.coordinator.isEditable = isEditable
+        context.coordinator.fileName = fileName
 
         // 更新查找回调
         if let codeEditorTextView = textView as? CodeEditorTextView {
@@ -165,7 +169,7 @@ struct CodeTextView: UIViewRepresentable {
             if isEditable {
                 textView.textStorage.setAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.label]))
             } else {
-                let highlightedText = SyntaxHighlighter.highlight(text, font: font)
+                let highlightedText = SyntaxHighlighter.highlight(text, font: font, fileName: fileName)
                 textView.textStorage.setAttributedString(highlightedText)
             }
             textView.selectedRange = selectedRange
@@ -224,6 +228,8 @@ struct CodeTextView: UIViewRepresentable {
         var lastShowLineNumbers: Bool = true
         // 是否可编辑（用于判断是否禁用语法高亮，避免光标乱跳换行问题）
         var isEditable: Bool = false
+        // 文件名（用于语法高亮语言检测）
+        var fileName: String = ""
 
         private var highlightWorkItem: DispatchWorkItem?
         private var searchWorkItem: DispatchWorkItem?
@@ -376,7 +382,7 @@ struct CodeTextView: UIViewRepresentable {
             guard let currentText = textView.text else { return }
 
             // 生成带语法高亮的属性字符串
-            let highlightedText = SyntaxHighlighter.highlight(currentText, font: font)
+            let highlightedText = SyntaxHighlighter.highlight(currentText, font: font, fileName: fileName)
 
             // 标记内部更新，防止SwiftUI的updateUIView在语法高亮更新时重置光标位置
             isInternalUpdate = true
@@ -441,7 +447,7 @@ struct CodeTextView: UIViewRepresentable {
 
             guard !searchMatches.isEmpty else {
                 let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-                let highlightedText = SyntaxHighlighter.highlight(fullText, font: font)
+                let highlightedText = SyntaxHighlighter.highlight(fullText, font: font, fileName: fileName)
                 isInternalUpdate = true
                 textView.textStorage.setAttributedString(highlightedText)
                 DispatchQueue.main.async { [weak self] in
@@ -454,7 +460,7 @@ struct CodeTextView: UIViewRepresentable {
             let safeIndex = max(0, min(currentIndex, searchMatches.count - 1))
 
             let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-            let highlightedText = SyntaxHighlighter.highlight(fullText, font: font)
+            let highlightedText = SyntaxHighlighter.highlight(fullText, font: font, fileName: fileName)
             let mutableAttributedString = NSMutableAttributedString(attributedString: highlightedText)
 
             for (index, range) in searchMatches.enumerated() {
@@ -492,7 +498,7 @@ struct CodeTextView: UIViewRepresentable {
             guard !isSearching else { return }
 
             let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-            let highlightedText = SyntaxHighlighter.highlight(fullText, font: font)
+            let highlightedText = SyntaxHighlighter.highlight(fullText, font: font, fileName: fileName)
 
             isInternalUpdate = true
             textView.textStorage.setAttributedString(highlightedText)

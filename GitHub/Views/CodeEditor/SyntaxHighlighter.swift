@@ -1,205 +1,169 @@
 import UIKit
 
 // ==============================================================================
-// SyntaxHighlighter 语法高亮器
-// 功能：对代码文本进行语法分析，识别关键字、函数、字符串、注释、数字等，应用不同颜色
-// 风格：参考GitHub的语法高亮配色
+// SyntaxHighlighter 语法高亮器（入口门面）
+// 功能：对代码文本进行语法高亮，自动检测语言，调用对应Tokenizer
+// 架构：门面模式，统一入口，内部调度各语言Tokenizer
+// 位置：语法高亮系统的入口层
 // ==============================================================================
 
 class SyntaxHighlighter {
-    // 语法颜色配置（参考GitHub暗色主题配色，加深加饱和）
-    struct SyntaxColors {
-        static let plain = UIColor.label
-        static let keyword = UIColor(red: 0.89, green: 0.35, blue: 0.95, alpha: 1.0)  // 深紫色
-        static let function = UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 1.0)    // 深蓝色
-        static let string = UIColor(red: 0.25, green: 0.75, blue: 0.35, alpha: 1.0)   // 深绿色
-        static let comment = UIColor(red: 0.45, green: 0.55, blue: 0.45, alpha: 1.0)  // 深灰绿色
-        static let number = UIColor(red: 1.0, green: 0.6, blue: 0.2, alpha: 1.0)      // 深橙色
-        static let type = UIColor(red: 0.4, green: 0.7, blue: 1.0, alpha: 1.0)        // 中蓝色
-        static let operatorSymbol = UIColor(red: 0.95, green: 0.4, blue: 0.4, alpha: 1.0) // 深红色
-    }
+    // MARK: - 共享实例
 
-    // JavaScript/TypeScript 关键字
-    private static let keywords: Set<String> = [
-        "const", "let", "var", "function", "return", "if", "else", "for", "while",
-        "do", "switch", "case", "break", "continue", "try", "catch", "finally", "throw",
-        "new", "delete", "typeof", "instanceof", "in", "of", "class", "extends", "super",
-        "this", "import", "export", "from", "default", "async", "await", "yield", "void",
-        "null", "undefined", "true", "false", "NaN", "Infinity", "static", "get", "set",
-        "public", "private", "protected", "readonly", "abstract", "implements", "interface",
-        "enum", "namespace", "module", "declare", "type", "as", "is", "keyof", "infer",
-        "never", "unknown", "any", "string", "number", "boolean", "object", "symbol",
-        "bigint", "undefined", "void", "never", "unknown", "any"
-    ]
+    static let shared = SyntaxHighlighter()
 
-    // 内置函数和对象
-    private static let builtins: Set<String> = [
-        "console", "Math", "JSON", "Object", "Array", "String", "Number", "Boolean",
-        "Date", "RegExp", "Error", "Promise", "Map", "Set", "WeakMap", "WeakSet",
-        "Symbol", "Proxy", "Reflect", "Intl", "DataView", "ArrayBuffer", "SharedArrayBuffer",
-        "Atomics", "WebAssembly", "globalThis", "process", "Buffer", "require", "module",
-        "exports", "__dirname", "__filename", "setTimeout", "setInterval", "setImmediate",
-        "clearTimeout", "clearInterval", "clearImmediate", "fetch", "URL", "URLSearchParams",
-        "Headers", "Request", "Response", "AbortController", "AbortSignal", "TextEncoder",
-        "TextDecoder", "Blob", "File", "FileReader", "FormData", "XMLHttpRequest",
-        "WebSocket", "EventSource", "MessageChannel", "MessagePort", "BroadcastChannel",
-        "localStorage", "sessionStorage", "indexedDB", "document", "window", "navigator",
-        "location", "history", "screen", "performance", "crypto", "customElements"
-    ]
+    private init() {}
 
-    /// 对文本进行语法高亮
+    // MARK: - Tokenizer缓存
+
+    private var tokenizerCache: [ProgrammingLanguage: LanguageTokenizer] = [:]
+
+    // MARK: - 公共高亮方法
+
+    /// 对文本进行语法高亮（自动检测语言）
     /// - Parameters:
     ///   - text: 原始文本
     ///   - font: 基础字体
-    /// - Returns: 带语法高亮属性的NSAttributedString
+    ///   - fileName: 文件名（用于语言检测）
+    ///   - theme: 语法主题（nil则自动根据系统外观选择）
+    /// - Returns: 带语法高亮的NSAttributedString
+    static func highlight(
+        _ text: String,
+        font: UIFont,
+        fileName: String = "",
+        theme: SyntaxTheme? = nil
+    ) -> NSAttributedString {
+        return shared.highlight(text, font: font, fileName: fileName, theme: theme)
+    }
+
+    /// 对文本进行语法高亮（指定语言）
+    /// - Parameters:
+    ///   - text: 原始文本
+    ///   - font: 基础字体
+    ///   - language: 编程语言
+    ///   - theme: 语法主题（nil则自动根据系统外观选择）
+    /// - Returns: 带语法高亮的NSAttributedString
+    static func highlight(
+        _ text: String,
+        font: UIFont,
+        language: ProgrammingLanguage,
+        theme: SyntaxTheme? = nil
+    ) -> NSAttributedString {
+        return shared.highlight(text, font: font, language: language, theme: theme)
+    }
+
+    // MARK: - 实例方法
+
+    private func highlight(
+        _ text: String,
+        font: UIFont,
+        fileName: String,
+        theme: SyntaxTheme?
+    ) -> NSAttributedString {
+        // 1. 检测语言
+        let language = LanguageDetector.shared.detectLanguage(fileName: fileName, fileContent: text)
+
+        // 2. 使用检测到的语言进行高亮
+        return highlight(text, font: font, language: language, theme: theme)
+    }
+
+    private func highlight(
+        _ text: String,
+        font: UIFont,
+        language: ProgrammingLanguage,
+        theme: SyntaxTheme?
+    ) -> NSAttributedString {
+        // 1. 获取主题
+        let syntaxTheme = theme ?? ThemeManager.shared.currentTheme
+
+        // 2. 获取Tokenizer
+        let tokenizer = getTokenizer(for: language)
+
+        // 3. 词法分析
+        let tokens = tokenizer.tokenize(text)
+
+        // 4. 应用高亮
+        return HighlightEngine.shared.applyHighlight(
+            text: text,
+            tokens: tokens,
+            font: font,
+            theme: syntaxTheme
+        )
+    }
+
+    // MARK: - Tokenizer获取与缓存
+
+    /// 获取指定语言的Tokenizer（带缓存）
+    /// - Parameter language: 编程语言
+    /// - Returns: 对应的Tokenizer
+    private func getTokenizer(for language: ProgrammingLanguage) -> LanguageTokenizer {
+        // 检查缓存
+        if let cached = tokenizerCache[language] {
+            return cached
+        }
+
+        // 创建新的Tokenizer
+        let tokenizer: LanguageTokenizer
+        switch language {
+        case .swift:
+            tokenizer = SwiftTokenizer()
+        case .python:
+            tokenizer = PythonTokenizer()
+        case .javascript, .typescript:
+            tokenizer = JavaScriptTokenizer()
+        case .markdown:
+            tokenizer = MarkdownTokenizer()
+        default:
+            // 其他语言暂时使用纯文本Tokenizer兜底
+            tokenizer = PlainTextTokenizer()
+        }
+
+        // 缓存
+        tokenizerCache[language] = tokenizer
+        return tokenizer
+    }
+
+    // MARK: - 语言检测
+
+    /// 检测文件的编程语言
+    /// - Parameters:
+    ///   - fileName: 文件名
+    ///   - fileContent: 文件内容（可选）
+    /// - Returns: 检测到的编程语言
+    static func detectLanguage(fileName: String, fileContent: String? = nil) -> ProgrammingLanguage {
+        return LanguageDetector.shared.detectLanguage(fileName: fileName, fileContent: fileContent)
+    }
+
+    // MARK: - 主题获取
+
+    /// 获取当前主题
+    static var currentTheme: SyntaxTheme {
+        return ThemeManager.shared.currentTheme
+    }
+
+    /// 获取指定外观模式的主题
+    static func theme(for style: UIUserInterfaceStyle) -> SyntaxTheme {
+        return ThemeManager.shared.theme(for: style)
+    }
+
+    // MARK: - 清除缓存
+
+    /// 清除Tokenizer缓存（内存不足时调用）
+    func clearCache() {
+        tokenizerCache.removeAll()
+    }
+}
+
+// MARK: - 向后兼容（旧API）
+
+extension SyntaxHighlighter {
+    /// 旧版高亮方法（向后兼容）
+    /// - Parameters:
+    ///   - text: 原始文本
+    ///   - font: 基础字体
+    /// - Returns: 带语法高亮的NSAttributedString
+    @available(*, deprecated, message: "请使用 highlight(_:font:fileName:theme:) 方法")
     static func highlight(_ text: String, font: UIFont) -> NSAttributedString {
-        let attributedString = NSMutableAttributedString(string: text)
-        let fullRange = NSRange(location: 0, length: text.utf16.count)
-
-        // 设置基础字体和颜色
-        attributedString.addAttribute(.font, value: font, range: fullRange)
-        attributedString.addAttribute(.foregroundColor, value: SyntaxColors.plain, range: fullRange)
-
-        // 1. 先处理注释（单行和多行）
-        highlightComments(text: text, attributedString: attributedString)
-
-        // 2. 处理字符串
-        highlightStrings(text: text, attributedString: attributedString)
-
-        // 3. 处理数字
-        highlightNumbers(text: text, attributedString: attributedString)
-
-        // 4. 处理关键字和函数名
-        highlightKeywordsAndFunctions(text: text, attributedString: attributedString)
-
-        return attributedString
-    }
-
-    // MARK: - 注释高亮
-
-    private static func highlightComments(text: String, attributedString: NSMutableAttributedString) {
-        // 单行注释 //
-        if let regex = try? NSRegularExpression(pattern: "//[^\\n]*", options: []) {
-            regex.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.utf16.count)) { match, _, _ in
-                if let range = match?.range {
-                    attributedString.addAttribute(.foregroundColor, value: SyntaxColors.comment, range: range)
-                }
-            }
-        }
-
-        // 多行注释 /* */
-        if let regex = try? NSRegularExpression(pattern: "/\\*[\\s\\S]*?\\*/", options: []) {
-            regex.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.utf16.count)) { match, _, _ in
-                if let range = match?.range {
-                    attributedString.addAttribute(.foregroundColor, value: SyntaxColors.comment, range: range)
-                }
-            }
-        }
-    }
-
-    // MARK: - 字符串高亮
-
-    private static func highlightStrings(text: String, attributedString: NSMutableAttributedString) {
-        // 单引号字符串
-        if let regex = try? NSRegularExpression(pattern: "'[^'\\\\\\n]*(?:\\\\.[^'\\\\\\n]*)*'", options: []) {
-            regex.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.utf16.count)) { match, _, _ in
-                if let range = match?.range {
-                    attributedString.addAttribute(.foregroundColor, value: SyntaxColors.string, range: range)
-                }
-            }
-        }
-
-        // 双引号字符串
-        if let regex = try? NSRegularExpression(pattern: "\"[^\"\\\\\\n]*(?:\\\\.[^\"\\\\\\n]*)*\"", options: []) {
-            regex.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.utf16.count)) { match, _, _ in
-                if let range = match?.range {
-                    attributedString.addAttribute(.foregroundColor, value: SyntaxColors.string, range: range)
-                }
-            }
-        }
-
-        // 模板字符串
-        if let regex = try? NSRegularExpression(pattern: "`[^`\\\\]*(?:\\\\.[^`\\\\]*)*`", options: []) {
-            regex.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.utf16.count)) { match, _, _ in
-                if let range = match?.range {
-                    attributedString.addAttribute(.foregroundColor, value: SyntaxColors.string, range: range)
-                }
-            }
-        }
-    }
-
-    // MARK: - 数字高亮
-
-    private static func highlightNumbers(text: String, attributedString: NSMutableAttributedString) {
-        // 数字（包括十六进制、二进制、八进制、浮点数、大整数）
-        if let regex = try? NSRegularExpression(pattern: "\\b(?:0x[0-9a-fA-F]+|0b[01]+|0o[0-7]+|\\d+\\.?\\d*(?:[eE][+-]?\\d+)?n?)\\b", options: []) {
-            regex.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.utf16.count)) { match, _, _ in
-                if let range = match?.range {
-                    // 检查是否在字符串或注释中（简单检查：如果前面是引号则跳过）
-                    attributedString.addAttribute(.foregroundColor, value: SyntaxColors.number, range: range)
-                }
-            }
-        }
-    }
-
-    // MARK: - 关键字和函数名高亮
-
-    private static func highlightKeywordsAndFunctions(text: String, attributedString: NSMutableAttributedString) {
-        // 匹配标识符
-        if let regex = try? NSRegularExpression(pattern: "\\b[A-Za-z_$][A-Za-z0-9_$]*\\b", options: []) {
-            regex.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.utf16.count)) { match, _, _ in
-                guard let range = match?.range,
-                      let swiftRange = Range(range, in: text) else { return }
-
-                let word = String(text[swiftRange])
-
-                // 检查是否已经被设置为字符串或注释颜色（避免覆盖）
-                var currentColor: UIColor?
-                if range.location < attributedString.length {
-                    attributedString.enumerateAttribute(.foregroundColor, in: range, options: []) { value, _, stop in
-                        if let color = value as? UIColor {
-                            currentColor = color
-                            stop.pointee = true
-                        }
-                    }
-                }
-
-                // 如果已经是字符串或注释颜色，跳过
-                if let color = currentColor,
-                   color == SyntaxColors.string || color == SyntaxColors.comment {
-                    return
-                }
-
-                // 关键字
-                if keywords.contains(word) {
-                    attributedString.addAttribute(.foregroundColor, value: SyntaxColors.keyword, range: range)
-                    return
-                }
-
-                // 内置对象
-                if builtins.contains(word) {
-                    attributedString.addAttribute(.foregroundColor, value: SyntaxColors.type, range: range)
-                    return
-                }
-
-                // 函数调用（后面跟着括号）
-                if range.location + range.length < text.utf16.count {
-                    let nextCharRange = NSRange(location: range.location + range.length, length: 1)
-                    if nextCharRange.location < text.utf16.count,
-                       let nextSwiftRange = Range(nextCharRange, in: text) {
-                        let nextChar = text[nextSwiftRange]
-                        if nextChar == "(" {
-                            attributedString.addAttribute(.foregroundColor, value: SyntaxColors.function, range: range)
-                            return
-                        }
-                    }
-                }
-
-                // 类型名（大写开头）
-                if let firstChar = word.first, firstChar.isUppercase {
-                    attributedString.addAttribute(.foregroundColor, value: SyntaxColors.type, range: range)
-                }
-            }
-        }
+        return highlight(text, font: font, fileName: "")
     }
 }
