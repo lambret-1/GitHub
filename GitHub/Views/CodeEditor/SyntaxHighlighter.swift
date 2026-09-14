@@ -199,6 +199,89 @@ class SyntaxHighlighter {
     func clearCache() {
         tokenizerCache.removeAll()
     }
+
+    // MARK: - 异步高亮（性能优化）
+
+    /// 异步执行语法高亮（带缓存，后台线程执行）
+    /// - Parameters:
+    ///   - text: 原始文本
+    ///   - font: 基础字体
+    ///   - fileName: 文件名（用于语言检测）
+    ///   - theme: 语法主题（nil则自动根据系统外观选择）
+    ///   - completion: 完成回调（在主线程调用）
+    /// - Returns: 任务ID（可用于取消）
+    @discardableResult
+    static func highlightAsync(
+        _ text: String,
+        font: UIFont,
+        fileName: String = "",
+        theme: SyntaxTheme? = nil,
+        completion: @escaping (NSAttributedString) -> Void
+    ) -> Int {
+        // 检测语言
+        let language = LanguageDetector.shared.detectLanguage(fileName: fileName, fileContent: text)
+        let syntaxTheme = theme ?? ThemeManager.shared.currentTheme
+
+        // 使用任务管理器异步执行
+        return HighlightTaskManager.shared.highlightAsync(
+            text: text,
+            language: language,
+            font: font,
+            theme: syntaxTheme,
+            completion: completion
+        )
+    }
+
+    /// 异步执行语法高亮（指定语言，带缓存，后台线程执行）
+    /// - Parameters:
+    ///   - text: 原始文本
+    ///   - font: 基础字体
+    ///   - language: 编程语言
+    ///   - theme: 语法主题（nil则自动根据系统外观选择）
+    ///   - completion: 完成回调（在主线程调用）
+    /// - Returns: 任务ID（可用于取消）
+    @discardableResult
+    static func highlightAsync(
+        _ text: String,
+        font: UIFont,
+        language: ProgrammingLanguage,
+        theme: SyntaxTheme? = nil,
+        completion: @escaping (NSAttributedString) -> Void
+    ) -> Int {
+        let syntaxTheme = theme ?? ThemeManager.shared.currentTheme
+
+        // 使用任务管理器异步执行
+        return HighlightTaskManager.shared.highlightAsync(
+            text: text,
+            language: language,
+            font: font,
+            theme: syntaxTheme,
+            completion: completion
+        )
+    }
+
+    /// 取消当前异步高亮任务
+    static func cancelCurrentHighlight() {
+        HighlightTaskManager.shared.cancelCurrent()
+    }
+
+    // MARK: - 缓存管理
+
+    /// 清除所有高亮缓存
+    static func clearHighlightCache() {
+        HighlightCache.shared.clearAll()
+    }
+
+    /// 清除指定语言的高亮缓存
+    static func clearHighlightCache(for language: ProgrammingLanguage) {
+        HighlightCache.shared.clear(for: language)
+    }
+
+    /// 获取缓存统计信息
+    static var cacheStats: (count: Int, memory: Int, hitRate: Double) {
+        let stats = HighlightCache.shared.stats
+        return (stats.count, stats.memory, HighlightCache.shared.hitRate)
+    }
 }
 
 // MARK: - 向后兼容（旧API）
