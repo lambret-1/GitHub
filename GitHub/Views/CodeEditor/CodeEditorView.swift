@@ -723,6 +723,7 @@ struct CodeEditorView: View {
                 showLineNumbers: showLineNumbers,
                 fontSize: $fontSize,
                 onTextChange: { _ in },
+                fileName: fileName,
                 onSearchResult: { current, total in
                     currentMatchIndex = current - 1
                     totalMatches = total
@@ -744,8 +745,7 @@ struct CodeEditorView: View {
                     currentMatchIndex = 0
                     showSearch = true
                 },
-                scrollToLine: scrollTargetLine,
-                fileName: fileName
+                scrollToLine: scrollTargetLine
             )
             // 代码区域跟随键盘弹出向上移动（仅编辑模式下生效，底部padding = 键盘高度 - 安全区域）
             .padding(.bottom, isEditing ? max(0, keyboardHeight - (UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0)) : 0)
