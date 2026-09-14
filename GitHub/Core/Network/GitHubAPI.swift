@@ -1,5 +1,19 @@
 import Foundation
 
+// MARK: - GitHub代码搜索API响应模型（私有，避免与业务模型冲突）
+
+private struct GitHubCodeSearchResponse: Codable {
+    let totalCount: Int
+    let incompleteResults: Bool
+    let items: [CodeSearchItem]
+
+    enum CodingKeys: String, CodingKey {
+        case totalCount = "total_count"
+        case incompleteResults = "incomplete_results"
+        case items
+    }
+}
+
 class GitHubAPI {
     static let shared = GitHubAPI()
 
@@ -355,6 +369,24 @@ class GitHubAPI {
         }
     }
 
+    /// 搜索代码
+    func searchCode(query: String, page: Int = 1, completion: @escaping (Result<[CodeSearchItem], Error>) -> Void) {
+        let url = APIEndpoints.searchCode(query: query, page: page).url
+
+        performRequest(url: url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let searchResult = try JSONDecoder().decode(GitHubCodeSearchResponse.self, from: data)
+                    completion(.success(searchResult.items))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
 
     
     // MARK: - 文件内容

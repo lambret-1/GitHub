@@ -28,6 +28,7 @@ struct RepoCodeSearchView: View {
                 CodeSnippetSheet(
                     file: file,
                     viewModel: viewModel,
+                    query: viewModel.query,
                     onJump: { line in
                         onJumpToCode(file.path, line)
                         dismiss()
@@ -160,6 +161,7 @@ struct RepoCodeSearchView: View {
 private struct CodeSnippetSheet: View {
     let file: CodeSearchFile
     let viewModel: RepoCodeSearchViewModel
+    let query: String
     let onJump: (Int) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -253,9 +255,9 @@ private struct CodeSnippetSheet: View {
 
     private func highlightedText(_ text: String) -> AttributedString {
         var attr = AttributedString(text)
-        let query = viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return attr }
-        if let range = text.range(of: query, options: .caseInsensitive) {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else { return attr }
+        if let range = text.range(of: trimmedQuery, options: .caseInsensitive) {
             if let attrRange = Range(range, in: attr) {
                 attr[attrRange].backgroundColor = .yellow
                 attr[attrRange].foregroundColor = .red
