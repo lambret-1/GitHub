@@ -94,6 +94,12 @@ struct CodeEditorView: View {
     // 符号导航弹窗显示状态
     @State private var showSymbolPicker: Bool = false
 
+    // 编辑器主题管理器（第四期：协作与生产力）
+    @ObservedObject private var themeManager = EditorThemeManager.shared
+
+    // 主题选择弹窗显示状态
+    @State private var showThemePicker: Bool = false
+
     // MARK: - 大文件降级模式（性能优化与崩溃防护）
     // 大文件模式：>5MB，禁用编辑，只读快速浏览
     @State private var isLargeFileMode: Bool = false
@@ -194,6 +200,13 @@ struct CodeEditorView: View {
                             showSymbolPicker = true
                         }) {
                             Label("符号导航", systemImage: "list.bullet.indent")
+                        }
+
+                        // 编辑器主题（第四期：协作与生产力）
+                        Button(action: {
+                            showThemePicker = true
+                        }) {
+                            Label("编辑器主题", systemImage: "paintpalette")
                         }
 
                         Divider()
@@ -424,6 +437,13 @@ struct CodeEditorView: View {
                 // 跳转到符号所在行
                 scrollTargetLine = symbol.lineNumber
                 showSymbolPicker = false
+            }
+        }
+        // 主题选择弹窗（第四期：协作与生产力）
+        .sheet(isPresented: $showThemePicker) {
+            ThemePickerView { theme in
+                themeManager.switchTheme(theme)
+                showThemePicker = false
             }
         }
     }
