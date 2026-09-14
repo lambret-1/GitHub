@@ -83,10 +83,16 @@ struct CodeTextView: UIViewRepresentable {
         )
         layoutManager.containerInset = textView.textContainerInset
 
-        // 设置初始文本（带语法高亮）
+        // 设置初始文本
+        // 编辑模式下使用纯文本，避免语法高亮导致光标乱跳换行问题
+        // 查看模式下使用带语法高亮的属性字符串
         let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        let highlightedText = SyntaxHighlighter.highlight(text, font: font)
-        textStorage.setAttributedString(highlightedText)
+        if isEditable {
+            textStorage.setAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.label]))
+        } else {
+            let highlightedText = SyntaxHighlighter.highlight(text, font: font)
+            textStorage.setAttributedString(highlightedText)
+        }
 
         // 保存 coordinator 引用
         context.coordinator.textView = textView
@@ -153,8 +159,13 @@ struct CodeTextView: UIViewRepresentable {
         // 外部文本变化时更新
         if textView.text != text && !context.coordinator.isInternalUpdate {
             let selectedRange = textView.selectedRange
-            let highlightedText = SyntaxHighlighter.highlight(text, font: font)
-            textView.textStorage.setAttributedString(highlightedText)
+            // 编辑模式下使用纯文本，避免语法高亮导致光标乱跳换行问题
+            if isEditable {
+                textView.textStorage.setAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.label]))
+            } else {
+                let highlightedText = SyntaxHighlighter.highlight(text, font: font)
+                textView.textStorage.setAttributedString(highlightedText)
+            }
             textView.selectedRange = selectedRange
         }
 
@@ -318,40 +329,67 @@ struct CodeTextView: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) {
             guard !isSearching else { return }
 
+            // 标记内部更新，防止SwiftUI的updateUIView在文本更新时重置光标位置
             isInternalUpdate = true
             text = textView.text
             onTextChange?(textView.text)
 
+            // 编辑模式下完全禁用语法高亮，避免光标乱跳换行问题
+            // 查看模式下才应用语法高亮
+            guard !isEditable else {
+                // 确保在下一个runloop周期后才允许updateUIView更新文本
+                DispatchQueue.main.async { [weak self] in
+                    self?.isInternalUpdate = false
+                }
+                return
+            }
+
+            // 取消之前的语法高亮任务
             highlightWorkItem?.cancel()
+
+            // 延迟应用语法高亮，避免在用户连续输入时频繁重绘导致光标乱跳
             let workItem = DispatchWorkItem { [weak self] in
                 guard let self = self, let textView = self.textView else { return }
                 self.applySyntaxHighlight(textView: textView)
             }
             highlightWorkItem = workItem
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
 
-            // 延迟设置isInternalUpdate = false，确保SwiftUI的updateUIView在当前runloop中先执行
-            // 避免updateUIView中的文本更新逻辑被触发，导致光标位置丢失
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
+            // 确保在下一个runloop周期后才允许updateUIView更新文本
+            // 这样可以保证用户输入的文本不会被SwiftUI的状态更新覆盖，同时避免光标位置丢失
+            DispatchQueue.main.async { [weak self] in
                 self?.isInternalUpdate = false
             }
         }
 
-        /// 应用语法高亮
+        /// 应用语法高亮（修复光标乱跳问题：使用beginEditing/endEditing，避免替换整个textStorage）
         private func applySyntaxHighlight(textView: UITextView) {
             guard !isSearching else { return }
 
+            // 保存当前光标位置和选中范围
             let selectedRange = textView.selectedRange
             let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
             guard let currentText = textView.text else { return }
+
+            // 生成带语法高亮的属性字符串
             let highlightedText = SyntaxHighlighter.highlight(currentText, font: font)
 
+            // 标记内部更新，防止SwiftUI的updateUIView在语法高亮更新时重置光标位置
             isInternalUpdate = true
-            textView.textStorage.setAttributedString(highlightedText)
-            textView.selectedRange = selectedRange
 
-            // 延迟设置isInternalUpdate = false，确保SwiftUI的updateUIView在当前runloop中先执行
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
+            // 使用beginEditing/endEditing包裹，避免替换整个textStorage导致光标重置
+            textView.textStorage.beginEditing()
+            // 替换整个内容，但保留selectedRange
+            textView.textStorage.setAttributedString(highlightedText)
+            textView.textStorage.endEditing()
+
+            // 恢复光标位置和选中范围（关键：确保光标不会乱跳）
+            textView.selectedRange = selectedRange
+            // 确保光标可见
+            textView.scrollRangeToVisible(selectedRange)
+
+            // 在下一个runloop周期后允许updateUIView更新文本
+            DispatchQueue.main.async { [weak self] in
                 self?.isInternalUpdate = false
             }
         }
