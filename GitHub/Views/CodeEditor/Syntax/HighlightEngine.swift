@@ -100,7 +100,7 @@ class HighlightEngine {
                         // 语言标识使用特殊颜色
                         let langRange = NSRange(location: token.range.location + 3, length: languageName.utf16.count)
                         if langRange.location + langRange.length <= text.utf16.count {
-                            attributedString.addAttribute(.foregroundColor, value: theme.keywordColor, range: langRange)
+                            attributedString.addAttribute(.foregroundColor, value: theme.color(for: .keyword), range: langRange)
                         }
                     }
                 }

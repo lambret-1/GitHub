@@ -96,7 +96,7 @@ class SyntaxHighlighter {
     /// 获取指定语言的Tokenizer（带缓存）
     /// - Parameter language: 编程语言
     /// - Returns: 对应的Tokenizer
-    private func getTokenizer(for language: ProgrammingLanguage) -> LanguageTokenizer {
+    func getTokenizer(for language: ProgrammingLanguage) -> LanguageTokenizer {
         // 检查缓存
         if let cached = tokenizerCache[language] {
             return cached
