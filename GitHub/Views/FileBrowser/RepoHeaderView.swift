@@ -265,8 +265,8 @@ struct RepoHeaderView: View {
                 }
 
                 
-                Spacer()
-            }
+                
+            
 
             // 第六行：创建/更新时间
             HStack(spacing: 16) {
