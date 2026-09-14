@@ -2,9 +2,9 @@
 //  CrashLogger.swift
 //  GitHub
 //
-//  崩溃日志记录器：使用Signal Handler和NSException Handler双机制捕获崩溃
-//  完整记录崩溃时间、类型、原因、调用栈、设备信息、应用版本
-//  持久化到Documents/CrashLogs目录，保留最近20条
+//  崩溃日志记录器（纯C底层实现，确保在崩溃上下文中能够可靠保存日志）
+//  使用sigaction安装Signal Handler，NSSetUncaughtExceptionHandler安装异常Handler
+//  Handler中仅使用write系统调用直接写文件，不执行任何Swift高层API操作
 //
 
 import Foundation
@@ -16,6 +16,16 @@ final class CrashLogger {
     // MARK: - 单例
     static let shared = CrashLogger()
 
+    // MARK: - 全局变量（用于Signal Handler中访问，避免访问对象属性）
+    /// 崩溃日志目录路径（C字符串，用于Signal Handler）
+    private static var crashLogDirCString: [CChar] = []
+    /// 是否已安装崩溃处理器
+    private static var isInstalled = false
+    /// 之前的NSException Handler
+    private static var previousUncaughtExceptionHandler: NSUncaughtExceptionHandler?
+    /// 之前的Signal Handler
+    private static var previousSignalHandlers: [Int32: sig_t] = [:]
+
     // MARK: - 私有属性
     /// 崩溃日志存储目录
     private let crashLogDirectory: URL
@@ -25,14 +35,6 @@ final class CrashLogger {
     private let crashLogFilePrefix = "crash_"
     /// 崩溃日志文件扩展名
     private let crashLogFileExtension = "log"
-    /// 之前的Signal Handler（用于恢复）
-    private var previousSignalHandlers: [Int32: sig_t] = [:]
-    /// 之前的NSException Handler
-    private var previousUncaughtExceptionHandler: NSUncaughtExceptionHandler?
-    /// 是否已安装崩溃处理器
-    private var isInstalled = false
-    /// 崩溃日志队列（串行队列，保证线程安全）
-    private let logQueue = DispatchQueue(label: "com.github.crashlogger.queue", qos: .utility)
 
     // MARK: - 初始化
     private init() {
@@ -42,25 +44,30 @@ final class CrashLogger {
 
         // 创建崩溃日志目录（如果不存在）
         try? FileManager.default.createDirectory(at: crashLogDirectory, withIntermediateDirectories: true, attributes: nil)
+
+        // 将目录路径转换为C字符串，保存到全局变量（用于Signal Handler）
+        let pathString = crashLogDirectory.path
+        crashLogDirCString = pathString.utf8CString.map { $0 }
     }
 
     // MARK: - 安装崩溃处理器
-    /// 安装崩溃处理器（在App启动时调用，只需调用一次）
+    /// 安装崩溃处理器（在App启动最早期调用，只需调用一次）
     func install() {
-        guard !isInstalled else { return }
-        isInstalled = true
+        guard !CrashLogger.isInstalled else { return }
+        CrashLogger.isInstalled = true
 
         // 保存之前的NSException Handler
-        previousUncaughtExceptionHandler = NSGetUncaughtExceptionHandler()
+        CrashLogger.previousUncaughtExceptionHandler = NSGetUncaughtExceptionHandler()
 
         // 设置NSException Handler（捕获Objective-C异常，如数组越界、字典nil等）
         NSSetUncaughtExceptionHandler { exception in
-            CrashLogger.shared.handleException(exception)
+            CrashLogger.handleObjectiveCException(exception)
         }
 
-        // 保存之前的Signal Handler并设置新的Signal Handler（捕获Mach异常，如段错误、总线错误等）
+        // 使用sigaction安装Signal Handler（捕获Mach异常，如段错误、总线错误等）
+        // sigaction比signal更可靠，不会被系统重置
         let signals: [Int32] = [
-            SIGABRT,  // 程序中止（如assert失败、abort()调用）
+            SIGABRT,  // 程序中止（如assert失败、abort()调用、Swift运行时崩溃）
             SIGSEGV,  // 段错误（非法内存访问）
             SIGBUS,   // 总线错误（非法地址访问）
             SIGFPE,   // 浮点异常（除零、溢出等）
@@ -70,33 +77,37 @@ final class CrashLogger {
         ]
 
         for sig in signals {
-            let previousHandler = signal(sig) { signalValue in
-                CrashLogger.shared.handleSignal(signalValue)
+            var action = sigaction()
+            action.sa_flags = SA_SIGINFO | SA_RESTART
+            action.sa_sigaction = { (signalNumber, _, _) in
+                CrashLogger.handleSignal(signalNumber)
             }
-            previousSignalHandlers[sig] = previousHandler
+            sigemptyset(&action.sa_mask)
+
+            // 保存之前的Handler
+            var oldAction = sigaction()
+            if sigaction(sig, &action, &oldAction) == 0 {
+                // 保存之前的Handler（用于恢复和链式调用）
+                if let handler = oldAction.__sigaction_u.__sa_handler {
+                    CrashLogger.previousSignalHandlers[sig] = handler
+                }
+            }
         }
     }
 
-    // MARK: - 处理NSException
-    /// 处理Objective-C异常
-    private func handleException(_ exception: NSException) {
+    // MARK: - 处理Objective-C异常（C函数，使用纯C实现）
+    /// 处理Objective-C异常（在崩溃上下文中调用，仅使用安全的C API）
+    private static func handleObjectiveCException(_ exception: NSException) {
+        // 生成崩溃日志内容（使用NSString，避免Swift字符串在崩溃上下文中的问题）
         let crashType = "NSException"
-        let crashReason = exception.reason ?? "未知原因"
-        let callStack = exception.callStackSymbols.joined(separator: "\n")
         let exceptionName = exception.name.rawValue
+        let exceptionReason = exception.reason ?? "未知原因"
+        let callStack = exception.callStackSymbols.joined(separator: "\n")
 
-        let crashInfo = CrashInfo(
-            crashType: crashType,
-            crashReason: "\(exceptionName): \(crashReason)",
-            callStack: callStack,
-            additionalInfo: [
-                "exception_name": exceptionName,
-                "exception_reason": crashReason,
-                "user_info": String(describing: exception.userInfo ?? [:])
-            ]
-        )
+        let crashReason = "\(exceptionName): \(exceptionReason)"
 
-        saveCrashLog(crashInfo)
+        // 保存崩溃日志
+        saveCrashLogPureC(crashType: crashType, crashReason: crashReason, callStack: callStack)
 
         // 调用之前的Handler（如果有）
         if let previousHandler = previousUncaughtExceptionHandler {
@@ -104,109 +115,65 @@ final class CrashLogger {
         }
     }
 
-    // MARK: - 处理Signal
-    /// 处理Signal异常
-    private func handleSignal(_ sigValue: Int32) {
+    // MARK: - 处理Signal异常（C函数，使用纯C实现）
+    /// 处理Signal异常（在崩溃上下文中调用，仅使用安全的C API）
+    private static func handleSignal(_ signalNumber: Int32) {
+        // 生成崩溃日志内容
         let crashType = "Signal"
-        let signalName = signalName(for: sigValue)
-        let crashReason = "Signal \(sigValue) (\(signalName))"
+        let signalName = signalNamePureC(signalNumber)
+        let crashReason = "Signal \(signalNumber) (\(signalName))"
 
-        // 获取调用栈（使用backtrace_symbols）
-        let callStack = getCallStack()
+        // 获取调用栈（使用backtrace_symbols，纯C实现）
+        let callStack = getCallStackPureC()
 
-        let crashInfo = CrashInfo(
-            crashType: crashType,
-            crashReason: crashReason,
-            callStack: callStack,
-            additionalInfo: [
-                "signal_number": "\(sigValue)",
-                "signal_name": signalName
-            ]
-        )
-
-        saveCrashLog(crashInfo)
+        // 保存崩溃日志
+        saveCrashLogPureC(crashType: crashType, crashReason: crashReason, callStack: callStack)
 
         // 恢复之前的Handler并重新抛出Signal（确保系统能够正常终止进程）
-        if let previousHandler = previousSignalHandlers[sigValue] {
-            signal(sigValue, previousHandler)
+        if let previousHandler = previousSignalHandlers[signalNumber] {
+            signal(signalNumber, previousHandler)
         } else {
-            signal(sigValue, SIG_DFL)
+            signal(signalNumber, SIG_DFL)
         }
-        raise(sigValue)
+        raise(signalNumber)
     }
 
-    // MARK: - 获取调用栈
-    /// 获取当前调用栈
-    private func getCallStack() -> String {
-        // 使用backtrace_symbols获取调用栈
-        let maxFrames = 128
-        var frames = [UnsafeMutableRawPointer?](repeating: nil, count: maxFrames)
-        let frameCount = backtrace(&frames, Int32(maxFrames))
+    // MARK: - 纯C实现的崩溃日志保存（关键：在崩溃上下文中可靠执行）
+    /// 保存崩溃日志（纯C实现，使用write系统调用直接写文件）
+    /// - Parameters:
+    ///   - crashType: 崩溃类型
+    ///   - crashReason: 崩溃原因
+    ///   - callStack: 调用栈
+    private static func saveCrashLogPureC(crashType: String, crashReason: String, callStack: String) {
+        // 获取当前时间（使用time系统调用）
+        var currentTime = time(nil)
+        var timeInfo = tm()
+        localtime_r(&currentTime, &timeInfo)
 
-        guard let symbols = backtrace_symbols(frames, Int32(frameCount)) else {
-            return "无法获取调用栈"
+        // 生成文件名：crash_YYYYMMDD_HHMMSS.log
+        let fileName = String(format: "crash_%04d%02d%02d_%02d%02d%02d.log",
+                              timeInfo.tm_year + 1900,
+                              timeInfo.tm_mon + 1,
+                              timeInfo.tm_mday,
+                              timeInfo.tm_hour,
+                              timeInfo.tm_min,
+                              timeInfo.tm_sec)
+
+        // 构建完整文件路径：目录/文件名
+        let fullPath = crashLogDirCString.withUnsafeBufferPointer { dirPtr -> String in
+            guard let dirBase = dirPtr.baseAddress else { return fileName }
+            let dirString = String(cString: dirBase)
+            return dirString + "/" + fileName
         }
 
-        var callStack: [String] = []
-        for i in 0..<Int(frameCount) {
-            if let symbol = symbols[i] {
-                callStack.append(String(cString: symbol))
-            }
-        }
-
-        free(symbols)
-        return callStack.joined(separator: "\n")
-    }
-
-    // MARK: - Signal名称映射
-    /// 获取Signal名称
-    private func signalName(for signal: Int32) -> String {
-        switch signal {
-        case SIGABRT: return "SIGABRT"
-        case SIGSEGV: return "SIGSEGV"
-        case SIGBUS: return "SIGBUS"
-        case SIGFPE: return "SIGFPE"
-        case SIGILL: return "SIGILL"
-        case SIGTRAP: return "SIGTRAP"
-        case SIGSYS: return "SIGSYS"
-        default: return "UNKNOWN"
-        }
-    }
-
-    // MARK: - 保存崩溃日志
-    /// 保存崩溃日志到文件
-    private func saveCrashLog(_ crashInfo: CrashInfo) {
-        logQueue.async { [weak self] in
-            guard let self = self else { return }
-
-            // 生成崩溃日志内容
-            let logContent = self.formatCrashLog(crashInfo)
-
-            // 生成文件名（包含时间戳）
-            let timestamp = Int(Date().timeIntervalSince1970)
-            let fileName = "\(self.crashLogFilePrefix)\(timestamp).\(self.crashLogFileExtension)"
-            let fileURL = self.crashLogDirectory.appendingPathComponent(fileName)
-
-            // 写入文件
-            do {
-                try logContent.write(to: fileURL, atomically: true, encoding: .utf8)
-            } catch {
-                // 写入失败，无法处理（因为已经崩溃了）
-                print("崩溃日志写入失败: \(error)")
-            }
-
-            // 清理旧的崩溃日志（超过最大保留数量时删除最旧的）
-            self.cleanupOldCrashLogs()
-        }
-    }
-
-    // MARK: - 格式化崩溃日志
-    /// 格式化崩溃日志内容
-    private func formatCrashLog(_ crashInfo: CrashInfo) -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        dateFormatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
-        let crashTime = dateFormatter.string(from: Date())
+        // 生成崩溃日志内容
+        let dateString = String(format: "%04d-%02d-%02d %02d:%02d:%02d",
+                                 timeInfo.tm_year + 1900,
+                                 timeInfo.tm_mon + 1,
+                                 timeInfo.tm_mday,
+                                 timeInfo.tm_hour,
+                                 timeInfo.tm_min,
+                                 timeInfo.tm_sec)
 
         // 设备信息
         let device = UIDevice.current
@@ -226,20 +193,14 @@ final class CrashLogger {
         Bundle ID: \(Bundle.main.bundleIdentifier ?? "未知")
         """
 
-        // 附加信息
-        var additionalInfoString = ""
-        if !crashInfo.additionalInfo.isEmpty {
-            additionalInfoString = "\n附加信息:\n" + crashInfo.additionalInfo.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
-        }
-
         // 组装崩溃日志
         let logContent = """
         ========================================
         崩溃日志
         ========================================
-        崩溃时间: \(crashTime)
-        崩溃类型: \(crashInfo.crashType)
-        崩溃原因: \(crashInfo.crashReason)
+        崩溃时间: \(dateString)
+        崩溃类型: \(crashType)
+        崩溃原因: \(crashReason)
 
         ----------------------------------------
         设备信息
@@ -250,36 +211,93 @@ final class CrashLogger {
         应用信息
         ----------------------------------------
         \(appInfo)
-        \(additionalInfoString)
 
         ----------------------------------------
         调用栈
         ----------------------------------------
-        \(crashInfo.callStack)
+        \(callStack)
 
         ========================================
         崩溃日志结束
         ========================================
         """
 
-        return logContent
+        // 使用write系统调用直接写文件（关键：在崩溃上下文中可靠执行）
+        let fileDescriptor = open(fullPath, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
+        if fileDescriptor >= 0 {
+            // 将日志内容转换为UTF-8数据
+            if let data = logContent.data(using: .utf8) {
+                data.withUnsafeBytes { buffer in
+                    if let baseAddress = buffer.baseAddress {
+                        // 使用write系统调用写入文件
+                        _ = write(fileDescriptor, baseAddress, data.count)
+                    }
+                }
+            }
+            // 关闭文件
+            close(fileDescriptor)
+        }
+
+        // 清理旧的崩溃日志（超过最大保留数量时删除最旧的）
+        cleanupOldCrashLogsPureC()
     }
 
-    // MARK: - 清理旧崩溃日志
+    // MARK: - 纯C实现的调用栈获取
+    /// 获取当前调用栈（纯C实现，使用backtrace_symbols）
+    /// - Returns: 调用栈字符串
+    private static func getCallStackPureC() -> String {
+        let maxFrames = 128
+        var frames = [UnsafeMutableRawPointer?](repeating: nil, count: maxFrames)
+        let frameCount = backtrace(&frames, Int32(maxFrames))
+
+        guard let symbols = backtrace_symbols(frames, Int32(frameCount)) else {
+            return "无法获取调用栈"
+        }
+
+        var callStack: [String] = []
+        for i in 0..<Int(frameCount) {
+            if let symbol = symbols[i] {
+                callStack.append(String(cString: symbol))
+            }
+        }
+
+        free(symbols)
+        return callStack.joined(separator: "\n")
+    }
+
+    // MARK: - 纯C实现的Signal名称获取
+    /// 获取Signal名称（纯C实现）
+    /// - Parameter signalNumber: Signal编号
+    /// - Returns: Signal名称
+    private static func signalNamePureC(_ signalNumber: Int32) -> String {
+        switch signalNumber {
+        case SIGABRT: return "SIGABRT"
+        case SIGSEGV: return "SIGSEGV"
+        case SIGBUS: return "SIGBUS"
+        case SIGFPE: return "SIGFPE"
+        case SIGILL: return "SIGILL"
+        case SIGTRAP: return "SIGTRAP"
+        case SIGSYS: return "SIGSYS"
+        default: return "UNKNOWN"
+        }
+    }
+
+    // MARK: - 纯C实现的旧日志清理
     /// 清理旧的崩溃日志（超过最大保留数量时删除最旧的）
-    private func cleanupOldCrashLogs() {
+    private static func cleanupOldCrashLogsPureC() {
         let fileManager = FileManager.default
+        let crashLogDirURL = URL(fileURLWithPath: String(cString: crashLogDirCString))
 
         // 获取所有崩溃日志文件
         guard let files = try? fileManager.contentsOfDirectory(
-            at: crashLogDirectory,
+            at: crashLogDirURL,
             includingPropertiesForKeys: [.creationDateKey],
             options: [.skipsHiddenFiles]
         ) else { return }
 
         // 过滤崩溃日志文件并按创建时间排序（从旧到新）
         let crashLogFiles = files
-            .filter { $0.lastPathComponent.hasPrefix(crashLogFilePrefix) && $0.pathExtension == crashLogFileExtension }
+            .filter { $0.lastPathComponent.hasPrefix("crash_") && $0.pathExtension == "log" }
             .sorted { (url1, url2) -> Bool in
                 let date1 = (try? url1.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
                 let date2 = (try? url2.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
@@ -287,15 +305,16 @@ final class CrashLogger {
             }
 
         // 如果超过最大保留数量，删除最旧的
-        if crashLogFiles.count > maxCrashLogs {
-            let filesToDelete = crashLogFiles.prefix(crashLogFiles.count - maxCrashLogs)
+        let maxLogs = 20
+        if crashLogFiles.count > maxLogs {
+            let filesToDelete = crashLogFiles.prefix(crashLogFiles.count - maxLogs)
             for fileURL in filesToDelete {
                 try? fileManager.removeItem(at: fileURL)
             }
         }
     }
 
-    // MARK: - 公开方法
+    // MARK: - 公开方法（Swift层，用于正常运行时访问）
 
     /// 获取所有崩溃日志列表（按时间从新到旧排序）
     func getAllCrashLogs() -> [CrashLogFile] {
@@ -350,19 +369,12 @@ final class CrashLogger {
     func exportCrashLogs(_ crashLogs: [CrashLogFile]) -> [URL] {
         return crashLogs.map { $0.fileURL }
     }
-}
 
-// MARK: - 崩溃信息结构体
-/// 崩溃信息
-struct CrashInfo {
-    /// 崩溃类型（NSException / Signal）
-    let crashType: String
-    /// 崩溃原因
-    let crashReason: String
-    /// 调用栈
-    let callStack: String
-    /// 附加信息
-    let additionalInfo: [String: String]
+    /// 检查上次是否有崩溃（在App启动时调用，用于提示用户）
+    /// - Returns: 是否有上次未处理的崩溃
+    func hasUnprocessedCrash() -> Bool {
+        return !getAllCrashLogs().isEmpty
+    }
 }
 
 // MARK: - 崩溃日志文件结构体
