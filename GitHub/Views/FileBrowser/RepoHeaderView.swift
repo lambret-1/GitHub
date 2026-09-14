@@ -264,9 +264,8 @@ struct RepoHeaderView: View {
                         .foregroundColor(appState.isDarkMode ? .gray : .secondary)
                 }
 
-                
-                
-            
+                Spacer()
+            }
 
             // 第六行：创建/更新时间
             HStack(spacing: 16) {
