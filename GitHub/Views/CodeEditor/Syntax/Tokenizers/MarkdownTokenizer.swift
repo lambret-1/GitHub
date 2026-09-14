@@ -139,12 +139,6 @@ class MarkdownTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
 
     // MARK: - 私有方法
 
-    private func makeToken(type: SyntaxTokenType, text: String, start: String.Index, end: String.Index) -> SyntaxToken {
-        let nsRange = NSRange(start..<end, in: text)
-        let tokenText = String(text[start..<end])
-        return SyntaxToken(type: type, range: nsRange, text: tokenText)
-    }
-
     /// 分析行内元素（粗体、斜体、链接、行内代码）
     private func analyzeInlineElements(text: String, lineStart: String.Index, lineEnd: String.Index, tokens: inout [SyntaxToken]) {
         var index = lineStart

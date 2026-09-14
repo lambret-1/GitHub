@@ -157,12 +157,6 @@ class JavaScriptTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
 
     // MARK: - 私有方法
 
-    private func makeToken(type: SyntaxTokenType, text: String, start: String.Index, end: String.Index) -> SyntaxToken {
-        let nsRange = NSRange(start..<end, in: text)
-        let tokenText = String(text[start..<end])
-        return SyntaxToken(type: type, range: nsRange, text: tokenText)
-    }
-
     private func readTemplateString(_ text: String, index: inout String.Index) -> String {
         let start = index
         index = text.index(after: index) // 跳过 `
