@@ -328,11 +328,16 @@ struct CodeTextView: UIViewRepresentable {
             guard let textView = textView, textView.undoManager?.canUndo == true else { return }
             // 标记内部更新，避免撤销操作触发的textViewDidChange导致文本回写循环
             isInternalUpdate = true
+            // 执行撤销操作
             textView.undoManager?.undo()
             // 强制刷新textView确保UI同步更新
             textView.setNeedsDisplay()
-            // 延迟重置内部更新标志
+            // 手动获取撤销后的文本，确保@Binding正确同步
+            let newText = textView.text ?? ""
+            // 延迟重置内部更新标志并同步文本
             DispatchQueue.main.async { [weak self] in
+                self?.text = newText
+                self?.onTextChange?(newText)
                 self?.isInternalUpdate = false
                 self?.updateUndoRedoState()
             }
@@ -343,11 +348,16 @@ struct CodeTextView: UIViewRepresentable {
             guard let textView = textView, textView.undoManager?.canRedo == true else { return }
             // 标记内部更新，避免重做操作触发的textViewDidChange导致文本回写循环
             isInternalUpdate = true
+            // 执行重做操作
             textView.undoManager?.redo()
             // 强制刷新textView确保UI同步更新
             textView.setNeedsDisplay()
-            // 延迟重置内部更新标志
+            // 手动获取重做后的文本，确保@Binding正确同步
+            let newText = textView.text ?? ""
+            // 延迟重置内部更新标志并同步文本
             DispatchQueue.main.async { [weak self] in
+                self?.text = newText
+                self?.onTextChange?(newText)
                 self?.isInternalUpdate = false
                 self?.updateUndoRedoState()
             }
