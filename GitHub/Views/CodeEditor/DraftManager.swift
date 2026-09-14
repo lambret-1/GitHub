@@ -42,8 +42,8 @@ class DraftManager: ObservableObject {
         let id: String
         let filePath: String
         let branch: String
-        let content: String
-        let lastModified: Date
+        var content: String
+        var lastModified: Date
         let fileSha: String?
 
         enum CodingKeys: String, CodingKey {

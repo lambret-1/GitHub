@@ -373,7 +373,8 @@ struct CodeTextView: UIViewRepresentable {
             if text == "", range.length == 1, range.location > 0 {
                 let nsText = textView.text as NSString
                 let charBefore = nsText.substring(with: NSRange(location: range.location - 1, length: 1))
-                if let openBracket = Character(charBefore), let closeBracket = bracketPairs[openBracket], openBracket != closeBracket {
+                let openBracket = Character(charBefore)
+                if let closeBracket = bracketPairs[openBracket], openBracket != closeBracket {
                     // 检查光标后是否是对应的闭括号
                     if range.location < nsText.length {
                         let charAfter = nsText.substring(with: NSRange(location: range.location, length: 1))

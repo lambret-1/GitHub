@@ -148,7 +148,7 @@ class EditorUndoManager: ObservableObject {
             self.canUndo = self.undoManager.canUndo
             self.canRedo = self.undoManager.canRedo
             self.undoCount = self.undoManager.levelsOfUndo
-            self.redoCount = self.undoManager.levelsOfRedo
+            // Foundation的UndoManager没有levelsOfRedo属性，canRedo已足够判断
         }
     }
 }
