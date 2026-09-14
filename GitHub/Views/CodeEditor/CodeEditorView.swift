@@ -139,11 +139,11 @@ struct CodeEditorView: View {
                             Label(showSearch ? "关闭查找" : "查找", systemImage: "magnifyingglass")
                         }
 
-                        /*Button(action: {
+                        Button(action: {
                             isEditing.toggle()
                         }) {
                             Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark" : "pencil")
-                        }*/
+                        }
 
                         Button(action: {
                             UIPasteboard.general.string = codeText
