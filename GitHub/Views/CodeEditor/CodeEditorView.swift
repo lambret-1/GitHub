@@ -88,6 +88,12 @@ struct CodeEditorView: View {
     // 代码片段弹窗显示状态
     @State private var showSnippetPicker: Bool = false
 
+    // 符号导航器（第三期：高级编辑功能）
+    @StateObject private var symbolNavigator = SymbolNavigator()
+
+    // 符号导航弹窗显示状态
+    @State private var showSymbolPicker: Bool = false
+
     // MARK: - 大文件降级模式（性能优化与崩溃防护）
     // 大文件模式：>5MB，禁用编辑，只读快速浏览
     @State private var isLargeFileMode: Bool = false
@@ -182,6 +188,13 @@ struct CodeEditorView: View {
                             Label("代码片段", systemImage: "chevron.left.forwardslash.chevron.right")
                         }
                         .disabled(!isEditing)
+
+                        // 符号导航（第三期：高级编辑功能）
+                        Button(action: {
+                            showSymbolPicker = true
+                        }) {
+                            Label("符号导航", systemImage: "list.bullet.indent")
+                        }
 
                         Divider()
 
@@ -404,6 +417,14 @@ struct CodeEditorView: View {
         // 代码片段选择弹窗（第二期：编辑体验增强）
         .sheet(isPresented: $showSnippetPicker) {
             snippetPickerView
+        }
+        // 符号导航弹窗（第三期：高级编辑功能）
+        .sheet(isPresented: $showSymbolPicker) {
+            SymbolPickerView(symbolNavigator: symbolNavigator) { symbol in
+                // 跳转到符号所在行
+                scrollTargetLine = symbol.lineNumber
+                showSymbolPicker = false
+            }
         }
     }
 
@@ -1050,6 +1071,9 @@ struct CodeEditorView: View {
 
                     // 获取文件最后编辑时间
                     loadLastCommit()
+
+                    // 解析文件符号（第三期：高级编辑功能）
+                    symbolNavigator.parseSymbols(in: codeText, language: file.fileExtension)
                 case .failure(let error):
                     errorMessage = error.localizedDescription
                 }
