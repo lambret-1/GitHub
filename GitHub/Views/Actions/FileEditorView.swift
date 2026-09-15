@@ -91,42 +91,46 @@ struct FileEditorView: View {
                 }
             }
         }
-        .alert("保存修改", isPresented: $showSaveAlert) {
-            TextField("提交信息", text: $commitMessage)
-            Button("保存") {
-                saveFile()
-            }
-            Button("取消", role: .cancel) {
-                isEditing = false
-                fileContent = originalContent
-            }
-        } message: {
-            Text("输入提交信息，将修改保存到仓库")
+        .alert(isPresented: $showSaveAlert) { // iOS14兼容：使用旧版Alert语法，移除TextField（iOS14不支持）
+            Alert(
+                title: Text("保存修改"),
+                message: Text("将修改保存到仓库"),
+                primaryButton: .default(Text("保存"), action: saveFile),
+                secondaryButton: .cancel(Text("取消"), action: {
+                    isEditing = false
+                    fileContent = originalContent
+                })
+            )
         }
-        .alert("保存成功", isPresented: $showSaveSuccess) {
-            Button("确定") {
-                isEditing = false
-            }
-        } message: {
-            Text("文件已成功提交到仓库")
+        .alert(isPresented: $showSaveSuccess) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("保存成功"),
+                message: Text("文件已成功提交到仓库"),
+                dismissButton: .default(Text("确定"), action: {
+                    isEditing = false
+                })
+            )
         }
-        .alert("保存失败", isPresented: Binding(
+        .alert(isPresented: Binding( // iOS14兼容：使用旧版Alert语法
             get: { saveErrorMessage != nil },
             set: { if !$0 { saveErrorMessage = nil } }
         )) {
-            Button("确定") {}
-        } message: {
-            Text(saveErrorMessage ?? "未知错误")
+            Alert(
+                title: Text("保存失败"),
+                message: Text(saveErrorMessage ?? "未知错误"),
+                dismissButton: .default(Text("确定"))
+            )
         }
-        .overlay {
-            if showCopySuccess {
-                VStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.largeTitle)
-                        .foregroundColor(.green)
-                    Text("已复制到剪贴板")
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
+        .overlay( // iOS14兼容：使用旧版overlay语法
+            Group {
+                if showCopySuccess {
+                    VStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(.green)
+                        Text("已复制到剪贴板")
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
                 }
                 .padding(24)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                 .background(Color(.systemBackground).opacity(0.9))
@@ -150,7 +154,9 @@ struct FileEditorView: View {
                     .cornerRadius(16)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                 }
             }
-        }
+        },
+        alignment: .center
+        )
         .onAppear {
             loadFileContent()
         }
@@ -282,7 +288,14 @@ struct FileEditorView: View {
             let before = String(line[line.startIndex..<range.lowerBound])
             let match = String(line[range])
             let after = String(line[range.upperBound..<line.endIndex])
-            Text(before) + Text(match).background(Color.yellow).foregroundColor(Color.black) + Text(after)
+            // iOS14兼容：使用HStack拼接多个Text，因为Text+Text不支持带修饰符的Text
+            HStack(spacing: 0) {
+                Text(before)
+                Text(match)
+                    .background(Color.yellow)
+                    .foregroundColor(Color.black)
+                Text(after)
+            }
         } else {
             Text(line)
         }
