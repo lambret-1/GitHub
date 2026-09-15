@@ -261,10 +261,10 @@ struct CodeEditorView: View {
                 .disabled(isRenaming || isDownloading)
             }
         }
-        // 编辑相关弹窗（提取为单独计算属性，避免body类型检查超时）
-        .background(editingAlerts)
+        // 编辑相关弹窗（使用overlay确保alert处于可见视图层级，可正常触发）
+        .overlay(editingAlerts)
         // 文件操作相关弹窗
-        .background(fileOperationAlerts)
+        .overlay(fileOperationAlerts)
         .overlay {
             if isDownloading {
                 downloadProgressOverlay
