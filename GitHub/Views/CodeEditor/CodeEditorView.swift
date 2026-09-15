@@ -195,6 +195,14 @@ struct CodeEditorView: View {
                         }
                         .disabled(isLargeFileMode) // 大文件模式下禁用编辑
 
+                        // 提交修改（仅编辑模式且有未保存修改时可用）
+                        Button(action: {
+                            showCommitDialog = true
+                        }) {
+                            Label("提交修改", systemImage: "square.and.arrow.up")
+                        }
+                        .disabled(!isEditing || !hasChanges)
+
                         Button(action: {
                             UIPasteboard.general.string = codeText
                         }) {
