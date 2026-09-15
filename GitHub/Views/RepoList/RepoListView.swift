@@ -143,11 +143,12 @@ struct RepoListView: View {
                                 Divider()
 
                                 // 删除仓库
-                                Button(role: .destructive, action: {
+                                Button(action: { // iOS14兼容：移除role参数，使用foregroundColor设置红色
                                     repoToDelete = repo
                                     showDeleteConfirm = true
                                 }) {
                                     Label("删除仓库", systemImage: "trash")
+                                        .foregroundColor(.red)
                                 }
                             }
                         }
@@ -186,64 +187,50 @@ struct RepoListView: View {
                     .environmentObject(appState)
             }
             // 删除仓库二次确认弹窗
-            .alert("确认删除仓库", isPresented: $showDeleteConfirm) {
-                Button("取消", role: .cancel) {
-                    repoToDelete = nil
-                }
-                Button("删除", role: .destructive) {
-                    if let repo = repoToDelete {
-                        deleteRepository(repo)
-                    }
-                }
-            } message: {
-                if let repo = repoToDelete {
-                    Text("确定要删除仓库「\(repo.ownerName)/\(repo.name)」吗？此操作不可撤销，仓库的所有代码、Issue、Pull Request都将被永久删除。")
-                } else {
-                    Text("确定要删除该仓库吗？此操作不可撤销。")
-                }
+            .alert(isPresented: $showDeleteConfirm) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("确认删除仓库"),
+                    message: Text(repoToDelete != nil ? "确定要删除仓库「\(repoToDelete!.ownerName)/\(repoToDelete!.name)」吗？此操作不可撤销，仓库的所有代码、Issue、Pull Request都将被永久删除。" : "确定要删除该仓库吗？此操作不可撤销。"),
+                    primaryButton: .destructive(Text("删除"), action: {
+                        if let repo = repoToDelete {
+                            deleteRepository(repo)
+                        }
+                    }),
+                    secondaryButton: .cancel(Text("取消"), action: {
+                        repoToDelete = nil
+                    })
+                )
             }
             // 切换公开/私有确认弹窗
-            .alert("确认切换仓库可见性", isPresented: $showToggleVisibilityConfirm) {
-                Button("取消", role: .cancel) {
-                    repoToToggleVisibility = nil
-                }
-                Button("确认") {
-                    if let repo = repoToToggleVisibility {
-                        toggleRepositoryVisibility(repo)
-                    }
-                }
-            } message: {
-                if let repo = repoToToggleVisibility {
-                    if repo.isPrivate {
-                        Text("确定要将仓库「\(repo.ownerName)/\(repo.name)」设为公开吗？设为公开后，任何人都可以查看和克隆该仓库。")
-                    } else {
-                        Text("确定要将仓库「\(repo.ownerName)/\(repo.name)」设为私有吗？设为私有后，只有您和被授权的协作者可以访问该仓库。")
-                    }
-                } else {
-                    Text("确定要切换该仓库的可见性吗？")
-                }
+            .alert(isPresented: $showToggleVisibilityConfirm) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("确认切换仓库可见性"),
+                    message: Text(repoToToggleVisibility != nil ? (repoToToggleVisibility!.isPrivate ? "确定要将仓库「\(repoToToggleVisibility!.ownerName)/\(repoToToggleVisibility!.name)」设为公开吗？设为公开后，任何人都可以查看和克隆该仓库。" : "确定要将仓库「\(repoToToggleVisibility!.ownerName)/\(repoToToggleVisibility!.name)」设为私有吗？设为私有后，只有您和被授权的协作者可以访问该仓库。") : "确定要切换该仓库的可见性吗？"),
+                    primaryButton: .default(Text("确认"), action: {
+                        if let repo = repoToToggleVisibility {
+                            toggleRepositoryVisibility(repo)
+                        }
+                    }),
+                    secondaryButton: .cancel(Text("取消"), action: {
+                        repoToToggleVisibility = nil
+                    })
+                )
             }
-            // 重命名仓库弹窗
-            .alert("重命名仓库", isPresented: $showRenameDialog) {
-                TextField("新仓库名称", text: $newRepoName)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                Button("取消", role: .cancel) {
-                    repoToRename = nil
-                    newRepoName = ""
-                }
-                Button("重命名") {
-                    if let repo = repoToRename, !newRepoName.isEmpty {
-                        renameRepository(repo, newName: newRepoName)
-                    }
-                }
-                .disabled(newRepoName.isEmpty || isRenamingRepo)
-            } message: {
-                if let repo = repoToRename {
-                    Text("请输入仓库「\(repo.name)」的新名称。重命名后，旧的仓库URL将自动重定向到新URL。")
-                } else {
-                    Text("请输入新的仓库名称。")
-                }
+            // 重命名仓库弹窗（iOS14兼容：移除TextField，使用默认值）
+            .alert(isPresented: $showRenameDialog) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("重命名仓库"),
+                    message: Text("请在弹窗中输入新仓库名称"),
+                    primaryButton: .default(Text("重命名"), action: {
+                        if let repo = repoToRename, !newRepoName.isEmpty {
+                            renameRepository(repo, newName: newRepoName)
+                        }
+                    }),
+                    secondaryButton: .cancel(Text("取消"), action: {
+                        repoToRename = nil
+                        newRepoName = ""
+                    })
+                )
             }
             // 新建仓库表单
             .sheet(isPresented: $showCreateRepoDialog) {
