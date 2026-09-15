@@ -78,7 +78,7 @@ struct RunnerManagementView: View {
                     }
 
                     // Runner列表
-                    Section("Runner列表") {
+                    Section(header: Text("Runner列表")) { // iOS14兼容：使用旧版Section语法
                         ForEach(runners) { runner in
                             runnerRow(runner: runner)
                                 .onAppear {
@@ -108,19 +108,17 @@ struct RunnerManagementView: View {
         }
         .navigationTitle("Runner管理")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("删除Runner", isPresented: $showDeleteAlert) {
-            Button("删除", role: .destructive) {
-                if let runner = runnerToDelete {
-                    deleteRunner(runner)
-                }
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            if let runner = runnerToDelete {
-                Text("确定要删除Runner「\(runner.name)」吗？删除后该Runner将无法再接收构建任务。")
-            } else {
-                Text("确定要删除此Runner吗？")
-            }
+        .alert(isPresented: $showDeleteAlert) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("删除Runner"),
+                message: Text(runnerToDelete != nil ? "确定要删除Runner「\(runnerToDelete!.name)」吗？删除后该Runner将无法再接收构建任务。" : "确定要删除此Runner吗？"),
+                primaryButton: .destructive(Text("删除"), action: {
+                    if let runner = runnerToDelete {
+                        deleteRunner(runner)
+                    }
+                }),
+                secondaryButton: .cancel(Text("取消"))
+            )
         }
         .onAppear {
             if runners.isEmpty {
