@@ -320,6 +320,23 @@ class GitHubAPI {
             }
         }
     }
+
+    // 获取指定用户的仓库列表
+    func getUserReposByUser(username: String, page: Int = 1, perPage: Int = 100, completion: @escaping (Result<[Repository], Error>) -> Void) {
+        performRequest(url: APIEndpoints.userReposByUser(username: username, page: page, perPage: perPage).url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let repos = try JSONDecoder().decode([Repository].self, from: data)
+                    completion(.success(repos))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
     
     func searchRepos(query: String, page: Int = 1, sort: String = "", completion: @escaping (Result<[Repository], Error>) -> Void) {
         let url: String

@@ -6,6 +6,7 @@ enum APIEndpoints {
 
     case user
     case userRepos(page: Int, perPage: Int)
+    case userReposByUser(username: String, page: Int, perPage: Int) // 获取指定用户的仓库列表
     case repository(owner: String, repo: String)
     case readme(owner: String, repo: String, branch: String?, path: String?)
     case markdown
@@ -82,6 +83,8 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/user"
         case .userRepos(let page, let perPage):
             return "\(APIEndpoints.baseURL)/user/repos?page=\(page)&per_page=\(perPage)&sort=updated"
+        case .userReposByUser(let username, let page, let perPage):
+            return "\(APIEndpoints.baseURL)/users/\(username)/repos?page=\(page)&per_page=\(perPage)&sort=updated"
         case .repository(let owner, let repo):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)"
         case .readme(let owner, let repo, let branch, let path):
