@@ -404,8 +404,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 检查是否有变更
-          if git diff --quiet bug.md; then
+          # 检查是否有变更（包括新文件）
+          if [ -z "$(git status --porcelain bug.md)" ]; then
             echo "::notice::bug.md无变更，跳过提交"
           else
             git add bug.md
