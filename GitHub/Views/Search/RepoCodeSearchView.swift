@@ -5,7 +5,7 @@ struct RepoCodeSearchView: View {
     @Environment(\.presentationMode) private var presentationMode
     @State private var debounceTask: Task<Void, Never>?
     @State private var showSortMenu: Bool = false
-    @FocusState private var isSearchFieldFocused: Bool // 搜索输入框聚焦状态，控制光标显示和键盘弹出
+    @State private var isSearchFieldFocused: Bool // 搜索输入框聚焦状态，iOS14降级为普通状态变量
     private let onJumpToCode: (String, Int) -> Void
 
     init(owner: String, repo: String, branch: String, onJumpToCode: @escaping (String, Int) -> Void) {
@@ -97,9 +97,8 @@ struct RepoCodeSearchView: View {
                 .foregroundColor(.gray)
             TextField("输入搜索词，如 func、import、类名", text: $viewModel.query)
                 .textFieldStyle(.plain)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .focused($isSearchFieldFocused) // 绑定聚焦状态，控制光标显示和键盘弹出
+                .autocapitalization(.none) // iOS14兼容：替代iOS15+的textInputAutocapitalization
+                .disableAutocorrection(true) // iOS14兼容：替代iOS15+的autocorrectionDisabled
                 .onSubmit {
                     viewModel.showSuggestions = false
                     viewModel.search()
@@ -404,7 +403,7 @@ private struct CodeSnippetSheet: View {
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(.gray)
                         .frame(width: 36, alignment: .trailing)
-                    Text(highlightedText(line.content))
+                    highlightedText(line.content)
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(line.isMatch ? .black : .primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -426,17 +425,20 @@ private struct CodeSnippetSheet: View {
         )
     }
 
-    private func highlightedText(_ text: String) -> AttributedString {
-        var attr = AttributedString(text)
+    /// iOS14兼容的文本高亮实现
+    /// 使用多个Text拼接的方式实现搜索关键词高亮，替代iOS15+的AttributedString
+    @ViewBuilder
+    private func highlightedText(_ text: String) -> some View {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedQuery.isEmpty else { return attr }
-        if let range = text.range(of: trimmedQuery, options: .caseInsensitive) {
-            if let attrRange = Range(range, in: attr) {
-                attr[attrRange].backgroundColor = .yellow
-                attr[attrRange].foregroundColor = .red
-                attr[attrRange].font = .system(size: 12, weight: .bold, design: .monospaced)
-            }
+        if trimmedQuery.isEmpty {
+            Text(text)
+        } else if let range = text.range(of: trimmedQuery, options: .caseInsensitive) {
+            let before = String(text[text.startIndex..<range.lowerBound])
+            let match = String(text[range])
+            let after = String(text[range.upperBound..<text.endIndex])
+            Text(before) + Text(match).backgroundColor(.yellow).foregroundColor(.red).font(.system(size: 12, weight: .bold, design: .monospaced)) + Text(after)
+        } else {
+            Text(text)
         }
-        return attr
     }
 }

@@ -269,24 +269,23 @@ struct FileEditorView: View {
         if searchText.isEmpty {
             Text(line)
         } else {
-            // 使用AttributedString实现高亮
-            if let attributedString = createHighlightedAttributedString(from: line) {
-                Text(attributedString)
-            } else {
-                Text(line)
-            }
+            // iOS14兼容：使用多个Text拼接实现高亮，替代iOS15+的AttributedString
+            highlightTextWithSegments(in: line)
         }
     }
 
-    private func createHighlightedAttributedString(from line: String) -> AttributedString? {
-        guard !searchText.isEmpty else { return nil }
-        var attributed = AttributedString(line)
-        guard let range = attributed.range(of: searchText, options: .caseInsensitive) else {
-            return attributed
+    /// iOS14兼容的文本高亮实现
+    /// 使用多个Text拼接的方式实现搜索关键词高亮
+    @ViewBuilder
+    private func highlightTextWithSegments(in line: String) -> some View {
+        if let range = line.range(of: searchText, options: .caseInsensitive) {
+            let before = String(line[line.startIndex..<range.lowerBound])
+            let match = String(line[range])
+            let after = String(line[range.upperBound..<line.endIndex])
+            Text(before) + Text(match).backgroundColor(.yellow).foregroundColor(.black) + Text(after)
+        } else {
+            Text(line)
         }
-        attributed[range].backgroundColor = .yellow
-        attributed[range].foregroundColor = .black
-        return attributed
     }
 
     private func isLineMatch(_ line: String) -> Bool {

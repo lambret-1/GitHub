@@ -343,7 +343,8 @@ struct RepositorySettingsView: View {
             if let topics = repo.topics, !topics.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("标签")
-                    FlowLayout(spacing: 6) {
+                    // iOS14兼容：使用LazyVGrid替代iOS16+的FlowLayout流式布局
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 60), spacing: 6)], spacing: 6) {
                         ForEach(topics, id: \.self) { topic in
                             Text(topic)
                                 .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
@@ -458,51 +459,3 @@ struct RepositorySettingsView: View {
     }
 }
 
-// MARK: - 流式布局（用于标签展示）
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let rows = computeRows(proposal: proposal, subviews: subviews)
-        let height = rows.reduce(0) { $0 + $1.height + spacing } - spacing
-        return CGSize(width: proposal.width ?? 0, height: max(0, height))
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let rows = computeRows(proposal: proposal, subviews: subviews)
-        var y = bounds.minY
-        for row in rows {
-            var x = bounds.minX
-            for subview in row.subviews {
-                subview.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
-                x += subview.sizeThatFits(.unspecified).width + spacing
-            }
-            y += row.height + spacing
-        }
-    }
-
-    private func computeRows(proposal: ProposedViewSize, subviews: Subviews) -> [(subviews: [LayoutSubview], height: CGFloat)] {
-        var rows: [(subviews: [LayoutSubview], height: CGFloat)] = []
-        var currentRow: [LayoutSubview] = []
-        var currentWidth: CGFloat = 0
-        var currentHeight: CGFloat = 0
-        let maxWidth = proposal.width ?? .infinity
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if currentWidth + size.width > maxWidth && !currentRow.isEmpty {
-                rows.append((currentRow, currentHeight))
-                currentRow = []
-                currentWidth = 0
-                currentHeight = 0
-            }
-            currentRow.append(subview)
-            currentWidth += size.width + spacing
-            currentHeight = max(currentHeight, size.height)
-        }
-        if !currentRow.isEmpty {
-            rows.append((currentRow, currentHeight))
-        }
-        return rows
-    }
-}
