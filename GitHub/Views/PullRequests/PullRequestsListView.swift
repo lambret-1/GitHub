@@ -163,16 +163,16 @@ struct PullRequestsListView: View {
     private var createPRSheet: some View {
         NavigationView {
             Form {
-                Section("标题") {
+                Section(header: Text("标题")) { // iOS14兼容：使用旧版Section语法
                     TextField("请输入PR标题", text: $newPRTitle)
                 }
-                Section("源分支（head）") {
+                Section(header: Text("源分支（head）")) { // iOS14兼容：使用旧版Section语法
                     TextField("例如：feature/new-feature", text: $newPRHead)
                 }
-                Section("目标分支（base）") {
+                Section(header: Text("目标分支（base）")) { // iOS14兼容：使用旧版Section语法
                     TextField("例如：main", text: $newPRBase)
                 }
-                Section("描述（可选）") {
+                Section(header: Text("描述（可选）")) { // iOS14兼容：使用旧版Section语法
                     TextEditor(text: $newPRBody)
                         .frame(minHeight: 100)
                 }
@@ -199,14 +199,17 @@ struct PullRequestsListView: View {
                               isCreating)
                 }
             }
-            .overlay {
-                if isCreating {
-                    ProgressView("创建中...")
-                        .padding()
-                        .background(Color.gray.opacity(0.8))
-                        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
-                }
-            }
+            .overlay( // iOS14兼容：使用旧版overlay语法
+                Group {
+                    if isCreating {
+                        ProgressView("创建中...")
+                            .padding()
+                            .background(Color.gray.opacity(0.8))
+                            .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                    }
+                },
+                alignment: .center
+            )
         }
     }
 
