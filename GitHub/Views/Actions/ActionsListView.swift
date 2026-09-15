@@ -44,6 +44,37 @@ struct ActionsListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // 顶部工具栏：对比、统计、设置按钮（原导航栏按钮移到这里，避免嵌入FileBrowserView时导航栏冲突）
+            HStack {
+                Spacer()
+                // 对比按钮
+                Button(action: {
+                    isComparisonMode.toggle()
+                    if !isComparisonMode {
+                        selectedRunForComparison1 = nil
+                        selectedRunForComparison2 = nil
+                    }
+                }) {
+                    Image(systemName: isComparisonMode ? "xmark.circle.fill" : "arrow.left.arrow.right")
+                        .foregroundColor(isComparisonMode ? .red : .primary)
+                }
+                .padding(.horizontal, 8)
+
+                NavigationLink(destination: RunStatsView(owner: owner, repo: repo)) {
+                    Image(systemName: "chart.bar.xaxis")
+                        .foregroundColor(.primary)
+                }
+                .padding(.horizontal, 8)
+
+                NavigationLink(destination: ActionsSettingsView(owner: owner, repo: repo)) {
+                    Image(systemName: "gearshape")
+                        .foregroundColor(.primary)
+                }
+                .padding(.horizontal, 8)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)  // 这是垂直内边距，控制工具栏上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽更透气，改小上下留白更窄更紧凑；还能改成.top/.bottom单独控制某一侧
+
             // 统计概览卡片
             statsOverviewCard
 
@@ -63,30 +94,8 @@ struct ActionsListView: View {
                 workflowsListView
             }
         }
-        .navigationTitle("Actions")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarItems(trailing:
-            HStack(spacing: 16) {
-                // 对比按钮
-                Button(action: {
-                    isComparisonMode.toggle()
-                    if !isComparisonMode {
-                        selectedRunForComparison1 = nil
-                        selectedRunForComparison2 = nil
-                    }
-                }) {
-                    Image(systemName: isComparisonMode ? "xmark.circle.fill" : "arrow.left.arrow.right")
-                        .foregroundColor(isComparisonMode ? .red : .primary)
-                }
-
-                NavigationLink(destination: RunStatsView(owner: owner, repo: repo)) {
-                    Image(systemName: "chart.bar.xaxis")
-                }
-                NavigationLink(destination: ActionsSettingsView(owner: owner, repo: repo)) {
-                    Image(systemName: "gearshape")
-                }
-            }
-        )
+        // 移除导航栏相关修饰符，因为ActionsListView现在嵌入在FileBrowserView中，不需要自己的导航栏
+        // 原.navigationTitle("Actions")、.navigationBarTitleDisplayMode(.inline)、.navigationBarItems(trailing:)已移除
         .navigationDestination(isPresented: $showComparisonView) {
             comparisonDestination
         }
