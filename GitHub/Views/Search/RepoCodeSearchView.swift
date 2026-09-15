@@ -50,10 +50,11 @@ struct RepoCodeSearchView: View {
 
                         if !viewModel.searchHistory.isEmpty {
                             Divider()
-                            Button(role: .destructive) {
+                            Button { // iOS14兼容：移除role参数，使用foregroundColor设置红色
                                 viewModel.clearAllHistory()
                             } label: {
                                 Label("清除搜索历史", systemImage: "trash")
+                                    .foregroundColor(.red)
                             }
                         }
                     } label: {
@@ -95,14 +96,13 @@ struct RepoCodeSearchView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.gray)
-            TextField("输入搜索词，如 func、import、类名", text: $viewModel.query)
+            TextField("输入搜索词，如 func、import、类名", text: $viewModel.query, onCommit: { // iOS14兼容：使用onCommit替代iOS15+的onSubmit
+                viewModel.showSuggestions = false
+                viewModel.search()
+            })
                 .textFieldStyle(.plain)
                 .autocapitalization(.none) // iOS14兼容：替代iOS15+的textInputAutocapitalization
                 .disableAutocorrection(true) // iOS14兼容：替代iOS15+的autocorrectionDisabled
-                .onSubmit {
-                    viewModel.showSuggestions = false
-                    viewModel.search()
-                }
                 .onChange(of: viewModel.query) { _ in
                     viewModel.updateSuggestions()
                     viewModel.showSuggestions = true
@@ -436,7 +436,15 @@ private struct CodeSnippetSheet: View {
             let before = String(text[text.startIndex..<range.lowerBound])
             let match = String(text[range])
             let after = String(text[range.upperBound..<text.endIndex])
-            Text(before) + Text(match).background(Color.yellow).foregroundColor(Color.red).font(.system(size: 12, weight: .bold, design: .monospaced)) + Text(after)
+            // iOS14兼容：使用HStack拼接多个Text，因为Text+Text不支持带修饰符的Text
+            HStack(spacing: 0) {
+                Text(before)
+                Text(match)
+                    .background(Color.yellow)
+                    .foregroundColor(Color.red)
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                Text(after)
+            }
         } else {
             Text(text)
         }
