@@ -244,7 +244,8 @@ analyze_build_warnings() {
         return
     fi
     
-    local total_warnings=$(grep -c "warning:" "$build_log" 2>/dev/null || echo "0")
+    local total_warnings=$(grep -c "warning:" "$build_log" 2>/dev/null | tr -d '[:space:]' || echo "0")
+    [ -z "$total_warnings" ] && total_warnings=0
     log_info "警告总数: ${total_warnings}"
     
     if [ "${total_warnings}" -eq 0 ]; then
@@ -256,25 +257,28 @@ analyze_build_warnings() {
     log_info ""
     log_info "📋 警告类型分布:"
     
-    # 弃用API警告
-    local deprecated_count=$(grep -ci "deprecated\|was deprecated" "$build_log" 2>/dev/null || echo "0")
+    # 弃用API警告（清理数字，确保纯整数）
+    local deprecated_count=$(grep -ci "deprecated\|was deprecated" "$build_log" 2>/dev/null | tr -d '[:space:]' || echo "0")
+    [ -z "$deprecated_count" ] && deprecated_count=0
     if [ "${deprecated_count}" -gt 0 ]; then
         log_warning "  弃用API警告: ${deprecated_count} 条"
     fi
     
     # 未使用变量警告
-    local unused_count=$(grep -ci "unused\|never used\|never read" "$build_log" 2>/dev/null || echo "0")
+    local unused_count=$(grep -ci "unused\|never used\|never read" "$build_log" 2>/dev/null | tr -d '[:space:]' || echo "0")
+    [ -z "$unused_count" ] && unused_count=0
     if [ "${unused_count}" -gt 0 ]; then
         log_warning "  未使用变量警告: ${unused_count} 条"
     fi
     
     # 类型转换警告
-    local casting_count=$(grep -ci "conditional cast\|forced cast\|implicit conversion" "$build_log" 2>/dev/null || echo "0")
+    local casting_count=$(grep -ci "conditional cast\|forced cast\|implicit conversion" "$build_log" 2>/dev/null | tr -d '[:space:]' || echo "0")
+    [ -z "$casting_count" ] && casting_count=0
     if [ "${casting_count}" -gt 0 ]; then
         log_warning "  类型转换警告: ${casting_count} 条"
     fi
     
-    # 其他警告
+    # 其他警告（确保所有变量都是纯数字）
     local other_count=$((total_warnings - deprecated_count - unused_count - casting_count))
     if [ "${other_count}" -gt 0 ]; then
         log_info "  其他警告: ${other_count} 条"
