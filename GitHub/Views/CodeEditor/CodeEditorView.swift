@@ -1,35 +1,5 @@
 import SwiftUI
 
-// MARK: - 代码编辑器配置常量（统一管理魔法数字，便于维护和调整）
-private enum CodeEditorConfig {
-    // 字体大小范围
-    static let minFontSize: CGFloat = 10 // 最小字体大小，保证代码可读性
-    static let maxFontSize: CGFloat = 24 // 最大字体大小，避免字体过大影响编辑
-    static let defaultFontSize: CGFloat = 10 // 默认字体大小，适合代码编辑
-
-    // 大文件阈值
-    static let largeFileThreshold: Int = 5 * 1024 * 1024 // 5MB，超过此大小进入大文件降级模式（禁用编辑）
-    static let ultraLargeFileThreshold: Int = 20 * 1024 * 1024 // 20MB，超过此大小进入超大文件模式（禁用语法高亮）
-
-    // 手势返回阈值
-    static let swipeBackThreshold: CGFloat = 50 // 手势返回触发阈值（pt），超过此距离才触发编辑保护提示
-
-    // 行号宽度范围
-    static let minLineNumberWidth: CGFloat = 30 // 行号最小宽度，保证至少显示2位数字
-    static let maxLineNumberWidth: CGFloat = 80 // 行号最大宽度，避免占用过多编辑区域
-
-    // 图片缩放范围
-    static let minImageScale: CGFloat = 0.5 // 图片最小缩放比例，避免缩太小无法查看
-    static let maxImageScale: CGFloat = 3.0 // 图片最大缩放比例，避免放大过度影响性能
-}
-
-// MARK: - 代码编辑器通知名称（统一管理，避免硬编码字符串）
-private extension Notification.Name {
-    static let codeEditorUndo = Notification.Name("CodeEditorUndo") // 撤销操作通知
-    static let codeEditorRedo = Notification.Name("CodeEditorRedo") // 重做操作通知
-    static let fileRenamed = Notification.Name("FileRenamed") // 文件重命名成功通知
-}
-
 struct CodeEditorView: View {
     let owner: String
     let repo: String
@@ -52,15 +22,12 @@ struct CodeEditorView: View {
     @State private var isLoading: Bool = true
     @State private var errorMessage: String?
     @State private var isEditing: Bool = false
-    // 保存到GitHub相关状态
-    @State private var showCommitDialog: Bool = false // 提交信息弹窗显示状态
-    @State private var commitMessage: String = "" // 提交信息内容
-    @State private var isSaving: Bool = false // 正在保存到GitHub的加载状态
-    @State private var showSaveSuccess: Bool = false // 保存成功弹窗显示状态
-    @State private var showFinishEditAlert: Bool = false // 完成编辑时的未保存提醒弹窗
-    @State private var shouldExitEditAfterSave: Bool = false // 标记保存成功后是否自动退出编辑模式
+    @State private var showCommitDialog: Bool = false
+    @State private var commitMessage: String = ""
+    @State private var isSaving: Bool = false
+    @State private var showSaveSuccess: Bool = false
     @State private var showLineNumbers: Bool = true
-    @State private var fontSize: CGFloat = CodeEditorConfig.defaultFontSize // 默认字体大小，从配置常量读取
+    @State private var fontSize: CGFloat = 10
     @State private var showSettings: Bool = false
     @State private var showRenameDialog: Bool = false
     @State private var newFileName: String = ""
@@ -72,6 +39,10 @@ struct CodeEditorView: View {
     @State private var showCopySuccess: Bool = false
     @State private var lastCommitInfo: Commit?
 
+    // 未保存提醒状态
+    @State private var showUnsavedAlert: Bool = false
+    // 标记是否保存后自动退出（从"未保存提醒"弹窗点击"保存并离开"时设置）
+    @State private var shouldDismissAfterSave: Bool = false
     // 编辑模式下点击返回的提示
     @State private var editReturnAlert: Bool = false
 
@@ -88,6 +59,10 @@ struct CodeEditorView: View {
     @State private var getSelectedTextTrigger: Int = 0
     @State private var showNoSelectionAlert: Bool = false
     @State private var waitingForSelectedText: Bool = false
+
+    // 二次确认状态
+    @State private var showCancelConfirm: Bool = false
+    @State private var showSubmitConfirm: Bool = false
 
     // 图片预览相关状态
     @State private var previewImage: UIImage?
@@ -136,13 +111,19 @@ struct CodeEditorView: View {
     // 文件大小显示（格式化后的字符串）
     @State private var fileSizeDisplay: String = ""
 
+    // 大文件阈值常量
+    private let largeFileThreshold: Int = 5 * 1024 * 1024 // 5MB
+    private let ultraLargeFileThreshold: Int = 20 * 1024 * 1024 // 20MB
+
     var body: some View {
         VStack(spacing: 0) {
             contentView
+            // 编辑模式底部工具栏放在VStack中，自动跟随键盘移动
+            if isEditing && (fileContent?.isTextFile ?? false) {
+                editModeBottomBar
+            }
         }
-        // 忽略键盘安全区域，避免删除底部工具栏后编辑模式下底部出现空白区域
-        // UITextView会自动调整contentInset处理键盘遮挡，用户仍可滚动查看编辑内容
-        .ignoresSafeArea(.keyboard)
+        // 使用系统自动键盘避让，UITextView会自动调整contentInset
         .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
         // 隐藏系统默认返回按钮，使用自定义返回按钮实现编辑保护
@@ -151,8 +132,7 @@ struct CodeEditorView: View {
         .gesture(
             DragGesture()
                 .onEnded { value in
-                    // 水平拖动距离超过阈值时，提示用户正在编辑中
-                    if isEditing && value.translation.width > CodeEditorConfig.swipeBackThreshold {
+                    if isEditing && value.translation.width > 50 {
                         editReturnAlert = true
                     }
                 }
@@ -160,144 +140,7 @@ struct CodeEditorView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
-                    if fileContent?.isTextFile ?? false {
-                        // MARK: - 编辑文件/完成编辑
-                        Button(action: {
-                            if isEditing {
-                                // 编辑模式下点击完成编辑
-                                if hasChanges {
-                                    // 有未保存修改，提示用户
-                                    showFinishEditAlert = true
-                                } else {
-                                    // 没有修改，直接退出编辑模式
-                                    isEditing = false
-                                }
-                            } else {
-                                // 非编辑模式下点击编辑文件，进入编辑模式
-                                isEditing = true
-                            }
-                        }) {
-                            Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark.circle.fill" : "pencil.circle")
-                        }
-                        .disabled(isLargeFileMode)
-
-                        // MARK: - 保存到GitHub
-                        Button(action: {
-                            // 清空提交信息，让用户输入新的提交信息
-                            commitMessage = ""
-                            // 显示提交信息弹窗
-                            showCommitDialog = true
-                        }) {
-                            Label("保存到GitHub", systemImage: "square.and.arrow.up.circle.fill")
-                        }
-                        .disabled(!isEditing || !hasChanges)
-
-                        Divider()
-
-                        // 撤销
-                        Button(action: {
-                            // 通过通知中心发送撤销操作，由CodeTextView监听执行
-                            NotificationCenter.default.post(name: .codeEditorUndo, object: nil)
-                        }) {
-                            Label("撤销", systemImage: "arrow.uturn.backward")
-                        }
-                        .disabled(!isEditing || !canUndo)
-
-                        // 重做
-                        Button(action: {
-                            // 通过通知中心发送重做操作，由CodeTextView监听执行
-                            NotificationCenter.default.post(name: .codeEditorRedo, object: nil)
-                        }) {
-                            Label("重做", systemImage: "arrow.uturn.forward")
-                        }
-                        .disabled(!isEditing || !canRedo)
-
-                        Divider()
-
-                        // 查找
-                        Button(action: {
-                            showSearch.toggle()
-                            if !showSearch {
-                                searchText = ""
-                                currentMatchIndex = 0
-                                totalMatches = 0
-                            }
-                        }) {
-                            Label(showSearch ? "关闭查找" : "查找", systemImage: "magnifyingglass")
-                        }
-
-                        // 复制全部内容
-                        Button(action: {
-                            UIPasteboard.general.string = codeText
-                        }) {
-                            Label("复制全部内容", systemImage: "doc.on.doc")
-                        }
-
-                        Divider()
-
-                        // MARK: - 显示设置子菜单
-                        Menu {
-                            // 显示/隐藏行号
-                            Button(action: {
-                                showLineNumbers.toggle()
-                            }) {
-                                Label(showLineNumbers ? "隐藏行号" : "显示行号", systemImage: "number")
-                            }
-
-                            Divider()
-
-                            // 减小字号
-                            Button(action: {
-                                // 字体大小不小于最小值，保证代码可读性
-                                fontSize = max(CodeEditorConfig.minFontSize, fontSize - 1)
-                            }) {
-                                Label("减小字号", systemImage: "textformat.size.smaller")
-                            }
-
-                            // 增大字号
-                            Button(action: {
-                                // 字体大小不大于最大值，避免字体过大影响编辑
-                                fontSize = min(CodeEditorConfig.maxFontSize, fontSize + 1)
-                            }) {
-                                Label("增大字号", systemImage: "textformat.size.larger")
-                            }
-
-                            Divider()
-
-                            // 编辑器主题
-                            Button(action: {
-                                showThemePicker = true
-                            }) {
-                                Label("编辑器主题", systemImage: "paintpalette")
-                            }
-                        } label: {
-                            Label("显示设置", systemImage: "textformat.size")
-                        }
-
-                        // MARK: - 高级功能子菜单
-                        Menu {
-                            // 代码片段
-                            Button(action: {
-                                showSnippetPicker = true
-                            }) {
-                                Label("代码片段", systemImage: "chevron.left.forwardslash.chevron.right")
-                            }
-                            .disabled(!isEditing)
-
-                            // 符号导航
-                            Button(action: {
-                                showSymbolPicker = true
-                            }) {
-                                Label("符号导航", systemImage: "list.bullet.indent")
-                            }
-                        } label: {
-                            Label("高级功能", systemImage: "sparkles")
-                        }
-
-                        Divider()
-                    }
-
-                    // MARK: - 文件操作
+                    // 文件操作
                     Button(action: {
                         showRenameDialog = true
                         newFileName = fileName
@@ -317,6 +160,78 @@ struct CodeEditorView: View {
                         Label("下载该文件", systemImage: "square.and.arrow.down")
                     }
 
+                    Divider()
+
+                    if fileContent?.isTextFile ?? false {
+                        Button(action: {
+                            showSearch.toggle()
+                            if !showSearch {
+                                searchText = ""
+                                currentMatchIndex = 0
+                                totalMatches = 0
+                            }
+                        }) {
+                            Label(showSearch ? "关闭查找" : "查找", systemImage: "magnifyingglass")
+                        }
+
+                        Button(action: {
+                            isEditing.toggle()
+                        }) {
+                            Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark" : "pencil")
+                        }
+                        .disabled(isLargeFileMode) // 大文件模式下禁用编辑
+
+                        Button(action: {
+                            UIPasteboard.general.string = codeText
+                        }) {
+                            Label("复制全部内容", systemImage: "doc.on.doc")
+                        }
+
+                        // 代码片段（第二期：编辑体验增强）
+                        Button(action: {
+                            showSnippetPicker = true
+                        }) {
+                            Label("代码片段", systemImage: "chevron.left.forwardslash.chevron.right")
+                        }
+                        .disabled(!isEditing)
+
+                        // 符号导航（第三期：高级编辑功能）
+                        Button(action: {
+                            showSymbolPicker = true
+                        }) {
+                            Label("符号导航", systemImage: "list.bullet.indent")
+                        }
+
+                        // 编辑器主题（第四期：协作与生产力）
+                        Button(action: {
+                            showThemePicker = true
+                        }) {
+                            Label("编辑器主题", systemImage: "paintpalette")
+                        }
+
+                        Divider()
+
+                        Button(action: {
+                            showLineNumbers.toggle()
+                        }) {
+                            Label(showLineNumbers ? "隐藏行号" : "显示行号", systemImage: "number")
+                        }
+
+                        Button(action: {
+                            fontSize = max(10, fontSize - 1)
+                        }) {
+                            Label("减小字号", systemImage: "textformat.size.smaller")
+                        }
+
+                        Button(action: {
+                            fontSize = min(24, fontSize + 1)
+                        }) {
+                            Label("增大字号", systemImage: "textformat.size.larger")
+                        }
+
+                        Divider()
+                    }
+
                     if let htmlUrl = fileContent?.htmlUrl {
                         Button(action: {
                             if let url = URL(string: htmlUrl) {
@@ -332,10 +247,116 @@ struct CodeEditorView: View {
                 .disabled(isRenaming || isDownloading)
             }
         }
-        // 编辑相关弹窗（使用overlay确保alert可正常触发，allowsHitTesting(false)确保不拦截工具栏菜单点击）
-        .overlay(editingAlerts.allowsHitTesting(false))
-        // 文件操作相关弹窗
-        .overlay(fileOperationAlerts.allowsHitTesting(false))
+        .alert("提交修改", isPresented: $showCommitDialog) {
+            TextField("提交信息（如：更新 xxx）", text: $commitMessage)
+            Button("取消", role: .cancel) {}
+            Button("提交") {
+                commitChanges()
+            }
+        } message: {
+            Text("将修改提交到 \(branch) 分支")
+        }
+        .alert("提交成功", isPresented: $showSaveSuccess) {
+            Button("确定") {
+                // 如果是从"未保存提醒"弹窗点击"保存并离开"触发的提交，提交成功后自动退出
+                if shouldDismissAfterSave {
+                    shouldDismissAfterSave = false
+                    dismiss()
+                } else {
+                    isEditing = false
+                    loadFile()
+                }
+            }
+        } message: {
+            Text("文件已成功提交到 GitHub 仓库")
+        }
+        .alert("重命名文件", isPresented: $showRenameDialog) {
+            TextField("新文件名", text: $newFileName)
+            Button("取消", role: .cancel) {}
+            Button("确定") {
+                renameFile()
+            }
+            .disabled(newFileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } message: {
+            Text("当前文件名: \(fileName)\n请输入新的文件名")
+        }
+        .alert("重命名成功", isPresented: $showRenameSuccess) {
+            Button("确定") {
+                // 返回上一页
+                NotificationCenter.default.post(name: NSNotification.Name("FileRenamed"), object: nil)
+            }
+        } message: {
+            Text("文件已成功重命名")
+        }
+        .alert("重命名失败", isPresented: .constant(renameErrorMessage != nil)) {
+            Button("确定") {
+                renameErrorMessage = nil
+            }
+        } message: {
+            Text(renameErrorMessage ?? "未知错误")
+        }
+        .alert("复制成功", isPresented: $showCopySuccess) {
+            Button("确定") {}
+        } message: {
+            Text("文件 Raw 地址已复制到剪贴板")
+        }
+        .alert("未选中文字", isPresented: $showNoSelectionAlert) {
+            Button("确定") {}
+        } message: {
+            Text("请先在代码中选中要查找的文字，然后再点击「查找选中文字」")
+        }
+        // 未保存提醒弹窗
+        .alert("文件未保存", isPresented: $showUnsavedAlert) {
+            // 保存按钮（蓝色）
+            Button(action: {
+                // 标记保存后自动退出
+                shouldDismissAfterSave = true
+                // 先提交修改，提交成功后退出
+                showCommitDialog = true
+                showUnsavedAlert = false
+            }) {
+                Text("保存并离开")
+                    .foregroundColor(.blue)
+            }
+            // 不保存按钮（红色）
+            Button(role: .destructive) {
+                // 直接退出，不保存
+                dismiss()
+            } label: {
+                Text("不保存，直接离开")
+                    .foregroundColor(.red)
+            }
+            // 取消按钮
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("当前文件有未保存的修改，确定要离开吗？")
+        }
+        // 编辑模式下点击返回的提示
+        .alert("正在编辑中", isPresented: $editReturnAlert) {
+            Button("确定") {}
+        } message: {
+            Text("正在编辑文件，请先完成编辑或点击「完成编辑」后再返回")
+        }
+        // 取消编辑二次确认
+        .alert("确认取消", isPresented: $showCancelConfirm) {
+            Button("继续编辑", role: .cancel) {}
+            Button("放弃修改", role: .destructive) {
+                codeText = originalContent
+                isEditing = false
+            }
+        } message: {
+            Text("您有未保存的修改，确定要放弃吗？")
+        }
+        // 提交修改二次确认
+        .alert("确认提交", isPresented: $showSubmitConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("确认提交") {
+                commitMessage = "Update \(fileName)"
+                showCommitDialog = true
+            }
+        } message: {
+            Text("确定要提交修改到 GitHub 仓库吗？")
+        }
         .overlay {
             if isDownloading {
                 downloadProgressOverlay
@@ -404,8 +425,8 @@ struct CodeEditorView: View {
         }
         // 编辑模式时禁用手势返回
         .background(SwipeBackControlView(enabled: !isEditing))
-        // 进入文件编辑器就彻底隐藏底部Tab栏，禁止切换到"仓库""我的"等页面
-        .background(TabBarControlView(visible: false))
+        // 编辑模式时隐藏底部Tab栏，禁止切换到"我的"等页面
+        .background(TabBarControlView(visible: !isEditing))
         // 代码片段选择弹窗（第二期：编辑体验增强）
         .sheet(isPresented: $showSnippetPicker) {
             snippetPickerView
@@ -425,160 +446,6 @@ struct CodeEditorView: View {
                 showThemePicker = false
             }
         }
-    }
-
-    // MARK: - 编辑相关弹窗（提取为单独计算属性，避免body类型检查超时）
-
-    private var editingAlerts: some View {
-        Group {
-            alertCommitDialog
-            alertSaveSuccess
-            alertFinishEdit
-            alertEditing
-        }
-    }
-
-    // 提交信息弹窗：用户输入提交信息后将修改保存到GitHub
-    private var alertCommitDialog: some View {
-        EmptyView()
-            .alert("保存到GitHub", isPresented: $showCommitDialog) {
-                // 提交信息输入框
-                TextField("输入提交信息（如：更新 xxx 功能）", text: $commitMessage)
-                // 取消按钮
-                Button("取消", role: .cancel) {}
-                // 提交按钮：点击后调用commitChanges()保存到GitHub
-                Button("保存") {
-                    commitChanges()
-                }
-            } message: {
-                Text("将修改提交到 \(branch) 分支")
-            }
-    }
-
-    // 保存成功弹窗：显示保存成功信息，并根据标记决定是否退出编辑模式
-    private var alertSaveSuccess: some View {
-        EmptyView()
-            .alert("保存成功", isPresented: $showSaveSuccess) {
-                Button("确定") {
-                    if shouldExitEditAfterSave {
-                        // 从完成编辑弹窗点击保存并提交，保存成功后自动退出编辑模式
-                        shouldExitEditAfterSave = false
-                        isEditing = false
-                        loadFile()
-                    }
-                }
-            } message: {
-                Text("文件已成功保存到 GitHub 仓库")
-            }
-    }
-
-    // 完成编辑提醒弹窗：用户点击完成编辑且有未保存修改时显示
-    private var alertFinishEdit: some View {
-        EmptyView()
-            .alert("完成编辑", isPresented: $showFinishEditAlert) {
-                // 保存并提交按钮（蓝色，主要操作）
-                Button(action: {
-                    // 标记保存成功后自动退出编辑模式
-                    shouldExitEditAfterSave = true
-                    // 清空提交信息，让用户输入新的提交信息
-                    commitMessage = ""
-                    // 关闭当前弹窗，显示提交信息弹窗
-                    showFinishEditAlert = false
-                    showCommitDialog = true
-                }) {
-                    Text("保存并提交")
-                        .foregroundColor(.blue)
-                }
-                // 放弃修改按钮（红色，危险操作）
-                Button(role: .destructive) {
-                    // 恢复原始内容并退出编辑模式
-                    codeText = originalContent
-                    isEditing = false
-                } label: {
-                    Text("放弃修改")
-                        .foregroundColor(.red)
-                }
-                // 取消按钮（灰色，继续编辑）
-                Button("取消", role: .cancel) {}
-            } message: {
-                Text("当前文件有未保存的修改。\n选择「保存并提交」将修改保存到 GitHub，选择「放弃修改」将恢复原始内容。")
-            }
-    }
-
-    private var alertEditing: some View {
-        EmptyView()
-            .alert("正在编辑中", isPresented: $editReturnAlert) {
-                Button("确定") {}
-            } message: {
-                Text("正在编辑文件，请先完成编辑或点击「完成编辑」后再返回")
-            }
-    }
-
-    // MARK: - 文件操作相关弹窗
-
-    private var fileOperationAlerts: some View {
-        Group {
-            alertRenameDialog
-            alertRenameSuccess
-            alertRenameFailure
-            alertCopySuccess
-            alertNoSelection
-        }
-    }
-
-    private var alertRenameDialog: some View {
-        EmptyView()
-            .alert("重命名文件", isPresented: $showRenameDialog) {
-                TextField("新文件名", text: $newFileName)
-                Button("取消", role: .cancel) {}
-                Button("确定") {
-                    renameFile()
-                }
-                .disabled(newFileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            } message: {
-                Text("当前文件名: \(fileName)\n请输入新的文件名")
-            }
-    }
-
-    private var alertRenameSuccess: some View {
-        EmptyView()
-            .alert("重命名成功", isPresented: $showRenameSuccess) {
-                Button("确定") {
-                    // 发送文件重命名成功通知，通知上级页面刷新文件列表
-                    NotificationCenter.default.post(name: .fileRenamed, object: nil)
-                }
-            } message: {
-                Text("文件已成功重命名")
-            }
-    }
-
-    private var alertRenameFailure: some View {
-        EmptyView()
-            .alert("重命名失败", isPresented: .constant(renameErrorMessage != nil)) {
-                Button("确定") {
-                    renameErrorMessage = nil
-                }
-            } message: {
-                Text(renameErrorMessage ?? "未知错误")
-            }
-    }
-
-    private var alertCopySuccess: some View {
-        EmptyView()
-            .alert("复制成功", isPresented: $showCopySuccess) {
-                Button("确定") {}
-            } message: {
-                Text("文件 Raw 地址已复制到剪贴板")
-            }
-    }
-
-    private var alertNoSelection: some View {
-        EmptyView()
-            .alert("未选中文字", isPresented: $showNoSelectionAlert) {
-                Button("确定") {}
-            } message: {
-                Text("请先在代码中选中要查找的文字，然后再点击「查找选中文字」")
-            }
     }
 
     // MARK: - 下载进度覆盖层
@@ -678,6 +545,76 @@ struct CodeEditorView: View {
         // 实际应用中应该插入到光标位置，这里简化处理
         codeText += result.code
         // hasChanges是计算属性，通过codeText != originalContent自动判断，无需手动设置
+    }
+
+    // MARK: - 编辑模式底部工具栏
+
+    private var editModeBottomBar: some View {
+        HStack(spacing: 8) {
+            // 撤销按钮
+            Button(action: {
+                NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
+            }) {
+                Image(systemName: "arrow.uturn.backward")
+                    .foregroundColor(canUndo ? .blue : .gray)
+                    .frame(width: 40, height: 44)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+            }
+            .disabled(!canUndo)
+
+            // 重做按钮
+            Button(action: {
+                NotificationCenter.default.post(name: NSNotification.Name("CodeEditorRedo"), object: nil)
+            }) {
+                Image(systemName: "arrow.uturn.forward")
+                    .foregroundColor(canRedo ? .blue : .gray)
+                    .frame(width: 40, height: 44)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+            }
+            .disabled(!canRedo)
+
+            // 取消按钮
+            Button(action: {
+                // 取消按钮二次确认
+                if hasChanges {
+                    showCancelConfirm = true
+                } else {
+                    // 没有修改，直接取消
+                    codeText = originalContent
+                    isEditing = false
+                }
+            }) {
+                Text("取消")
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+            }
+
+            // 提交修改按钮
+            Button(action: {
+                // 提交修改按钮二次确认
+                showSubmitConfirm = true
+            }) {
+                if isSaving {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                } else {
+                    Text("提交修改")
+                        .fontWeight(.semibold)
+                }
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+            .background(Color.black)
+            .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+            .disabled(!hasChanges || isSaving)
+            .opacity((!hasChanges || isSaving) ? 0.5 : 1)
+        }
+        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .background(Color(.systemGray6))
+        .edgesIgnoringSafeArea(.bottom)
     }
 
     // MARK: - 文件信息栏
@@ -1118,12 +1055,12 @@ struct CodeEditorView: View {
                     let fileSize = file.size
                     fileSizeDisplay = formatFileSize(fileSize)
 
-                    if fileSize >= CodeEditorConfig.ultraLargeFileThreshold {
+                    if fileSize >= ultraLargeFileThreshold {
                         // 超大文件（>20MB）：禁用语法高亮，纯文本显示，禁用编辑
                         isUltraLargeFileMode = true
                         isLargeFileMode = true
                         isEditing = false
-                    } else if fileSize >= CodeEditorConfig.largeFileThreshold {
+                    } else if fileSize >= largeFileThreshold {
                         // 大文件（>5MB）：禁用编辑，只读快速浏览
                         isLargeFileMode = true
                         isUltraLargeFileMode = false
@@ -1191,24 +1128,15 @@ struct CodeEditorView: View {
         return byteCountFormatter.string(fromByteCount: Int64(size))
     }
     
-    // MARK: - 保存到GitHub
-
-    // 将修改的内容保存到GitHub仓库
     private func commitChanges() {
-        // 确保文件内容和sha存在
-        guard let sha = fileContent?.sha else {
-            errorMessage = "文件信息缺失，无法保存"
+        guard let sha = fileContent?.sha else { return }
+        guard !commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            commitMessage = "Update \(fileName)"
             return
         }
-        // 如果提交信息为空，自动使用默认提交信息
-        if commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            commitMessage = "Update \(fileName)"
-        }
 
-        // 设置正在保存状态
         isSaving = true
 
-        // 调用GitHubAPI保存文件
         GitHubAPI.shared.updateFile(
             owner: owner,
             repo: repo,
@@ -1219,20 +1147,17 @@ struct CodeEditorView: View {
             branch: branch
         ) { result in
             DispatchQueue.main.async {
-                // 保存完成，取消正在保存状态
                 isSaving = false
                 switch result {
                 case .success:
-                    // 保存成功，显示成功弹窗
                     showSaveSuccess = true
-                    // 更新原始内容为当前内容
+                    // 提交成功后更新原始内容
                     originalContent = codeText
                     // 清除撤销/重做栈
                     undoManager.clear()
                     // 清除草稿
                     draftManager.clearDraft(for: path, branch: branch)
                 case .failure(let error):
-                    // 保存失败，显示错误信息
                     errorMessage = error.localizedDescription
                 }
             }
