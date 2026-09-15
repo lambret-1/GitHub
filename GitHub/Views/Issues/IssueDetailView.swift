@@ -44,10 +44,11 @@ struct IssueDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     if issue.state == .open {
-                        Button(role: .destructive) {
+                        Button { // iOS14兼容：移除role参数，使用foregroundColor设置红色
                             closeIssue()
                         } label: {
                             Label("关闭Issue", systemImage: "xmark.circle")
+                                .foregroundColor(.red)
                         }
                     } else {
                         Button {
@@ -64,14 +65,17 @@ struct IssueDetailView: View {
         .onAppear {
             loadComments()
         }
-        .overlay {
-            if isUpdatingState {
-                ProgressView("处理中...")
-                    .padding()
-                    .background(Color.gray.opacity(0.8))
-                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
-            }
-        }
+        .overlay( // iOS14兼容：使用旧版overlay语法替代iOS15+的overlay(alignment:content:)
+            Group {
+                if isUpdatingState {
+                    ProgressView("处理中...")
+                        .padding()
+                        .background(Color.gray.opacity(0.8))
+                        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                }
+            },
+            alignment: .center
+        )
     }
 
     // MARK: - Issue头部信息
