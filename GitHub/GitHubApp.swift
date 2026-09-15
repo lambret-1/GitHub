@@ -32,31 +32,30 @@ struct GitHubApp: App {
                 }
             }
             // 更新推送对话框
-            .alert("发现新版本", isPresented: $appState.showUpdateAlert) {
-                if let release = appState.latestRelease {
-                    Button("立即更新") {
+            .alert(isPresented: $appState.showUpdateAlert) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("发现新版本"),
+                    message: Text(appState.latestRelease != nil ? "新版本 \(appState.latestRelease!.tagName) 已发布，点击立即更新，下载完成后将自动弹出分享面板进行安装。" : "发现新版本"),
+                    primaryButton: .default(Text("立即更新"), action: {
                         appState.downloadUpdateNow()
-                    }
-                    Button("稍后提醒", role: .cancel) {
+                    }),
+                    secondaryButton: .cancel(Text("稍后提醒"), action: {
                         appState.remindLater()
-                    }
-                }
-            } message: {
-                if let release = appState.latestRelease {
-                    Text("新版本 \(release.tagName) 已发布，点击立即更新，下载完成后将自动弹出分享面板进行安装。")
-                }
+                    })
+                )
             }
             // 下载更新进度覆盖层
-            .overlay {
-                if appState.isDownloadingUpdate {
-                    ZStack {
-                        Color.black.opacity(0.4)
-                            .ignoresSafeArea()
-                        
-                        VStack(spacing: 16) {
-                            ProgressView(value: appState.updateDownloadProgress)
-                                .progressViewStyle(CircularProgressViewStyle())
-                                .scaleEffect(1.5)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
+            .overlay( // iOS14兼容：使用旧版overlay语法
+                Group {
+                    if appState.isDownloadingUpdate {
+                        ZStack {
+                            Color.black.opacity(0.4)
+                                .ignoresSafeArea()
+                            
+                            VStack(spacing: 16) {
+                                ProgressView(value: appState.updateDownloadProgress)
+                                    .progressViewStyle(CircularProgressViewStyle())
+                                    .scaleEffect(1.5)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
                             
                             Text("正在下载更新...")
                                 .font(.headline)
@@ -75,8 +74,9 @@ struct GitHubApp: App {
                         .cornerRadius(16)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     }
                 }
-            }
-        }
+            },
+            alignment: .center
+        )
     }
 }
 
