@@ -1118,12 +1118,12 @@ struct CodeEditorView: View {
                     let fileSize = file.size
                     fileSizeDisplay = formatFileSize(fileSize)
 
-                    if fileSize >= ultraLargeFileThreshold {
+                    if fileSize >= CodeEditorConfig.ultraLargeFileThreshold {
                         // 超大文件（>20MB）：禁用语法高亮，纯文本显示，禁用编辑
                         isUltraLargeFileMode = true
                         isLargeFileMode = true
                         isEditing = false
-                    } else if fileSize >= largeFileThreshold {
+                    } else if fileSize >= CodeEditorConfig.largeFileThreshold {
                         // 大文件（>5MB）：禁用编辑，只读快速浏览
                         isLargeFileMode = true
                         isUltraLargeFileMode = false
