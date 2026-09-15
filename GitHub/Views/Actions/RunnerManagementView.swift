@@ -94,7 +94,7 @@ struct RunnerManagementView: View {
                                 ProgressView()
                                 Spacer()
                             }
-                            .listRowSeparator(.hidden)
+                            .ios14HideListRowSeparator()
                         }
                     }
                 }

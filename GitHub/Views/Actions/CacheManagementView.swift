@@ -92,7 +92,7 @@ struct CacheManagementView: View {
                                 ProgressView()
                                 Spacer()
                             }
-                            .listRowSeparator(.hidden)
+                            .ios14HideListRowSeparator()
                         }
                     }
                 }

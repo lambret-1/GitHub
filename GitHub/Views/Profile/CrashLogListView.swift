@@ -90,7 +90,7 @@ struct CrashLogListView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                     // 滑动删除
-                    .ios14SwipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    .ios14SwipeActions {
                         Button(role: .destructive) {
                             deleteCrashLog(crashLog)
                         } label: {

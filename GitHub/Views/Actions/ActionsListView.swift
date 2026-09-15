@@ -269,7 +269,7 @@ struct ActionsListView: View {
         }
         .padding()
         .background(Color(.systemGray6))
-        .listRowSeparator(.hidden)
+        .ios14HideListRowSeparator()
     }
 
     // MARK: - 对比模式辅助方法
@@ -390,7 +390,7 @@ struct ActionsListView: View {
         }
         .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
         .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
-        .listRowSeparator(.hidden)
+        .ios14HideListRowSeparator()
     }
 
     private var statusFilterDisplay: String {

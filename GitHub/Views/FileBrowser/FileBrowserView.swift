@@ -433,7 +433,7 @@ struct FileBrowserView: View {
                 Spacer()
             }
             .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
+            .ios14HideListRowSeparator()
             .padding(.top, 100)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
         }
         .listStyle(PlainListStyle())
@@ -465,7 +465,7 @@ struct FileBrowserView: View {
                 Spacer()
             }
             .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
+            .ios14HideListRowSeparator()
             .padding(.top, 80)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
             .padding()
         }
@@ -493,7 +493,7 @@ struct FileBrowserView: View {
                 Spacer()
             }
             .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
+            .ios14HideListRowSeparator()
             .padding(.top, 100)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
         }
         .listStyle(PlainListStyle())
@@ -530,7 +530,7 @@ struct FileBrowserView: View {
         }
         .background(Color(.systemBackground))
         .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden)
+        .ios14HideListRowSeparator()
     }
 
     var repoHeaderSection: some View {
@@ -546,7 +546,7 @@ struct FileBrowserView: View {
         )
         .environmentObject(appState)
         .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden)
+        .ios14HideListRowSeparator()
     }
 
     var branchBarSection: some View {
@@ -566,7 +566,7 @@ struct FileBrowserView: View {
         }
         .environmentObject(appState)
         .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden)
+        .ios14HideListRowSeparator()
     }
 
     @ViewBuilder
@@ -574,7 +574,7 @@ struct FileBrowserView: View {
         if !currentPath.isEmpty {
             pathNavigationBar
                 .listRowInsets(EdgeInsets())
-                .listRowSeparator(.hidden)
+                .ios14HideListRowSeparator()
         }
     }
 
@@ -666,7 +666,7 @@ struct FileBrowserView: View {
         }
         .environmentObject(appState)
         .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden)
+        .ios14HideListRowSeparator()
 
         // 代码搜索入口按钮（点击弹出新的RepoCodeSearchView，使用GitHub官方搜索API）
         Button {
@@ -687,18 +687,18 @@ struct FileBrowserView: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
         .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden)
+        .ios14HideListRowSeparator()
 
         // 顶部提交信息栏（GitHub官方风格）
         latestCommitHeaderView
             .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
+            .ios14HideListRowSeparator()
 
             // 路径导航栏（仅子目录显示，可跟随屏幕滑动，字号和高度与文件夹行一致）
             if !currentPath.isEmpty {
                 pathNavigationBar
                     .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
+                    .ios14HideListRowSeparator()
             }
 
             ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
@@ -713,7 +713,7 @@ struct FileBrowserView: View {
             }
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
+            .ios14HideListRowSeparator()
     }
 
     // MARK: - Issues Tab内容

@@ -250,7 +250,7 @@ struct WorkflowRunDetailView: View {
                     ProgressView("加载中...")
                     Spacer()
                 }
-                .listRowSeparator(.hidden)
+                .ios14HideListRowSeparator()
             } else if let error = filesError, changedFiles.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
@@ -265,11 +265,11 @@ struct WorkflowRunDetailView: View {
                     .font(.caption)
                 }
                 .padding(.vertical)
-                .listRowSeparator(.hidden)
+                .ios14HideListRowSeparator()
             } else if changedFiles.isEmpty {
                 Text("暂无变更文件")
                     .foregroundColor(.secondary)
-                    .listRowSeparator(.hidden)
+                    .ios14HideListRowSeparator()
             } else {
                 ForEach(changedFiles) { file in
                     // 恢复v4.4.9版本：点击变更文件跳转到DiffView查看器
@@ -324,7 +324,7 @@ struct WorkflowRunDetailView: View {
                 Label("时间线", systemImage: "timeline.selection").tag(ViewMode.timeline)
             }
             .pickerStyle(SegmentedPickerStyle())
-            .listRowSeparator(.hidden)
+            .ios14HideListRowSeparator()
             .padding(.bottom, 4)  // 这是底部内边距，控制内容下方与边缘的空白距离，单位是pt；改大下方留白更宽，改小下方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
 
             if viewMode == .list {
@@ -335,7 +335,7 @@ struct WorkflowRunDetailView: View {
                         ProgressView("加载作业中...")
                         Spacer()
                     }
-                    .listRowSeparator(.hidden)
+                    .ios14HideListRowSeparator()
                 } else if let error = jobsError, jobs.isEmpty {
                     VStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle")
@@ -350,11 +350,11 @@ struct WorkflowRunDetailView: View {
                         .font(.caption)
                     }
                     .padding(.vertical)
-                    .listRowSeparator(.hidden)
+                    .ios14HideListRowSeparator()
                 } else if jobs.isEmpty {
                     Text("暂无作业")
                         .foregroundColor(.secondary)
-                        .listRowSeparator(.hidden)
+                        .ios14HideListRowSeparator()
                 } else {
                     ForEach(jobs) { job in
                         NavigationLink(destination: JobLogView(owner: owner, repo: repo, job: job)) {
@@ -370,7 +370,7 @@ struct WorkflowRunDetailView: View {
                         ProgressView("加载作业中...")
                         Spacer()
                     }
-                    .listRowSeparator(.hidden)
+                    .ios14HideListRowSeparator()
                 } else if let error = jobsError, jobs.isEmpty {
                     VStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle")
@@ -385,11 +385,11 @@ struct WorkflowRunDetailView: View {
                         .font(.caption)
                     }
                     .padding(.vertical)
-                    .listRowSeparator(.hidden)
+                    .ios14HideListRowSeparator()
                 } else if jobs.isEmpty {
                     Text("暂无作业")
                         .foregroundColor(.secondary)
-                        .listRowSeparator(.hidden)
+                        .ios14HideListRowSeparator()
                 } else {
                     // 每个作业显示一个时间线
                     ForEach(jobs) { job in
@@ -417,7 +417,7 @@ struct WorkflowRunDetailView: View {
                             .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                         }
                         .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
-                        .listRowSeparator(.hidden)
+                        .ios14HideListRowSeparator()
                     }
                 }
             }
@@ -436,7 +436,7 @@ struct WorkflowRunDetailView: View {
                     ProgressView("加载中...")
                     Spacer()
                 }
-                .listRowSeparator(.hidden)
+                .ios14HideListRowSeparator()
             } else if let error = artifactsError, artifacts.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
@@ -451,11 +451,11 @@ struct WorkflowRunDetailView: View {
                     .font(.caption)
                 }
                 .padding(.vertical)
-                .listRowSeparator(.hidden)
+                .ios14HideListRowSeparator()
             } else if artifacts.isEmpty {
                 Text("暂无构建产物")
                     .foregroundColor(.secondary)
-                    .listRowSeparator(.hidden)
+                    .ios14HideListRowSeparator()
             } else {
                 ForEach(artifacts) { artifact in
                     HStack(spacing: 12) {

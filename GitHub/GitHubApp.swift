@@ -21,7 +21,7 @@ struct GitHubApp: App {
             }
             .environmentObject(appState)
             // 全局启用文本选择，所有视图中的Text都可以长按选择、复制、分享
-            .ios14TextSelection(.enabled)
+            .ios14TextSelection()
             // 根据暗黑模式状态设置应用配色方案
             .preferredColorScheme(appState.isDarkMode ? .dark : .light)
             // 应用启动时自动检查更新（强制检查，忽略稍后提醒）

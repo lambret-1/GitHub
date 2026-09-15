@@ -63,7 +63,7 @@ struct ActionsSettingsView: View {
                         ProgressView("加载工作流中...")
                         Spacer()
                     }
-                    .listRowSeparator(.hidden)
+                    .ios14HideListRowSeparator()
                 } else if let error = workflowsError, workflows.isEmpty {
                     VStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle")
@@ -78,11 +78,11 @@ struct ActionsSettingsView: View {
                         .font(.caption)
                     }
                     .padding(.vertical)
-                    .listRowSeparator(.hidden)
+                    .ios14HideListRowSeparator()
                 } else if workflows.isEmpty {
                     Text("暂无工作流")
                         .foregroundColor(.secondary)
-                        .listRowSeparator(.hidden)
+                        .ios14HideListRowSeparator()
                 } else {
                     ForEach(workflows) { workflow in
                         WorkflowSettingsRow(owner: owner, repo: repo, workflow: workflow)

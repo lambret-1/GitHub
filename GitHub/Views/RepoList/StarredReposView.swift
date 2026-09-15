@@ -309,10 +309,10 @@ struct StarredReposView: View {
                     StarredRepoCard(repo: repo)
                 }
                 .listRowBackground(appState.isDarkMode ? Color.black : Color.white)
-                .listRowSeparator(.hidden)
+                .ios14HideListRowSeparator()
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 // 左滑取消星标
-                .ios14SwipeActions(edge: .trailing, allowsFullSwipe: true) {
+                .ios14SwipeActions {
                     Button(role: .destructive) {
                         unstarRepository(repo)
                     } label: {

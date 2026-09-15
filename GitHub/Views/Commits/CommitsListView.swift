@@ -43,7 +43,7 @@ struct CommitsListView: View {
                             }
                         }
                         .listRowBackground(appState.isDarkMode ? Color.black : Color.white)
-                        .listRowSeparator(.hidden)
+                        .ios14HideListRowSeparator()
                 }
 
                 if isLoadingMore {
