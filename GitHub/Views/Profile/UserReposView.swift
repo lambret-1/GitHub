@@ -297,7 +297,6 @@ struct UserReposView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
             UserReposView(username: "octocat", avatarUrl: "https://avatars.githubusercontent.com/u/583231?v=4")
-                .environmentObject(AppState())
         }
     }
 }
