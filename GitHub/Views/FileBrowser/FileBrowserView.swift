@@ -460,7 +460,7 @@ struct FileBrowserView: View {
                     Button("重试") {
                         loadFiles()
                     }
-                    .buttonStyle(.bordered)
+                    
                 }
                 Spacer()
             }

@@ -250,7 +250,7 @@ struct RepoCodeSearchView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
                 Button("重试") { viewModel.search() }
-                    .buttonStyle(.bordered)
+                    
             }
             Spacer()
         case .success:

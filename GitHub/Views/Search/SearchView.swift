@@ -130,7 +130,7 @@ struct SearchView: View {
                         Button("重试") {
                             performSearch()
                         }
-                        .buttonStyle(.bordered)
+                        
                     }
                     .padding()
                     Spacer()

@@ -139,7 +139,7 @@ struct IssuesListView: View {
                 hasMore = true
                 loadIssues()
             }
-            .buttonStyle(.bordered)
+            
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)

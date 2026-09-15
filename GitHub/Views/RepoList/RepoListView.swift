@@ -89,7 +89,7 @@ struct RepoListView: View {
                         Button("重试") {
                             loadRepos()
                         }
-                        .buttonStyle(.bordered)
+                        
                     }
                     .padding()
                     Spacer()

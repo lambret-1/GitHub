@@ -660,7 +660,7 @@ struct CodeEditorView: View {
                 Button("重试") {
                     loadFile()
                 }
-                .buttonStyle(.bordered)
+                
             }
             .padding()
             Spacer()
@@ -682,7 +682,7 @@ struct CodeEditorView: View {
                             UIApplication.shared.open(url)
                         }
                     }
-                    .buttonStyle(.bordered)
+                    
                 }
             }
             Spacer()
@@ -715,14 +715,14 @@ struct CodeEditorView: View {
                         Button("重试") {
                             loadImage(from: content.downloadUrl)
                         }
-                        .buttonStyle(.bordered)
+                        
                         if let downloadUrl = content.downloadUrl {
                             Button("下载文件") {
                                 if let url = URL(string: downloadUrl) {
                                     UIApplication.shared.open(url)
                                 }
                             }
-                            .buttonStyle(.bordered)
+                            
                         }
                     }
                     .padding()

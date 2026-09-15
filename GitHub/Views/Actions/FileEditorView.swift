@@ -212,7 +212,7 @@ struct FileEditorView: View {
                     Button("重试") {
                         loadFileContent()
                     }
-                    .buttonStyle(.bordered)
+                    
                     Spacer()
                 }
                 .padding()

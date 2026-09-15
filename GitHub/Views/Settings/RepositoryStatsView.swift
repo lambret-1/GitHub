@@ -62,7 +62,7 @@ struct RepositoryStatsView: View {
                 Button("重试") {
                     loadRepository()
                 }
-                .buttonStyle(.bordered)
+                
             }
             .listRowBackground(Color.clear)
         }

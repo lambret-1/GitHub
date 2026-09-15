@@ -141,7 +141,7 @@ struct PullRequestsListView: View {
                 hasMore = true
                 loadPullRequests()
             }
-            .buttonStyle(.bordered)
+            
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
