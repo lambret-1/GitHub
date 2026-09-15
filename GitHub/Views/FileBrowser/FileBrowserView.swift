@@ -243,7 +243,7 @@ struct FileBrowserView: View {
             }
         }
         // 程序导航：使用navigationDestination替代弃用的NavigationLink(destination:isActive:)
-        .navigationDestination(isPresented: $navigateToEditor) {
+        .ios14NavigationDestination(isPresented: $navigateToEditor) {
             if let filePath = newlyCreatedFilePath {
                 CodeEditorView(
                     owner: repository.ownerName,
@@ -254,7 +254,7 @@ struct FileBrowserView: View {
                 )
             }
         }
-        .navigationDestination(isPresented: $navigateToEditorFromContextMenu) {
+        .ios14NavigationDestination(isPresented: $navigateToEditorFromContextMenu) {
             if let filePath = contextMenuEditFilePath, let fileName = contextMenuEditFileName {
                 CodeEditorView(
                     owner: repository.ownerName,
@@ -267,20 +267,20 @@ struct FileBrowserView: View {
             }
         }
         // 用户仓库主页导航：点击仓库所有者头像进入该用户的仓库列表
-        .navigationDestination(isPresented: $showUserRepos) {
+        .ios14NavigationDestination(isPresented: $showUserRepos) {
             UserReposView(
                 username: repository.owner.login,
                 avatarUrl: repository.owner.avatarUrl
             )
             .environmentObject(appState)
         }
-        .navigationDestination(isPresented: $showActions) {
+        .ios14NavigationDestination(isPresented: $showActions) {
             ActionsListView(
                 owner: repository.ownerName,
                 repo: repository.name
             )
         }
-        .navigationDestination(isPresented: $navigateToFileEditor) {
+        .ios14NavigationDestination(isPresented: $navigateToFileEditor) {
             if let filePath = selectedFilePath, let fileName = selectedFileName {
                 CodeEditorView(
                     owner: repository.ownerName,
@@ -3781,7 +3781,7 @@ private struct FileBrowserBranchAndRenameSheetsModifier: ViewModifier {
             }
             .sheet(isPresented: view.$showContextMenuRename, content: view.renameFileSheet)
             .sheet(isPresented: view.$showCommits) {
-                NavigationStack {
+                NavigationView {
                     CommitsListView(owner: view.repository.ownerName, repo: view.repository.name, branch: view.selectedBranch)
                         .environmentObject(view.appState)
                 }

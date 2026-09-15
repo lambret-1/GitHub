@@ -385,7 +385,7 @@ struct FileDiffView: View {
     @State private var lastScale: CGFloat = 1.0
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // 文件头部

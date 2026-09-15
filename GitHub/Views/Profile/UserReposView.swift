@@ -295,7 +295,7 @@ struct UserReposView: View {
 
 struct UserReposView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationStack {
+        NavigationView {
             UserReposView(username: "octocat", avatarUrl: "https://avatars.githubusercontent.com/u/583231?v=4")
         }
     }

@@ -159,7 +159,7 @@ struct IssuesListView: View {
 
     // MARK: - 创建Issue弹窗
     private var createIssueSheet: some View {
-        NavigationStack {
+        NavigationView {
             Form {
                 Section("标题") {
                     TextField("请输入Issue标题", text: $newIssueTitle)

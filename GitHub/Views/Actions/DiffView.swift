@@ -32,7 +32,7 @@ struct DiffView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: $showEditor) {
+        .ios14NavigationDestination(isPresented: $showEditor) {
             editorDestination
         }
         .onAppear {

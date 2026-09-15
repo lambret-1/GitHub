@@ -65,7 +65,7 @@ struct ActionsListView: View {
         }
         // 移除顶部工具栏，对比/统计/设置按钮已移到filterSortBar中"最新"右边
         // 移除导航栏相关修饰符，因为ActionsListView现在嵌入在FileBrowserView中
-        .navigationDestination(isPresented: $showComparisonView) {
+        .ios14NavigationDestination(isPresented: $showComparisonView) {
             comparisonDestination
         }
         .onAppear {

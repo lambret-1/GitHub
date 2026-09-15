@@ -30,7 +30,7 @@ struct SearchView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
                 // 搜索栏 + 筛选按钮
                 HStack(spacing: 8) {
@@ -206,7 +206,7 @@ struct SearchView: View {
                         .padding()
                 }
             }
-            .navigationDestination(isPresented: $showCodeEditor) {
+            .ios14NavigationDestination(isPresented: $showCodeEditor) {
                 if let item = selectedCodeItem {
                     CodeEditorView(
                         owner: item.repository.ownerName,

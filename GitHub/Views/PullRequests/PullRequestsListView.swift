@@ -161,7 +161,7 @@ struct PullRequestsListView: View {
 
     // MARK: - 创建PR弹窗
     private var createPRSheet: some View {
-        NavigationStack {
+        NavigationView {
             Form {
                 Section("标题") {
                     TextField("请输入PR标题", text: $newPRTitle)

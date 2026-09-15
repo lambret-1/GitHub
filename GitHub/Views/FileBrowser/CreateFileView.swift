@@ -43,7 +43,7 @@ struct CreateFileView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
-                            .submitLabel(.done)
+                            .ios14SubmitLabel(.done)
                             .onSubmit {
                                 createFile()
                             }

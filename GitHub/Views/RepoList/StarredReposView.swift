@@ -312,7 +312,7 @@ struct StarredReposView: View {
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 // 左滑取消星标
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                .ios14SwipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
                         unstarRepository(repo)
                     } label: {

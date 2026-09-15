@@ -37,7 +37,7 @@ struct RepoListView: View {
     }
     
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
                 // 搜索栏 + 星标按钮
                 HStack(spacing: 12) {

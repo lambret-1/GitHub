@@ -14,7 +14,7 @@ struct RepoCodeSearchView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
                 searchBar
                 if viewModel.showSuggestions && !viewModel.searchSuggestions.isEmpty {
@@ -339,7 +339,7 @@ private struct CodeSnippetSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
                 header
                 if viewModel.snippetLoading {

@@ -24,7 +24,7 @@ struct ProfileView: View {
     @State private var showDownloadError = false
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             List {
                 if let user = appState.currentUser {
                     // 用户信息卡片（还原初始状态）
@@ -295,13 +295,13 @@ struct ProfileView: View {
                     }
                 }
             }
-            .navigationDestination(isPresented: $showAccountManager) {
+            .ios14NavigationDestination(isPresented: $showAccountManager) {
                 AccountManagerView()
             }
-            .navigationDestination(isPresented: $showAbout) {
+            .ios14NavigationDestination(isPresented: $showAbout) {
                 AboutView()
             }
-            .navigationDestination(isPresented: $showCrashLogs) {
+            .ios14NavigationDestination(isPresented: $showCrashLogs) {
                 CrashLogListView()
             }
         }
