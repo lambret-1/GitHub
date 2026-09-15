@@ -73,6 +73,31 @@ extension iOS14AsyncImage where Content == AnyView {
     }
 }
 
+// MARK: - 带content和placeholder的便捷初始化（与原生AsyncImage API兼容）
+
+extension iOS14AsyncImage {
+    /// 便捷初始化方法，与iOS15+的AsyncImage API兼容
+    /// - Parameters:
+    ///   - url: 图片URL
+    ///   - scale: 缩放比例
+    ///   - content: 图片加载成功后的内容闭包，参数为Image
+    ///   - placeholder: 占位符视图
+    init<I, P>(
+        url: URL?,
+        scale: CGFloat = 1.0,
+        @ViewBuilder content: @escaping (Image) -> I,
+        @ViewBuilder placeholder: @escaping () -> P
+    ) where Content == _ConditionalContent<I, P>, I: View, P: View {
+        self.init(url: url, scale: scale) { phase in
+            if let image = phase.image {
+                content(image)
+            } else {
+                placeholder()
+            }
+        }
+    }
+}
+
 // MARK: - 异步图片加载阶段（与iOS15+的AsyncImagePhase保持一致）
 
 enum AsyncImagePhase {
