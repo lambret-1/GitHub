@@ -11,6 +11,7 @@ struct RepoCodeSearchView: View {
     init(owner: String, repo: String, branch: String, onJumpToCode: @escaping (String, Int) -> Void) {
         _viewModel = StateObject(wrappedValue: RepoCodeSearchViewModel(owner: owner, repo: repo, branch: branch))
         self.onJumpToCode = onJumpToCode
+        self.isSearchFieldFocused = false // iOS14兼容：初始化所有存储属性
     }
 
     var body: some View {
