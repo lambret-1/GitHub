@@ -60,7 +60,7 @@ struct RepositorySettingsView: View {
                 loadRepository()
             }
         }
-        .refreshable {
+        .ios14Refreshable {
             loadRepository()
         }
         .alert("重命名仓库", isPresented: $showEditName) {

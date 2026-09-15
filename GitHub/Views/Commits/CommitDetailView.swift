@@ -83,7 +83,7 @@ struct CommitDetailView: View {
             // 作者信息
             HStack(spacing: 10) {
                 // 作者头像
-                AsyncImage(url: URL(string: commit.author?.avatarUrl ?? "")) { image in
+                iOS14AsyncImage(url: URL(string: commit.author?.avatarUrl ?? "")) { image in
                     image.resizable()
                 } placeholder: {
                     Image(systemName: "person.circle.fill")

@@ -130,7 +130,7 @@ struct StarredReposView: View {
                 loadStarredRepos()
             }
         }
-        .refreshable {
+        .ios14Refreshable {
             await refreshStarredRepos()
         }
         .overlay {

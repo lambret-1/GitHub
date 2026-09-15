@@ -32,7 +32,7 @@ struct RepositoryStatsView: View {
         .onAppear {
             loadRepository()
         }
-        .refreshable {
+        .ios14Refreshable {
             loadRepository()
         }
     }

@@ -153,7 +153,7 @@ struct RepoListView: View {
                         }
                     }
                     .listStyle(PlainListStyle())
-                    .refreshable {
+                    .ios14Refreshable {
                         await loadReposAsync()
                     }
                 }

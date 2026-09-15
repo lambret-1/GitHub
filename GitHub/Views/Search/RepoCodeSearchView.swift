@@ -324,7 +324,7 @@ struct RepoCodeSearchView: View {
                 }
             }
             .listStyle(.plain)
-            .refreshable {
+            .ios14Refreshable {
                 viewModel.refresh()
             }
         }

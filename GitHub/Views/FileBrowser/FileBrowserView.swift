@@ -227,7 +227,7 @@ struct FileBrowserView: View {
                 Button(action: {
                     showUserRepos = true
                 }) {
-                    AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
+                    iOS14AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fill)
@@ -640,7 +640,7 @@ struct FileBrowserView: View {
         .listStyle(PlainListStyle())
         .frame(height: UIScreen.main.bounds.height - 200)  // 这是视图高度尺寸，控制代码Tab列表垂直方向显示高度，单位是pt；改大列表显示区域更高可显示更多文件，改小列表显示区域更矮；还能改成.maxHeight: .infinity自适应或用GeometryReader动态计算
         // 下拉刷新功能，仅代码Tab生效，避免与Actions等Tab的内部下拉刷新冲突
-        .refreshable {
+        .ios14Refreshable {
             await loadFilesAsync()
         }
     }
@@ -904,7 +904,7 @@ struct FileBrowserView: View {
                 // 提交者头像（24pt，生产级尺寸）
                 Group {
                     if let avatarUrl = commit.author?.avatarUrl, let url = URL(string: avatarUrl) {
-                        AsyncImage(url: url) { image in
+                        iOS14AsyncImage(url: url) { image in
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)

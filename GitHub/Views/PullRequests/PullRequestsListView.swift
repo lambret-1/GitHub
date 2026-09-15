@@ -64,7 +64,7 @@ struct PullRequestsListView: View {
                 loadPullRequests()
             }
         }
-        .refreshable {
+        .ios14Refreshable {
             currentPage = 1
             hasMore = true
             loadPullRequests()

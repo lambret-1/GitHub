@@ -46,7 +46,7 @@ struct UserReposView: View {
     private var userHeaderSection: some View {
         VStack(spacing: 12) {
             // 用户头像
-            AsyncImage(url: URL(string: avatarUrl)) { image in
+            iOS14AsyncImage(url: URL(string: avatarUrl)) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -235,7 +235,7 @@ struct UserReposView: View {
             "TypeScript": .blue,
             "Java": .red,
             "Kotlin": .purple,
-            "Go": .cyan,
+            "Go": Color(red: 0, green: 1, blue: 1),
             "Rust": .orange,
             "C++": .pink,
             "C": .gray,
@@ -246,7 +246,7 @@ struct UserReposView: View {
             "HTML": .orange,
             "CSS": .blue,
             "Vue": .green,
-            "React": .cyan
+            "React": Color(red: 0, green: 1, blue: 1)
         ]
         return colors[language] ?? .gray
     }

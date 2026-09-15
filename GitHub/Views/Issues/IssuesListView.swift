@@ -62,7 +62,7 @@ struct IssuesListView: View {
                 loadIssues()
             }
         }
-        .refreshable {
+        .ios14Refreshable {
             currentPage = 1
             hasMore = true
             loadIssues()

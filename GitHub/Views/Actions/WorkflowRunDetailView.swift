@@ -76,7 +76,7 @@ struct WorkflowRunDetailView: View {
                 loadArtifacts()
             }
         }
-        .refreshable {
+        .ios14Refreshable {
             isRefreshing = true
             await refreshAllAsync()
         }

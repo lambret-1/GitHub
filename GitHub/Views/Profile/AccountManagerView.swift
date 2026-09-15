@@ -61,7 +61,7 @@ struct AccountManagerView: View {
     private func accountRow(account: GitHubAccount, isCurrent: Bool) -> some View {
         HStack(spacing: 12) {
             // 头像
-            AsyncImage(url: URL(string: account.avatarUrl ?? "")) { image in
+            iOS14AsyncImage(url: URL(string: account.avatarUrl ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)

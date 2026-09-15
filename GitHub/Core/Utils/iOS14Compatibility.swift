@@ -103,10 +103,15 @@ extension View {
 
     /// iOS14兼容的焦点状态绑定（Bool版本）
     /// 替代iOS15+的.focused(_:)
+    /// iOS14上不生效
     @ViewBuilder
-    func ios14Focused(_ binding: Binding<Bool>) -> some View {
+    func ios14Focused(_ binding: Any?) -> some View {
         if #available(iOS 15.0, *) {
-            self.focused(binding)
+            if let focusBinding = binding as? FocusState<Bool>.Binding {
+                self.focused(focusBinding)
+            } else {
+                self
+            }
         } else {
             self
         }
@@ -129,12 +134,30 @@ extension View {
 
     /// iOS14兼容的提交标签
     /// 替代iOS15+的.submitLabel(_:)
+    /// iOS14上不生效
     @ViewBuilder
     func ios14SubmitLabel(_ label: String) -> some View {
         if #available(iOS 15.0, *) {
-            if let submitLabel = SubmitLabel(rawValue: label) {
-                self.submitLabel(submitLabel)
-            } else {
+            switch label {
+            case "done":
+                self.submitLabel(.done)
+            case "search":
+                self.submitLabel(.search)
+            case "send":
+                self.submitLabel(.send)
+            case "join":
+                self.submitLabel(.join)
+            case "route":
+                self.submitLabel(.route)
+            case "go":
+                self.submitLabel(.go)
+            case "next":
+                self.submitLabel(.next)
+            case "continue":
+                self.submitLabel(.continue)
+            case "return":
+                self.submitLabel(.return)
+            default:
                 self
             }
         } else {

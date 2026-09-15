@@ -138,7 +138,7 @@ struct IssueDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             // 用户信息
             HStack(spacing: 8) {
-                AsyncImage(url: URL(string: issue.user.avatarUrl ?? "")) { image in
+                iOS14AsyncImage(url: URL(string: issue.user.avatarUrl ?? "")) { image in
                     image.resizable()
                 } placeholder: {
                     Image(systemName: "person.circle.fill")
@@ -203,7 +203,7 @@ struct IssueDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             // 用户信息
             HStack(spacing: 8) {
-                AsyncImage(url: URL(string: comment.user.avatarUrl ?? "")) { image in
+                iOS14AsyncImage(url: URL(string: comment.user.avatarUrl ?? "")) { image in
                     image.resizable()
                 } placeholder: {
                     Image(systemName: "person.circle.fill")

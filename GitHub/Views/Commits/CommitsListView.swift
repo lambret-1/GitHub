@@ -66,7 +66,7 @@ struct CommitsListView: View {
                 loadCommits()
             }
         }
-        .refreshable {
+        .ios14Refreshable {
             currentPage = 1
             hasMore = true
             loadCommits()
@@ -221,7 +221,7 @@ struct CommitRow: View {
                 // 作者和时间
                 HStack(spacing: 8) {
                     // 作者头像
-                    AsyncImage(url: URL(string: commit.author?.avatarUrl ?? "")) { image in
+                    iOS14AsyncImage(url: URL(string: commit.author?.avatarUrl ?? "")) { image in
                         image.resizable()
                     } placeholder: {
                         Image(systemName: "person.circle.fill")

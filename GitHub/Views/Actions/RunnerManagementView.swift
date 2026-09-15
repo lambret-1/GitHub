@@ -99,7 +99,7 @@ struct RunnerManagementView: View {
                     }
                 }
                 .listStyle(InsetGroupedListStyle())
-                .refreshable {
+                .ios14Refreshable {
                     currentPage = 1
                     hasMore = true
                     await loadRunnersAsync()
