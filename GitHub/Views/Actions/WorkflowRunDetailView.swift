@@ -80,43 +80,41 @@ struct WorkflowRunDetailView: View {
             isRefreshing = true
             await refreshAllAsync()
         }
-        .alert("取消运行", isPresented: $showCancelAlert) {
-            Button("取消运行", role: .destructive) {
-                cancelRun()
-            }
-            Button("返回", role: .cancel) {}
-        } message: {
-            Text("确定要取消此运行吗？")
+        .alert(isPresented: $showCancelAlert) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("取消运行"),
+                message: Text("确定要取消此运行吗？"),
+                primaryButton: .destructive(Text("取消运行"), action: cancelRun),
+                secondaryButton: .cancel(Text("返回"))
+            )
         }
-        .alert("重新运行", isPresented: $showRerunAlert) {
-            Button("重新运行") {
-                rerunRun()
-            }
-            Button("返回", role: .cancel) {}
-        } message: {
-            Text("确定要重新运行此工作流吗？")
+        .alert(isPresented: $showRerunAlert) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("重新运行"),
+                message: Text("确定要重新运行此工作流吗？"),
+                primaryButton: .default(Text("重新运行"), action: rerunRun),
+                secondaryButton: .cancel(Text("返回"))
+            )
         }
-        .alert("重新运行失败作业", isPresented: $showRerunFailedAlert) {
-            Button("重新运行") {
-                rerunFailedJobs()
-            }
-            Button("返回", role: .cancel) {}
-        } message: {
-            Text("确定只重新运行失败的作业吗？")
+        .alert(isPresented: $showRerunFailedAlert) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("重新运行失败作业"),
+                message: Text("确定只重新运行失败的作业吗？"),
+                primaryButton: .default(Text("重新运行"), action: rerunFailedJobs),
+                secondaryButton: .cancel(Text("返回"))
+            )
         }
-        .alert("删除构建产物", isPresented: $showDeleteArtifactAlert) {
-            Button("删除", role: .destructive) {
-                if let artifact = artifactToDelete {
-                    deleteArtifact(artifact)
-                }
-            }
-            Button("返回", role: .cancel) {}
-        } message: {
-            if let artifact = artifactToDelete {
-                Text("确定要删除构建产物「\(artifact.name)」吗？此操作不可恢复。")
-            } else {
-                Text("确定要删除此构建产物吗？")
-            }
+        .alert(isPresented: $showDeleteArtifactAlert) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("删除构建产物"),
+                message: Text(artifactToDelete != nil ? "确定要删除构建产物「\(artifactToDelete!.name)」吗？此操作不可恢复。" : "确定要删除此构建产物吗？"),
+                primaryButton: .destructive(Text("删除"), action: {
+                    if let artifact = artifactToDelete {
+                        deleteArtifact(artifact)
+                    }
+                }),
+                secondaryButton: .cancel(Text("返回"))
+            )
         }
         .sheet(isPresented: $showShareSheet) {
             if let url = downloadedFileURL {
@@ -226,7 +224,7 @@ struct WorkflowRunDetailView: View {
     // MARK: - 运行概览
 
     private var overviewSection: some View {
-        Section("运行概览") {
+        Section(header: Text("运行概览")) { // iOS14兼容：使用旧版Section语法
             detailRow(icon: "branch", title: "分支", value: run.headBranch)
             detailRow(icon: "chevron.left.forwardslash.chevron.right", title: "提交", value: run.shortSha)
             detailRow(icon: "bolt", title: "触发事件", value: run.eventDisplay)
@@ -243,7 +241,7 @@ struct WorkflowRunDetailView: View {
     // MARK: - 变更文件
 
     private var changedFilesSection: some View {
-        Section("变更文件 (\(changedFiles.count))") {
+        Section(header: Text("变更文件 (\(changedFiles.count))")) { // iOS14兼容：使用旧版Section语法
             if isLoadingFiles && changedFiles.isEmpty {
                 HStack {
                     Spacer()
@@ -429,7 +427,7 @@ struct WorkflowRunDetailView: View {
     // MARK: - Artifacts构建产物
 
     private var artifactsSection: some View {
-        Section("构建产物 (\(artifacts.count))") {
+        Section(header: Text("构建产物 (\(artifacts.count))")) { // iOS14兼容：使用旧版Section语法
             if isLoadingArtifacts && artifacts.isEmpty {
                 HStack {
                     Spacer()

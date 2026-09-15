@@ -98,15 +98,16 @@ struct WorkflowFileView: View {
         .onAppear {
             loadFileContent()
         }
-        .alert("保存修改", isPresented: $showSaveAlert) {
-            TextField("提交信息", text: $commitMessage)
-            Button("保存", action: saveFile)
-            Button("取消", role: .cancel) {
-                isEditing = false
-                fileContent = originalContent  // 恢复原始内容
-            }
-        } message: {
-            Text("请输入提交信息，保存后将直接提交到仓库。")
+        .alert(isPresented: $showSaveAlert) { // iOS14兼容：使用旧版Alert语法替代iOS15+的alert(_:isPresented:actions:message:)
+            Alert(
+                title: Text("保存修改"),
+                message: Text("将直接提交到仓库。"),
+                primaryButton: .default(Text("保存"), action: saveFile),
+                secondaryButton: .cancel(Text("取消"), action: {
+                    isEditing = false
+                    fileContent = originalContent  // 恢复原始内容
+                })
+            )
         }
         .overlay(
             // 提示信息
