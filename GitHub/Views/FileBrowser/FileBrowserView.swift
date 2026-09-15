@@ -563,53 +563,48 @@ struct FileBrowserView: View {
     }
 
     var fileListView: some View {
-        List {
-            // 仓库头部（复刻GitHub网页布局，可跟随屏幕滑动）
-            RepoHeaderView(
-                repository: repository,
-                isStarred: isStarred,
-                isCheckingStar: isCheckingStar,
-                isStarring: isStarring,
-                isForking: isForking,
-                onToggleStar: toggleStar,
-                onFork: forkRepository,
-                starCount: localStarCount
-            )
-            .environmentObject(appState)
-            .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
+        ScrollView {
+            VStack(spacing: 0) {
+                // 仓库头部（复刻GitHub网页布局，可跟随屏幕滑动）
+                RepoHeaderView(
+                    repository: repository,
+                    isStarred: isStarred,
+                    isCheckingStar: isCheckingStar,
+                    isStarring: isStarring,
+                    isForking: isForking,
+                    onToggleStar: toggleStar,
+                    onFork: forkRepository,
+                    starCount: localStarCount
+                )
+                .environmentObject(appState)
 
-            // 仓库功能Tab分段控件（代码/Issues/PR/Actions/设置）
-            repoTabBar
+                // 仓库功能Tab分段控件（代码/Issues/PR/Actions/设置）
+                repoTabBar
 
-            // 根据选中Tab显示不同内容
-            switch selectedTab {
-            case .code:
-                // 代码Tab：分支栏 + 搜索框 + 文件列表 + README
-                codeTabContent
-            case .actions:
-                // Actions Tab：工作流列表
-                actionsTabContent
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-            case .issues:
-                // Issues Tab：Issues列表
-                issuesTabContent
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-            case .pullRequests:
-                // Pull Requests Tab：PR列表
-                pullRequestsTabContent
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-            case .settings:
-                // 设置Tab：仓库设置
-                settingsTabContent
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
+                // 根据选中Tab显示不同内容
+                switch selectedTab {
+                case .code:
+                    // 代码Tab：使用独立List + 下拉刷新
+                    codeTabListView
+                case .actions:
+                    // Actions Tab：直接显示，避免List嵌套List导致容器冲突和点击失效
+                    actionsTabContent
+                        .frame(maxWidth: .infinity)
+                case .issues:
+                    // Issues Tab：直接显示
+                    issuesTabContent
+                        .frame(maxWidth: .infinity)
+                case .pullRequests:
+                    // Pull Requests Tab：直接显示
+                    pullRequestsTabContent
+                        .frame(maxWidth: .infinity)
+                case .settings:
+                    // 设置Tab：直接显示
+                    settingsTabContent
+                        .frame(maxWidth: .infinity)
+                }
             }
         }
-        .listStyle(PlainListStyle())
         // 监听搜索框内容变化，内容为空时清除搜索结果
         .onChange(of: codeSearchQuery) { newValue in
             if newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -618,7 +613,17 @@ struct FileBrowserView: View {
                 isSearchingCode = false
             }
         }
-        // 下拉刷新功能，识别区在列表顶部（上半屏）
+    }
+
+    // MARK: - 代码Tab独立列表（带下拉刷新，避免与其他Tab的List嵌套冲突）
+
+    var codeTabListView: some View {
+        List {
+            codeTabContent
+        }
+        .listStyle(PlainListStyle())
+        .frame(height: UIScreen.main.bounds.height - 200)  // 这是视图高度尺寸，控制代码Tab列表垂直方向显示高度，单位是pt；改大列表显示区域更高可显示更多文件，改小列表显示区域更矮；还能改成.maxHeight: .infinity自适应或用GeometryReader动态计算
+        // 下拉刷新功能，仅代码Tab生效，避免与Actions等Tab的内部下拉刷新冲突
         .refreshable {
             await loadFilesAsync()
         }
@@ -703,7 +708,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+        .frame(height: UIScreen.main.bounds.height - 200)  // 这是视图高度尺寸，控制Issues Tab垂直方向显示高度，单位是pt；改大Issues列表显示区域更高可显示更多问题，改小显示区域更矮；使用屏幕高度减200pt动态适配不同屏幕尺寸
     }
 
     // MARK: - Pull Requests Tab内容
@@ -714,7 +719,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+        .frame(height: UIScreen.main.bounds.height - 200)  // 这是视图高度尺寸，控制Pull Requests Tab垂直方向显示高度，单位是pt；改大PR列表显示区域更高可显示更多拉取请求，改小显示区域更矮；使用屏幕高度减200pt动态适配不同屏幕尺寸
     }
 
     // MARK: - 设置Tab内容
@@ -725,7 +730,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+        .frame(height: UIScreen.main.bounds.height - 200)  // 这是视图高度尺寸，控制设置Tab垂直方向显示高度，单位是pt；改大设置页面显示区域更高，改小显示区域更矮；使用屏幕高度减200pt动态适配不同屏幕尺寸
     }
 
     // MARK: - Actions Tab内容
@@ -736,7 +741,7 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: 600)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+        .frame(height: UIScreen.main.bounds.height - 200)  // 这是视图高度尺寸，控制Actions Tab垂直方向显示高度，单位是pt；改大Actions列表显示区域更高可显示更多工作流，改小显示区域更矮；使用屏幕高度减200pt动态适配不同屏幕尺寸
     }
 
     // MARK: - 即将上线功能占位
