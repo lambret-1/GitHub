@@ -393,12 +393,34 @@ jobs:
           source scripts/build-diagnostics.sh
           run_post_build_diagnostics "build.log" "${{ env.IPA_FILE_NAME }}" "${{ needs.version-bump.outputs.build_start_time }}"
 
-      # Step 10.6: 生成可视化警告日志（bug.log）
-      - name: 生成可视化警告日志
+      # Step 10.6: 生成可视化警告日志（bug.log）并提交到仓库根目录
+      - name: 生成并提交可视化警告日志
         run: |
           chmod +x scripts/generate-bug-log.sh
           bash scripts/generate-bug-log.sh "build.log" "bug.log"
-          echo "::notice::可视化警告日志已生成: bug.log"
+          
+          # 同时生成不带颜色的版本，方便在GitHub网页查看
+          sed 's/\x1b\[[0-9;]*m//g' bug.log > bug-plain.log
+          echo "::notice::可视化警告日志已生成: bug.log (带颜色) 和 bug-plain.log (不带颜色)"
+          
+          # 提交bug.log到仓库根目录
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 检查是否有变更
+          if git diff --quiet bug.log bug-plain.log; then
+            echo "::notice::bug.log无变更，跳过提交"
+          else
+            git add bug.log bug-plain.log
+            CURRENT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${{ env.INFO_PLIST_PATH }}")
+            COMMIT_SHORT=$(git rev-parse --short HEAD)
+            BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+            git commit -m "docs(bug-log): 更新 v${CURRENT_VERSION} 构建警告日志 [skip ci]" -m "版本: v${CURRENT_VERSION} | Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME}"
+            # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
+            git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
+            git push origin main
+            echo "::notice::bug.log已提交并推送到 main 分支"
+          fi
 
       # Step 11: 生成制品元数据JSON
       - name: 生成制品元数据JSON
