@@ -138,30 +138,32 @@ struct CodeEditorView: View {
                 }
         )
         .toolbar {
-            // 左侧：撤销和重做按钮（从三个点菜单迁移至此，方便快速操作）
+            // 左侧：撤销和重做按钮（仅在编辑模式下显示，从三个点菜单迁移至此，方便快速操作）
             ToolbarItem(placement: .navigationBarLeading) {
-                HStack(spacing: 4) {
-                    // 撤销按钮
-                    Button(action: {
-                        // 通过通知中心发送撤销操作，由CodeTextView监听执行
-                        NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
-                    }) {
-                        Image(systemName: "arrow.uturn.backward")
-                            .foregroundColor((isEditing && canUndo) ? .blue : .gray)
-                            .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
-                    }
-                    .disabled(!isEditing || !canUndo)
+                if isEditing {
+                    HStack(spacing: 4) {
+                        // 撤销按钮
+                        Button(action: {
+                            // 通过通知中心发送撤销操作，由CodeTextView监听执行
+                            NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
+                        }) {
+                            Image(systemName: "arrow.uturn.backward")
+                                .foregroundColor(canUndo ? .blue : .gray)
+                                .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+                        }
+                        .disabled(!canUndo)
 
-                    // 重做按钮
-                    Button(action: {
-                        // 通过通知中心发送重做操作，由CodeTextView监听执行
-                        NotificationCenter.default.post(name: NSNotification.Name("CodeEditorRedo"), object: nil)
-                    }) {
-                        Image(systemName: "arrow.uturn.forward")
-                            .foregroundColor((isEditing && canRedo) ? .blue : .gray)
-                            .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+                        // 重做按钮
+                        Button(action: {
+                            // 通过通知中心发送重做操作，由CodeTextView监听执行
+                            NotificationCenter.default.post(name: NSNotification.Name("CodeEditorRedo"), object: nil)
+                        }) {
+                            Image(systemName: "arrow.uturn.forward")
+                                .foregroundColor(canRedo ? .blue : .gray)
+                                .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+                        }
+                        .disabled(!canRedo)
                     }
-                    .disabled(!isEditing || !canRedo)
                 }
             }
 
@@ -481,6 +483,23 @@ struct CodeEditorView: View {
         .background(SwipeBackControlView(enabled: !isEditing))
         // 编辑模式时隐藏底部Tab栏，禁止切换到"我的"等页面
         .background(TabBarControlView(visible: !isEditing))
+        // 监听编辑模式变化，手动隐藏/显示底部Tab栏（确保Tab栏状态正确更新）
+        .onChange(of: isEditing) { editing in
+            // 递归查找当前视图控制器的tabBarController
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootViewController = windowScene.windows.first?.rootViewController {
+                // 递归查找tabBarController
+                var viewController: UIViewController? = rootViewController
+                while let current = viewController {
+                    if let tabBarController = current as? UITabBarController {
+                        // 编辑模式下隐藏Tab栏，非编辑模式下显示Tab栏
+                        tabBarController.tabBar.isHidden = editing
+                        break
+                    }
+                    viewController = current.presentedViewController ?? current.children.first
+                }
+            }
+        }
         // 代码片段选择弹窗（第二期：编辑体验增强）
         .sheet(isPresented: $showSnippetPicker) {
             snippetPickerView
