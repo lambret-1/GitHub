@@ -58,7 +58,7 @@ class HTMLCache {
 struct FileBrowserView: View {
     let repository: Repository
     @EnvironmentObject var appState: AppState
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
     @State var files: [FileItem] = []
     @State var currentPath: String = ""
     @State var pathStack: [String] = []

@@ -14,7 +14,7 @@ struct CodeEditorView: View {
     var initialLineNumber: Int? = nil
 
     // 用于退出页面
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
 
     @State private var fileContent: FileContent?
     @State private var codeText: String = ""
@@ -313,7 +313,7 @@ struct CodeEditorView: View {
                 // 如果是从"未保存提醒"弹窗点击"保存并离开"触发的提交，提交成功后自动退出
                 if shouldDismissAfterSave {
                     shouldDismissAfterSave = false
-                    dismiss()
+                   presentationMode.wrappedValue.dismiss()
                 } else {
                     isEditing = false
                     loadFile()
@@ -373,7 +373,7 @@ struct CodeEditorView: View {
             // 不保存按钮（红色）
             Button(role: .destructive) {
                 // 直接退出，不保存
-                dismiss()
+               presentationMode.wrappedValue.dismiss()
             } label: {
                 Text("不保存，直接离开")
                     .foregroundColor(.red)

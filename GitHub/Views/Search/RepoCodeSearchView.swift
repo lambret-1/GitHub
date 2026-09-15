@@ -2,7 +2,7 @@ import SwiftUI
 
 struct RepoCodeSearchView: View {
     @StateObject private var viewModel: RepoCodeSearchViewModel
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
     @State private var debounceTask: Task<Void, Never>?
     @State private var showSortMenu: Bool = false
     @FocusState private var isSearchFieldFocused: Bool // 搜索输入框聚焦状态，控制光标显示和键盘弹出
@@ -26,7 +26,7 @@ struct RepoCodeSearchView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") { dismiss() }
+                    Button("取消") {presentationMode.wrappedValue.dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -68,7 +68,7 @@ struct RepoCodeSearchView: View {
                     query: viewModel.query,
                     onJump: { line in
                         onJumpToCode(file.path, line)
-                        dismiss()
+                       presentationMode.wrappedValue.dismiss()
                     }
                 )
             }
@@ -336,7 +336,7 @@ private struct CodeSnippetSheet: View {
     let viewModel: RepoCodeSearchViewModel
     let query: String
     let onJump: (Int) -> Void
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
 
     var body: some View {
         NavigationView {
@@ -370,7 +370,7 @@ private struct CodeSnippetSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("关闭") { dismiss() }
+                    Button("关闭") {presentationMode.wrappedValue.dismiss() }
                 }
             }
         }

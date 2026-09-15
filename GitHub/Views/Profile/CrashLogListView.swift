@@ -188,7 +188,7 @@ struct CrashLogDetailView: View {
     /// 是否显示分享面板
     @State private var showShareSheet = false
     /// 环境对象
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
 
     // MARK: - 视图
     var body: some View {
@@ -212,7 +212,7 @@ struct CrashLogDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("关闭") {
-                        dismiss()
+                       presentationMode.wrappedValue.dismiss()
                     }
                 }
 
@@ -271,6 +271,6 @@ struct CrashLogDetailView: View {
     private func deleteCrashLog() {
         CrashLogger.shared.deleteCrashLog(crashLog)
         onDelete()
-        dismiss()
+       presentationMode.wrappedValue.dismiss()
     }
 }
