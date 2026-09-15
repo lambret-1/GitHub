@@ -428,7 +428,7 @@ struct CodeEditorView: View {
                 KeyboardManager.shared.reset()
             }
         }
-        // 页面消失时强制恢复TabBar显示，防止编辑模式下返回导致TabBar一直隐藏
+        // 页面消失时清理资源
         .onDisappear {
             // 移除应用进入前台监听
             NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
@@ -447,27 +447,6 @@ struct CodeEditorView: View {
             previewImage = nil
             isLoadingImage = false
             imageLoadError = nil
-
-            // 延迟一帧执行，确保视图层级还在
-            DispatchQueue.main.async {
-                // 递归查找并恢复TabBar显示
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let window = windowScene.windows.first {
-                    var responder: UIResponder? = window.rootViewController
-                    while let next = responder {
-                        if let tabBarController = next as? UITabBarController {
-                            tabBarController.tabBar.isHidden = false
-                            break
-                        }
-                        responder = next.next
-                    }
-                }
-            }
-        }
-        // 监听编辑模式变化，确保手势和Tab栏状态立即更新
-        .onChange(of: isEditing) { _ in
-            // 强制刷新SwipeBackControlView和TabBarControlView
-            // UIViewRepresentable的updateUIView会自动调用
         }
         // 监听文本变化，自动更新草稿（第二期：编辑体验增强）
         .onChange(of: codeText) { _ in
@@ -477,25 +456,6 @@ struct CodeEditorView: View {
         }
         // 编辑模式时禁用手势返回
         .background(SwipeBackControlView(enabled: !isEditing))
-        // 编辑模式时隐藏底部Tab栏，禁止切换到"我的"等页面
-        .background(TabBarControlView(visible: true))
-        // 监听编辑模式变化，手动隐藏/显示底部Tab栏（确保Tab栏状态正确更新）
-        .onChange(of: isEditing) { editing in
-            // 递归查找当前视图控制器的tabBarController
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let rootViewController = windowScene.windows.first?.rootViewController {
-                // 递归查找tabBarController
-                var viewController: UIViewController? = rootViewController
-                while let current = viewController {
-                    if let tabBarController = current as? UITabBarController {
-                        // 编辑模式下隐藏Tab栏，非编辑模式下显示Tab栏
-                        tabBarController.tabBar.isHidden = editing
-                        break
-                    }
-                    viewController = current.presentedViewController ?? current.children.first
-                }
-            }
-        }
         // 代码片段选择弹窗（第二期：编辑体验增强）
         .sheet(isPresented: $showSnippetPicker) {
             snippetPickerView
@@ -1283,48 +1243,3 @@ struct SwipeBackControlView: UIViewRepresentable {
     }
 }
 
-// MARK: - 控制Tab栏显示的UIViewRepresentable
-
-/// 用于控制底部Tab栏的显示和隐藏（兼容iOS 15）
-struct TabBarControlView: UIViewRepresentable {
-    let visible: Bool
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        return view
-    }
-
-    func updateUIView(_ uiView: UIView, context: Context) {
-        // 立即更新Tab栏状态，不使用async延迟
-        // 递归查找当前视图控制器的tabBarController
-        let tabBarController = findTabBarController(from: uiView)
-        tabBarController?.tabBar.isHidden = !visible
-        // 保存当前的tabBarController引用，用于在视图销毁时恢复
-        context.coordinator.tabBarController = tabBarController
-    }
-
-    /// 递归查找当前视图控制器的tabBarController
-    private func findTabBarController(from view: UIView) -> UITabBarController? {
-        var responder: UIResponder? = view
-        while let next = responder?.next {
-            if let viewController = next as? UIViewController,
-               let tabBarController = viewController.tabBarController {
-                return tabBarController
-            }
-            responder = next
-        }
-        return nil
-    }
-
-    // MARK: - Coordinator
-
-    class Coordinator {
-        weak var tabBarController: UITabBarController?
-        // 注意：不在deinit中执行任何操作，避免在对象销毁时访问self导致闪退
-        // TabBar的恢复依赖CodeEditorView的onDisappear来完成
-    }
-}
