@@ -429,8 +429,8 @@ struct CodeTextView: UIViewRepresentable {
                     let mutableText = NSMutableString(string: textView.text)
                     mutableText.insert(pasteboardText, at: range.location)
                     textView.text = mutableText as String
-                    self.text = textView.text
-                    self.onTextChange?(textView.text)
+                    textView.selectedRange = NSRange(location: range.location + pasteboardText.count, length: 0)
+                    // 不立即回写@Binding，让textViewDidChange统一处理，避免光标乱跳
                 }
                 actions.append(pasteAction)
             }
@@ -479,8 +479,7 @@ struct CodeTextView: UIViewRepresentable {
                             let newRange = NSRange(location: range.location - 1, length: 2)
                             textView.text = nsText.replacingCharacters(in: newRange, with: "")
                             textView.selectedRange = NSRange(location: range.location - 1, length: 0)
-                            self.text = textView.text
-                            onTextChange?(textView.text)
+                            // 不立即回写@Binding，让textViewDidChange统一处理，避免光标乱跳
                             return false
                         }
                     }
@@ -501,8 +500,7 @@ struct CodeTextView: UIViewRepresentable {
                 textView.text = nsText.replacingCharacters(in: range, with: newText)
                 // 光标定位到闭括号前
                 textView.selectedRange = NSRange(location: range.location + newText.count - 1, length: 0)
-                self.text = textView.text
-                onTextChange?(textView.text)
+                // 不立即回写@Binding，让textViewDidChange统一处理，避免光标乱跳
                 return false
             }
 
@@ -535,8 +533,7 @@ struct CodeTextView: UIViewRepresentable {
             let newText = "\(openBracket)\(closeBracket)"
             textView.text = nsText.replacingCharacters(in: range, with: newText)
             textView.selectedRange = NSRange(location: range.location + 1, length: 0)
-            self.text = textView.text
-            onTextChange?(textView.text)
+            // 不立即回写@Binding，让textViewDidChange统一处理，避免光标乱跳
             return false
         }
 
@@ -602,8 +599,7 @@ struct CodeTextView: UIViewRepresentable {
                 textView.text = nsText.replacingCharacters(in: range, with: insertText)
                 // 光标定位到中间的空行
                 textView.selectedRange = NSRange(location: range.location + 1 + finalIndent.count, length: 0)
-                self.text = textView.text
-                onTextChange?(textView.text)
+                // 不立即回写@Binding，让textViewDidChange统一处理，避免光标乱跳
                 return false
             }
 
@@ -611,8 +607,7 @@ struct CodeTextView: UIViewRepresentable {
             let insertText = "\n\(finalIndent)"
             textView.text = nsText.replacingCharacters(in: range, with: insertText)
             textView.selectedRange = NSRange(location: range.location + insertText.count, length: 0)
-            self.text = textView.text
-            onTextChange?(textView.text)
+            // 不立即回写@Binding，让textViewDidChange统一处理，避免光标乱跳
             return false
         }
 

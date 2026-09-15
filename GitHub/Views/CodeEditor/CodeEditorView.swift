@@ -301,10 +301,10 @@ struct CodeEditorView: View {
                 .disabled(isRenaming || isDownloading)
             }
         }
-        // 编辑相关弹窗（使用overlay确保alert处于可见视图层级，可正常触发）
-        .overlay(editingAlerts)
+        // 编辑相关弹窗（使用background确保alert可触发，但不覆盖工具栏菜单，避免菜单点击无反应）
+        .background(editingAlerts)
         // 文件操作相关弹窗
-        .overlay(fileOperationAlerts)
+        .background(fileOperationAlerts)
         .overlay {
             if isDownloading {
                 downloadProgressOverlay
