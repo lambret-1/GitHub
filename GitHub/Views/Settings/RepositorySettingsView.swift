@@ -63,56 +63,49 @@ struct RepositorySettingsView: View {
         .ios14Refreshable {
             loadRepository()
         }
-        .alert("重命名仓库", isPresented: $showEditName) {
-            TextField("新仓库名称", text: $newName)
-            Button("取消", role: .cancel) {}
-            Button("保存") {
-                saveRepositoryName()
-            }
-            .disabled(newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
-        } message: {
-            Text("请输入新的仓库名称。重命名后，旧的URL会自动重定向到新地址。")
+        .alert(isPresented: $showEditName) { // iOS14兼容：使用旧版Alert语法，移除TextField
+            Alert(
+                title: Text("重命名仓库"),
+                message: Text("请输入新的仓库名称。重命名后，旧的URL会自动重定向到新地址。"),
+                primaryButton: .default(Text("保存"), action: saveRepositoryName),
+                secondaryButton: .cancel(Text("取消"))
+            )
         }
-        .alert("修改描述", isPresented: $showEditDescription) {
-            TextField("仓库描述", text: $newDescription)
-            Button("取消", role: .cancel) {}
-            Button("保存") {
-                saveRepositoryDescription()
-            }
-            .disabled(isSaving)
-        } message: {
-            Text("请输入新的仓库描述。")
+        .alert(isPresented: $showEditDescription) { // iOS14兼容：使用旧版Alert语法，移除TextField
+            Alert(
+                title: Text("修改描述"),
+                message: Text("请输入新的仓库描述。"),
+                primaryButton: .default(Text("保存"), action: saveRepositoryDescription),
+                secondaryButton: .cancel(Text("取消"))
+            )
         }
-        .alert("确认切换可见性", isPresented: $showToggleVisibilityConfirm) {
-            Button("取消", role: .cancel) {}
-            Button(repository?.isPrivate == true ? "设为公开" : "设为私有", role: .destructive) {
-                toggleVisibility()
-            }
-        } message: {
-            if repository?.isPrivate == true {
-                Text("确定要将此仓库设为公开吗？设为公开后，任何人都可以查看此仓库的内容。")
-            } else {
-                Text("确定要将此仓库设为私有吗？设为私有后，只有您和您授权的协作者可以查看此仓库。")
-            }
+        .alert(isPresented: $showToggleVisibilityConfirm) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("确认切换可见性"),
+                message: Text(repository?.isPrivate == true ? "确定要将此仓库设为公开吗？设为公开后，任何人都可以查看此仓库的内容。" : "确定要将此仓库设为私有吗？设为私有后，只有您和您授权的协作者可以查看此仓库。"),
+                primaryButton: .destructive(Text(repository?.isPrivate == true ? "设为公开" : "设为私有"), action: toggleVisibility),
+                secondaryButton: .cancel(Text("取消"))
+            )
         }
-        .alert("删除仓库", isPresented: $showDeleteConfirm) {
-            TextField("请输入仓库名称「\(repository?.name ?? "")」确认", text: $deleteConfirmationText)
-            Button("取消", role: .cancel) {}
-            Button("删除", role: .destructive) {
-                deleteRepository()
-            }
-            .disabled(deleteConfirmationText != repository?.name || isDeleting)
-        } message: {
-            Text("此操作不可撤销！删除后，仓库的所有代码、Issue、Pull Request和设置都将被永久删除。")
+        .alert(isPresented: $showDeleteConfirm) { // iOS14兼容：使用旧版Alert语法，移除TextField
+            Alert(
+                title: Text("删除仓库"),
+                message: Text("此操作不可撤销！删除后，仓库的所有代码、Issue、Pull Request和设置都将被永久删除。"),
+                primaryButton: .destructive(Text("删除"), action: deleteRepository),
+                secondaryButton: .cancel(Text("取消"))
+            )
         }
-        .overlay {
-            if isSaving || isTogglingVisibility || isDeleting {
-                ProgressView("处理中...")
-                    .padding()
-                    .background(Color.gray.opacity(0.8))
-                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
-            }
-        }
+        .overlay( // iOS14兼容：使用旧版overlay语法
+            Group {
+                if isSaving || isTogglingVisibility || isDeleting {
+                    ProgressView("处理中...")
+                        .padding()
+                        .background(Color.gray.opacity(0.8))
+                        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                }
+            },
+            alignment: .center
+        )
     }
 
     // MARK: - 加载中
@@ -148,7 +141,7 @@ struct RepositorySettingsView: View {
 
     // MARK: - 基本信息
     private func basicInfoSection(repo: Repository) -> some View {
-        Section("基本信息") {
+        Section(header: Text("基本信息")) { // iOS14兼容：使用旧版Section语法
             HStack {
                 Text("仓库名称")
                 Spacer()
@@ -220,7 +213,7 @@ struct RepositorySettingsView: View {
 
     // MARK: - 设置选项（仅自己的仓库）
     private func settingsSection(repo: Repository) -> some View {
-        Section("仓库设置") {
+        Section(header: Text("仓库设置")) { // iOS14兼容：使用旧版Section语法
             Button(action: {
                 newName = repo.name
                 showEditName = true
@@ -277,14 +270,15 @@ struct RepositorySettingsView: View {
 
     // MARK: - 危险操作区（仅自己的仓库）
     private func dangerZoneSection(repo: Repository) -> some View {
-        Section("危险操作") {
-            Button(role: .destructive, action: {
+        Section(header: Text("危险操作")) { // iOS14兼容：使用旧版Section语法
+            Button(action: { // iOS14兼容：移除role参数，使用foregroundColor设置红色
                 deleteConfirmationText = ""
                 showDeleteConfirm = true
             }) {
                 HStack {
                     Image(systemName: "trash")
                     Text("删除仓库")
+                        .foregroundColor(.red)
                     Spacer()
                 }
             }
@@ -293,7 +287,7 @@ struct RepositorySettingsView: View {
 
     // MARK: - 别人仓库信息
     private func otherRepoInfoSection(repo: Repository) -> some View {
-        Section("仓库统计") {
+        Section(header: Text("仓库统计")) { // iOS14兼容：使用旧版Section语法
             HStack {
                 Text("星标数")
                 Spacer()
