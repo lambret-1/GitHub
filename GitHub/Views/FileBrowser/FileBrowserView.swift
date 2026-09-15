@@ -3940,21 +3940,17 @@ private struct FileBrowserDeleteSheetsModifier: ViewModifier {
                     })
                 )
             }
-            }
-            .alert("确认删除", isPresented: view.$showDeleteConfirm) {
-                Button("取消", role: .cancel) {}
-                Button("删除", role: .destructive) {
-                    view.deleteSelectedFiles()
-                }
-            } message: {
+            .alert(isPresented: view.$showDeleteConfirm) { // iOS14兼容：使用旧版Alert语法
                 let selectedItems = view.files.filter { view.selectedFilesForDelete.contains($0.path) }
                 let fileCount = selectedItems.filter { $0.isFile }.count
                 let dirCount = selectedItems.filter { $0.isDirectory }.count
-                if dirCount > 0 {
-                    Text("确定要删除选中的 \(fileCount) 个文件吗？\n\n注意：选中的 \(dirCount) 个文件夹无法直接删除（GitHub API 限制），将被跳过。如需删除文件夹，请进入文件夹后逐个删除其中的文件。")
-                } else {
-                    Text("确定要删除选中的 \(fileCount) 个文件吗？此操作不可撤销。")
-                }
+                let message = dirCount > 0 ? "确定要删除选中的 \(fileCount) 个文件吗？\n\n注意：选中的 \(dirCount) 个文件夹无法直接删除（GitHub API 限制），将被跳过。如需删除文件夹，请进入文件夹后逐个删除其中的文件。" : "确定要删除选中的 \(fileCount) 个文件吗？此操作不可撤销。"
+                return Alert(
+                    title: Text("确认删除"),
+                    message: Text(message),
+                    primaryButton: .destructive(Text("删除"), action: view.deleteSelectedFiles),
+                    secondaryButton: .cancel(Text("取消"))
+                )
             }
     }
 }
