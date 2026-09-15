@@ -22,10 +22,6 @@ struct CodeEditorView: View {
     @State private var isLoading: Bool = true
     @State private var errorMessage: String?
     @State private var isEditing: Bool = false
-    @State private var showCommitDialog: Bool = false
-    @State private var commitMessage: String = ""
-    @State private var isSaving: Bool = false
-    @State private var showSaveSuccess: Bool = false
     @State private var showLineNumbers: Bool = true
     @State private var fontSize: CGFloat = 10
     @State private var showSettings: Bool = false
@@ -39,14 +35,6 @@ struct CodeEditorView: View {
     @State private var showCopySuccess: Bool = false
     @State private var lastCommitInfo: Commit?
 
-    // 未保存提醒状态
-    @State private var showUnsavedAlert: Bool = false
-    // 完成编辑时的保存提示状态
-    @State private var showFinishEditAlert: Bool = false
-    // 标记是否保存后自动退出编辑模式（从"完成编辑"弹窗点击"保存并退出"时设置）
-    @State private var shouldExitEditAfterSave: Bool = false
-    // 标记是否保存后自动退出（从"未保存提醒"弹窗点击"保存并离开"时设置）
-    @State private var shouldDismissAfterSave: Bool = false
     // 编辑模式下点击返回的提示
     @State private var editReturnAlert: Bool = false
 
@@ -63,10 +51,6 @@ struct CodeEditorView: View {
     @State private var getSelectedTextTrigger: Int = 0
     @State private var showNoSelectionAlert: Bool = false
     @State private var waitingForSelectedText: Bool = false
-
-    // 二次确认状态
-    @State private var showCancelConfirm: Bool = false
-    @State private var showSubmitConfirm: Bool = false
 
     // 图片预览相关状态
     @State private var previewImage: UIImage?
@@ -376,103 +360,8 @@ struct CodeEditorView: View {
 
     private var editingAlerts: some View {
         Group {
-            alertCommitDialog
-            alertSaveSuccess
-            alertUnsaved
-            alertFinishEdit
             alertEditing
-            alertCancelConfirm
-            alertSubmitConfirm
         }
-    }
-
-    private var alertCommitDialog: some View {
-        EmptyView()
-            .alert("提交修改", isPresented: $showCommitDialog) {
-                TextField("提交信息（如：更新 xxx）", text: $commitMessage)
-                Button("取消", role: .cancel) {}
-                Button("提交") {
-                    commitChanges()
-                }
-            } message: {
-                Text("将修改提交到 \(branch) 分支")
-            }
-    }
-
-    private var alertSaveSuccess: some View {
-        EmptyView()
-            .alert("提交成功", isPresented: $showSaveSuccess) {
-                Button("确定") {
-                    if shouldDismissAfterSave {
-                        shouldDismissAfterSave = false
-                        dismiss()
-                    } else if shouldExitEditAfterSave {
-                        shouldExitEditAfterSave = false
-                        isEditing = false
-                        loadFile()
-                    } else {
-                        isEditing = false
-                        loadFile()
-                    }
-                }
-            } message: {
-                Text("文件已成功提交到 GitHub 仓库")
-            }
-    }
-
-    private var alertUnsaved: some View {
-        EmptyView()
-            .alert("文件未保存", isPresented: $showUnsavedAlert) {
-                Button(action: {
-                    shouldDismissAfterSave = true
-                    showCommitDialog = true
-                    showUnsavedAlert = false
-                }) {
-                    Text("保存并离开")
-                        .foregroundColor(.blue)
-                }
-                Button(role: .destructive) {
-                    dismiss()
-                } label: {
-                    Text("不保存，直接离开")
-                        .foregroundColor(.red)
-                }
-                Button("取消", role: .cancel) {}
-            } message: {
-                Text("当前文件有未保存的修改，确定要离开吗？")
-            }
-    }
-
-    private var alertFinishEdit: some View {
-        EmptyView()
-            .alert("完成编辑", isPresented: $showFinishEditAlert) {
-                // 保存并提交按钮（蓝色，主要操作）
-                Button(action: {
-                    // 标记保存后自动退出编辑模式
-                    shouldExitEditAfterSave = true
-                    // 清空提交信息，让用户输入新的提交信息
-                    commitMessage = ""
-                    // 关闭当前弹窗，显示提交信息弹窗
-                    showFinishEditAlert = false
-                    showCommitDialog = true
-                }) {
-                    Text("保存并提交")
-                        .foregroundColor(.blue)
-                }
-                // 放弃修改按钮（红色，危险操作）
-                Button(role: .destructive) {
-                    // 恢复原始内容并退出编辑模式
-                    codeText = originalContent
-                    isEditing = false
-                } label: {
-                    Text("放弃修改")
-                        .foregroundColor(.red)
-                }
-                // 取消按钮（灰色，继续编辑）
-                Button("取消", role: .cancel) {}
-            } message: {
-                Text("当前文件有未保存的修改。\n选择「保存并提交」将修改提交到 GitHub，选择「放弃修改」将恢复原始内容。")
-            }
     }
 
     private var alertEditing: some View {
@@ -481,32 +370,6 @@ struct CodeEditorView: View {
                 Button("确定") {}
             } message: {
                 Text("正在编辑文件，请先完成编辑或点击「完成编辑」后再返回")
-            }
-    }
-
-    private var alertCancelConfirm: some View {
-        EmptyView()
-            .alert("确认取消", isPresented: $showCancelConfirm) {
-                Button("继续编辑", role: .cancel) {}
-                Button("放弃修改", role: .destructive) {
-                    codeText = originalContent
-                    isEditing = false
-                }
-            } message: {
-                Text("您有未保存的修改，确定要放弃吗？")
-            }
-    }
-
-    private var alertSubmitConfirm: some View {
-        EmptyView()
-            .alert("确认提交", isPresented: $showSubmitConfirm) {
-                Button("取消", role: .cancel) {}
-                Button("确认提交") {
-                    commitMessage = "Update \(fileName)"
-                    showCommitDialog = true
-                }
-            } message: {
-                Text("确定要提交修改到 GitHub 仓库吗？")
             }
     }
 
@@ -1186,42 +1049,6 @@ struct CodeEditorView: View {
         return byteCountFormatter.string(fromByteCount: Int64(size))
     }
     
-    private func commitChanges() {
-        guard let sha = fileContent?.sha else { return }
-        // 如果提交信息为空，自动使用默认提交信息
-        if commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            commitMessage = "Update \(fileName)"
-        }
-
-        isSaving = true
-
-        GitHubAPI.shared.updateFile(
-            owner: owner,
-            repo: repo,
-            path: path,
-            content: codeText,
-            sha: sha,
-            message: commitMessage,
-            branch: branch
-        ) { result in
-            DispatchQueue.main.async {
-                isSaving = false
-                switch result {
-                case .success:
-                    showSaveSuccess = true
-                    // 提交成功后更新原始内容
-                    originalContent = codeText
-                    // 清除撤销/重做栈
-                    undoManager.clear()
-                    // 清除草稿
-                    draftManager.clearDraft(for: path, branch: branch)
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                }
-            }
-        }
-    }
-
     // MARK: - 重命名文件
 
     private func renameFile() {
