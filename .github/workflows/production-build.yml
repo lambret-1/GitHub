@@ -131,7 +131,7 @@ jobs:
             git commit -m "chore(release): 版本号自动递增至 v${NEW_VERSION} [skip ci]" -m "触发Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME} | 触发方式: GitHub Actions 生产构建流水线"
             # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
             git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            git push origin main
+            git push origin HEAD
             echo "::notice::版本变更已提交并推送到 main 分支"
           fi
 
@@ -415,7 +415,7 @@ jobs:
             git commit -m "docs(bug-log): 更新 v${CURRENT_VERSION} 构建警告日志 [skip ci]" -m "版本: v${CURRENT_VERSION} | Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME}"
             # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
             git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            git push origin main
+            git push origin HEAD
             echo "::notice::bug.md已提交并推送到 main 分支"
           fi
 
@@ -614,7 +614,7 @@ jobs:
             git commit -m "docs(changelog): 追加 v${VERSION_NEW} 更新日志 [skip ci]" -m "版本: v${VERSION_NEW} | Commit: ${COMMIT_SHORT} | SHA256: ${IPA_SHA256} | 构建耗时: ${BUILD_DURATION} 秒"
             # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
             git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            git push origin main
+            git push origin HEAD
             echo "::notice::README变更已提交并推送到 main 分支"
           fi
 
