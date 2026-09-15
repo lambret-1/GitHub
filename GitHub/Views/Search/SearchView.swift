@@ -30,7 +30,7 @@ struct SearchView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // 搜索栏 + 筛选按钮
                 HStack(spacing: 8) {
@@ -200,26 +200,21 @@ struct SearchView: View {
                     .listStyle(PlainListStyle())
                 }
 
-                // 隐藏的NavigationLink，用于代码搜索结果跳转
-                NavigationLink(destination: Group {
-                    if let item = selectedCodeItem {
-                        CodeEditorView(
-                            owner: item.repository.ownerName,
-                            repo: item.repository.name,
-                            path: item.path,
-                            branch: selectedCodeBranch,
-                            fileName: item.name
-                        )
-                    }
-                }, isActive: $showCodeEditor) {
-                    EmptyView()
-                }
-                .hidden()
-
                 // 加载中提示
                 if isLoadingCodeRepo {
                     ProgressView("正在获取仓库信息...")
                         .padding()
+                }
+            }
+            .navigationDestination(isPresented: $showCodeEditor) {
+                if let item = selectedCodeItem {
+                    CodeEditorView(
+                        owner: item.repository.ownerName,
+                        repo: item.repository.name,
+                        path: item.path,
+                        branch: selectedCodeBranch,
+                        fileName: item.name
+                    )
                 }
             }
             .navigationTitle("搜索")

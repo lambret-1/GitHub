@@ -131,7 +131,14 @@ struct WebView: UIViewRepresentable {
         }
 
         let preferences = WKPreferences()
-        preferences.javaScriptEnabled = true
+        // iOS 14+ 使用WKWebpagePreferences.allowsContentJavaScript替代已弃用的javaScriptEnabled
+        if #available(iOS 14.0, *) {
+            let webpagePreferences = WKWebpagePreferences()
+            webpagePreferences.allowsContentJavaScript = true
+            configuration.defaultWebpagePreferences = webpagePreferences
+        } else {
+            preferences.javaScriptEnabled = true
+        }
         preferences.javaScriptCanOpenWindowsAutomatically = true
         // 最小化字体大小，提升渲染速度
         preferences.minimumFontSize = 0

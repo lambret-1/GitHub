@@ -24,7 +24,7 @@ struct ProfileView: View {
     @State private var showDownloadError = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
                 if let user = appState.currentUser {
                     // 用户信息卡片（还原初始状态）
@@ -138,12 +138,6 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                         }
-                        .background(
-                            NavigationLink(destination: AccountManagerView(), isActive: $showAccountManager) {
-                                EmptyView()
-                            }
-                            .hidden()
-                        )
 
                         Button(action: {
                             if let url = URL(string: user.htmlUrl) {
@@ -201,12 +195,6 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                         }
-                        .background(
-                            NavigationLink(destination: AboutView(), isActive: $showAbout) {
-                                EmptyView()
-                            }
-                            .hidden()
-                        )
 
                         // 崩溃日志
                         Button(action: {
@@ -223,12 +211,6 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                         }
-                        .background(
-                            NavigationLink(destination: CrashLogListView(), isActive: $showCrashLogs) {
-                                EmptyView()
-                            }
-                            .hidden()
-                        )
 
                         Button(action: {
                             showLogoutAlert = true
@@ -312,6 +294,15 @@ struct ProfileView: View {
                         .cornerRadius(16)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     }
                 }
+            }
+            .navigationDestination(isPresented: $showAccountManager) {
+                AccountManagerView()
+            }
+            .navigationDestination(isPresented: $showAbout) {
+                AboutView()
+            }
+            .navigationDestination(isPresented: $showCrashLogs) {
+                CrashLogListView()
             }
         }
         .alert(isPresented: $showLogoutAlert) {

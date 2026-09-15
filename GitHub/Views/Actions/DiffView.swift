@@ -32,12 +32,9 @@ struct DiffView: View {
                 }
             }
         }
-        .background(
-            NavigationLink(destination: editorDestination, isActive: $showEditor) {
-                EmptyView()
-            }
-            .hidden()
-        )
+        .navigationDestination(isPresented: $showEditor) {
+            editorDestination
+        }
         .onAppear {
             loadDiff()
         }

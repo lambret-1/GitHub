@@ -87,12 +87,9 @@ struct ActionsListView: View {
                 }
             }
         )
-        .background(
-            NavigationLink(destination: comparisonDestination, isActive: $showComparisonView) {
-                EmptyView()
-            }
-            .hidden()
-        )
+        .navigationDestination(isPresented: $showComparisonView) {
+            comparisonDestination
+        }
         .onAppear {
             if runs.isEmpty {
                 loadRuns()

@@ -234,8 +234,50 @@ struct FileBrowserView: View {
                 .clipShape(Circle())
             }
         }
-        // 隐藏的NavigationLink（拆分成单独属性，简化body表达式，避免类型检查超时）
-        .background(hiddenNavigationLinks)
+        // 程序导航：使用navigationDestination替代弃用的NavigationLink(destination:isActive:)
+        .navigationDestination(isPresented: $navigateToEditor) {
+            if let filePath = newlyCreatedFilePath {
+                CodeEditorView(
+                    owner: repository.ownerName,
+                    repo: repository.name,
+                    path: filePath,
+                    branch: selectedBranch,
+                    fileName: (filePath as NSString).lastPathComponent
+                )
+            }
+        }
+        .navigationDestination(isPresented: $navigateToEditorFromContextMenu) {
+            if let filePath = contextMenuEditFilePath, let fileName = contextMenuEditFileName {
+                CodeEditorView(
+                    owner: repository.ownerName,
+                    repo: repository.name,
+                    path: filePath,
+                    branch: selectedBranch,
+                    fileName: fileName,
+                    autoEnterEditMode: true // 自动进入编辑模式
+                )
+            }
+        }
+        .navigationDestination(isPresented: $showActions) {
+            ActionsListView(
+                owner: repository.ownerName,
+                repo: repository.name
+            )
+        }
+        .navigationDestination(isPresented: $navigateToFileEditor) {
+            if let filePath = selectedFilePath, let fileName = selectedFileName {
+                CodeEditorView(
+                    owner: repository.ownerName,
+                    repo: repository.name,
+                    path: filePath,
+                    branch: selectedBranch,
+                    fileName: fileName,
+                    // 不使用编辑器内部搜索功能，直接跳转到指定行
+                    initialSearchText: "",
+                    initialLineNumber: jumpToLineNumber
+                )
+            }
+        }
         .overlay {
             progressOverlay
         }
@@ -343,72 +385,6 @@ struct FileBrowserView: View {
         }
     }
     
-    // MARK: - 隐藏的导航链接（拆分成单独属性，避免body表达式过于复杂导致类型检查超时）
-
-    @ViewBuilder
-    var hiddenNavigationLinks: some View {
-        // 隐藏的NavigationLink，用于创建文件成功后跳转到编辑状态
-        NavigationLink(destination: Group {
-            if let filePath = newlyCreatedFilePath {
-                CodeEditorView(
-                    owner: repository.ownerName,
-                    repo: repository.name,
-                    path: filePath,
-                    branch: selectedBranch,
-                    fileName: (filePath as NSString).lastPathComponent
-                )
-            }
-        }, isActive: $navigateToEditor) {
-            EmptyView()
-        }
-        .hidden()
-
-        // 隐藏的NavigationLink，用于contextMenu中编辑文件跳转
-        NavigationLink(destination: Group {
-            if let filePath = contextMenuEditFilePath, let fileName = contextMenuEditFileName {
-                CodeEditorView(
-                    owner: repository.ownerName,
-                    repo: repository.name,
-                    path: filePath,
-                    branch: selectedBranch,
-                    fileName: fileName,
-                    autoEnterEditMode: true // 自动进入编辑模式
-                )
-            }
-        }, isActive: $navigateToEditorFromContextMenu) {
-            EmptyView()
-        }
-        .hidden()
-
-        // 隐藏的NavigationLink，用于Actions页面跳转
-        NavigationLink(destination: ActionsListView(
-            owner: repository.ownerName,
-            repo: repository.name
-        ), isActive: $showActions) {
-            EmptyView()
-        }
-        .hidden()
-
-        // 隐藏的NavigationLink，用于文件点击后跳转到代码编辑器（移除NavigationLink的>符号）
-        NavigationLink(destination: Group {
-            if let filePath = selectedFilePath, let fileName = selectedFileName {
-                CodeEditorView(
-                    owner: repository.ownerName,
-                    repo: repository.name,
-                    path: filePath,
-                    branch: selectedBranch,
-                    fileName: fileName,
-                    // 不使用编辑器内部搜索功能，直接跳转到指定行
-                    initialSearchText: "",
-                    initialLineNumber: jumpToLineNumber
-                )
-            }
-        }, isActive: $navigateToFileEditor) {
-            EmptyView()
-        }
-        .hidden()
-    }
-
     // MARK: - 文件列表内容
 
     @ViewBuilder

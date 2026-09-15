@@ -155,7 +155,14 @@ struct ReadmeWebView: UIViewRepresentable {
         configuration.userContentController = userContentController
 
         let preferences = WKPreferences()
-        preferences.javaScriptEnabled = true
+        // iOS 14+ 使用WKWebpagePreferences.allowsContentJavaScript替代已弃用的javaScriptEnabled
+        if #available(iOS 14.0, *) {
+            let webpagePreferences = WKWebpagePreferences()
+            webpagePreferences.allowsContentJavaScript = true
+            configuration.defaultWebpagePreferences = webpagePreferences
+        } else {
+            preferences.javaScriptEnabled = true
+        }
         preferences.minimumFontSize = 0
         configuration.preferences = preferences
 
