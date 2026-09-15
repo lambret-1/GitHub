@@ -44,37 +44,6 @@ struct ActionsListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 顶部工具栏：对比、统计、设置按钮（原导航栏按钮移到这里，避免嵌入FileBrowserView时导航栏冲突）
-            HStack {
-                Spacer()
-                // 对比按钮
-                Button(action: {
-                    isComparisonMode.toggle()
-                    if !isComparisonMode {
-                        selectedRunForComparison1 = nil
-                        selectedRunForComparison2 = nil
-                    }
-                }) {
-                    Image(systemName: isComparisonMode ? "xmark.circle.fill" : "arrow.left.arrow.right")
-                        .foregroundColor(isComparisonMode ? .red : .primary)
-                }
-                .padding(.horizontal, 8)
-
-                NavigationLink(destination: RunStatsView(owner: owner, repo: repo)) {
-                    Image(systemName: "chart.bar.xaxis")
-                        .foregroundColor(.primary)
-                }
-                .padding(.horizontal, 8)
-
-                NavigationLink(destination: ActionsSettingsView(owner: owner, repo: repo)) {
-                    Image(systemName: "gearshape")
-                        .foregroundColor(.primary)
-                }
-                .padding(.horizontal, 8)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 8)  // 这是垂直内边距，控制工具栏上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽更透气，改小上下留白更窄更紧凑；还能改成.top/.bottom单独控制某一侧
-
             // 统计概览卡片
             statsOverviewCard
 
@@ -94,8 +63,8 @@ struct ActionsListView: View {
                 workflowsListView
             }
         }
-        // 移除导航栏相关修饰符，因为ActionsListView现在嵌入在FileBrowserView中，不需要自己的导航栏
-        // 原.navigationTitle("Actions")、.navigationBarTitleDisplayMode(.inline)、.navigationBarItems(trailing:)已移除
+        // 移除顶部工具栏，对比/统计/设置按钮已移到filterSortBar中"最新"右边
+        // 移除导航栏相关修饰符，因为ActionsListView现在嵌入在FileBrowserView中
         .navigationDestination(isPresented: $showComparisonView) {
             comparisonDestination
         }
@@ -368,6 +337,36 @@ struct ActionsListView: View {
                 .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                 .background(Color.blue.opacity(0.1))
                 .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+            }
+
+            // 对比按钮（原顶部工具栏移到这里，放在最新右边）
+            Button(action: {
+                isComparisonMode.toggle()
+                if !isComparisonMode {
+                    selectedRunForComparison1 = nil
+                    selectedRunForComparison2 = nil
+                }
+            }) {
+                Image(systemName: isComparisonMode ? "xmark.circle.fill" : "arrow.left.arrow.right")
+                    .font(.caption)
+                    .foregroundColor(isComparisonMode ? .red : .blue)
+                    .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制按钮显示的宽度和高度，单位是pt（点）；改大按钮点击区域更大更易点击，改小按钮更紧凑节省空间；还能改成.maxWidth/.infinity自适应
+            }
+
+            // 统计按钮（原顶部工具栏移到这里）
+            NavigationLink(destination: RunStatsView(owner: owner, repo: repo)) {
+                Image(systemName: "chart.bar.xaxis")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                    .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制按钮显示的宽度和高度，单位是pt（点）；改大按钮点击区域更大更易点击，改小按钮更紧凑节省空间；还能改成.maxWidth/.infinity自适应
+            }
+
+            // 设置按钮（原顶部工具栏移到这里）
+            NavigationLink(destination: ActionsSettingsView(owner: owner, repo: repo)) {
+                Image(systemName: "gearshape")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                    .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制按钮显示的宽度和高度，单位是pt（点）；改大按钮点击区域更大更易点击，改小按钮更紧凑节省空间；还能改成.maxWidth/.infinity自适应
             }
 
             Spacer()
