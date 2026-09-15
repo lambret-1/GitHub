@@ -250,13 +250,18 @@ jobs:
       - name: 执行Xcode编译
         id: build
         run: |
-          echo "=========================================="
-          echo "开始Xcode编译（未签名模式）..."
-          echo "项目: ${{ env.XCODE_PROJECT }}"
-          echo "Scheme: ${{ env.SCHEME_NAME }}"
-          echo "版本: ${{ steps.version.outputs.current_version }}"
-          echo "=========================================="
-
+          # 加载可视化日志工具
+          source scripts/visual-logger.sh
+          
+          log_title "Xcode编译（未签名模式）"
+          log_info "项目: ${{ env.XCODE_PROJECT }}"
+          log_info "Scheme: ${{ env.SCHEME_NAME }}"
+          log_info "版本: ${{ steps.version.outputs.current_version }}"
+          log_info "部署目标: iOS ${{ env.DEPLOYMENT_TARGET }}+"
+          
+          BUILD_START=$(date +%s)
+          log_step_start "xcodebuild 编译"
+          
           xcodebuild \
             -project "${{ env.XCODE_PROJECT }}" \
             -scheme "${{ env.SCHEME_NAME }}" \
@@ -270,32 +275,52 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
             build 2>&1 | tee build.log
-
+          
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          log_step_end "xcodebuild 编译" "$BUILD_START"
+          
           if [ ${BUILD_EXIT_CODE} -ne 0 ]; then
-            echo "::error::Xcode编译失败，退出码: ${BUILD_EXIT_CODE}"
-            echo "::group::编译错误日志（最后50行）"
-            tail -50 build.log
-            echo "::endgroup::"
+            log_error "Xcode编译失败，退出码: ${BUILD_EXIT_CODE}"
+            
+            # 显示可视化错误摘要面板
+            print_error_summary "build.log"
+            
+            # 上传编译日志（失败时也上传，便于排查）
+            echo "::warning::编译失败，已保留build.log用于排查"
+            
             exit ${BUILD_EXIT_CODE}
           fi
-
+          
+          log_success "Xcode编译成功"
+          
           # 统计编译警告数量（用于质量监控）
           WARNING_COUNT=$(grep -c "warning:" build.log || true)
           if [ -z "${WARNING_COUNT}" ]; then
             WARNING_COUNT=0
           fi
           echo "warning_count=${WARNING_COUNT}" >> "$GITHUB_OUTPUT"
-          echo "::notice::编译完成，警告数量: ${WARNING_COUNT}"
-
+          
+          if [ "${WARNING_COUNT}" -gt 0 ]; then
+            log_warning "编译完成，警告数量: ${WARNING_COUNT}"
+            log_group_start "⚠️ 编译警告列表（前20条）"
+            grep "warning:" build.log | head -20
+            log_group_end
+          else
+            log_success "编译完成，零警告"
+          fi
+          
           # 验证.app产物存在
           APP_PATH="build/Build/Products/Release-iphoneos/${{ env.PROJECT_NAME }}.app"
           if [ ! -d "${APP_PATH}" ]; then
-            echo "::error::编译产物不存在: ${APP_PATH}"
+            log_error "编译产物不存在: ${APP_PATH}"
             exit 1
           fi
           echo "app_path=${APP_PATH}" >> "$GITHUB_OUTPUT"
-          echo "编译产物路径: ${APP_PATH}"
+          log_info "编译产物路径: ${APP_PATH}"
+          
+          # 显示构建成功摘要
+          BUILD_DURATION=$(($(date +%s) - BUILD_START))
+          print_success_summary "" "${{ steps.version.outputs.current_version }}" "${BUILD_DURATION}"
 
       # Step 8: 导出未签名IPA（适配全能签导入标准）
       - name: 导出未签名IPA
