@@ -118,6 +118,10 @@ struct CodeEditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             contentView
+            // 编辑模式底部工具栏，方便快速操作
+            if isEditing && (fileContent?.isTextFile ?? false) {
+                editModeBottomBar
+            }
         }
         // 使用系统自动键盘避让，UITextView会自动调整contentInset
         .navigationTitle(fileName)
@@ -595,6 +599,77 @@ struct CodeEditorView: View {
         // 实际应用中应该插入到光标位置，这里简化处理
         codeText += result.code
         // hasChanges是计算属性，通过codeText != originalContent自动判断，无需手动设置
+    }
+
+    // MARK: - 编辑模式底部工具栏
+
+    private var editModeBottomBar: some View {
+        HStack(spacing: 8) {
+            // 撤销按钮
+            Button(action: {
+                // 通过通知中心发送撤销操作，由CodeTextView监听执行
+                NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
+            }) {
+                Image(systemName: "arrow.uturn.backward")
+                    .foregroundColor(canUndo ? .blue : .gray)
+                    .frame(width: 40, height: 44)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+            }
+            .disabled(!canUndo)
+
+            // 重做按钮
+            Button(action: {
+                // 通过通知中心发送重做操作，由CodeTextView监听执行
+                NotificationCenter.default.post(name: NSNotification.Name("CodeEditorRedo"), object: nil)
+            }) {
+                Image(systemName: "arrow.uturn.forward")
+                    .foregroundColor(canRedo ? .blue : .gray)
+                    .frame(width: 40, height: 44)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+            }
+            .disabled(!canRedo)
+
+            // 取消按钮
+            Button(action: {
+                // 有修改时弹出二次确认，无修改时直接恢复并退出
+                if hasChanges {
+                    showCancelConfirm = true
+                } else {
+                    codeText = originalContent
+                    isEditing = false
+                }
+            }) {
+                Text("取消")
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+            }
+
+            // 提交修改按钮
+            Button(action: {
+                // 弹出二次确认，确认后显示提交信息弹窗
+                showSubmitConfirm = true
+            }) {
+                if isSaving {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                } else {
+                    Text("提交修改")
+                        .fontWeight(.semibold)
+                }
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+            .background(Color.black)
+            .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+            .disabled(!hasChanges || isSaving)
+            .opacity((!hasChanges || isSaving) ? 0.5 : 1)
+        }
+        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .background(Color(.systemGray6))
+        .edgesIgnoringSafeArea(.bottom)
     }
 
     // MARK: - 文件信息栏
