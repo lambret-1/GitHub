@@ -134,6 +134,34 @@ struct CodeEditorView: View {
                 }
         )
         .toolbar {
+            // 左侧：撤销和重做按钮（从三个点菜单迁移至此，方便快速操作）
+            ToolbarItem(placement: .navigationBarLeading) {
+                HStack(spacing: 4) {
+                    // 撤销按钮
+                    Button(action: {
+                        // 通过通知中心发送撤销操作，由CodeTextView监听执行
+                        NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
+                    }) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .foregroundColor((isEditing && canUndo) ? .blue : .gray)
+                            .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+                    }
+                    .disabled(!isEditing || !canUndo)
+
+                    // 重做按钮
+                    Button(action: {
+                        // 通过通知中心发送重做操作，由CodeTextView监听执行
+                        NotificationCenter.default.post(name: NSNotification.Name("CodeEditorRedo"), object: nil)
+                    }) {
+                        Image(systemName: "arrow.uturn.forward")
+                            .foregroundColor((isEditing && canRedo) ? .blue : .gray)
+                            .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+                    }
+                    .disabled(!isEditing || !canRedo)
+                }
+            }
+
+            // 右侧：三个点菜单
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     // 文件操作
@@ -159,27 +187,6 @@ struct CodeEditorView: View {
                     Divider()
 
                     if fileContent?.isTextFile ?? false {
-                        // MARK: - 编辑操作（从底部工具栏迁移至此）
-                        // 撤销按钮
-                        Button(action: {
-                            // 通过通知中心发送撤销操作，由CodeTextView监听执行
-                            NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
-                        }) {
-                            Label("撤销", systemImage: "arrow.uturn.backward")
-                        }
-                        .disabled(!isEditing || !canUndo)
-
-                        // 重做按钮
-                        Button(action: {
-                            // 通过通知中心发送重做操作，由CodeTextView监听执行
-                            NotificationCenter.default.post(name: NSNotification.Name("CodeEditorRedo"), object: nil)
-                        }) {
-                            Label("重做", systemImage: "arrow.uturn.forward")
-                        }
-                        .disabled(!isEditing || !canRedo)
-
-                        Divider()
-
                         // 取消编辑按钮
                         Button(action: {
                             // 有修改时弹出二次确认，无修改时直接恢复并退出
