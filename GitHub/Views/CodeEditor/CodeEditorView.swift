@@ -332,10 +332,10 @@ struct CodeEditorView: View {
                 .disabled(isRenaming || isDownloading)
             }
         }
-        // 编辑相关弹窗（使用background确保alert可触发，但不覆盖工具栏菜单，避免菜单点击无反应）
-        .background(editingAlerts)
+        // 编辑相关弹窗（使用overlay确保alert可正常触发，allowsHitTesting(false)确保不拦截工具栏菜单点击）
+        .overlay(editingAlerts.allowsHitTesting(false))
         // 文件操作相关弹窗
-        .background(fileOperationAlerts)
+        .overlay(fileOperationAlerts.allowsHitTesting(false))
         .overlay {
             if isDownloading {
                 downloadProgressOverlay
