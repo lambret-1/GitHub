@@ -3505,19 +3505,15 @@ struct BranchPickerView: View {
                 }
             }
             // 删除分支确认弹窗
-            .alert("确认删除分支", isPresented: $showDeleteBranchConfirm) {
-                Button("取消", role: .cancel) {
-                    branchToDelete = nil
-                }
-                Button("删除", role: .destructive) {
-                    deleteBranch()
-                }
-            } message: {
-                if let branch = branchToDelete {
-                    Text("确定要删除分支「\(branch.name)」吗？此操作不可撤销。")
-                } else {
-                    Text("确定要删除该分支吗？此操作不可撤销。")
-                }
+            .alert(isPresented: $showDeleteBranchConfirm) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("确认删除分支"),
+                    message: Text(branchToDelete != nil ? "确定要删除分支「\(branchToDelete!.name)」吗？此操作不可撤销。" : "确定要删除该分支吗？此操作不可撤销。"),
+                    primaryButton: .destructive(Text("删除"), action: deleteBranch),
+                    secondaryButton: .cancel(Text("取消"), action: {
+                        branchToDelete = nil
+                    })
+                )
             }
             // 操作提示消息
             .overlay(
@@ -3750,12 +3746,14 @@ private struct FileBrowserHTMLSheetsModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: view.$showHTMLPreview, content: view.htmlPreviewSheet)
-            .alert("加载失败", isPresented: .constant(view.htmlPreviewError != nil)) {
-                Button("确定") {
-                    view.htmlPreviewError = nil
-                }
-            } message: {
-                Text(view.htmlPreviewError ?? "未知错误")
+            .alert(isPresented: .constant(view.htmlPreviewError != nil)) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("加载失败"),
+                    message: Text(view.htmlPreviewError ?? "未知错误"),
+                    dismissButton: .default(Text("确定"), action: {
+                        view.htmlPreviewError = nil
+                    })
+                )
             }
     }
 }
@@ -3804,19 +3802,23 @@ private struct FileBrowserUploadSheetsModifier: ViewModifier {
             .sheet(isPresented: view.$showUploadConfirm) {
                 view.uploadConfirmView
             }
-            .alert("上传完成", isPresented: view.$showUploadSuccess) {
-                Button("确定", role: .cancel) {
-                    view.loadFiles()
-                }
-            } message: {
-                Text("文件已成功上传到仓库")
+            .alert(isPresented: view.$showUploadSuccess) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("上传完成"),
+                    message: Text("文件已成功上传到仓库"),
+                    dismissButton: .default(Text("确定"), action: {
+                        view.loadFiles()
+                    })
+                )
             }
-            .alert("上传失败", isPresented: .constant(view.uploadErrorMessage != nil)) {
-                Button("确定", role: .cancel) {
-                    view.uploadErrorMessage = nil
-                }
-            } message: {
-                Text(view.uploadErrorMessage ?? "未知错误")
+            .alert(isPresented: .constant(view.uploadErrorMessage != nil)) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("上传失败"),
+                    message: Text(view.uploadErrorMessage ?? "未知错误"),
+                    dismissButton: .default(Text("确定"), action: {
+                        view.uploadErrorMessage = nil
+                    })
+                )
             }
     }
 }
@@ -3833,19 +3835,23 @@ private struct FileBrowserCreateFolderSheetsModifier: ViewModifier {
                     view.showCreateFolderDialog = false
                 }
             }
-            .alert("创建成功", isPresented: view.$showCreateFolderSuccess) {
-                Button("确定") {
-                    view.loadFiles()
-                }
-            } message: {
-                Text("文件夹已成功创建")
+            .alert(isPresented: view.$showCreateFolderSuccess) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("创建成功"),
+                    message: Text("文件夹已成功创建"),
+                    dismissButton: .default(Text("确定"), action: {
+                        view.loadFiles()
+                    })
+                )
             }
-            .alert("创建失败", isPresented: .constant(view.createFolderErrorMessage != nil)) {
-                Button("确定", role: .cancel) {
-                    view.createFolderErrorMessage = nil
-                }
-            } message: {
-                Text(view.createFolderErrorMessage ?? "未知错误")
+            .alert(isPresented: .constant(view.createFolderErrorMessage != nil)) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("创建失败"),
+                    message: Text(view.createFolderErrorMessage ?? "未知错误"),
+                    dismissButton: .default(Text("确定"), action: {
+                        view.createFolderErrorMessage = nil
+                    })
+                )
             }
     }
 }
@@ -3876,19 +3882,23 @@ private struct FileBrowserCreateFileSheetsModifier: ViewModifier {
                     view.showCreateFileDialog = false
                 }
             }
-            .alert("创建成功", isPresented: view.$showCreateFileSuccess) {
-                Button("确定") {
-                    view.loadFiles()
-                }
-            } message: {
-                Text("文件已成功创建")
+            .alert(isPresented: view.$showCreateFileSuccess) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("创建成功"),
+                    message: Text("文件已成功创建"),
+                    dismissButton: .default(Text("确定"), action: {
+                        view.loadFiles()
+                    })
+                )
             }
-            .alert("创建失败", isPresented: .constant(view.createFileErrorMessage != nil)) {
-                Button("确定", role: .cancel) {
-                    view.createFileErrorMessage = nil
-                }
-            } message: {
-                Text(view.createFileErrorMessage ?? "未知错误")
+            .alert(isPresented: .constant(view.createFileErrorMessage != nil)) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("创建失败"),
+                    message: Text(view.createFileErrorMessage ?? "未知错误"),
+                    dismissButton: .default(Text("确定"), action: {
+                        view.createFileErrorMessage = nil
+                    })
+                )
             }
     }
 }
@@ -3899,42 +3909,37 @@ private struct FileBrowserDeleteSheetsModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             // 复刻二次确认弹窗
-            .alert("确认复刻", isPresented: view.$showForkConfirm) {
-                Button("取消", role: .cancel) {}
-                Button("复刻", role: .destructive) {
-                    view.performFork()
-                }
-            } message: {
-                Text("确定要复刻仓库「\(view.repository.ownerName)/\(view.repository.name)」吗？复刻后将在您的账户下创建一个副本。")
+            .alert(isPresented: view.$showForkConfirm) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("确认复刻"),
+                    message: Text("确定要复刻仓库「\(view.repository.ownerName)/\(view.repository.name)」吗？复刻后将在您的账户下创建一个副本。"),
+                    primaryButton: .destructive(Text("复刻"), action: view.performFork),
+                    secondaryButton: .cancel(Text("取消"))
+                )
             }
             // Fork引导弹窗（无权限操作时提示用户先Fork）
-            .alert("需要复刻仓库", isPresented: view.$showForkGuide) {
-                Button("取消", role: .cancel) {}
-                Button("立即复刻并编辑") {
-                    view.forkAndEdit()
-                }
-            } message: {
-                Text(view.forkGuideMessage)
+            .alert(isPresented: view.$showForkGuide) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("需要复刻仓库"),
+                    message: Text(view.forkGuideMessage),
+                    primaryButton: .default(Text("立即复刻并编辑"), action: view.forkAndEdit),
+                    secondaryButton: .cancel(Text("取消"))
+                )
             }
-            .alert("确认删除", isPresented: view.$showContextMenuDeleteConfirm) {
-                Button("取消", role: .cancel) {
-                    view.contextMenuDeleteFile = nil
-                }
-                Button("删除", role: .destructive) {
-                    if let file = view.contextMenuDeleteFile {
-                        view.deleteSingleFile(file)
-                    }
-                }
-            } message: {
-                if let file = view.contextMenuDeleteFile {
-                    if file.isDirectory {
-                        Text("确定要删除文件夹「\(file.name)」及其所有内容吗？此操作不可撤销，将递归删除文件夹中的所有文件。")
-                    } else {
-                        Text("确定要删除文件「\(file.name)」吗？此操作不可撤销。")
-                    }
-                } else {
-                    Text("确定要删除该文件吗？此操作不可撤销。")
-                }
+            .alert(isPresented: view.$showContextMenuDeleteConfirm) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("确认删除"),
+                    message: Text(view.contextMenuDeleteFile != nil ? (view.contextMenuDeleteFile!.isDirectory ? "确定要删除文件夹「\(view.contextMenuDeleteFile!.name)」及其所有内容吗？此操作不可撤销，将递归删除文件夹中的所有文件。" : "确定要删除文件「\(view.contextMenuDeleteFile!.name)」吗？此操作不可撤销。") : "确定要删除该文件吗？此操作不可撤销。"),
+                    primaryButton: .destructive(Text("删除"), action: {
+                        if let file = view.contextMenuDeleteFile {
+                            view.deleteSingleFile(file)
+                        }
+                    }),
+                    secondaryButton: .cancel(Text("取消"), action: {
+                        view.contextMenuDeleteFile = nil
+                    })
+                )
+            }
             }
             .alert("确认删除", isPresented: view.$showDeleteConfirm) {
                 Button("取消", role: .cancel) {}

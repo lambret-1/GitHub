@@ -77,6 +77,7 @@ struct GitHubApp: App {
             },
             alignment: .center
         )
+        }
     }
 }
 
