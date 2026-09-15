@@ -261,148 +261,10 @@ struct CodeEditorView: View {
                 .disabled(isRenaming || isDownloading)
             }
         }
-        .alert("提交修改", isPresented: $showCommitDialog) {
-            TextField("提交信息（如：更新 xxx）", text: $commitMessage)
-            Button("取消", role: .cancel) {}
-            Button("提交") {
-                commitChanges()
-            }
-        } message: {
-            Text("将修改提交到 \(branch) 分支")
-        }
-        .alert("提交成功", isPresented: $showSaveSuccess) {
-            Button("确定") {
-                // 如果是从"未保存提醒"弹窗点击"保存并离开"触发的提交，提交成功后自动退出
-                if shouldDismissAfterSave {
-                    shouldDismissAfterSave = false
-                    dismiss()
-                } else if shouldExitEditAfterSave {
-                    // 如果是从"完成编辑"弹窗点击"保存并退出"触发的提交，提交成功后退出编辑模式
-                    shouldExitEditAfterSave = false
-                    isEditing = false
-                    loadFile()
-                } else {
-                    isEditing = false
-                    loadFile()
-                }
-            }
-        } message: {
-            Text("文件已成功提交到 GitHub 仓库")
-        }
-        .alert("重命名文件", isPresented: $showRenameDialog) {
-            TextField("新文件名", text: $newFileName)
-            Button("取消", role: .cancel) {}
-            Button("确定") {
-                renameFile()
-            }
-            .disabled(newFileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        } message: {
-            Text("当前文件名: \(fileName)\n请输入新的文件名")
-        }
-        .alert("重命名成功", isPresented: $showRenameSuccess) {
-            Button("确定") {
-                // 返回上一页
-                NotificationCenter.default.post(name: NSNotification.Name("FileRenamed"), object: nil)
-            }
-        } message: {
-            Text("文件已成功重命名")
-        }
-        .alert("重命名失败", isPresented: .constant(renameErrorMessage != nil)) {
-            Button("确定") {
-                renameErrorMessage = nil
-            }
-        } message: {
-            Text(renameErrorMessage ?? "未知错误")
-        }
-        .alert("复制成功", isPresented: $showCopySuccess) {
-            Button("确定") {}
-        } message: {
-            Text("文件 Raw 地址已复制到剪贴板")
-        }
-        .alert("未选中文字", isPresented: $showNoSelectionAlert) {
-            Button("确定") {}
-        } message: {
-            Text("请先在代码中选中要查找的文字，然后再点击「查找选中文字」")
-        }
-        // 未保存提醒弹窗
-        .alert("文件未保存", isPresented: $showUnsavedAlert) {
-            // 保存按钮（蓝色）
-            Button(action: {
-                // 标记保存后自动退出
-                shouldDismissAfterSave = true
-                // 先提交修改，提交成功后退出
-                showCommitDialog = true
-                showUnsavedAlert = false
-            }) {
-                Text("保存并离开")
-                    .foregroundColor(.blue)
-            }
-            // 不保存按钮（红色）
-            Button(role: .destructive) {
-                // 直接退出，不保存
-                dismiss()
-            } label: {
-                Text("不保存，直接离开")
-                    .foregroundColor(.red)
-            }
-            // 取消按钮
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("当前文件有未保存的修改，确定要离开吗？")
-        }
-        // 完成编辑时的保存提示弹窗
-        .alert("完成编辑", isPresented: $showFinishEditAlert) {
-            // 保存并退出按钮（蓝色）
-            Button(action: {
-                // 标记保存后自动退出编辑模式
-                shouldExitEditAfterSave = true
-                // 显示提交对话框
-                showCommitDialog = true
-                showFinishEditAlert = false
-            }) {
-                Text("保存并退出")
-                    .foregroundColor(.blue)
-            }
-            // 放弃修改按钮（红色）
-            Button(role: .destructive) {
-                // 恢复原始内容并退出编辑模式
-                codeText = originalContent
-                isEditing = false
-            } label: {
-                Text("放弃修改")
-                    .foregroundColor(.red)
-            }
-            // 取消按钮
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("当前文件有未保存的修改，确定要完成编辑吗？")
-        }
-        // 编辑模式下点击返回的提示
-        .alert("正在编辑中", isPresented: $editReturnAlert) {
-            Button("确定") {}
-        } message: {
-            Text("正在编辑文件，请先完成编辑或点击「完成编辑」后再返回")
-        }
-        // 取消编辑二次确认
-        .alert("确认取消", isPresented: $showCancelConfirm) {
-            Button("继续编辑", role: .cancel) {}
-            Button("放弃修改", role: .destructive) {
-                codeText = originalContent
-                isEditing = false
-            }
-        } message: {
-            Text("您有未保存的修改，确定要放弃吗？")
-        }
-        // 提交修改二次确认
-        .alert("确认提交", isPresented: $showSubmitConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("确认提交") {
-                commitMessage = "Update \(fileName)"
-                showCommitDialog = true
-            }
-        } message: {
-            Text("确定要提交修改到 GitHub 仓库吗？")
-        }
+        // 编辑相关弹窗（提取为单独计算属性，避免body类型检查超时）
+        .background(editingAlerts)
+        // 文件操作相关弹窗
+        .background(fileOperationAlerts)
         .overlay {
             if isDownloading {
                 downloadProgressOverlay
@@ -492,6 +354,202 @@ struct CodeEditorView: View {
                 showThemePicker = false
             }
         }
+    }
+
+    // MARK: - 编辑相关弹窗（提取为单独计算属性，避免body类型检查超时）
+
+    private var editingAlerts: some View {
+        Group {
+            alertCommitDialog
+            alertSaveSuccess
+            alertUnsaved
+            alertFinishEdit
+            alertEditing
+            alertCancelConfirm
+            alertSubmitConfirm
+        }
+    }
+
+    private var alertCommitDialog: some View {
+        EmptyView()
+            .alert("提交修改", isPresented: $showCommitDialog) {
+                TextField("提交信息（如：更新 xxx）", text: $commitMessage)
+                Button("取消", role: .cancel) {}
+                Button("提交") {
+                    commitChanges()
+                }
+            } message: {
+                Text("将修改提交到 \(branch) 分支")
+            }
+    }
+
+    private var alertSaveSuccess: some View {
+        EmptyView()
+            .alert("提交成功", isPresented: $showSaveSuccess) {
+                Button("确定") {
+                    if shouldDismissAfterSave {
+                        shouldDismissAfterSave = false
+                        dismiss()
+                    } else if shouldExitEditAfterSave {
+                        shouldExitEditAfterSave = false
+                        isEditing = false
+                        loadFile()
+                    } else {
+                        isEditing = false
+                        loadFile()
+                    }
+                }
+            } message: {
+                Text("文件已成功提交到 GitHub 仓库")
+            }
+    }
+
+    private var alertUnsaved: some View {
+        EmptyView()
+            .alert("文件未保存", isPresented: $showUnsavedAlert) {
+                Button(action: {
+                    shouldDismissAfterSave = true
+                    showCommitDialog = true
+                    showUnsavedAlert = false
+                }) {
+                    Text("保存并离开")
+                        .foregroundColor(.blue)
+                }
+                Button(role: .destructive) {
+                    dismiss()
+                } label: {
+                    Text("不保存，直接离开")
+                        .foregroundColor(.red)
+                }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("当前文件有未保存的修改，确定要离开吗？")
+            }
+    }
+
+    private var alertFinishEdit: some View {
+        EmptyView()
+            .alert("完成编辑", isPresented: $showFinishEditAlert) {
+                Button(action: {
+                    shouldExitEditAfterSave = true
+                    showCommitDialog = true
+                    showFinishEditAlert = false
+                }) {
+                    Text("保存并退出")
+                        .foregroundColor(.blue)
+                }
+                Button(role: .destructive) {
+                    codeText = originalContent
+                    isEditing = false
+                } label: {
+                    Text("放弃修改")
+                        .foregroundColor(.red)
+                }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("当前文件有未保存的修改，确定要完成编辑吗？")
+            }
+    }
+
+    private var alertEditing: some View {
+        EmptyView()
+            .alert("正在编辑中", isPresented: $editReturnAlert) {
+                Button("确定") {}
+            } message: {
+                Text("正在编辑文件，请先完成编辑或点击「完成编辑」后再返回")
+            }
+    }
+
+    private var alertCancelConfirm: some View {
+        EmptyView()
+            .alert("确认取消", isPresented: $showCancelConfirm) {
+                Button("继续编辑", role: .cancel) {}
+                Button("放弃修改", role: .destructive) {
+                    codeText = originalContent
+                    isEditing = false
+                }
+            } message: {
+                Text("您有未保存的修改，确定要放弃吗？")
+            }
+    }
+
+    private var alertSubmitConfirm: some View {
+        EmptyView()
+            .alert("确认提交", isPresented: $showSubmitConfirm) {
+                Button("取消", role: .cancel) {}
+                Button("确认提交") {
+                    commitMessage = "Update \(fileName)"
+                    showCommitDialog = true
+                }
+            } message: {
+                Text("确定要提交修改到 GitHub 仓库吗？")
+            }
+    }
+
+    // MARK: - 文件操作相关弹窗
+
+    private var fileOperationAlerts: some View {
+        Group {
+            alertRenameDialog
+            alertRenameSuccess
+            alertRenameFailure
+            alertCopySuccess
+            alertNoSelection
+        }
+    }
+
+    private var alertRenameDialog: some View {
+        EmptyView()
+            .alert("重命名文件", isPresented: $showRenameDialog) {
+                TextField("新文件名", text: $newFileName)
+                Button("取消", role: .cancel) {}
+                Button("确定") {
+                    renameFile()
+                }
+                .disabled(newFileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            } message: {
+                Text("当前文件名: \(fileName)\n请输入新的文件名")
+            }
+    }
+
+    private var alertRenameSuccess: some View {
+        EmptyView()
+            .alert("重命名成功", isPresented: $showRenameSuccess) {
+                Button("确定") {
+                    NotificationCenter.default.post(name: NSNotification.Name("FileRenamed"), object: nil)
+                }
+            } message: {
+                Text("文件已成功重命名")
+            }
+    }
+
+    private var alertRenameFailure: some View {
+        EmptyView()
+            .alert("重命名失败", isPresented: .constant(renameErrorMessage != nil)) {
+                Button("确定") {
+                    renameErrorMessage = nil
+                }
+            } message: {
+                Text(renameErrorMessage ?? "未知错误")
+            }
+    }
+
+    private var alertCopySuccess: some View {
+        EmptyView()
+            .alert("复制成功", isPresented: $showCopySuccess) {
+                Button("确定") {}
+            } message: {
+                Text("文件 Raw 地址已复制到剪贴板")
+            }
+    }
+
+    private var alertNoSelection: some View {
+        EmptyView()
+            .alert("未选中文字", isPresented: $showNoSelectionAlert) {
+                Button("确定") {}
+            } message: {
+                Text("请先在代码中选中要查找的文字，然后再点击「查找选中文字」")
+            }
     }
 
     // MARK: - 下载进度覆盖层
