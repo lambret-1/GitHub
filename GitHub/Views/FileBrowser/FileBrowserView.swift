@@ -1130,7 +1130,7 @@ struct FileBrowserView: View {
     func renameFileSheet() -> some View {
         NavigationView {
             Form {
-                Section(contextMenuRenameFile?.isDirectory == true ? "文件夹名称" : "文件名") {
+                Section(header: Text(contextMenuRenameFile?.isDirectory == true ? "文件夹名称" : "文件名")) { // iOS14兼容：使用旧版Section语法
                     TextField(contextMenuRenameFile?.isDirectory == true ? "输入新的文件夹名称" : "输入新的文件名", text: $renameNewFileName)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
