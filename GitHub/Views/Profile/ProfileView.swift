@@ -70,7 +70,7 @@ struct ProfileView: View {
                     }
                     
                     // 详细信息
-                    Section("个人信息") {
+                    Section(header: Text("个人信息")) { // iOS14兼容：使用旧版Section语法
                         if let company = user.company, !company.isEmpty {
                             HStack {
                                 Image(systemName: "building.2")
@@ -120,7 +120,7 @@ struct ProfileView: View {
                     }
                     
                     // 账号设置
-                    Section("账号") {
+                    Section(header: Text("账号")) { // iOS14兼容：使用旧版Section语法
                         Button(action: {
                             showAccountManager = true
                         }) {
@@ -246,33 +246,35 @@ struct ProfileView: View {
                 )
             }
             // 发现新版本，确认下载alert
-            .alert("发现新版本", isPresented: $showDownloadConfirm) {
-                if let release = latestRelease {
-                    Button("立即下载") {
-                        // 应用内下载更新，下载完成后自动弹出分享面板
-                        downloadUpdate(release: release)
-                    }
-                    Button("稍后再说", role: .cancel) {}
-                }
-            } message: {
-                if let release = latestRelease {
-                    Text("新版本 \(release.tagName) 已发布，点击立即下载，下载完成后将自动弹出分享面板进行安装。")
-                }
+            .alert(isPresented: $showDownloadConfirm) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("发现新版本"),
+                    message: Text(latestRelease != nil ? "新版本 \(latestRelease!.tagName) 已发布，点击立即下载，下载完成后将自动弹出分享面板进行安装。" : "发现新版本"),
+                    primaryButton: .default(Text("立即下载"), action: {
+                        if let release = latestRelease {
+                            downloadUpdate(release: release)
+                        }
+                    }),
+                    secondaryButton: .cancel(Text("稍后再说"))
+                )
             }
             // 下载失败alert
-            .alert("下载失败", isPresented: $showDownloadError) {
-                Button("确定") {}
-            } message: {
-                Text(downloadErrorMessage ?? "未知错误")
+            .alert(isPresented: $showDownloadError) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("下载失败"),
+                    message: Text(downloadErrorMessage ?? "未知错误"),
+                    dismissButton: .default(Text("确定"))
+                )
             }
             // 下载中全屏覆盖层
-            .overlay {
-                if isDownloadingUpdate {
-                    ZStack {
-                        Color.black.opacity(0.4)
-                            .ignoresSafeArea()
+            .overlay( // iOS14兼容：使用旧版overlay语法
+                Group {
+                    if isDownloadingUpdate {
+                        ZStack {
+                            Color.black.opacity(0.4)
+                                .ignoresSafeArea()
 
-                        VStack(spacing: 16) {
+                            VStack(spacing: 16) {
                             ProgressView(value: downloadProgress)
                                 .progressViewStyle(CircularProgressViewStyle(tint: .black))
                                 .scaleEffect(1.5)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
@@ -294,7 +296,9 @@ struct ProfileView: View {
                         .cornerRadius(16)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     }
                 }
-            }
+            },
+            alignment: .center
+            )
             .ios14NavigationDestination(isPresented: $showAccountManager) {
                 AccountManagerView()
             }
