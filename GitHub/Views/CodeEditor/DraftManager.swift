@@ -408,17 +408,19 @@ struct DraftRecoveryModifier: ViewModifier {
                     showRecoveryAlert = true
                 }
             }
-            .alert("恢复未保存的修改", isPresented: $showRecoveryAlert) {
-                Button("恢复", role: .destructive) {
-                    if let content = draftManager.restoreDraft(for: filePath, branch: branch) {
-                        onRestore?(content)
-                    }
-                }
-                Button("放弃", role: .cancel) {
-                    draftManager.clearDraft(for: filePath, branch: branch)
-                }
-            } message: {
-                Text("检测到上次编辑未保存的修改，是否恢复？")
+            .alert(isPresented: $showRecoveryAlert) { // iOS14兼容：使用旧版Alert语法
+                Alert(
+                    title: Text("恢复未保存的修改"),
+                    message: Text("检测到上次编辑未保存的修改，是否恢复？"),
+                    primaryButton: .destructive(Text("恢复"), action: {
+                        if let content = draftManager.restoreDraft(for: filePath, branch: branch) {
+                            onRestore?(content)
+                        }
+                    }),
+                    secondaryButton: .cancel(Text("放弃"), action: {
+                        draftManager.clearDraft(for: filePath, branch: branch)
+                    })
+                )
             }
     }
 }
