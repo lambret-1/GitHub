@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-15 19:43:14 UTC
+**生成时间**: 2026-09-15 20:17:26 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -62,8 +62,8 @@
 ```
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/AppState.swift:37:44: warning: immutable value 'account' was never used; consider replacing with '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/CodeTextView.swift:427:31: warning: value 'self' was defined but never used; consider replacing with boolean test
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3557:25: warning: initialization of immutable value 'createdName' was never used; consider replacing with assignment to '_' or removing it
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3596:25: warning: initialization of immutable value 'newName' was never used; consider replacing with assignment to '_' or removing it
+/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3573:25: warning: initialization of immutable value 'createdName' was never used; consider replacing with assignment to '_' or removing it
+/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3612:25: warning: initialization of immutable value 'newName' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/GitHubApp.swift:36:24: warning: value 'release' was defined but never used; consider replacing with boolean test
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/HTMLTokenizer.swift:42:17: warning: initialization of immutable value 'start' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/HTMLTokenizer.swift:75:21: warning: initialization of immutable value 'tagStart' was never used; consider replacing with assignment to '_' or removing it
@@ -86,7 +86,7 @@
 
 ```
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: instance will be immediately deallocated because property 'delegate' is 'weak'
-/Users/runner/work/GitHub/GitHub/GitHub/Core/Network/GitHubAPI.swift:980:13: warning: variable 'body' was never mutated; consider changing to 'let' constant
+/Users/runner/work/GitHub/GitHub/GitHub/Core/Network/GitHubAPI.swift:997:13: warning: variable 'body' was never mutated; consider changing to 'let' constant
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:494:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:497:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
@@ -101,7 +101,7 @@
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 37517 行
+- **代码总行数**: 37855 行
 
 ### 💡 修复建议
 
