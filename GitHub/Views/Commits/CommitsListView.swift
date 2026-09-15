@@ -128,7 +128,7 @@ struct CommitsListView: View {
                 hasMore = true
                 loadCommits()
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.bordered)
         }
         .listRowBackground(Color.clear)
         .padding(.vertical, 40)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧

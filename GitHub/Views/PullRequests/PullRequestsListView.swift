@@ -141,7 +141,7 @@ struct PullRequestsListView: View {
                 hasMore = true
                 loadPullRequests()
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.bordered)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -203,7 +203,7 @@ struct PullRequestsListView: View {
                 if isCreating {
                     ProgressView("创建中...")
                         .padding()
-                        .background(.ultraThinMaterial)
+                        .background(Color.gray.opacity(0.8))
                         .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                 }
             }

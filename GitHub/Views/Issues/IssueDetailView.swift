@@ -68,7 +68,7 @@ struct IssueDetailView: View {
             if isUpdatingState {
                 ProgressView("处理中...")
                     .padding()
-                    .background(.ultraThinMaterial)
+                    .background(Color.gray.opacity(0.8))
                     .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
             }
         }
@@ -260,7 +260,7 @@ struct IssueDetailView: View {
                             .font(.system(size: 14, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
                 .disabled(newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isAddingComment)
             }
         }
