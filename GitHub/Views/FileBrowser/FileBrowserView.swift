@@ -741,7 +741,8 @@ struct FileBrowserView: View {
             repo: repository.name
         )
         .environmentObject(appState)
-        .frame(height: UIScreen.main.bounds.height - 200)  // 这是视图高度尺寸，控制Actions Tab垂直方向显示高度，单位是pt；改大Actions列表显示区域更高可显示更多工作流，改小显示区域更矮；使用屏幕高度减200pt动态适配不同屏幕尺寸
+        // 移除固定高度，让ActionsListView高度自适应内容，避免内容被裁剪或遮挡
+        // 原.frame(height: UIScreen.main.bounds.height - 200)已移除
     }
 
     // MARK: - 即将上线功能占位
