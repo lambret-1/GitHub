@@ -423,8 +423,8 @@ struct CodeEditorView: View {
         }
         // 编辑模式时禁用手势返回
         .background(SwipeBackControlView(enabled: !isEditing))
-        // 编辑模式时隐藏底部Tab栏，禁止切换到"我的"等页面
-        .background(TabBarControlView(visible: !isEditing))
+        // 进入文件编辑器就彻底隐藏底部Tab栏，禁止切换到"仓库""我的"等页面
+        .background(TabBarControlView(visible: false))
         // 代码片段选择弹窗（第二期：编辑体验增强）
         .sheet(isPresented: $showSnippetPicker) {
             snippetPickerView
