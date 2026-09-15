@@ -22,6 +22,13 @@ struct CodeEditorView: View {
     @State private var isLoading: Bool = true
     @State private var errorMessage: String?
     @State private var isEditing: Bool = false
+    // 保存到GitHub相关状态
+    @State private var showCommitDialog: Bool = false // 提交信息弹窗显示状态
+    @State private var commitMessage: String = "" // 提交信息内容
+    @State private var isSaving: Bool = false // 正在保存到GitHub的加载状态
+    @State private var showSaveSuccess: Bool = false // 保存成功弹窗显示状态
+    @State private var showFinishEditAlert: Bool = false // 完成编辑时的未保存提醒弹窗
+    @State private var shouldExitEditAfterSave: Bool = false // 标记保存成功后是否自动退出编辑模式
     @State private var showLineNumbers: Bool = true
     @State private var fontSize: CGFloat = 10
     @State private var showSettings: Bool = false
@@ -127,6 +134,39 @@ struct CodeEditorView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     if fileContent?.isTextFile ?? false {
+                        // MARK: - 编辑文件/完成编辑
+                        Button(action: {
+                            if isEditing {
+                                // 编辑模式下点击完成编辑
+                                if hasChanges {
+                                    // 有未保存修改，提示用户
+                                    showFinishEditAlert = true
+                                } else {
+                                    // 没有修改，直接退出编辑模式
+                                    isEditing = false
+                                }
+                            } else {
+                                // 非编辑模式下点击编辑文件，进入编辑模式
+                                isEditing = true
+                            }
+                        }) {
+                            Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark.circle.fill" : "pencil.circle")
+                        }
+                        .disabled(isLargeFileMode)
+
+                        // MARK: - 保存到GitHub
+                        Button(action: {
+                            // 清空提交信息，让用户输入新的提交信息
+                            commitMessage = ""
+                            // 显示提交信息弹窗
+                            showCommitDialog = true
+                        }) {
+                            Label("保存到GitHub", systemImage: "square.and.arrow.up.circle.fill")
+                        }
+                        .disabled(!isEditing || !hasChanges)
+
+                        Divider()
+
                         // 撤销
                         Button(action: {
                             NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
@@ -360,8 +400,78 @@ struct CodeEditorView: View {
 
     private var editingAlerts: some View {
         Group {
+            alertCommitDialog
+            alertSaveSuccess
+            alertFinishEdit
             alertEditing
         }
+    }
+
+    // 提交信息弹窗：用户输入提交信息后将修改保存到GitHub
+    private var alertCommitDialog: some View {
+        EmptyView()
+            .alert("保存到GitHub", isPresented: $showCommitDialog) {
+                // 提交信息输入框
+                TextField("输入提交信息（如：更新 xxx 功能）", text: $commitMessage)
+                // 取消按钮
+                Button("取消", role: .cancel) {}
+                // 提交按钮：点击后调用commitChanges()保存到GitHub
+                Button("保存") {
+                    commitChanges()
+                }
+            } message: {
+                Text("将修改提交到 \(branch) 分支")
+            }
+    }
+
+    // 保存成功弹窗：显示保存成功信息，并根据标记决定是否退出编辑模式
+    private var alertSaveSuccess: some View {
+        EmptyView()
+            .alert("保存成功", isPresented: $showSaveSuccess) {
+                Button("确定") {
+                    if shouldExitEditAfterSave {
+                        // 从完成编辑弹窗点击保存并提交，保存成功后自动退出编辑模式
+                        shouldExitEditAfterSave = false
+                        isEditing = false
+                        loadFile()
+                    }
+                }
+            } message: {
+                Text("文件已成功保存到 GitHub 仓库")
+            }
+    }
+
+    // 完成编辑提醒弹窗：用户点击完成编辑且有未保存修改时显示
+    private var alertFinishEdit: some View {
+        EmptyView()
+            .alert("完成编辑", isPresented: $showFinishEditAlert) {
+                // 保存并提交按钮（蓝色，主要操作）
+                Button(action: {
+                    // 标记保存成功后自动退出编辑模式
+                    shouldExitEditAfterSave = true
+                    // 清空提交信息，让用户输入新的提交信息
+                    commitMessage = ""
+                    // 关闭当前弹窗，显示提交信息弹窗
+                    showFinishEditAlert = false
+                    showCommitDialog = true
+                }) {
+                    Text("保存并提交")
+                        .foregroundColor(.blue)
+                }
+                // 放弃修改按钮（红色，危险操作）
+                Button(role: .destructive) {
+                    // 恢复原始内容并退出编辑模式
+                    codeText = originalContent
+                    isEditing = false
+                } label: {
+                    Text("放弃修改")
+                        .foregroundColor(.red)
+                }
+                // 取消按钮（灰色，继续编辑）
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("当前文件有未保存的修改。\n选择「保存并提交」将修改保存到 GitHub，选择「放弃修改」将恢复原始内容。")
+            }
     }
 
     private var alertEditing: some View {
@@ -1049,6 +1159,54 @@ struct CodeEditorView: View {
         return byteCountFormatter.string(fromByteCount: Int64(size))
     }
     
+    // MARK: - 保存到GitHub
+
+    // 将修改的内容保存到GitHub仓库
+    private func commitChanges() {
+        // 确保文件内容和sha存在
+        guard let sha = fileContent?.sha else {
+            errorMessage = "文件信息缺失，无法保存"
+            return
+        }
+        // 如果提交信息为空，自动使用默认提交信息
+        if commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            commitMessage = "Update \(fileName)"
+        }
+
+        // 设置正在保存状态
+        isSaving = true
+
+        // 调用GitHubAPI保存文件
+        GitHubAPI.shared.updateFile(
+            owner: owner,
+            repo: repo,
+            path: path,
+            content: codeText,
+            sha: sha,
+            message: commitMessage,
+            branch: branch
+        ) { result in
+            DispatchQueue.main.async {
+                // 保存完成，取消正在保存状态
+                isSaving = false
+                switch result {
+                case .success:
+                    // 保存成功，显示成功弹窗
+                    showSaveSuccess = true
+                    // 更新原始内容为当前内容
+                    originalContent = codeText
+                    // 清除撤销/重做栈
+                    undoManager.clear()
+                    // 清除草稿
+                    draftManager.clearDraft(for: path, branch: branch)
+                case .failure(let error):
+                    // 保存失败，显示错误信息
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
     // MARK: - 重命名文件
 
     private func renameFile() {
