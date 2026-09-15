@@ -390,12 +390,14 @@ struct FileBrowserView: View {
             }
         )
         // 下载ZIP结果弹窗
-        .alert("下载提示", isPresented: $showZipDownloadAlert) {
-            Button("确定", role: .cancel) {
-                showZipDownloadAlert = false
-            }
-        } message: {
-            Text(zipDownloadMessage)
+        .alert(isPresented: $showZipDownloadAlert) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("下载提示"),
+                message: Text(zipDownloadMessage),
+                dismissButton: .cancel(Text("确定"), action: {
+                    showZipDownloadAlert = false
+                })
+            )
         }
     }
     
@@ -3389,11 +3391,12 @@ struct BranchPickerView: View {
                                 }) {
                                     Label("重命名分支", systemImage: "pencil")
                                 }
-                                Button(role: .destructive, action: {
+                                Button(action: { // iOS14兼容：移除role参数，使用foregroundColor设置红色
                                     branchToDelete = branch
                                     showDeleteBranchConfirm = true
                                 }) {
                                     Label("删除分支", systemImage: "trash")
+                                        .foregroundColor(.red)
                                 }
                             }
                         }
@@ -3422,7 +3425,7 @@ struct BranchPickerView: View {
             .sheet(isPresented: $showCreateBranchDialog) {
                 NavigationView {
                     Form {
-                        Section("分支名称") {
+                        Section(header: Text("分支名称")) { // iOS14兼容：使用旧版Section语法
                             TextField("输入新分支名称", text: $newBranchName)
                                 .autocapitalization(.none)
                                 .disableAutocorrection(true)
@@ -3463,7 +3466,7 @@ struct BranchPickerView: View {
             .sheet(isPresented: $showRenameBranchDialog) {
                 NavigationView {
                     Form {
-                        Section("新分支名称") {
+                        Section(header: Text("新分支名称")) { // iOS14兼容：使用旧版Section语法
                             TextField("输入新分支名称", text: $renameBranchNewName)
                                 .autocapitalization(.none)
                                 .disableAutocorrection(true)
