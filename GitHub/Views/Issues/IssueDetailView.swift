@@ -163,6 +163,7 @@ struct IssueDetailView: View {
                 .padding(12)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                 .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
                 .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .textSelection(.enabled)  // 启用文本选择，长按可选择文字并弹出拷贝/分享/查找菜单
         }
     }
 
@@ -228,6 +229,7 @@ struct IssueDetailView: View {
                     .padding(12)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                     .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
                     .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                    .textSelection(.enabled)  // 启用文本选择，长按可选择文字并弹出拷贝/分享/查找菜单
             }
         }
     }
