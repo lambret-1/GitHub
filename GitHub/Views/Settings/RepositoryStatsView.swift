@@ -70,7 +70,7 @@ struct RepositoryStatsView: View {
 
     // MARK: - 概览统计
     private func overviewSection(repo: Repository) -> some View {
-        Section("概览") {
+        Section(header: Text("概览")) { // iOS14兼容：使用旧版Section语法
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible())
@@ -132,7 +132,7 @@ struct RepositoryStatsView: View {
 
     // MARK: - 详细统计
     private func detailsSection(repo: Repository) -> some View {
-        Section("详细信息") {
+        Section(header: Text("详细信息")) { // iOS14兼容：使用旧版Section语法
             HStack {
                 Image(systemName: "doc.text")
                     .foregroundColor(.blue)
@@ -222,7 +222,7 @@ struct RepositoryStatsView: View {
 
     // MARK: - 仓库信息
     private func infoSection(repo: Repository) -> some View {
-        Section("时间信息") {
+        Section(header: Text("时间信息")) { // iOS14兼容：使用旧版Section语法
             HStack {
                 Image(systemName: "calendar")
                     .foregroundColor(.blue)
