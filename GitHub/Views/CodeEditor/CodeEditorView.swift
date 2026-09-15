@@ -473,24 +473,32 @@ struct CodeEditorView: View {
     private var alertFinishEdit: some View {
         EmptyView()
             .alert("完成编辑", isPresented: $showFinishEditAlert) {
+                // 保存并提交按钮（蓝色，主要操作）
                 Button(action: {
+                    // 标记保存后自动退出编辑模式
                     shouldExitEditAfterSave = true
-                    showCommitDialog = true
+                    // 清空提交信息，让用户输入新的提交信息
+                    commitMessage = ""
+                    // 关闭当前弹窗，显示提交信息弹窗
                     showFinishEditAlert = false
+                    showCommitDialog = true
                 }) {
-                    Text("保存并退出")
+                    Text("保存并提交")
                         .foregroundColor(.blue)
                 }
+                // 放弃修改按钮（红色，危险操作）
                 Button(role: .destructive) {
+                    // 恢复原始内容并退出编辑模式
                     codeText = originalContent
                     isEditing = false
                 } label: {
                     Text("放弃修改")
                         .foregroundColor(.red)
                 }
+                // 取消按钮（灰色，继续编辑）
                 Button("取消", role: .cancel) {}
             } message: {
-                Text("当前文件有未保存的修改，确定要完成编辑吗？")
+                Text("当前文件有未保存的修改。\n选择「保存并提交」将修改提交到 GitHub，选择「放弃修改」将恢复原始内容。")
             }
     }
 
@@ -1207,9 +1215,9 @@ struct CodeEditorView: View {
     
     private func commitChanges() {
         guard let sha = fileContent?.sha else { return }
-        guard !commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        // 如果提交信息为空，自动使用默认提交信息
+        if commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             commitMessage = "Update \(fileName)"
-            return
         }
 
         isSaving = true
