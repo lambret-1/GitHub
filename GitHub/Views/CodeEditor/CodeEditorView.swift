@@ -143,37 +143,6 @@ struct CodeEditorView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     if fileContent?.isTextFile ?? false {
-                        // MARK: - 编辑/提交修改子菜单
-                        Menu {
-                            // 编辑文件/完成编辑
-                            Button(action: {
-                                if isEditing {
-                                    if hasChanges {
-                                        showFinishEditAlert = true
-                                    } else {
-                                        isEditing = false
-                                    }
-                                } else {
-                                    isEditing = true
-                                }
-                            }) {
-                                Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark.circle.fill" : "pencil.circle")
-                            }
-                            .disabled(isLargeFileMode)
-
-                            // 提交修改（二次确认）
-                            Button(action: {
-                                showSubmitConfirm = true
-                            }) {
-                                Label("提交修改", systemImage: "square.and.arrow.up.circle")
-                            }
-                            .disabled(!isEditing || !hasChanges)
-                        } label: {
-                            Label("编辑/提交修改", systemImage: "pencil.and.outline")
-                        }
-
-                        Divider()
-
                         // 撤销
                         Button(action: {
                             NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
