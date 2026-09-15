@@ -70,10 +70,11 @@ struct PullRequestDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     if pullRequest.state == .open {
-                        Button(role: .destructive) {
+                        Button { // iOS14兼容：移除role参数，使用foregroundColor设置红色
                             closePR()
                         } label: {
                             Label("关闭PR", systemImage: "xmark.circle")
+                                .foregroundColor(.red)
                         }
                     } else if pullRequest.state == .closed {
                         Button {
@@ -90,22 +91,25 @@ struct PullRequestDetailView: View {
         .onAppear {
             loadAllData()
         }
-        .alert("确认合并", isPresented: $showMergeConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("合并") {
-                mergePR()
-            }
-        } message: {
-            Text("确定要合并这个Pull Request吗？此操作不可撤销。")
+        .alert(isPresented: $showMergeConfirm) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("确认合并"),
+                message: Text("确定要合并这个Pull Request吗？此操作不可撤销。"),
+                primaryButton: .default(Text("合并"), action: mergePR),
+                secondaryButton: .cancel(Text("取消"))
+            )
         }
-        .overlay {
-            if isUpdatingState {
-                ProgressView("处理中...")
-                    .padding()
-                    .background(Color.gray.opacity(0.8))
-                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
-            }
-        }
+        .overlay( // iOS14兼容：使用旧版overlay语法
+            Group {
+                if isUpdatingState {
+                    ProgressView("处理中...")
+                        .padding()
+                        .background(Color.gray.opacity(0.8))
+                        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                }
+            },
+            alignment: .center
+        )
     }
 
     // MARK: - PR头部信息
