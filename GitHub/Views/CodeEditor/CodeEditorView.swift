@@ -41,6 +41,10 @@ struct CodeEditorView: View {
 
     // 未保存提醒状态
     @State private var showUnsavedAlert: Bool = false
+    // 完成编辑时的保存提示状态
+    @State private var showFinishEditAlert: Bool = false
+    // 标记是否保存后自动退出编辑模式（从"完成编辑"弹窗点击"保存并退出"时设置）
+    @State private var shouldExitEditAfterSave: Bool = false
     // 标记是否保存后自动退出（从"未保存提醒"弹窗点击"保存并离开"时设置）
     @State private var shouldDismissAfterSave: Bool = false
     // 编辑模式下点击返回的提示
@@ -173,7 +177,19 @@ struct CodeEditorView: View {
                         }
 
                         Button(action: {
-                            isEditing.toggle()
+                            if isEditing {
+                                // 完成编辑：检查是否有未保存的修改
+                                if hasChanges {
+                                    // 有未保存修改，显示完成编辑保存提示弹窗
+                                    showFinishEditAlert = true
+                                } else {
+                                    // 没有修改，直接退出编辑模式
+                                    isEditing = false
+                                }
+                            } else {
+                                // 进入编辑模式
+                                isEditing = true
+                            }
                         }) {
                             Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark" : "pencil")
                         }
@@ -260,6 +276,11 @@ struct CodeEditorView: View {
                 if shouldDismissAfterSave {
                     shouldDismissAfterSave = false
                     dismiss()
+                } else if shouldExitEditAfterSave {
+                    // 如果是从"完成编辑"弹窗点击"保存并退出"触发的提交，提交成功后退出编辑模式
+                    shouldExitEditAfterSave = false
+                    isEditing = false
+                    loadFile()
                 } else {
                     isEditing = false
                     loadFile()
@@ -328,6 +349,33 @@ struct CodeEditorView: View {
             Button("取消", role: .cancel) {}
         } message: {
             Text("当前文件有未保存的修改，确定要离开吗？")
+        }
+        // 完成编辑时的保存提示弹窗
+        .alert("完成编辑", isPresented: $showFinishEditAlert) {
+            // 保存并退出按钮（蓝色）
+            Button(action: {
+                // 标记保存后自动退出编辑模式
+                shouldExitEditAfterSave = true
+                // 显示提交对话框
+                showCommitDialog = true
+                showFinishEditAlert = false
+            }) {
+                Text("保存并退出")
+                    .foregroundColor(.blue)
+            }
+            // 放弃修改按钮（红色）
+            Button(role: .destructive) {
+                // 恢复原始内容并退出编辑模式
+                codeText = originalContent
+                isEditing = false
+            } label: {
+                Text("放弃修改")
+                    .foregroundColor(.red)
+            }
+            // 取消按钮
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("当前文件有未保存的修改，确定要完成编辑吗？")
         }
         // 编辑模式下点击返回的提示
         .alert("正在编辑中", isPresented: $editReturnAlert) {
