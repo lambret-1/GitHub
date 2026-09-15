@@ -436,7 +436,7 @@ private struct CodeSnippetSheet: View {
             let before = String(text[text.startIndex..<range.lowerBound])
             let match = String(text[range])
             let after = String(text[range.upperBound..<text.endIndex])
-            Text(before) + Text(match).backgroundColor(.yellow).foregroundColor(.red).font(.system(size: 12, weight: .bold, design: .monospaced)) + Text(after)
+            Text(before) + Text(match).background(Color.yellow).foregroundColor(Color.red).font(.system(size: 12, weight: .bold, design: .monospaced)) + Text(after)
         } else {
             Text(text)
         }

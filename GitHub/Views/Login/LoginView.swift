@@ -104,9 +104,9 @@ struct LoginView: View {
                     if showError {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.red)
                             Text(errorMessage)
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.red)
                                 .font(.subheadline)
                         }
                         .padding()

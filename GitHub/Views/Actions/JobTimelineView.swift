@@ -115,7 +115,7 @@ struct JobTimelineView: View {
                         HStack(spacing: 3) {
                             Image(systemName: "stop.fill")
                                 .font(.system(size: 8))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.red)
                             Text("结束: \(formatTime(endDate))")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)

@@ -124,10 +124,10 @@ struct TriggerWorkflowView: View {
                     Section {
                         HStack {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.red)
                             Text(error)
                                 .font(.caption)
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.red)
                         }
                     }
                 }

@@ -180,7 +180,7 @@ struct RunnerManagementView: View {
                     showDeleteAlert = true
                 }) {
                     Image(systemName: "trash")
-                        .foregroundColor(.red)
+                        .foregroundColor(Color.red)
                 }
                 .buttonStyle(PlainButtonStyle())
             }

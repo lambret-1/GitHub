@@ -111,7 +111,7 @@ struct CacheManagementView: View {
                 showClearAllAlert = true
             }) {
                 Image(systemName: "trash.fill")
-                    .foregroundColor(.red)
+                    .foregroundColor(Color.red)
             }
             .disabled(caches.isEmpty)
         )
@@ -191,7 +191,7 @@ struct CacheManagementView: View {
                     showDeleteAlert = true
                 }) {
                     Image(systemName: "trash")
-                        .foregroundColor(.red)
+                        .foregroundColor(Color.red)
                 }
                 .buttonStyle(PlainButtonStyle())
             }

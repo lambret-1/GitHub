@@ -238,7 +238,7 @@ struct JobLogView: View {
                         Text("退出码: \(exitCode)")
                             .font(.caption)
                             .fontWeight(.bold)
-                            .foregroundColor(.red)
+                            .foregroundColor(Color.red)
                             .padding(.horizontal, 6)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
                             .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
                             .background(Color.red.opacity(0.1))
@@ -449,7 +449,7 @@ struct JobLogView: View {
                 if job.conclusion == "failure" {
                     Text("点击失败步骤定位")
                         .font(.caption2)
-                        .foregroundColor(.red)
+                        .foregroundColor(Color.red)
                 }
             }
         }
@@ -500,11 +500,11 @@ struct JobLogView: View {
                     if job.conclusion == "failure" {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.red)
                             Text("作业执行失败")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.red)
                             Spacer()
                             let displayExitCode = job.exitCode ?? parsedExitCode
                             if let exitCode = displayExitCode {

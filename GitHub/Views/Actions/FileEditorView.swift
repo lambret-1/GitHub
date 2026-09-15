@@ -282,7 +282,7 @@ struct FileEditorView: View {
             let before = String(line[line.startIndex..<range.lowerBound])
             let match = String(line[range])
             let after = String(line[range.upperBound..<line.endIndex])
-            Text(before) + Text(match).backgroundColor(.yellow).foregroundColor(.black) + Text(after)
+            Text(before) + Text(match).background(Color.yellow).foregroundColor(Color.black) + Text(after)
         } else {
             Text(line)
         }

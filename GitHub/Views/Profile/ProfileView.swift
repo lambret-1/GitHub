@@ -217,10 +217,10 @@ struct ProfileView: View {
                         }) {
                             HStack {
                                 Image(systemName: "arrow.right.square")
-                                    .foregroundColor(.red)
+                                    .foregroundColor(Color.red)
                                     .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text("退出登录")
-                                    .foregroundColor(.red)
+                                    .foregroundColor(Color.red)
                             }
                         }
                     }
@@ -279,11 +279,11 @@ struct ProfileView: View {
 
                             Text("正在下载更新...")
                                 .font(.headline)
-                                .foregroundColor(.black)
+                                .foregroundColor(Color.black)
 
                             Text(String(format: "%.0f%%", downloadProgress * 100))
                                 .font(.subheadline)
-                                .foregroundColor(.black)
+                                .foregroundColor(Color.black)
 
                             Text("下载完成后将自动弹出分享面板")
                                 .font(.caption)

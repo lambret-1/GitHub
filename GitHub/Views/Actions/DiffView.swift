@@ -68,7 +68,7 @@ struct DiffView: View {
                         .foregroundColor(.green)
                     Text("-\(changedFile.deletions)")
                         .font(.caption2)
-                        .foregroundColor(.red)
+                        .foregroundColor(Color.red)
                 }
             }
             Spacer()

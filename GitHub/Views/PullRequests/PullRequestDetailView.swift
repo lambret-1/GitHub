@@ -237,7 +237,7 @@ struct PullRequestDetailView: View {
                     VStack(spacing: 2) {
                         Text("-\(deletions)")
                             .font(.system(size: 16, weight: .bold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                            .foregroundColor(.red)
+                            .foregroundColor(Color.red)
                         Text("删除")
                             .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                             .foregroundColor(.secondary)
@@ -418,7 +418,7 @@ struct PullRequestDetailView: View {
                 } else if let error = commentsError {
                     Text(error)
                         .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                        .foregroundColor(.red)
+                        .foregroundColor(Color.red)
                 } else {
                     ForEach(comments) { comment in
                         commentRow(comment)
@@ -622,7 +622,7 @@ struct PullRequestDetailView: View {
 
                             Text("-\(file.deletions)")
                                 .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.red)
 
                             Text("\(file.changes) 处变更")
                                 .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）

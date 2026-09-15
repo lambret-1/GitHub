@@ -23,7 +23,7 @@ struct AdvancedFilterView: View {
                     Button("重置") {
                         onReset()
                     }
-                    .foregroundColor(.red)
+                    .foregroundColor(Color.red)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("应用") {
@@ -289,7 +289,7 @@ extension AdvancedFilterView {
         Button("清除创建时间筛选") {
             repoFilter.createdAfter = nil
         }
-        .foregroundColor(.red)
+        .foregroundColor(Color.red)
         .disabled(repoFilter.createdAfter == nil)
     }
 
@@ -309,7 +309,7 @@ extension AdvancedFilterView {
         Button("清除推送时间筛选") {
             repoFilter.pushedAfter = nil
         }
-        .foregroundColor(.red)
+        .foregroundColor(Color.red)
         .disabled(repoFilter.pushedAfter == nil)
     }
 }
@@ -442,7 +442,7 @@ extension AdvancedFilterView {
         Button("清除注册时间筛选") {
             userFilter.createdAfter = nil
         }
-        .foregroundColor(.red)
+        .foregroundColor(Color.red)
         .disabled(userFilter.createdAfter == nil)
     }
 }

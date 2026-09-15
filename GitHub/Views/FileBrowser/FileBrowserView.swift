@@ -1449,7 +1449,7 @@ struct FileBrowserView: View {
         case "ppt", "pptx":
             return .orange
         case "zip", "rar", "7z", "tar", "gz":
-            return .brown
+            return .Color(red: 0.6, green: 0.4, blue: 0.2)
         case "swift", "m", "h", "mm", "cpp", "c", "hpp", "java", "py", "js", "ts", "go", "rs", "kt":
             return .orange
         default:
@@ -1496,11 +1496,11 @@ struct FileBrowserView: View {
 
                 Text("正在下载: \(downloadingFileName)")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.black)
 
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.black)
             }
             .padding(32)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
             .background(Color.white)
@@ -2381,7 +2381,7 @@ struct FileBrowserView: View {
             }) {
                 Label("删除文件夹", systemImage: "trash")
             }
-            .foregroundColor(.red)
+            .foregroundColor(Color.red)
         } else {
             // 文件菜单
             // 编辑文件选项
@@ -2442,7 +2442,7 @@ struct FileBrowserView: View {
             }) {
                 Label("删除", systemImage: "trash")
             }
-            .foregroundColor(.red)
+            .foregroundColor(Color.red)
         }
     }
 

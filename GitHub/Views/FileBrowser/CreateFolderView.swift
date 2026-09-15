@@ -39,20 +39,19 @@ struct CreateFolderView: View {
                         Text("文件夹名称")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        TextField("例如：MyFolder", text: $folderName)
+                        TextField("例如：MyFolder", text: $folderName, onCommit: {
+                            createFolder() // iOS14兼容：使用onCommit替代iOS15+的onSubmit
+                        })
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .ios14SubmitLabel("done")
-                            .onSubmit {
-                                createFolder()
-                            }
                     }
 
                     if let error = errorMessage {
                         Text(error)
                             .font(.caption)
-                            .foregroundColor(.red)
+                            .foregroundColor(Color.red)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }

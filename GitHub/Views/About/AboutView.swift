@@ -189,7 +189,7 @@ struct AboutView: View {
                 .foregroundColor(.orange)
         case .checkFailed:
             Image(systemName: "xmark.circle.fill")
-                .foregroundColor(.red)
+                .foregroundColor(Color.red)
         }
     }
 
@@ -244,7 +244,7 @@ struct AboutView: View {
         case .checkFailed(let error):
             HStack {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.red)
+                    .foregroundColor(Color.red)
                 Text("检查失败: \(error.localizedDescription)")
                     .foregroundColor(appState.isDarkMode ? .white : .black)
                     .font(.subheadline)
@@ -261,11 +261,11 @@ struct AboutView: View {
             HStack {
                 Text("正在下载更新...")
                     .font(.subheadline)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.black)
                 Spacer()
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.black)
             }
         }
         .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
@@ -286,11 +286,11 @@ struct AboutView: View {
 
                 Text("正在下载更新...")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.black)
 
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.black)
 
                 Text("下载完成后将自动弹出分享面板")
                     .font(.caption)

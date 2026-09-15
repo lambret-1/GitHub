@@ -39,20 +39,19 @@ struct CreateFileView: View {
                         Text("文件名")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        TextField("例如：test.swift", text: $fileName)
+                        TextField("例如：test.swift", text: $fileName, onCommit: {
+                            createFile() // iOS14兼容：使用onCommit替代iOS15+的onSubmit
+                        })
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .ios14SubmitLabel("done")
-                            .onSubmit {
-                                createFile()
-                            }
                     }
 
                     if let error = errorMessage {
                         Text(error)
                             .font(.caption)
-                            .foregroundColor(.red)
+                            .foregroundColor(Color.red)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }

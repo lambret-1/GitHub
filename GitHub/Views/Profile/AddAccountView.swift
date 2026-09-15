@@ -84,7 +84,7 @@ struct AddAccountView: View {
                     if let error = verifyError {
                         Text(error)
                             .font(.caption)
-                            .foregroundColor(.red)
+                            .foregroundColor(Color.red)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }

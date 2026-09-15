@@ -53,7 +53,7 @@ struct CrashLogListView: View {
                             // 崩溃图标
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.red)
                                 .frame(width: 40, height: 40)  // 这是图标容器宽高尺寸，控制图标的显示区域大小，单位是pt；改大图标区域更大更醒目，改小图标区域更小更紧凑；还能配合.cornerRadius做圆角或.background做背景色
                                 .background(Color.red.opacity(0.1))
                                 .cornerRadius(8)  // 这是圆角半径尺寸，控制图标容器四个角的圆润程度，单位是pt；改大圆角更圆润柔和，改小圆角更方正锐利；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制

@@ -200,7 +200,7 @@ struct CodeEditorView: View {
                             }
                         }) {
                             Label("取消编辑", systemImage: "xmark.circle")
-                                .foregroundColor(.red)
+                                .foregroundColor(Color.red)
                         }
                         .disabled(!isEditing)
 
@@ -376,7 +376,7 @@ struct CodeEditorView: View {
                presentationMode.wrappedValue.dismiss()
             } label: {
                 Text("不保存，直接离开")
-                    .foregroundColor(.red)
+                    .foregroundColor(Color.red)
             }
             // 取消按钮
             Button("取消", role: .cancel) {}
@@ -494,11 +494,11 @@ struct CodeEditorView: View {
 
                 Text("正在下载文件")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.black)
 
                 Text(fileName)
                     .font(.subheadline)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.black)
                     .lineLimit(1)
                     .frame(maxWidth: 250)
 
@@ -508,7 +508,7 @@ struct CodeEditorView: View {
 
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
-                    .foregroundColor(.black)
+                    .foregroundColor(Color.black)
             }
             .padding(32)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
             .background(Color.white)
@@ -918,7 +918,7 @@ struct CodeEditorView: View {
                 } else if !searchText.isEmpty {
                     Text("无结果")
                         .font(.caption)
-                        .foregroundColor(.red)
+                        .foregroundColor(Color.red)
                         .frame(minWidth: 50)
                 }
             }

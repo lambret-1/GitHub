@@ -111,7 +111,7 @@ struct RunComparisonView: View {
                 if let conclusion = run.conclusion, conclusion == "failure" {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.caption)
-                        .foregroundColor(.red)
+                        .foregroundColor(Color.red)
                 }
             }
 
@@ -375,7 +375,7 @@ struct RunComparisonView: View {
                             if diff > 0 {
                                 Text("运行 #\(run2.runNumber) 比 #\(run1.runNumber) 慢 \(formatDuration(diff))")
                                     .font(.caption)
-                                    .foregroundColor(.red)
+                                    .foregroundColor(Color.red)
                             } else if diff < 0 {
                                 Text("运行 #\(run2.runNumber) 比 #\(run1.runNumber) 快 \(formatDuration(-diff))")
                                     .font(.caption)

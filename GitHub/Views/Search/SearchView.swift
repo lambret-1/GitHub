@@ -89,7 +89,7 @@ struct SearchView: View {
                             }) {
                                 Text("清除")
                                     .font(.caption)
-                                    .foregroundColor(.red)
+                                    .foregroundColor(Color.red)
                             }
                         }
                         .padding(.horizontal)
