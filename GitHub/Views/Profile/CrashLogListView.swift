@@ -91,11 +91,12 @@ struct CrashLogListView: View {
                     .buttonStyle(PlainButtonStyle())
                     // 滑动删除
                     .ios14SwipeActions {
-                        Button(role: .destructive) {
+                        Button { // iOS14兼容：移除role参数，使用tint设置红色
                             deleteCrashLog(crashLog)
                         } label: {
                             Label("删除", systemImage: "trash")
                         }
+                        .ios14Tint(.red)
                     }
                 }
             }
@@ -112,10 +113,11 @@ struct CrashLogListView: View {
                             Label("导出全部", systemImage: "square.and.arrow.up")
                         }
 
-                        Button(role: .destructive, action: {
+                        Button(action: { // iOS14兼容：移除role参数，使用foregroundColor设置红色
                             showDeleteAllConfirmation = true
                         }) {
                             Label("清空全部", systemImage: "trash")
+                                .foregroundColor(.red)
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -137,13 +139,13 @@ struct CrashLogListView: View {
             ShareSheet(activityItems: shareFileURLs)
         }
         // 删除确认对话框
-        .alert("确认清空", isPresented: $showDeleteAllConfirmation) {
-            Button("取消", role: .cancel) {}
-            Button("清空", role: .destructive) {
-                deleteAllCrashLogs()
-            }
-        } message: {
-            Text("确定要清空所有崩溃日志吗？此操作不可恢复。")
+        .alert(isPresented: $showDeleteAllConfirmation) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("确认清空"),
+                message: Text("确定要清空所有崩溃日志吗？此操作不可恢复。"),
+                primaryButton: .destructive(Text("清空"), action: deleteAllCrashLogs),
+                secondaryButton: .cancel(Text("取消"))
+            )
         }
     }
 
@@ -230,10 +232,11 @@ struct CrashLogDetailView: View {
                             Label("复制", systemImage: "doc.on.doc")
                         }
 
-                        Button(role: .destructive, action: {
+                        Button(action: { // iOS14兼容：移除role参数，使用foregroundColor设置红色
                             deleteCrashLog()
                         }) {
                             Label("删除", systemImage: "trash")
+                                .foregroundColor(.red)
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
