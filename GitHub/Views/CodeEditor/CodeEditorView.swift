@@ -1,5 +1,35 @@
 import SwiftUI
 
+// MARK: - 代码编辑器配置常量（统一管理魔法数字，便于维护和调整）
+private enum CodeEditorConfig {
+    // 字体大小范围
+    static let minFontSize: CGFloat = 10 // 最小字体大小，保证代码可读性
+    static let maxFontSize: CGFloat = 24 // 最大字体大小，避免字体过大影响编辑
+    static let defaultFontSize: CGFloat = 10 // 默认字体大小，适合代码编辑
+
+    // 大文件阈值
+    static let largeFileThreshold: Int = 5 * 1024 * 1024 // 5MB，超过此大小进入大文件降级模式（禁用编辑）
+    static let ultraLargeFileThreshold: Int = 20 * 1024 * 1024 // 20MB，超过此大小进入超大文件模式（禁用语法高亮）
+
+    // 手势返回阈值
+    static let swipeBackThreshold: CGFloat = 50 // 手势返回触发阈值（pt），超过此距离才触发编辑保护提示
+
+    // 行号宽度范围
+    static let minLineNumberWidth: CGFloat = 30 // 行号最小宽度，保证至少显示2位数字
+    static let maxLineNumberWidth: CGFloat = 80 // 行号最大宽度，避免占用过多编辑区域
+
+    // 图片缩放范围
+    static let minImageScale: CGFloat = 0.5 // 图片最小缩放比例，避免缩太小无法查看
+    static let maxImageScale: CGFloat = 3.0 // 图片最大缩放比例，避免放大过度影响性能
+}
+
+// MARK: - 代码编辑器通知名称（统一管理，避免硬编码字符串）
+private extension Notification.Name {
+    static let codeEditorUndo = Notification.Name("CodeEditorUndo") // 撤销操作通知
+    static let codeEditorRedo = Notification.Name("CodeEditorRedo") // 重做操作通知
+    static let fileRenamed = Notification.Name("FileRenamed") // 文件重命名成功通知
+}
+
 struct CodeEditorView: View {
     let owner: String
     let repo: String
@@ -30,7 +60,7 @@ struct CodeEditorView: View {
     @State private var showFinishEditAlert: Bool = false // 完成编辑时的未保存提醒弹窗
     @State private var shouldExitEditAfterSave: Bool = false // 标记保存成功后是否自动退出编辑模式
     @State private var showLineNumbers: Bool = true
-    @State private var fontSize: CGFloat = 10
+    @State private var fontSize: CGFloat = CodeEditorConfig.defaultFontSize // 默认字体大小，从配置常量读取
     @State private var showSettings: Bool = false
     @State private var showRenameDialog: Bool = false
     @State private var newFileName: String = ""
@@ -106,10 +136,6 @@ struct CodeEditorView: View {
     // 文件大小显示（格式化后的字符串）
     @State private var fileSizeDisplay: String = ""
 
-    // 大文件阈值常量
-    private let largeFileThreshold: Int = 5 * 1024 * 1024 // 5MB
-    private let ultraLargeFileThreshold: Int = 20 * 1024 * 1024 // 20MB
-
     var body: some View {
         VStack(spacing: 0) {
             contentView
@@ -125,7 +151,8 @@ struct CodeEditorView: View {
         .gesture(
             DragGesture()
                 .onEnded { value in
-                    if isEditing && value.translation.width > 50 {
+                    // 水平拖动距离超过阈值时，提示用户正在编辑中
+                    if isEditing && value.translation.width > CodeEditorConfig.swipeBackThreshold {
                         editReturnAlert = true
                     }
                 }
@@ -169,7 +196,8 @@ struct CodeEditorView: View {
 
                         // 撤销
                         Button(action: {
-                            NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
+                            // 通过通知中心发送撤销操作，由CodeTextView监听执行
+                            NotificationCenter.default.post(name: .codeEditorUndo, object: nil)
                         }) {
                             Label("撤销", systemImage: "arrow.uturn.backward")
                         }
@@ -177,7 +205,8 @@ struct CodeEditorView: View {
 
                         // 重做
                         Button(action: {
-                            NotificationCenter.default.post(name: NSNotification.Name("CodeEditorRedo"), object: nil)
+                            // 通过通知中心发送重做操作，由CodeTextView监听执行
+                            NotificationCenter.default.post(name: .codeEditorRedo, object: nil)
                         }) {
                             Label("重做", systemImage: "arrow.uturn.forward")
                         }
@@ -219,14 +248,16 @@ struct CodeEditorView: View {
 
                             // 减小字号
                             Button(action: {
-                                fontSize = max(10, fontSize - 1)
+                                // 字体大小不小于最小值，保证代码可读性
+                                fontSize = max(CodeEditorConfig.minFontSize, fontSize - 1)
                             }) {
                                 Label("减小字号", systemImage: "textformat.size.smaller")
                             }
 
                             // 增大字号
                             Button(action: {
-                                fontSize = min(24, fontSize + 1)
+                                // 字体大小不大于最大值，避免字体过大影响编辑
+                                fontSize = min(CodeEditorConfig.maxFontSize, fontSize + 1)
                             }) {
                                 Label("增大字号", systemImage: "textformat.size.larger")
                             }
@@ -513,7 +544,8 @@ struct CodeEditorView: View {
         EmptyView()
             .alert("重命名成功", isPresented: $showRenameSuccess) {
                 Button("确定") {
-                    NotificationCenter.default.post(name: NSNotification.Name("FileRenamed"), object: nil)
+                    // 发送文件重命名成功通知，通知上级页面刷新文件列表
+                    NotificationCenter.default.post(name: .fileRenamed, object: nil)
                 }
             } message: {
                 Text("文件已成功重命名")
