@@ -428,7 +428,8 @@ struct ActionsListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
+                // 使用VStack替代List和ScrollView，让内容直接跟随外层屏幕滑动，避免嵌套滚动冲突
+                VStack(spacing: 0) {
                     // 对比模式提示栏
                     if isComparisonMode {
                         comparisonModeBar
@@ -461,6 +462,9 @@ struct ActionsListView: View {
                                 }
                             }
                         }
+                        // 手动添加分隔线，替代List默认分隔线
+                        Divider()
+                            .padding(.leading, 16)
                     }
 
                     if isLoadingRuns {
@@ -469,14 +473,8 @@ struct ActionsListView: View {
                             ProgressView()
                             Spacer()
                         }
-                        .listRowSeparator(.hidden)
+                        .padding(.vertical, 16)
                     }
-                }
-                .listStyle(PlainListStyle())
-                .refreshable {
-                    currentPage = 1
-                    hasMoreRuns = true
-                    await loadRunsAsync()
                 }
             }
         }
@@ -513,7 +511,8 @@ struct ActionsListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
+                // 使用VStack替代List和ScrollView，让内容直接跟随外层屏幕滑动，避免嵌套滚动冲突
+                VStack(spacing: 12) {
                     ForEach(workflows) { workflow in
                         WorkflowCard(owner: owner, repo: repo, workflow: workflow) {
                             selectedWorkflow = workflow
@@ -521,10 +520,8 @@ struct ActionsListView: View {
                         }
                     }
                 }
-                .listStyle(PlainListStyle())
-                .refreshable {
-                    await loadWorkflowsAsync()
-                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
         }
     }
