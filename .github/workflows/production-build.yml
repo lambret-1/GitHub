@@ -302,8 +302,8 @@ jobs:
           
           if [ "${WARNING_COUNT}" -gt 0 ]; then
             log_warning "编译完成，警告数量: ${WARNING_COUNT}"
-            log_group_start "⚠️ 编译警告列表（前20条）"
-            grep "warning:" build.log | head -20
+            log_group_start "⚠️ 编译警告列表（前40条）"
+            grep "warning:" build.log | head -40
             log_group_end
           else
             log_success "编译完成，零警告"
