@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-15 17:14:25 UTC
+**生成时间**: 2026-09-15 17:32:54 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -11,7 +11,7 @@
 | 类型 | 数量 | 状态 |
 |------|------|------|
 | 🔴 错误 | **00** 个 | 无错误 |
-| 🟡 警告 | **43** 个 | 建议清理 |
+| 🟡 警告 | **31** 个 | 建议清理 |
 
 ---
 
@@ -19,11 +19,11 @@
 
 | 警告类型 | 数量 | 占比 |
 |----------|------|------|
-| ⚠️ 弃用API警告 | 12 个 | 27% |
-| 📦 未使用变量警告 | 25 个 | 58% |
+| ⚠️ 弃用API警告 | 00 个 | 0% |
+| 📦 未使用变量警告 | 25 个 | 80% |
 | 🔄 类型转换警告 | 00 个 | 0% |
 | 🔍 可空性警告 | 00 个 | 0% |
-| 📝 其他警告 | 6 个 | 13% |
+| 📝 其他警告 | 6 个 | 19% |
 
 ---
 
@@ -31,56 +31,39 @@
 
 | 排名 | 文件名 | 警告数量 | 严重程度 |
 |------|--------|----------|----------|
-| 1 | `FileBrowserView.swift` | 6 个 | 🟡 中 |
-| 2 | `SearchView.swift` | 4 个 | 🟢 低 |
-| 3 | `PullRequestDetailView.swift` | 3 个 | 🟢 低 |
-| 4 | `ProfileView.swift` | 3 个 | 🟢 低 |
-| 5 | `XMLTokenizer.swift` | 2 个 | 🟢 低 |
-| 6 | `ReadmeView.swift` | 2 个 | 🟢 低 |
-| 7 | `IssueDetailView.swift` | 2 个 | 🟢 低 |
-| 8 | `HTMLTokenizer.swift` | 2 个 | 🟢 低 |
-| 9 | `FileDownloadManager.swift` | 2 个 | 🟢 低 |
-| 10 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 11 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 12 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
-| 13 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
-| 14 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
-| 15 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
-| 16 | `JobLogView.swift` | 1 个 | 🟢 低 |
-| 17 | `INITokenizer.swift` | 1 个 | 🟢 低 |
-| 18 | `HighlightEngine.swift` | 1 个 | 🟢 低 |
-| 19 | `HighlightCache.swift` | 1 个 | 🟢 低 |
-| 20 | `HTMLPreviewView.swift` | 1 个 | 🟢 低 |
+| 1 | `SearchView.swift` | 3 个 | 🟢 低 |
+| 2 | `PullRequestDetailView.swift` | 3 个 | 🟢 低 |
+| 3 | `XMLTokenizer.swift` | 2 个 | 🟢 低 |
+| 4 | `IssueDetailView.swift` | 2 个 | 🟢 低 |
+| 5 | `HTMLTokenizer.swift` | 2 个 | 🟢 低 |
+| 6 | `FileDownloadManager.swift` | 2 个 | 🟢 低 |
+| 7 | `FileBrowserView.swift` | 2 个 | 🟢 低 |
+| 8 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 9 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 10 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
+| 11 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
+| 12 | `ReadmeView.swift` | 1 个 | 🟢 低 |
+| 13 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
+| 14 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
+| 15 | `JobLogView.swift` | 1 个 | 🟢 低 |
+| 16 | `INITokenizer.swift` | 1 个 | 🟢 低 |
+| 17 | `HighlightEngine.swift` | 1 个 | 🟢 低 |
+| 18 | `HighlightCache.swift` | 1 个 | 🟢 低 |
+| 19 | `GitHubApp.swift` | 1 个 | 🟢 低 |
+| 20 | `GitHubAPI.swift` | 1 个 | 🟢 低 |
 
 ---
 
 ## 📝 警告详情列表
 
 
-### ⚠️ 弃用API警告 (12个)
-
-```
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Actions/ActionsListView.swift:91:13: warning: 'init(destination:isActive:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Actions/DiffView.swift:36:13: warning: 'init(destination:isActive:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:351:9: warning: 'init(destination:isActive:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:367:9: warning: 'init(destination:isActive:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:384:9: warning: 'init(destination:isActive:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:393:9: warning: 'init(destination:isActive:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/HTMLPreviewView.swift:134:21: warning: 'javaScriptEnabled' was deprecated in iOS 14.0: Use WKWebpagePreferences.allowsContentJavaScript to disable content JavaScript on a per-navigation basis
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Profile/ProfileView.swift:142:29: warning: 'init(destination:isActive:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Profile/ProfileView.swift:205:29: warning: 'init(destination:isActive:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Profile/ProfileView.swift:227:29: warning: 'init(destination:isActive:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/ReadmeView.swift:158:21: warning: 'javaScriptEnabled' was deprecated in iOS 14.0: Use WKWebpagePreferences.allowsContentJavaScript to disable content JavaScript on a per-navigation basis
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:204:17: warning: 'init(destination:isActive:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-```
-
 ### 📦 未使用变量警告 (25个)
 
 ```
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/AppState.swift:37:44: warning: immutable value 'account' was never used; consider replacing with '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/CodeTextView.swift:427:31: warning: value 'self' was defined but never used; consider replacing with boolean test
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3575:25: warning: initialization of immutable value 'createdName' was never used; consider replacing with assignment to '_' or removing it
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3614:25: warning: initialization of immutable value 'newName' was never used; consider replacing with assignment to '_' or removing it
+/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3551:25: warning: initialization of immutable value 'createdName' was never used; consider replacing with assignment to '_' or removing it
+/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3590:25: warning: initialization of immutable value 'newName' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/GitHubApp.swift:36:24: warning: value 'release' was defined but never used; consider replacing with boolean test
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/HTMLTokenizer.swift:42:17: warning: initialization of immutable value 'start' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/HTMLTokenizer.swift:75:21: warning: initialization of immutable value 'tagStart' was never used; consider replacing with assignment to '_' or removing it
@@ -95,7 +78,7 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:357:71: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
 /Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:434:68: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/PythonTokenizer.swift:81:25: warning: initialization of immutable value 'quote' was never used; consider replacing with assignment to '_' or removing it
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/ReadmeView.swift:187:13: warning: initialization of immutable value 'theme' was never used; consider replacing with assignment to '_' or removing it
+/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/ReadmeView.swift:194:13: warning: initialization of immutable value 'theme' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Settings/RepositorySettingsView.swift:325:20: warning: value 'size' was defined but never used; consider replacing with boolean test
 ```
 
@@ -104,9 +87,9 @@
 ```
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: instance will be immediately deallocated because property 'delegate' is 'weak'
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Network/GitHubAPI.swift:980:13: warning: variable 'body' was never mutated; consider changing to 'let' constant
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:499:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:502:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:505:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
+/Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:494:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
+/Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:497:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
+/Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: weak reference will always be nil because the referenced object is deallocated here
 ```
 
@@ -117,16 +100,10 @@
 ### 📊 质量评级
 
 - **质量评级**: **C级**（一般，建议清理警告）
-- **警告密度**: 每千行约 1 个警告
-- **代码总行数**: 37531 行
+- **警告密度**: 每千行约 0 个警告
+- **代码总行数**: 37501 行
 
 ### 💡 修复建议
-
-
-#### 1. 弃用API警告 (12个)
-- 检查使用的API是否有替代方案
-- 逐步迁移到新API，避免使用已废弃接口
-- 参考Apple官方文档了解废弃原因和替代方案
 
 
 #### 2. 未使用变量警告 (25个)
