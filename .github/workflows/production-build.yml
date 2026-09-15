@@ -246,6 +246,13 @@ jobs:
           echo "current_version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
           echo "当前编译版本号: ${CURRENT_VERSION}"
 
+      # Step 6.5: 构建前诊断（环境检查、依赖检查、缓存检查）
+      - name: 构建前诊断
+        run: |
+          source scripts/visual-logger.sh
+          source scripts/build-diagnostics.sh
+          run_pre_build_diagnostics
+
       # Step 7: 执行Xcode编译（未签名，适配全能签导入标准）
       - name: 执行Xcode编译
         id: build
@@ -378,6 +385,13 @@ jobs:
           DURATION=$((BUILD_END - BUILD_START))
           echo "duration=${DURATION}" >> "$GITHUB_OUTPUT"
           echo "构建总耗时: ${DURATION} 秒"
+
+      # Step 10.5: 构建后诊断（警告分析、产物分析、耗时统计）
+      - name: 构建后诊断
+        run: |
+          source scripts/visual-logger.sh
+          source scripts/build-diagnostics.sh
+          run_post_build_diagnostics "build.log" "${{ env.IPA_FILE_NAME }}" "${{ needs.version-bump.outputs.build_start_time }}"
 
       # Step 11: 生成制品元数据JSON
       - name: 生成制品元数据JSON
