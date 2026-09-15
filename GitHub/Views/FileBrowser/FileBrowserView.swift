@@ -294,9 +294,7 @@ struct FileBrowserView: View {
                 )
             }
         }
-        .overlay {
-            progressOverlay
-        }
+        .overlay(progressOverlay, alignment: .center) // iOS14兼容：使用旧版overlay语法
         // 左滑手势返回上一级目录（孙目录→子目录→父目录，统一使用手势返回上一级）
         .highPriorityGesture(
             DragGesture()
@@ -704,7 +702,7 @@ struct FileBrowserView: View {
             ForEach(files.sorted(by: { $0.isDirectory && !$1.isDirectory })) { file in
                 fileRowView(for: file)
                     .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.visible)
+                    // iOS14兼容：移除listRowSeparator(.visible)，iOS14不支持此API
             }
 
             // README显示区域（所有文件夹都显示，包括子文件夹和孙文件夹）
@@ -1449,7 +1447,7 @@ struct FileBrowserView: View {
         case "ppt", "pptx":
             return .orange
         case "zip", "rar", "7z", "tar", "gz":
-            return .Color(red: 0.6, green: 0.4, blue: 0.2)
+            return Color(red: 0.6, green: 0.4, blue: 0.2)
         case "swift", "m", "h", "mm", "cpp", "c", "hpp", "java", "py", "js", "ts", "go", "rs", "kt":
             return .orange
         default:
