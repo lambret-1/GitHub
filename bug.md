@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-15 18:51:24 UTC
+**生成时间**: 2026-09-15 18:55:46 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -71,12 +71,12 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/HighlightEngine.swift:52:21: warning: initialization of immutable value 'obliqueTransform' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/INITokenizer.swift:24:17: warning: initialization of immutable value 'start' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Issues/IssueDetailView.swift:141:66: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Issues/IssueDetailView.swift:205:68: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
+/Users/runner/work/GitHub/GitHub/GitHub/Views/Issues/IssueDetailView.swift:206:68: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Actions/JobLogView.swift:97:14: warning: immutable value 'index' was never used; consider replacing with '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/KeyboardManager.swift:142:16: warning: value 'willShow' was defined but never used; consider replacing with boolean test
 /Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:321:72: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
-/Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:357:71: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
-/Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:434:68: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
+/Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:358:71: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
+/Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:436:68: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/PythonTokenizer.swift:81:25: warning: initialization of immutable value 'quote' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/ReadmeView.swift:194:13: warning: initialization of immutable value 'theme' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Settings/RepositorySettingsView.swift:325:20: warning: value 'size' was defined but never used; consider replacing with boolean test
@@ -101,7 +101,7 @@
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 37503 行
+- **代码总行数**: 37508 行
 
 ### 💡 修复建议
 
