@@ -13,7 +13,7 @@ struct ActionsSettingsView: View {
     var body: some View {
         List {
             // 管理工具
-            Section("管理工具") {
+            Section(header: Text("管理工具")) { // iOS14兼容：使用旧版Section语法
                 NavigationLink(destination: CacheManagementView(owner: owner, repo: repo)) {
                     HStack(spacing: 12) {
                         Image(systemName: "archivebox")
@@ -56,7 +56,7 @@ struct ActionsSettingsView: View {
             }
 
             // 工作流管理
-            Section("工作流管理") {
+            Section(header: Text("工作流管理")) { // iOS14兼容：使用旧版Section语法
                 if isLoadingWorkflows && workflows.isEmpty {
                     HStack {
                         Spacer()
@@ -91,7 +91,7 @@ struct ActionsSettingsView: View {
             }
 
             // 说明
-            Section("说明") {
+            Section(header: Text("说明")) { // iOS14兼容：使用旧版Section语法
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Actions设置")
                         .font(.headline)
@@ -180,10 +180,12 @@ struct WorkflowSettingsRow: View {
             }
         }
         .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
-        .alert("操作结果", isPresented: $showAlert) {
-            Button("确定", role: .cancel) {}
-        } message: {
-            Text(alertMessage)
+        .alert(isPresented: $showAlert) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("操作结果"),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("确定"))
+            )
         }
     }
 

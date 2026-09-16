@@ -115,27 +115,25 @@ struct CacheManagementView: View {
             }
             .disabled(caches.isEmpty)
         )
-        .alert("删除缓存", isPresented: $showDeleteAlert) {
-            Button("删除", role: .destructive) {
-                if let cache = cacheToDelete {
-                    deleteCache(cache)
-                }
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            if let cache = cacheToDelete {
-                Text("确定要删除缓存「\(cache.key)」吗？此操作不可恢复。")
-            } else {
-                Text("确定要删除此缓存吗？")
-            }
+        .alert(isPresented: $showDeleteAlert) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("删除缓存"),
+                message: Text(cacheToDelete != nil ? "确定要删除缓存「\(cacheToDelete!.key)」吗？此操作不可恢复。" : "确定要删除此缓存吗？"),
+                primaryButton: .destructive(Text("删除"), action: {
+                    if let cache = cacheToDelete {
+                        deleteCache(cache)
+                    }
+                }),
+                secondaryButton: .cancel(Text("取消"))
+            )
         }
-        .alert("清除所有缓存", isPresented: $showClearAllAlert) {
-            Button("全部删除", role: .destructive) {
-                clearAllCaches()
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("确定要清除所有 \(totalCount) 个缓存吗？此操作不可恢复，可能会增加下次构建时间。")
+        .alert(isPresented: $showClearAllAlert) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("清除所有缓存"),
+                message: Text("确定要清除所有 \(totalCount) 个缓存吗？此操作不可恢复，可能会增加下次构建时间。"),
+                primaryButton: .destructive(Text("全部删除"), action: clearAllCaches),
+                secondaryButton: .cancel(Text("取消"))
+            )
         }
         .onAppear {
             if caches.isEmpty {
