@@ -453,63 +453,63 @@ jobs:
           path: artifact-metadata.json
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
-      # Step 14: 生成Release说明文档
-      - name: 生成Release说明
-        id: release_notes
-        run: |
-          echo "=========================================="
-          echo "生成GitHub Release说明文档..."
-          echo "=========================================="
+      # Step 14: 生成Release说明文档（已禁用：用户要求取消自动发布Release）
+      # - name: 生成Release说明
+      #   id: release_notes
+      #   run: |
+      #     echo "=========================================="
+      #     echo "生成GitHub Release说明文档..."
+      #     echo "=========================================="
+      #
+      #     cat > release-notes.md << EOF
+      #     ## 📦 版本 v${{ steps.version.outputs.current_version }}
+      #
+      #     ### 构建信息
+      #     - **构建Commit**: \`${GITHUB_SHA::7}\`
+      #     - **构建时间**: $(date '+%Y-%m-%d %H:%M:%S %Z')
+      #     - **Xcode版本**: $(xcodebuild -version | head -1)
+      #     - **部署目标**: iOS ${{ env.DEPLOYMENT_TARGET }}.0+
+      #
+      #     ### 制品校验
+      #     - **IPA文件名**: ${{ env.IPA_FILE_NAME }}
+      #     - **SHA256**: \`${{ steps.sha256.outputs.sha256 }}\`
+      #     - **文件大小**: $(ls -lh ${{ env.IPA_FILE_NAME }} | awk '{print $5}')
+      #
+      #     ### 安装说明
+      #     1. 下载下方的 \`${{ env.IPA_FILE_NAME }}\` 文件
+      #     2. 使用全能签或其他重签名工具进行本地重签名
+      #     3. 安装到iOS设备即可使用
+      #
+      #     ### 功能特性
+      #     - Token 安全登录（Keychain 存储）
+      #     - 仓库列表浏览与搜索
+      #     - 文件目录浏览
+      #     - 代码查看与编辑
+      #     - 个人中心
+      #     - 版本信息显示与检查更新
+      #
+      #     ---
+      #     *本Release由GitHub Actions自动构建发布*
+      #     EOF
+      #
+      #     echo "::notice::Release说明文档生成完成"
+      #     cat release-notes.md
 
-          cat > release-notes.md << EOF
-          ## 📦 版本 v${{ steps.version.outputs.current_version }}
-
-          ### 构建信息
-          - **构建Commit**: \`${GITHUB_SHA::7}\`
-          - **构建时间**: $(date '+%Y-%m-%d %H:%M:%S %Z')
-          - **Xcode版本**: $(xcodebuild -version | head -1)
-          - **部署目标**: iOS ${{ env.DEPLOYMENT_TARGET }}.0+
-
-          ### 制品校验
-          - **IPA文件名**: ${{ env.IPA_FILE_NAME }}
-          - **SHA256**: \`${{ steps.sha256.outputs.sha256 }}\`
-          - **文件大小**: $(ls -lh ${{ env.IPA_FILE_NAME }} | awk '{print $5}')
-
-          ### 安装说明
-          1. 下载下方的 \`${{ env.IPA_FILE_NAME }}\` 文件
-          2. 使用全能签或其他重签名工具进行本地重签名
-          3. 安装到iOS设备即可使用
-
-          ### 功能特性
-          - Token 安全登录（Keychain 存储）
-          - 仓库列表浏览与搜索
-          - 文件目录浏览
-          - 代码查看与编辑
-          - 个人中心
-          - 版本信息显示与检查更新
-
-          ---
-          *本Release由GitHub Actions自动构建发布*
-          EOF
-
-          echo "::notice::Release说明文档生成完成"
-          cat release-notes.md
-
-      # Step 15: 发布GitHub Release（以版本号命名）
-      - name: 发布GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.current_version }}
-          name: v${{ steps.version.outputs.current_version }}
-          body_path: release-notes.md
-          files: |
-            ${{ env.IPA_FILE_NAME }}
-            artifact-metadata.json
-          draft: false
-          prerelease: false
-          generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Step 15: 发布GitHub Release（已禁用：用户要求取消自动发布Release）
+      # - name: 发布GitHub Release
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     tag_name: v${{ steps.version.outputs.current_version }}
+      #     name: v${{ steps.version.outputs.current_version }}
+      #     body_path: release-notes.md
+      #     files: |
+      #       ${{ env.IPA_FILE_NAME }}
+      #       artifact-metadata.json
+      #     draft: false
+      #     prerelease: false
+      #     generate_release_notes: false
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Step 16: 上传编译日志（便于问题排查）
       - name: 上传编译日志
@@ -530,93 +530,90 @@ jobs:
           retention-days: 30
 
   # ============================================================================
-  # Job 3：更新README日志并提交（依赖编译Job完成）
+  # Job 3：更新README日志并提交（已禁用：用户要求取消自动更新README）
   # ============================================================================
-  update-changelog:
-    name: 更新README更新日志
-    runs-on: macos-14
-    needs:
-      - version-bump
-      - build-ipa
-    steps:
-      # Step 1: 检出最新代码
-      # 使用默认的 GITHUB_TOKEN 进行 checkout，避免 REPO_ADMIN_TOKEN 过期导致 checkout 失败
-      # push 步骤会单独配置 REPO_ADMIN_TOKEN 来绕过分支保护
-      - name: 检出最新代码
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: main
-
-      # Step 2: 下载IPA制品（用于SHA256校验和确认）
-      - name: 下载IPA制品
-        uses: actions/download-artifact@v4
-        with:
-          name: GitHub-iOS-IPA-v${{ needs.version-bump.outputs.version_new }}
-
-      # Step 3: 验证下载的IPA SHA256（制品完整性校验）
-      - name: 验证IPA完整性
-        run: |
-          echo "=========================================="
-          echo "验证下载的IPA文件完整性..."
-          echo "=========================================="
-
-          if [ ! -f "${{ env.IPA_FILE_NAME }}" ]; then
-            echo "::error::下载的IPA文件不存在"
-            exit 1
-          fi
-
-          DOWNLOAD_SHA256=$(shasum -a 256 "${{ env.IPA_FILE_NAME }}" | awk '{print $1}')
-          EXPECTED_SHA256="${{ needs.build-ipa.outputs.ipa_sha256 }}"
-
-          echo "下载文件SHA256: ${DOWNLOAD_SHA256}"
-          echo "预期SHA256:     ${EXPECTED_SHA256}"
-
-          if [ "${DOWNLOAD_SHA256}" != "${EXPECTED_SHA256}" ]; then
-            echo "::error::IPA文件SHA256校验失败，制品可能被篡改或损坏"
-            exit 1
-          fi
-
-          echo "::notice::IPA文件完整性校验通过"
-
-      # Step 4: 执行README更新日志脚本
-      - name: 更新README更新日志
-        run: |
-          echo "=========================================="
-          echo "开始更新README顶部更新日志..."
-          echo "=========================================="
-
-          BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-          chmod +x scripts/update-changelog.sh
-          bash scripts/update-changelog.sh \
-            --version "${{ needs.version-bump.outputs.version_new }}" \
-            --commit "${{ needs.version-bump.outputs.git_commit_short }}" \
-            --build-time "${BUILD_TIME}" \
-            --sha256 "${{ needs.build-ipa.outputs.ipa_sha256 }}" \
-            --desc "生产构建版本，包含完整代码管理功能"
-
-          echo "::notice::README更新日志已更新"
-
-      # Step 5: 提交README变更到仓库
-      - name: 提交README变更
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          if git diff --quiet README.md; then
-            echo "::warning::README.md 无变更，跳过提交"
-          else
-            git add README.md
-            VERSION_NEW="${{ needs.version-bump.outputs.version_new }}"
-            COMMIT_SHORT="${{ needs.version-bump.outputs.git_commit_short }}"
-            IPA_SHA256="${{ needs.build-ipa.outputs.ipa_sha256 }}"
-            BUILD_DURATION="${{ needs.build-ipa.outputs.build_duration }}"
-            git commit -m "docs(changelog): 追加 v${VERSION_NEW} 更新日志 [skip ci]" -m "版本: v${VERSION_NEW} | Commit: ${COMMIT_SHORT} | SHA256: ${IPA_SHA256} | 构建耗时: ${BUILD_DURATION} 秒"
-            # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
-            git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            git push origin HEAD
-            echo "::notice::README变更已提交并推送到 main 分支"
-          fi
+  # update-changelog:
+  #   name: 更新README更新日志
+  #   runs-on: macos-14
+  #   needs:
+  #     - version-bump
+  #     - build-ipa
+  #   steps:
+  #     # Step 1: 检出最新代码
+  #     - name: 检出最新代码
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+  #         ref: main
+  #
+  #     # Step 2: 下载IPA制品
+  #     - name: 下载IPA制品
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: GitHub-iOS-IPA-v${{ needs.version-bump.outputs.version_new }}
+  #
+  #     # Step 3: 验证下载的IPA SHA256
+  #     - name: 验证IPA完整性
+  #       run: |
+  #         echo "=========================================="
+  #         echo "验证下载的IPA文件完整性..."
+  #         echo "=========================================="
+  #
+  #         if [ ! -f "${{ env.IPA_FILE_NAME }}" ]; then
+  #           echo "::error::下载的IPA文件不存在"
+  #           exit 1
+  #         fi
+  #
+  #         DOWNLOAD_SHA256=$(shasum -a 256 "${{ env.IPA_FILE_NAME }}" | awk '{print $1}')
+  #         EXPECTED_SHA256="${{ needs.build-ipa.outputs.ipa_sha256 }}"
+  #
+  #         echo "下载文件SHA256: ${DOWNLOAD_SHA256}"
+  #         echo "预期SHA256:     ${EXPECTED_SHA256}"
+  #
+  #         if [ "${DOWNLOAD_SHA256}" != "${EXPECTED_SHA256}" ]; then
+  #           echo "::error::IPA文件SHA256校验失败，制品可能被篡改或损坏"
+  #           exit 1
+  #         fi
+  #
+  #         echo "::notice::IPA文件完整性校验通过"
+  #
+  #     # Step 4: 执行README更新日志脚本
+  #     - name: 更新README更新日志
+  #       run: |
+  #         echo "=========================================="
+  #         echo "开始更新README顶部更新日志..."
+  #         echo "=========================================="
+  #
+  #         BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+  #         chmod +x scripts/update-changelog.sh
+  #         bash scripts/update-changelog.sh \
+  #           --version "${{ needs.version-bump.outputs.version_new }}" \
+  #           --commit "${{ needs.version-bump.outputs.git_commit_short }}" \
+  #           --build-time "${BUILD_TIME}" \
+  #           --sha256 "${{ needs.build-ipa.outputs.ipa_sha256 }}" \
+  #           --desc "生产构建版本，包含完整代码管理功能"
+  #
+  #         echo "::notice::README更新日志已更新"
+  #
+  #     # Step 5: 提交README变更到仓库
+  #     - name: 提交README变更
+  #       run: |
+  #         git config user.name "github-actions[bot]"
+  #         git config user.email "github-actions[bot]@users.noreply.github.com"
+  #
+  #         if git diff --quiet README.md; then
+  #           echo "::warning::README.md 无变更，跳过提交"
+  #         else
+  #           git add README.md
+  #           VERSION_NEW="${{ needs.version-bump.outputs.version_new }}"
+  #           COMMIT_SHORT="${{ needs.version-bump.outputs.git_commit_short }}"
+  #           IPA_SHA256="${{ needs.build-ipa.outputs.ipa_sha256 }}"
+  #           BUILD_DURATION="${{ needs.build-ipa.outputs.build_duration }}"
+  #           git commit -m "docs(changelog): 追加 v${VERSION_NEW} 更新日志 [skip ci]" -m "版本: v${VERSION_NEW} | Commit: ${COMMIT_SHORT} | SHA256: ${IPA_SHA256} | 构建耗时: ${BUILD_DURATION} 秒"
+  #           git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
+  #           git push origin HEAD
+  #           echo "::notice::README变更已提交并推送到 main 分支"
+  #         fi
 
   # ============================================================================
   # Job 4：清理过期Artifacts（节约GitHub存储配额）
@@ -627,7 +624,7 @@ jobs:
     needs:
       - version-bump
       - build-ipa
-      - update-changelog
+    # 注意：已移除对 update-changelog 的依赖（该Job已被禁用）
     steps:
       - name: 清理过期Artifacts
         uses: actions/github-script@v7
