@@ -12,7 +12,7 @@ struct AccountManagerView: View {
 
     var body: some View {
         List {
-            Section("当前账号") {
+            Section(header: Text("当前账号")) { // iOS14兼容：使用旧版Section语法
                 if let current = accountManager.currentAccount {
                     accountRow(account: current, isCurrent: true)
                 } else {
@@ -21,7 +21,7 @@ struct AccountManagerView: View {
                 }
             }
 
-            Section("所有账号") {
+            Section(header: Text("所有账号")) { // iOS14兼容：使用旧版Section语法
                 ForEach(accountManager.accounts) { account in
                     if account.id != accountManager.currentAccount?.id {
                         accountRow(account: account, isCurrent: false)
@@ -101,11 +101,12 @@ struct AccountManagerView: View {
         .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .contextMenu {
             if !isCurrent {
-                Button(role: .destructive, action: {
+                Button(action: { // iOS14兼容：使用普通Button + foregroundColor替代Button(role:)
                     accountManager.deleteAccount(account)
                 }) {
                     Label("删除账号", systemImage: "trash")
                 }
+                .foregroundColor(.red)
             }
         }
     }

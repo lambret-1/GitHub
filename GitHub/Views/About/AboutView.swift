@@ -43,14 +43,14 @@ struct AboutView: View {
             }
 
             // 版本信息
-            Section("版本信息") {
+            Section(header: Text("版本信息")) { // iOS14兼容：使用旧版Section语法
                 versionInfoRow(icon: "number", color: .blue, title: "版本号", value: "v\(AppVersion.currentVersion)")
                 versionInfoRow(icon: "hammer", color: .orange, title: "构建号", value: AppVersion.buildNumber)
                 versionInfoRow(icon: "apple.logo", color: .gray, title: "部署目标", value: "iOS 16.0+")
             }
 
             // 检查更新
-            Section("更新") {
+            Section(header: Text("更新")) { // iOS14兼容：使用旧版Section语法
                 updateButton
 
                 // 显示检查结果
@@ -65,7 +65,7 @@ struct AboutView: View {
             }
 
             // 链接
-            Section("相关链接") {
+            Section(header: Text("相关链接")) { // iOS14兼容：使用旧版Section语法
                 linkRow(icon: "chevron.left.forwardslash.chevron.right", color: .black, title: "GitHub 仓库", url: "https://github.com/lambret-1/GitHub")
                 linkRow(icon: "tag", color: .green, title: "所有 Releases", url: "https://github.com/lambret-1/GitHub/releases")
                 linkRow(icon: "exclamationmark.bubble", color: .red, title: "反馈问题", url: "https://github.com/lambret-1/GitHub/issues")
@@ -88,28 +88,33 @@ struct AboutView: View {
         .listStyle(InsetGroupedListStyle())
         .navigationTitle("关于")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("发现新版本", isPresented: $showDownloadConfirm) {
-            if let release = latestRelease {
-                Button("立即下载") {
-                    downloadUpdate(release: release)
+        .alert(isPresented: $showDownloadConfirm) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("发现新版本"),
+                message: Text(latestRelease != nil ? "新版本 \(latestRelease!.tagName) 已发布，点击立即下载，下载完成后将自动弹出分享面板进行安装。" : "发现新版本"),
+                primaryButton: .default(Text("立即下载"), action: {
+                    if let release = latestRelease {
+                        downloadUpdate(release: release)
+                    }
+                }),
+                secondaryButton: .cancel(Text("稍后再说"))
+            )
+        }
+        .alert(isPresented: $showDownloadError) { // iOS14兼容：使用旧版Alert语法
+            Alert(
+                title: Text("下载失败"),
+                message: Text(downloadErrorMessage ?? "未知错误"),
+                dismissButton: .default(Text("确定"))
+            )
+        }
+        .overlay( // iOS14兼容：使用旧版overlay语法
+            Group {
+                if isDownloadingUpdate {
+                    downloadingOverlay
                 }
-                Button("稍后再说", role: .cancel) {}
-            }
-        } message: {
-            if let release = latestRelease {
-                Text("新版本 \(release.tagName) 已发布，点击立即下载，下载完成后将自动弹出分享面板进行安装。")
-            }
-        }
-        .alert("下载失败", isPresented: $showDownloadError) {
-            Button("确定", role: .cancel) {}
-        } message: {
-            Text(downloadErrorMessage ?? "未知错误")
-        }
-        .overlay {
-            if isDownloadingUpdate {
-                downloadingOverlay
-            }
-        }
+            },
+            alignment: .center
+        )
     }
 
     // MARK: - 版本信息行
