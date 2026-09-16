@@ -36,7 +36,7 @@ env:
   INFO_PLIST_PATH: GitHub/Info.plist
   IPA_FILE_NAME: GitHub.ipa
   ARTIFACT_RETENTION_DAYS: 30
-  DEPLOYMENT_TARGET: 15.0
+  DEPLOYMENT_TARGET: 14.0
   XCODEGEN_VERSION: "2.40.0"
 
 jobs:
@@ -276,6 +276,7 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            IPHONEOS_DEPLOYMENT_TARGET=14.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
