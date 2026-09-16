@@ -5,9 +5,8 @@ struct GitHubApp: App {
     @StateObject private var appState = AppState.shared
 
     init() {
-        // 安装崩溃日志记录器（使用Signal Handler和NSException Handler双机制捕获崩溃）
-        // 必须在App启动最早期调用，确保能够捕获所有崩溃
-        CrashLogger.shared.install()
+        // 安装崩溃日志记录器（已临时禁用：可能导致iOS14启动闪退）
+        // CrashLogger.shared.install()
     }
 
     var body: some Scene {
