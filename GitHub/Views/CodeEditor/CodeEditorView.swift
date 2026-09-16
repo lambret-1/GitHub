@@ -132,172 +132,7 @@ struct CodeEditorView: View {
                     }
                 }
         )
-        .toolbar {
-            // 左侧：撤销和重做按钮（仅在编辑模式下显示，从三个点菜单迁移至此，方便快速操作）
-            ToolbarItem(placement: .navigationBarLeading) {
-                if isEditing {
-                    HStack(spacing: 4) {
-                        // 撤销按钮
-                        Button(action: {
-                            // 通过通知中心发送撤销操作，由CodeTextView监听执行
-                            NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
-                        }) {
-                            Image(systemName: "arrow.uturn.backward")
-                                .foregroundColor(canUndo ? .blue : .gray)
-                                .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
-                        }
-                        .disabled(!canUndo)
-
-                        // 重做按钮
-                        Button(action: {
-                            // 通过通知中心发送重做操作，由CodeTextView监听执行
-                            NotificationCenter.default.post(name: NSNotification.Name("CodeEditorRedo"), object: nil)
-                        }) {
-                            Image(systemName: "arrow.uturn.forward")
-                                .foregroundColor(canRedo ? .blue : .gray)
-                                .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
-                        }
-                        .disabled(!canRedo)
-                    }
-                }
-            }
-
-            // 右侧：三个点菜单
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    // 文件操作
-                    Button(action: {
-                        showRenameDialog = true
-                        newFileName = fileName
-                    }) {
-                        Label("重命名文件", systemImage: "pencil")
-                    }
-
-                    Button(action: {
-                        copyFilePath()
-                    }) {
-                        Label("复制文件路径", systemImage: "doc.on.doc")
-                    }
-
-                    Button(action: {
-                        downloadFile()
-                    }) {
-                        Label("下载该文件", systemImage: "square.and.arrow.down")
-                    }
-
-                    Divider()
-
-                    if fileContent?.isTextFile ?? false {
-                        // 取消编辑按钮
-                        Button(action: {
-                            // 有修改时弹出二次确认，无修改时直接恢复并退出
-                            if hasChanges {
-                                showCancelConfirm = true
-                            } else {
-                                codeText = originalContent
-                                isEditing = false
-                            }
-                        }) {
-                            Label("取消编辑", systemImage: "xmark.circle")
-                                .foregroundColor(Color.red)
-                        }
-                        .disabled(!isEditing)
-
-                        // 提交修改按钮
-                        Button(action: {
-                            // 弹出二次确认，确认后显示提交信息弹窗
-                            showSubmitConfirm = true
-                        }) {
-                            Label("提交修改", systemImage: "square.and.arrow.up.circle.fill")
-                        }
-                        .disabled(!isEditing || !hasChanges || isSaving)
-
-                        Divider()
-
-                        Button(action: {
-                            showSearch.toggle()
-                            if !showSearch {
-                                searchText = ""
-                                currentMatchIndex = 0
-                                totalMatches = 0
-                            }
-                        }) {
-                            Label(showSearch ? "关闭查找" : "查找", systemImage: "magnifyingglass")
-                        }
-
-                        Button(action: {
-                            isEditing.toggle()
-                        }) {
-                            Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark" : "pencil")
-                        }
-                        .disabled(isLargeFileMode) // 大文件模式下禁用编辑
-
-                        Button(action: {
-                            UIPasteboard.general.string = codeText
-                        }) {
-                            Label("复制全部内容", systemImage: "doc.on.doc")
-                        }
-
-                        // 代码片段（第二期：编辑体验增强）
-                        Button(action: {
-                            showSnippetPicker = true
-                        }) {
-                            Label("代码片段", systemImage: "chevron.left.forwardslash.chevron.right")
-                        }
-                        .disabled(!isEditing)
-
-                        // 符号导航（第三期：高级编辑功能）
-                        Button(action: {
-                            showSymbolPicker = true
-                        }) {
-                            Label("符号导航", systemImage: "list.bullet.indent")
-                        }
-
-                        // 编辑器主题（第四期：协作与生产力）
-                        Button(action: {
-                            showThemePicker = true
-                        }) {
-                            Label("编辑器主题", systemImage: "paintpalette")
-                        }
-
-                        Divider()
-
-                        Button(action: {
-                            showLineNumbers.toggle()
-                        }) {
-                            Label(showLineNumbers ? "隐藏行号" : "显示行号", systemImage: "number")
-                        }
-
-                        Button(action: {
-                            fontSize = max(10, fontSize - 1)
-                        }) {
-                            Label("减小字号", systemImage: "textformat.size.smaller")
-                        }
-
-                        Button(action: {
-                            fontSize = min(24, fontSize + 1)
-                        }) {
-                            Label("增大字号", systemImage: "textformat.size.larger")
-                        }
-
-                        Divider()
-                    }
-
-                    if let htmlUrl = fileContent?.htmlUrl {
-                        Button(action: {
-                            if let url = URL(string: htmlUrl) {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            Label("在 GitHub 打开", systemImage: "safari")
-                        }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .disabled(isRenaming || isDownloading)
-            }
-        }
+        .toolbar(content: editorToolbarContent)
         .alert("提交修改", isPresented: $showCommitDialog) {
             TextField("提交信息（如：更新 xxx）", text: $commitMessage)
             Button("取消", role: .cancel) {}
@@ -480,6 +315,174 @@ struct CodeEditorView: View {
     private var mainContentView: some View {
         VStack(spacing: 0) {
             contentView
+        }
+    }
+
+    // 工具栏内容（iOS14兼容：拆分body表达式，解决编译器类型检查超时问题）
+    @ToolbarContentBuilder private var editorToolbarContent: some ToolbarContent {
+        // 左侧：撤销和重做按钮（仅在编辑模式下显示，从三个点菜单迁移至此，方便快速操作）
+        ToolbarItem(placement: .navigationBarLeading) {
+            if isEditing {
+                HStack(spacing: 4) {
+                    // 撤销按钮
+                    Button(action: {
+                        // 通过通知中心发送撤销操作，由CodeTextView监听执行
+                        NotificationCenter.default.post(name: NSNotification.Name("CodeEditorUndo"), object: nil)
+                    }) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .foregroundColor(canUndo ? .blue : .gray)
+                            .frame(width: 32, height: 32)
+                    }
+                    .disabled(!canUndo)
+
+                    // 重做按钮
+                    Button(action: {
+                        // 通过通知中心发送重做操作，由CodeTextView监听执行
+                        NotificationCenter.default.post(name: NSNotification.Name("CodeEditorRedo"), object: nil)
+                    }) {
+                        Image(systemName: "arrow.uturn.forward")
+                            .foregroundColor(canRedo ? .blue : .gray)
+                            .frame(width: 32, height: 32)
+                    }
+                    .disabled(!canRedo)
+                }
+            }
+        }
+
+        // 右侧：三个点菜单
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Menu {
+                // 文件操作
+                Button(action: {
+                    showRenameDialog = true
+                    newFileName = fileName
+                }) {
+                    Label("重命名文件", systemImage: "pencil")
+                }
+
+                Button(action: {
+                    copyFilePath()
+                }) {
+                    Label("复制文件路径", systemImage: "doc.on.doc")
+                }
+
+                Button(action: {
+                    downloadFile()
+                }) {
+                    Label("下载该文件", systemImage: "square.and.arrow.down")
+                }
+
+                Divider()
+
+                if fileContent?.isTextFile ?? false {
+                    // 取消编辑按钮
+                    Button(action: {
+                        // 有修改时弹出二次确认，无修改时直接恢复并退出
+                        if hasChanges {
+                            showCancelConfirm = true
+                        } else {
+                            codeText = originalContent
+                            isEditing = false
+                        }
+                    }) {
+                        Label("取消编辑", systemImage: "xmark.circle")
+                            .foregroundColor(Color.red)
+                    }
+                    .disabled(!isEditing)
+
+                    // 提交修改按钮
+                    Button(action: {
+                        // 弹出二次确认，确认后显示提交信息弹窗
+                        showSubmitConfirm = true
+                    }) {
+                        Label("提交修改", systemImage: "square.and.arrow.up.circle.fill")
+                    }
+                    .disabled(!isEditing || !hasChanges || isSaving)
+
+                    Divider()
+
+                    Button(action: {
+                        showSearch.toggle()
+                        if !showSearch {
+                            searchText = ""
+                            currentMatchIndex = 0
+                            totalMatches = 0
+                        }
+                    }) {
+                        Label(showSearch ? "关闭查找" : "查找", systemImage: "magnifyingglass")
+                    }
+
+                    Button(action: {
+                        isEditing.toggle()
+                    }) {
+                        Label(isEditing ? "完成编辑" : "编辑文件", systemImage: isEditing ? "checkmark" : "pencil")
+                    }
+                    .disabled(isLargeFileMode)
+
+                    Button(action: {
+                        UIPasteboard.general.string = codeText
+                    }) {
+                        Label("复制全部内容", systemImage: "doc.on.doc")
+                    }
+
+                    // 代码片段
+                    Button(action: {
+                        showSnippetPicker = true
+                    }) {
+                        Label("代码片段", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                    .disabled(!isEditing)
+
+                    // 符号导航
+                    Button(action: {
+                        showSymbolPicker = true
+                    }) {
+                        Label("符号导航", systemImage: "list.bullet.indent")
+                    }
+
+                    // 编辑器主题
+                    Button(action: {
+                        showThemePicker = true
+                    }) {
+                        Label("编辑器主题", systemImage: "paintpalette")
+                    }
+
+                    Divider()
+
+                    Button(action: {
+                        showLineNumbers.toggle()
+                    }) {
+                        Label(showLineNumbers ? "隐藏行号" : "显示行号", systemImage: "number")
+                    }
+
+                    Button(action: {
+                        fontSize = max(10, fontSize - 1)
+                    }) {
+                        Label("减小字号", systemImage: "textformat.size.smaller")
+                    }
+
+                    Button(action: {
+                        fontSize = min(24, fontSize + 1)
+                    }) {
+                        Label("增大字号", systemImage: "textformat.size.larger")
+                    }
+
+                    Divider()
+                }
+
+                if let htmlUrl = fileContent?.htmlUrl {
+                    Button(action: {
+                        if let url = URL(string: htmlUrl) {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        Label("在 GitHub 打开", systemImage: "safari")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .disabled(isRenaming || isDownloading)
         }
     }
 
