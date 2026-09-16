@@ -118,15 +118,6 @@ struct CodeEditorView: View {
     var body: some View {
         // iOS14兼容：拆分body表达式，解决编译器类型检查超时问题
         mainContentView
-            .editorModifiers
-    }
-
-    // 主要内容视图
-    private var mainContentView: some View {
-        VStack(spacing: 0) {
-            contentView
-        }
-    }
         // 使用系统自动键盘避让，UITextView会自动调整contentInset
         .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
@@ -482,6 +473,13 @@ struct CodeEditorView: View {
                 themeManager.switchTheme(theme)
                 showThemePicker = false
             }
+        }
+    }
+
+    // 主要内容视图（iOS14兼容：拆分body表达式，解决编译器类型检查超时问题）
+    private var mainContentView: some View {
+        VStack(spacing: 0) {
+            contentView
         }
     }
 
