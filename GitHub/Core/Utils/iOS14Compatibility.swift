@@ -27,11 +27,11 @@ extension View {
     // MARK: - 下拉刷新（替代iOS15+ refreshable）
 
     /// iOS14兼容的下拉刷新
-    /// 替代iOS15+的.ios14Refreshable(action:)
+    /// 替代iOS15+的.refreshable(action:)
     @ViewBuilder
     func ios14Refreshable(action: @escaping () async -> Void) -> some View {
         if #available(iOS 15.0, *) {
-            self.ios14Refreshable(action: action)
+            self.refreshable(action: action) // 修复：调用原生API，而非递归调用自己
         } else {
             self
         }
@@ -168,11 +168,11 @@ extension View {
     // MARK: - 列表行分隔符（替代iOS15+ listRowSeparator）
 
     /// iOS14兼容的列表行分隔符隐藏
-    /// 替代iOS15+的.ios14HideListRowSeparator()
+    /// 替代iOS15+的.listRowSeparator(.hidden)
     @ViewBuilder
     func ios14HideListRowSeparator() -> some View {
         if #available(iOS 15.0, *) {
-            self.ios14HideListRowSeparator()
+            self.listRowSeparator(.hidden) // 修复：调用原生API，而非递归调用自己
         } else {
             self
         }
