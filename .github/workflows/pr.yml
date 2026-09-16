@@ -1,6 +1,7 @@
 # ==============================================================================
 # 工作流名称：PR代码校验流水线（Pull Request Quality Gate）
-# 触发条件：所有 Pull Request + 非 main 分支推送
+# 触发条件：所有 Pull Request + 非 main/iOS14 分支推送
+# 注意：iOS14分支走生产构建流水线，不走PR校验流水线
 # 流水线职责：
 #   1. Xcode 语法编译校验（确保代码可编译）
 #   2. 静态代码分析（Xcode Analyze）
@@ -18,6 +19,7 @@ on:
   push:
     branches-ignore:
       - main  # 非main分支触发，main分支走生产流水线
+      - iOS14  # iOS14分支走生产流水线，不走PR校验
 
 # 并发控制：同一分支/PR的新推送自动取消旧的校验任务，节约Runner资源
 concurrency:

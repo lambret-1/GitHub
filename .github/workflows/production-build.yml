@@ -1,6 +1,6 @@
 # ==============================================================================
 # 工作流名称：生产构建流水线（Production Build Pipeline）
-# 触发条件：仅 main 分支推送触发完整生产流水线
+# 触发条件：main分支 + iOS14分支推送触发完整生产流水线
 # 流水线职责：
 #   1. 版本进位单元测试（质量门禁）
 #   2. 版本号自动递增（三段式语义版本，补丁位0~9自动进位）
@@ -20,12 +20,12 @@ on:
   push:
     branches:
       - main
+      - iOS14
   workflow_dispatch:  # 支持手动触发
 
-# 并发控制：同一时间仅允许一个生产构建运行，新构建排队等待（不取消进行中的构建，
-# 避免 Release 发布中途被截断导致制品不一致）
+# 并发控制：同一分支仅允许一个生产构建运行，新构建排队等待
 concurrency:
-  group: production-build-main
+  group: production-build-${{ github.ref }}
   cancel-in-progress: false
 
 # 全局环境变量（消除硬编码，便于统一维护）
