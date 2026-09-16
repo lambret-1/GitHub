@@ -131,7 +131,9 @@ jobs:
             git commit -m "chore(release): 版本号自动递增至 v${NEW_VERSION} [skip ci]" -m "触发Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME} | 触发方式: GitHub Actions 生产构建流水线"
             # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
             git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            git push origin HEAD
+            # 先pull再push，避免推送冲突
+            git pull origin HEAD --rebase || true
+            git push origin HEAD || echo "::warning::推送失败，继续后续步骤"
             echo "::notice::版本变更已提交并推送到 main 分支"
           fi
 
@@ -418,7 +420,9 @@ jobs:
             git commit -m "docs(bug-log): 更新 v${CURRENT_VERSION} 构建警告日志 [skip ci]" -m "版本: v${CURRENT_VERSION} | Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME}"
             # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
             git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            git push origin HEAD
+            # 先pull再push，避免推送冲突
+            git pull origin HEAD --rebase || true
+            git push origin HEAD || echo "::warning::推送失败，继续后续步骤"
             echo "::notice::bug.md已提交并推送到 main 分支"
           fi
 
