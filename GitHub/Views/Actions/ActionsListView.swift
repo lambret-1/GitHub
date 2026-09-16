@@ -746,7 +746,7 @@ struct WorkflowRunRow: View {
                     Text(run.shortSha)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                        .monospacedDigit()
+                        // iOS14兼容：移除monospacedDigit()（iOS15+ API）
                 }
 
                 // 触发事件和时间

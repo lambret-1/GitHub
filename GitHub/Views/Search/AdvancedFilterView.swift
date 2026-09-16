@@ -93,7 +93,7 @@ struct AdvancedFilterView: View {
 
 extension AdvancedFilterView {
     private var repoSearchScopeSection: some View {
-        Section("搜索范围") {
+        Section(header: Text("搜索范围")) { // iOS14兼容：使用旧版Section语法
             Toggle("仓库名称", isOn: $repoFilter.searchInName)
             Toggle("仓库描述", isOn: $repoFilter.searchInDescription)
             Toggle("README 文件", isOn: $repoFilter.searchInReadme)
@@ -101,7 +101,7 @@ extension AdvancedFilterView {
     }
 
     private var repoAttributesSection: some View {
-        Section("仓库属性") {
+        Section(header: Text("仓库属性")) { // iOS14兼容：使用旧版Section语法
             Toggle("仅公开仓库", isOn: $repoFilter.isPublic)
             Toggle("仅私有仓库", isOn: $repoFilter.isPrivate)
             archivedPicker
@@ -136,7 +136,7 @@ extension AdvancedFilterView {
     }
 
     private var repoLanguageSection: some View {
-        Section("编程语言") {
+        Section(header: Text("编程语言")) { // iOS14兼容：使用旧版Section语法
             NavigationLink(destination: LanguagePickerView(selectedLanguage: $repoFilter.language)) {
                 HStack {
                     Text("语言")
@@ -158,7 +158,7 @@ extension AdvancedFilterView {
     }
 
     private var repoTopicLicenseSection: some View {
-        Section("主题与许可证") {
+        Section(header: Text("主题与许可证")) { // iOS14兼容：使用旧版Section语法
             topicInput
             NavigationLink(destination: LicensePickerView(selectedLicense: $repoFilter.license)) {
                 HStack {
@@ -190,7 +190,7 @@ extension AdvancedFilterView {
     }
 
     private var repoOwnerSection: some View {
-        Section("所有者") {
+        Section(header: Text("所有者")) { // iOS14兼容：使用旧版Section语法
             userInput
             orgInput
         }
@@ -215,7 +215,7 @@ extension AdvancedFilterView {
     }
 
     private var repoNumericSection: some View {
-        Section("数值范围") {
+        Section(header: Text("数值范围")) { // iOS14兼容：使用旧版Section语法
             starsPicker
             forksPicker
             sizePicker
@@ -265,7 +265,7 @@ extension AdvancedFilterView {
     }
 
     private var repoDateSection: some View {
-        Section("时间范围") {
+        Section(header: Text("时间范围")) { // iOS14兼容：使用旧版Section语法
             createdDatePicker
             clearCreatedButton
             pushedDatePicker
@@ -318,7 +318,7 @@ extension AdvancedFilterView {
 
 extension AdvancedFilterView {
     private var userSearchScopeSection: some View {
-        Section("搜索范围") {
+        Section(header: Text("搜索范围")) { // iOS14兼容：使用旧版Section语法
             Toggle("用户名", isOn: $userFilter.searchInLogin)
             Toggle("全名", isOn: $userFilter.searchInFullName)
             Toggle("邮箱", isOn: $userFilter.searchInEmail)
