@@ -326,7 +326,7 @@ extension AdvancedFilterView {
     }
 
     private var userTypeSection: some View {
-        Section("用户类型") {
+        Section(header: Text("用户类型")) { // iOS14兼容：使用旧版Section语法
             Picker("类型", selection: Binding(
                 get: { userFilter.userType?.rawValue ?? "不限" },
                 set: { newValue in
@@ -342,7 +342,7 @@ extension AdvancedFilterView {
     }
 
     private var userLocationLanguageSection: some View {
-        Section("位置与语言") {
+        Section(header: Text("位置与语言")) { // iOS14兼容：使用旧版Section语法
             locationInput
             NavigationLink(destination: LanguagePickerView(selectedLanguage: $userFilter.language)) {
                 HStack {
@@ -373,7 +373,7 @@ extension AdvancedFilterView {
     }
 
     private var userNumericSection: some View {
-        Section("数值范围") {
+        Section(header: Text("数值范围")) { // iOS14兼容：使用旧版Section语法
             reposPicker
             followersPicker
             followingPicker
@@ -420,7 +420,7 @@ extension AdvancedFilterView {
     }
 
     private var userDateSection: some View {
-        Section("时间范围") {
+        Section(header: Text("时间范围")) { // iOS14兼容：使用旧版Section语法
             userCreatedDatePicker
             clearUserCreatedButton
         }

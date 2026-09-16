@@ -76,7 +76,7 @@ struct CacheManagementView: View {
                     }
 
                     // 缓存列表
-                    Section("缓存列表") {
+                    Section(header: Text("缓存列表")) { // iOS14兼容：使用旧版Section语法
                         ForEach(caches) { cache in
                             cacheRow(cache: cache)
                                 .onAppear {
