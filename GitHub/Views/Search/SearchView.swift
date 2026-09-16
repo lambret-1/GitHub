@@ -207,15 +207,7 @@ struct SearchView: View {
                 }
             }
             .ios14NavigationDestination(isPresented: $showCodeEditor) {
-                if let item = selectedCodeItem {
-                    CodeEditorView(
-                        owner: item.repository.ownerName,
-                        repo: item.repository.name,
-                        path: item.path,
-                        branch: selectedCodeBranch,
-                        fileName: item.name
-                    )
-                }
+                EmptyView() // 代码编辑器已移除
             }
             .navigationTitle("搜索")
             .navigationBarTitleDisplayMode(.inline)

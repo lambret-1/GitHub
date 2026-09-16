@@ -242,29 +242,12 @@ struct FileBrowserView: View {
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        // 程序导航：使用navigationDestination替代弃用的NavigationLink(destination:isActive:)
+        // 程序导航：代码编辑器已移除，使用空视图占位
         .ios14NavigationDestination(isPresented: $navigateToEditor) {
-            if let filePath = newlyCreatedFilePath {
-                CodeEditorView(
-                    owner: repository.ownerName,
-                    repo: repository.name,
-                    path: filePath,
-                    branch: selectedBranch,
-                    fileName: (filePath as NSString).lastPathComponent
-                )
-            }
+            EmptyView()
         }
         .ios14NavigationDestination(isPresented: $navigateToEditorFromContextMenu) {
-            if let filePath = contextMenuEditFilePath, let fileName = contextMenuEditFileName {
-                CodeEditorView(
-                    owner: repository.ownerName,
-                    repo: repository.name,
-                    path: filePath,
-                    branch: selectedBranch,
-                    fileName: fileName,
-                    autoEnterEditMode: true // 自动进入编辑模式
-                )
-            }
+            EmptyView()
         }
         // 用户仓库主页导航：点击仓库所有者头像进入该用户的仓库列表
         .ios14NavigationDestination(isPresented: $showUserRepos) {
@@ -281,18 +264,7 @@ struct FileBrowserView: View {
             )
         }
         .ios14NavigationDestination(isPresented: $navigateToFileEditor) {
-            if let filePath = selectedFilePath, let fileName = selectedFileName {
-                CodeEditorView(
-                    owner: repository.ownerName,
-                    repo: repository.name,
-                    path: filePath,
-                    branch: selectedBranch,
-                    fileName: fileName,
-                    // 不使用编辑器内部搜索功能，直接跳转到指定行
-                    initialSearchText: "",
-                    initialLineNumber: jumpToLineNumber
-                )
-            }
+            EmptyView() // 代码编辑器已移除
         }
         .overlay(progressOverlay, alignment: .center) // iOS14兼容：使用旧版overlay语法
         // 左滑手势返回上一级目录（孙目录→子目录→父目录，统一使用手势返回上一级）
