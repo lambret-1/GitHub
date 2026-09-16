@@ -471,7 +471,7 @@ struct UserRow: View {
 
                 HStack(spacing: 12) {
                     if let company = user.company, !company.isEmpty {
-                        Label(company, systemImage: "building.2")
+                        Label(company, systemImage: "building")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

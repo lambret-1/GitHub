@@ -73,7 +73,7 @@ struct ProfileView: View {
                     Section(header: Text("个人信息")) { // iOS14兼容：使用旧版Section语法
                         if let company = user.company, !company.isEmpty {
                             HStack {
-                                Image(systemName: "building.2")
+                                Image(systemName: "building")
                                     .foregroundColor(.gray)
                                     .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text("公司")

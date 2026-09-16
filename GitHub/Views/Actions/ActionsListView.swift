@@ -355,7 +355,7 @@ struct ActionsListView: View {
 
             // 统计按钮（原顶部工具栏移到这里）
             NavigationLink(destination: RunStatsView(owner: owner, repo: repo)) {
-                Image(systemName: "chart.bar.xaxis")
+                Image(systemName: "chart.bar")
                     .font(.caption)
                     .foregroundColor(.blue)
                     .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制按钮显示的宽度和高度，单位是pt（点）；改大按钮点击区域更大更易点击，改小按钮更紧凑节省空间；还能改成.maxWidth/.infinity自适应

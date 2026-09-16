@@ -202,7 +202,7 @@ struct RepoCodeSearchView: View {
                                 viewModel.selectHistory(item)
                             } label: {
                                 HStack(spacing: 10) {
-                                    Image(systemName: "clock.arrow.circlepath")
+                                    Image(systemName: "clock")
                                         .foregroundColor(.gray)
                                         .frame(width: 20)
                                     Text(item.query)

@@ -163,7 +163,7 @@ struct AboutView: View {
                     ProgressView()
                         .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 } else {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Image(systemName: "arrow.clockwise")
                         .foregroundColor(.blue)
                         .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 }

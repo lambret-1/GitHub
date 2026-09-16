@@ -19,7 +19,7 @@ struct AddAccountView: View {
             VStack(spacing: 0) {
                 // 提示信息
                 VStack(spacing: 8) {
-                    Image(systemName: "person.crop.circle.badge.plus")
+                    Image(systemName: "person.badge.plus")
                         .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                         .foregroundColor(.blue)
                     Text("添加 GitHub 账号")

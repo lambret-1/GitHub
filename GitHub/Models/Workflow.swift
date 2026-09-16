@@ -136,7 +136,7 @@ struct WorkflowRun: Codable, Identifiable {
             default: return "circle.fill"
             }
         } else if status == "in_progress" {
-            return "arrow.triangle.2.circlepath"
+            return "arrow.clockwise"
         } else if status == "queued" || status == "pending" {
             return "clock"
         }
@@ -318,7 +318,7 @@ struct WorkflowJob: Codable, Identifiable {
             default: return "circle.fill"
             }
         } else if status == "in_progress" {
-            return "arrow.triangle.2.circlepath"
+            return "arrow.clockwise"
         } else if status == "queued" || status == "pending" {
             return "clock"
         }
@@ -410,7 +410,7 @@ struct JobStep: Codable, Identifiable {
             default: return "circle.fill"
             }
         } else if status == "in_progress" {
-            return "arrow.triangle.2.circlepath"
+            return "arrow.clockwise"
         } else if status == "queued" || status == "pending" {
             return "clock"
         }
@@ -743,7 +743,7 @@ struct SelfHostedRunner: Identifiable, Codable {
         } else if os.lowercased().contains("windows") {
             return "pc"
         } else {
-            return "cpu"
+            return "gearshape"
         }
     }
 

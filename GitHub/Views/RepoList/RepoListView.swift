@@ -96,7 +96,7 @@ struct RepoListView: View {
                 } else if filteredRepos.isEmpty {
                     Spacer()
                     VStack(spacing: 12) {
-                        Image(systemName: "folder.badge.questionmark")
+                        Image(systemName: "folder")
                             .font(.largeTitle)
                             .foregroundColor(.gray)
                         Text("没有找到仓库")

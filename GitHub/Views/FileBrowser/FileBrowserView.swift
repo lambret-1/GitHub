@@ -1230,7 +1230,7 @@ struct FileBrowserView: View {
         Button(action: {
             showCommits = true
         }) {
-            Label("提交记录", systemImage: "clock.arrow.circlepath")
+            Label("提交记录", systemImage: "clock")
         }
         .disabled(isDeleteMode)
 

@@ -234,7 +234,7 @@ struct RepositoryStatsView: View {
             }
 
             HStack {
-                Image(systemName: "clock.arrow.circlepath")
+                Image(systemName: "clock")
                     .foregroundColor(.orange)
                     .frame(width: 24)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                 Text("更新时间")
