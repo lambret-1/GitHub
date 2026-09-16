@@ -214,7 +214,7 @@ struct SearchView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("关闭") {
-                       presentationMode.wrappedValue.dismiss()
+                       presentationMode.wrappedValue.presentationMode.wrappedValue.dismiss()
                     }
                 }
             }

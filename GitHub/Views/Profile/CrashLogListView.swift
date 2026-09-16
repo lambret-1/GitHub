@@ -214,7 +214,7 @@ struct CrashLogDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("关闭") {
-                       presentationMode.wrappedValue.dismiss()
+                       presentationMode.wrappedValue.presentationMode.wrappedValue.dismiss()
                     }
                 }
 
@@ -274,6 +274,6 @@ struct CrashLogDetailView: View {
     private func deleteCrashLog() {
         CrashLogger.shared.deleteCrashLog(crashLog)
         onDelete()
-       presentationMode.wrappedValue.dismiss()
+       presentationMode.wrappedValue.presentationMode.wrappedValue.dismiss()
     }
 }

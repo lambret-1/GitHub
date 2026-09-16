@@ -3381,7 +3381,7 @@ struct BranchPickerView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("关闭") {
-                        presentationMode.wrappedValue.dismiss()
+                        presentationMode.wrappedValue.presentationMode.wrappedValue.dismiss()
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
