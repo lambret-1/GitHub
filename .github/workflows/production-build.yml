@@ -229,14 +229,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-
 
-      # Step 5: 缓存编译产物（基于项目配置与源码内容哈希，确保缓存可命中）
-      - name: 缓存编译产物
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-xcode-${{ hashFiles('project.yml', 'GitHub/**/*.swift', 'GitHub/Info.plist') }}
-          restore-keys: |
-            ${{ runner.os }}-xcode-
+      # Step 5: 缓存编译产物（已临时禁用：可能导致使用旧代码编译）
+      # - name: 缓存编译产物
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/Library/Developer/Xcode/DerivedData
+      #     key: ${{ runner.os }}-xcode-${{ hashFiles('project.yml', 'GitHub/**/*.swift', 'GitHub/Info.plist') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-xcode-
 
       # Step 6: 读取当前版本号
       - name: 读取当前版本号
