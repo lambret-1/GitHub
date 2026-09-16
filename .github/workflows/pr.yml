@@ -1,0 +1,156 @@
+# ==============================================================================
+# 工作流名称：PR代码校验流水线（Pull Request Quality Gate）
+# 触发条件：所有 Pull Request + 非 main 分支推送
+# 流水线职责：
+#   1. Xcode 语法编译校验（确保代码可编译）
+#   2. 静态代码分析（Xcode Analyze）
+#   3. 编译警告计数门禁（超出阈值直接标记PR失败）
+# 严格禁止：版本递增、README修改、IPA导出、仓库提交变更
+# 设计目的：提前拦截劣质代码，防止未通过质量门禁的代码合并进 main
+# ==============================================================================
+
+name: PR代码校验流水线
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches-ignore:
+      - main  # 非main分支触发，main分支走生产流水线
+
+# 并发控制：同一分支/PR的新推送自动取消旧的校验任务，节约Runner资源
+concurrency:
+  group: pr-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+# 全局环境变量
+env:
+  PROJECT_NAME: GitHub
+  SCHEME_NAME: GitHub
+  XCODE_PROJECT: GitHub.xcodeproj
+  WARNING_THRESHOLD: 10  # 编译警告阈值，超过则PR失败
+  XCODEGEN_VERSION: "2.40.0"
+
+jobs:
+  # ============================================================================
+  # Job 1：Xcode 编译校验 + 静态分析 + 警告门禁
+  # ============================================================================
+  build-and-analyze:
+    name: 编译校验与静态分析
+    runs-on: macos-14
+    steps:
+      # Step 1: 检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Step 2: 选择Xcode版本
+      - name: 选择Xcode版本
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          xcodebuild -version
+
+      # Step 3: 安装XcodeGen并生成标准Xcode项目
+      - name: 安装XcodeGen并生成项目
+        run: |
+          echo "安装XcodeGen工具（版本: ${{ env.XCODEGEN_VERSION }}）..."
+          brew install xcodegen
+          if ! command -v xcodegen &> /dev/null; then
+            echo "::error::XcodeGen安装失败，xcodegen命令不可用"
+            exit 1
+          fi
+          echo "已安装XcodeGen版本: $(xcodegen --version)"
+
+          echo "删除旧的损坏项目文件..."
+          rm -rf GitHub.xcodeproj
+
+          echo "使用XcodeGen生成标准Xcode项目..."
+          xcodegen generate
+
+          echo "校验项目objectVersion兼容性..."
+          if [ -f "GitHub.xcodeproj/project.pbxproj" ]; then
+            CURRENT_OV=$(grep -o 'objectVersion = [0-9]*;' GitHub.xcodeproj/project.pbxproj | head -1 | grep -o '[0-9]*')
+            echo "XcodeGen生成的objectVersion: ${CURRENT_OV}"
+            if [ "${CURRENT_OV}" != "60" ]; then
+              echo "::warning::objectVersion=${CURRENT_OV}，降级为60以兼容Xcode 15"
+              sed -i '' 's/objectVersion = [0-9]*;/objectVersion = 60;/g' GitHub.xcodeproj/project.pbxproj
+            else
+              echo "::notice::objectVersion已为60，无需降级"
+            fi
+          fi
+
+          if [ ! -d "GitHub.xcodeproj" ]; then
+            echo "::error::Xcode项目生成失败"
+            exit 1
+          fi
+          echo "::notice::Xcode项目生成成功"
+
+      # Step 4: 缓存Swift包依赖
+      - name: 缓存Swift包依赖
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData/*/SourcePackages
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      # Step 5: 缓存编译产物（基于项目配置与源码内容哈希，确保缓存可命中）
+      - name: 缓存编译产物
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-xcode-pr-${{ hashFiles('project.yml', 'GitHub/**/*.swift', 'GitHub/Info.plist') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-pr-
+
+      # Step 6: 执行Xcode编译（未签名，仅校验语法和可编译性）
+      - name: 执行Xcode编译校验
+        id: build
+        run: |
+          echo "=========================================="
+          echo "开始Xcode编译校验（PR质量门禁）..."
+          echo "项目: ${{ env.XCODE_PROJECT }}"
+          echo "Scheme: ${{ env.SCHEME_NAME }}"
+          echo "=========================================="
+
+          xcodebuild \
+            -project "${{ env.XCODE_PROJECT }}" \
+            -scheme "${{ env.SCHEME_NAME }}" \
+            -configuration Debug \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build-pr \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build-pr.log
+
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          if [ ${BUILD_EXIT_CODE} -ne 0 ]; then
+            echo "::error::Xcode编译失败，退出码: ${BUILD_EXIT_CODE}"
+            echo "::group::编译错误日志（最后100行）"
+            tail -100 build-pr.log
+            echo "::endgroup::"
+            exit ${BUILD_EXIT_CODE}
+          fi
+
+          echo "::notice::Xcode编译校验通过"
+
+      # Step 7: 统计编译警告数量
+      - name: 统计编译警告
+        id: warning_count
+        run: |
+          echo "=========================================="
+          echo "统计编译警告数量..."
+          echo "=========================================="
+
+          WARNING_COUNT=$(grep -c "warning:" build-pr.log || true)
+          if [ -z "${WARNING_COUNT}" ]; then
+            WARNING_COUNT=0
+          fi
+          echo "warning_count=${WARNING_COUNT}" >> "$GITHUB_OUTPUT"
+     
