@@ -269,6 +269,9 @@ jobs:
           BUILD_START=$(date +%s)
           log_step_start "xcodebuild 编译"
           
+          # 清理旧的构建缓存，确保使用最新源码
+          rm -rf build
+          
           xcodebuild \
             -project "${{ env.XCODE_PROJECT }}" \
             -scheme "${{ env.SCHEME_NAME }}" \
