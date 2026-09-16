@@ -27,7 +27,7 @@ struct RepoCodeSearchView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {presentationMode.wrappedValue.presentationMode.wrappedValue.dismiss() }
+                    Button("取消") {presentationMode.wrappedValue.dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -70,7 +70,7 @@ struct RepoCodeSearchView: View {
                     query: viewModel.query,
                     onJump: { line in
                         onJumpToCode(file.path, line)
-                       presentationMode.wrappedValue.presentationMode.wrappedValue.dismiss()
+                       presentationMode.wrappedValue.dismiss()
                     }
                 )
             }
@@ -370,7 +370,7 @@ private struct CodeSnippetSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("关闭") {presentationMode.wrappedValue.presentationMode.wrappedValue.dismiss() }
+                    Button("关闭") {presentationMode.wrappedValue.dismiss() }
                 }
             }
         }
