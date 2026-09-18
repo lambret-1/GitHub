@@ -34,7 +34,7 @@ struct RepoHeaderView: View {
                     onOwnerClick?()
                 }) {
                     Group {
-                        if let avatarUrl = repository.owner.avatarUrl, let url = URL(string: avatarUrl) {
+                        if let url = URL(string: repository.owner.avatarUrl) {
                             AsyncImage(url: url) { image in
                                 image
                                     .resizable()
