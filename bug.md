@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-18 19:19:54 UTC
+**生成时间**: 2026-09-18 19:31:30 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -62,8 +62,8 @@
 ```
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/AppState.swift:37:44: warning: immutable value 'account' was never used; consider replacing with '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/CodeTextView.swift:427:31: warning: value 'self' was defined but never used; consider replacing with boolean test
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3539:25: warning: initialization of immutable value 'createdName' was never used; consider replacing with assignment to '_' or removing it
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3578:25: warning: initialization of immutable value 'newName' was never used; consider replacing with assignment to '_' or removing it
+/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3521:25: warning: initialization of immutable value 'createdName' was never used; consider replacing with assignment to '_' or removing it
+/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3560:25: warning: initialization of immutable value 'newName' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/GitHubApp.swift:36:24: warning: value 'release' was defined but never used; consider replacing with boolean test
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/HTMLTokenizer.swift:42:17: warning: initialization of immutable value 'start' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/HTMLTokenizer.swift:75:21: warning: initialization of immutable value 'tagStart' was never used; consider replacing with assignment to '_' or removing it
@@ -101,7 +101,7 @@
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 38469 行
+- **代码总行数**: 38451 行
 
 ### 💡 修复建议
 
