@@ -36,7 +36,7 @@ struct ReadmeView: View {
     @State private var renderedHTML: String?
     @State private var isRendering: Bool = true
     @State private var renderError: String?
-    @State private var webViewHeight: CGFloat = 400
+    @State private var webViewHeight: CGFloat = 400  // WebView高度，初始值，后续根据屏幕尺寸设置为屏幕高度的70%
     @State private var webViewKey: UUID = UUID()
     @State private var showOutline: Bool = false  // 是否显示大纲侧边栏
     @State private var scrollAnchorId: String?  // 当前需要滚动到的锚点ID
@@ -149,12 +149,7 @@ struct ReadmeView: View {
                         repo: repo,
                         branch: branch,
                         outlineItems: outlineItems,
-                        scrollAnchorId: scrollAnchorId,
-                        onHeightChange: { height in
-                            DispatchQueue.main.async {
-                                webViewHeight = height
-                            }
-                        }
+                        scrollAnchorId: scrollAnchorId
                     )
                     .id(webViewKey)
                     .frame(height: webViewHeight)
@@ -185,6 +180,8 @@ struct ReadmeView: View {
         .padding(.horizontal, 12)  // 这是水平内边距，控制README卡片左右两侧与屏幕边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
         .padding(.bottom, 16)  // 这是底部内边距，控制README卡片下方与其他内容的空白距离，单位是pt；改大下方留白更宽，改小下方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
         .onAppear {
+            // 设置WebView高度为屏幕高度的70%，让WebView内部可以滚动
+            webViewHeight = UIScreen.main.bounds.height * 0.7
             renderMarkdown()
         }
         .onChange(of: appState.isDarkMode) { _ in
@@ -289,15 +286,9 @@ struct ReadmeWebView: UIViewRepresentable {
     let branch: String
     let outlineItems: [ReadmeOutlineItem]  // 大纲条目，用于给标题添加锚点ID
     var scrollAnchorId: String?  // 需要滚动到的锚点ID，变化时触发滚动
-    var onHeightChange: ((CGFloat) -> Void)?
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
-
-        // 注入JavaScript，用于获取内容高度
-        let userContentController = WKUserContentController()
-        userContentController.add(context.coordinator, name: "heightChange")
-        configuration.userContentController = userContentController
 
         let preferences = WKPreferences()
         // iOS 14+ 使用WKWebpagePreferences.allowsContentJavaScript替代已弃用的javaScriptEnabled
@@ -315,8 +306,12 @@ struct ReadmeWebView: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.isOpaque = false
         webView.backgroundColor = .clear
-        webView.scrollView.isScrollEnabled = false
-        webView.scrollView.bounces = false
+        // 启用WebView自身滚动，这样scrollIntoView才能工作
+        // 外层ScrollView会在WebView滚动到顶部/底部时接管手势
+        webView.scrollView.isScrollEnabled = true
+        webView.scrollView.bounces = true
+        // 隐藏WebView的滚动条，视觉上和外层统一
+        webView.scrollView.showsVerticalScrollIndicator = false
 
         // 保存WebView引用到Coordinator，供后续调用evaluateJavaScript
         context.coordinator.webView = webView
@@ -510,26 +505,6 @@ struct ReadmeWebView: UIViewRepresentable {
                     hljs.highlightElement(block);
                 }
             });
-
-            // 发送内容高度给原生端
-            function sendHeight() {
-                var height = document.body.scrollHeight;
-                window.webkit.messageHandlers.heightChange.postMessage(height);
-            }
-
-            // 延迟发送高度，确保图片加载完成
-            setTimeout(sendHeight, 100);
-            setTimeout(sendHeight, 500);
-            setTimeout(sendHeight, 1000);
-
-            // 图片加载完成后重新计算高度
-            document.querySelectorAll('img').forEach(function(img) {
-                img.addEventListener('load', sendHeight);
-                img.addEventListener('error', sendHeight);
-            });
-
-            // 窗口大小变化时重新计算高度
-            window.addEventListener('resize', sendHeight);
         });
         </script>
         """
@@ -644,21 +619,11 @@ struct ReadmeWebView: UIViewRepresentable {
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-            if message.name == "heightChange", let height = message.body as? CGFloat {
-                parent.onHeightChange?(height)
-            }
+            // 不再需要高度回调，WebView高度固定
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             self.webView = webView
-            // 页面加载完成后获取内容高度
-            webView.evaluateJavaScript("document.body.scrollHeight") { result, _ in
-                if let height = result as? CGFloat {
-                    DispatchQueue.main.async {
-                        self.parent.onHeightChange?(height)
-                    }
-                }
-            }
         }
     }
 }

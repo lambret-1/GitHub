@@ -631,18 +631,14 @@ struct FileBrowserView: View {
         }
     }
 
-    // MARK: - 代码Tab独立列表（带下拉刷新，避免与其他Tab的List嵌套冲突）
+    // MARK: - 代码Tab内容（直接放在外层ScrollView中，避免List嵌套导致容器冲突）
 
     var codeTabListView: some View {
-        List {
+        VStack(spacing: 0) {
             codeTabContent
         }
-        .listStyle(PlainListStyle())
-        .frame(height: UIScreen.main.bounds.height - 200)  // 这是视图高度尺寸，控制代码Tab列表垂直方向显示高度，单位是pt；改大列表显示区域更高可显示更多文件，改小列表显示区域更矮；还能改成.maxHeight: .infinity自适应或用GeometryReader动态计算
-        // 下拉刷新功能，仅代码Tab生效，避免与Actions等Tab的内部下拉刷新冲突
-        .refreshable {
-            await loadFilesAsync()
-        }
+        // 移除固定高度，让内容自适应外层ScrollView
+        // 取消下拉刷新，避免与外层ScrollView滚动冲突
     }
 
     // MARK: - 代码Tab内容
