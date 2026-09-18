@@ -40,6 +40,9 @@ struct ReadmeView: View {
     @State private var webViewKey: UUID = UUID()
     @State private var showOutline: Bool = false  // 是否显示大纲侧边栏
     @State private var scrollAnchorId: String?  // 当前需要滚动到的锚点ID
+    @State private var previewImageUrl: String?  // P1优化：图片预览URL，点击图片时设置
+    @State private var previewLinkUrl: String?  // P1优化：链接预览URL，长按链接时设置
+    @State private var showLinkPreview: Bool = false  // P1优化：是否显示链接预览弹窗
 
     // MARK: - 计算属性：解析Markdown提取大纲
     /// 从Markdown文本中解析所有标题，生成大纲列表
@@ -154,6 +157,15 @@ struct ReadmeView: View {
                             DispatchQueue.main.async {
                                 webViewHeight = height
                             }
+                        },
+                        onImageClick: { imageUrl in
+                            // P1优化：点击图片显示全屏预览
+                            previewImageUrl = imageUrl
+                        },
+                        onLinkLongPress: { linkUrl in
+                            // P1优化：长按链接显示预览弹窗
+                            previewLinkUrl = linkUrl
+                            showLinkPreview = true
                         }
                     )
                     .id(webViewKey)
@@ -203,9 +215,194 @@ struct ReadmeView: View {
                 }
             )
         }
+        // P1优化：图片全屏预览
+        .fullScreenCover(item: Binding(
+            get: { previewImageUrl.map { ImagePreviewItem(url: $0) } },
+            set: { previewImageUrl = $0?.url }
+        )) { item in
+            ImagePreviewView(imageUrl: item.url, isDarkMode: appState.isDarkMode)
+        }
+        // P1优化：链接预览弹窗
+        .alert("链接预览", isPresented: $showLinkPreview) {
+            Button("在Safari中打开") {
+                if let url = URL(string: previewLinkUrl ?? "") {
+                    UIApplication.shared.open(url)
+                }
+                showLinkPreview = false
+            }
+            Button("复制链接") {
+                UIPasteboard.general.string = previewLinkUrl
+                showLinkPreview = false
+            }
+            Button("取消", role: .cancel) {
+                showLinkPreview = false
+            }
+        } message: {
+            Text(previewLinkUrl ?? "")
+        }
+    }
+}
+
+// MARK: - P1优化：图片预览项模型
+struct ImagePreviewItem: Identifiable {
+    let id = UUID()
+    let url: String
+}
+
+// MARK: - P1优化：图片全屏预览视图
+struct ImagePreviewView: View {
+    let imageUrl: String
+    let isDarkMode: Bool
+    @Environment(\.presentationMode) var presentationMode
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+    @State private var showSaveSuccess: Bool = false
+
+    var body: some View {
+        ZStack {
+            // 背景
+            (isDarkMode ? Color.black : Color(red: 0.05, green: 0.05, blue: 0.05))
+                .ignoresSafeArea()
+
+            // 图片
+            AsyncImage(url: URL(string: imageUrl)) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .scaleEffect(scale)
+                        .offset(offset)
+                        .gesture(
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    scale = lastScale * value
+                                }
+                                .onEnded { _ in
+                                    lastScale = scale
+                                    if scale < 1.0 {
+                                        withAnimation {
+                                            scale = 1.0
+                                            lastScale = 1.0
+                                            offset = .zero
+                                            lastOffset = .zero
+                                        }
+                                    }
+                                }
+                        )
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    if scale > 1.0 {
+                                        offset = CGSize(
+                                            width: lastOffset.width + value.translation.width,
+                                            height: lastOffset.height + value.translation.height
+                                        )
+                                    }
+                                }
+                                .onEnded { _ in
+                                    lastOffset = offset
+                                }
+                        )
+                        .onTapGesture(count: 2) {
+                            if scale > 1.0 {
+                                withAnimation {
+                                    scale = 1.0
+                                    lastScale = 1.0
+                                    offset = .zero
+                                    lastOffset = .zero
+                                }
+                            } else {
+                                withAnimation {
+                                    scale = 2.0
+                                    lastScale = 2.0
+                                }
+                            }
+                        }
+                case .failure:
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.largeTitle)
+                            .foregroundColor(.white)
+                        Text("图片加载失败")
+                            .foregroundColor(.white)
+                    }
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .padding()
+
+            // 顶部工具栏
+            VStack {
+                HStack {
+                    Button(action: {
+                        presentationMode.wrappedValue.dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .background(Color.black.opacity(0.5))
+                            .clipShape(Circle())
+                    }
+                    Spacer()
+                    Button(action: {
+                        saveImage()
+                    }) {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .background(Color.black.opacity(0.5))
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                Spacer()
+            }
+
+            // 保存成功提示
+            if showSaveSuccess {
+                VStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.green)
+                    Text("已保存到相册")
+                        .foregroundColor(.white)
+                        .font(.system(size: 16, weight: .medium))
+                }
+                .padding(24)
+                .background(Color.black.opacity(0.8))
+                .cornerRadius(12)
+                .transition(.opacity)
+            }
+        }
+        .statusBar(hidden: true)
     }
 
-    // MARK: - 使用GitHub官方Markdown API渲染
+    // 保存图片到相册
+    private func saveImage() {
+        guard let url = URL(string: imageUrl) else { return }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            if let data = data, let image = UIImage(data: data) {
+                UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                DispatchQueue.main.async {
+                    showSaveSuccess = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showSaveSuccess = false
+                    }
+                }
+            }
+        }.resume()
+    }
+}
 
     private func renderMarkdown() {
         isRendering = true
@@ -239,32 +436,75 @@ struct OutlineSheetView: View {
     let onSelect: (String) -> Void
 
     @Environment(\.presentationMode) var presentationMode  // iOS14兼容：使用presentationMode代替dismiss
+    @State private var searchText: String = ""  // 大纲搜索关键词
+
+    // 过滤后的大纲列表
+    var filteredItems: [ReadmeOutlineItem] {
+        if searchText.isEmpty {
+            return items
+        }
+        return items.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+    }
 
     var body: some View {
         NavigationView {
-            List {
-                ForEach(items) { item in
-                    Button(action: {
-                        onSelect(item.anchorId)
-                    }) {
-                        HStack(spacing: 0) {
-                            // 根据标题级别缩进
-                            Spacer()
-                                .frame(width: CGFloat(item.level - 1) * 20)  // 这是缩进宽度尺寸，控制不同级别标题的左侧缩进距离，单位是pt；改大缩进差异更明显层级更清晰，改小缩进差异更小更紧凑；还能改成固定值或按级别乘更大系数
-                            
-                            Text(item.title)
-                                .font(.system(size: item.level <= 2 ? 15 : 14, weight: item.level <= 2 ? .semibold : .regular))  // 这是字体大小尺寸，控制大纲条目的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格
-                                .foregroundColor(isDarkMode ? .white : .primary)
-                                .multilineTextAlignment(.leading)
-                            
-                            Spacer()
+            VStack(spacing: 0) {
+                // 大纲搜索框
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.gray)
+                    TextField("搜索大纲...", text: $searchText)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                    if !searchText.isEmpty {
+                        Button(action: {
+                            searchText = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.gray)
                         }
-                        .contentShape(Rectangle())
                     }
-                    .listRowBackground(isDarkMode ? Color(red: 0.12, green: 0.12, blue: 0.12) : .white)
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.95, green: 0.95, blue: 0.95))
+                .cornerRadius(8)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+
+                // 大纲列表
+                List {
+                    if filteredItems.isEmpty {
+                        Text("未找到匹配的大纲")
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .listRowBackground(isDarkMode ? Color(red: 0.12, green: 0.12, blue: 0.12) : .white)
+                    } else {
+                        ForEach(filteredItems) { item in
+                            Button(action: {
+                                onSelect(item.anchorId)
+                            }) {
+                                HStack(spacing: 0) {
+                                    // 根据标题级别缩进
+                                    Spacer()
+                                        .frame(width: CGFloat(item.level - 1) * 20)  // 这是缩进宽度尺寸，控制不同级别标题的左侧缩进距离，单位是pt；改大缩进差异更明显层级更清晰，改小缩进差异更小更紧凑；还能改成固定值或按级别乘更大系数
+
+                                    Text(item.title)
+                                        .font(.system(size: item.level <= 2 ? 15 : 14, weight: item.level <= 2 ? .semibold : .regular))  // 这是字体大小尺寸，控制大纲条目的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格
+                                        .foregroundColor(isDarkMode ? .white : .primary)
+                                        .multilineTextAlignment(.leading)
+
+                                    Spacer()
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .listRowBackground(isDarkMode ? Color(red: 0.12, green: 0.12, blue: 0.12) : .white)
+                        }
+                    }
+                }
+                .listStyle(PlainListStyle())
             }
-            .listStyle(PlainListStyle())
             .navigationTitle("大纲")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -290,6 +530,8 @@ struct ReadmeWebView: UIViewRepresentable {
     let outlineItems: [ReadmeOutlineItem]  // 大纲条目，用于给标题添加锚点ID
     var scrollAnchorId: String?  // 需要滚动到的锚点ID，变化时触发滚动
     var onHeightChange: ((CGFloat) -> Void)?  // 内容高度变化回调，用于自适应WebView高度
+    var onImageClick: ((String) -> Void)?  // P1优化：图片点击回调，传递图片URL
+    var onLinkLongPress: ((String) -> Void)?  // P1优化：链接长按回调，传递链接URL
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
@@ -304,9 +546,11 @@ struct ReadmeWebView: UIViewRepresentable {
         let urlCache = URLCache(memoryCapacity: memoryCapacity, diskCapacity: diskCapacity, diskPath: "ReadmeWebCache")
         URLCache.shared = urlCache
 
-        // 注入JavaScript，用于获取内容高度
+        // 注入JavaScript，用于获取内容高度、图片点击、链接长按
         let userContentController = WKUserContentController()
         userContentController.add(context.coordinator, name: "heightChange")
+        userContentController.add(context.coordinator, name: "imageClick")  // P1优化：图片点击消息
+        userContentController.add(context.coordinator, name: "linkLongPress")  // P1优化：链接长按消息
         configuration.userContentController = userContentController
 
         let preferences = WKPreferences()
@@ -532,6 +776,50 @@ struct ReadmeWebView: UIViewRepresentable {
                 if (!img.hasAttribute('decoding')) {
                     img.setAttribute('decoding', 'async');
                 }
+                // P1优化：图片点击事件 - 传递图片URL给原生端进行全屏预览
+                img.style.cursor = 'pointer';
+                img.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var src = img.src;
+                    if (src && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.imageClick) {
+                        window.webkit.messageHandlers.imageClick.postMessage(src);
+                    }
+                });
+            });
+
+            // P1优化：链接长按事件 - 传递链接URL给原生端进行预览
+            document.querySelectorAll('a').forEach(function(link) {
+                var longPressTimer = null;
+                var isLongPress = false;
+
+                link.addEventListener('touchstart', function(e) {
+                    isLongPress = false;
+                    longPressTimer = setTimeout(function() {
+                        isLongPress = true;
+                        var href = link.href;
+                        if (href && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.linkLongPress) {
+                            window.webkit.messageHandlers.linkLongPress.postMessage(href);
+                        }
+                    }, 500);  // 长按500ms触发
+                });
+
+                link.addEventListener('touchend', function(e) {
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                    if (isLongPress) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                });
+
+                link.addEventListener('touchmove', function() {
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                });
             });
 
             // P0优化2：代码块一键复制 - 给每个代码块添加复制按钮
@@ -727,6 +1015,14 @@ struct ReadmeWebView: UIViewRepresentable {
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             if message.name == "heightChange", let height = message.body as? CGFloat {
                 parent.onHeightChange?(height)
+            }
+            // P1优化：图片点击消息处理
+            else if message.name == "imageClick", let imageUrl = message.body as? String {
+                parent.onImageClick?(imageUrl)
+            }
+            // P1优化：链接长按消息处理
+            else if message.name == "linkLongPress", let linkUrl = message.body as? String {
+                parent.onLinkLongPress?(linkUrl)
             }
         }
 
