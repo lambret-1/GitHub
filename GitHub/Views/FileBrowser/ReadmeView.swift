@@ -12,7 +12,19 @@ import WebKit
 //   - 图片相对路径自动补全
 //   - 锚点链接支持
 //   - 复制Markdown原文
+//   - Outline大纲导航（快速跳转章节）
 // ==============================================================================
+
+// MARK: - 大纲条目模型
+
+/// README大纲条目模型
+/// 存储README中的标题信息，用于快速导航跳转
+struct ReadmeOutlineItem: Identifiable {
+    let id = UUID()
+    let level: Int           // 标题级别（1-6，对应h1-h6）
+    let title: String        // 标题文本内容
+    let anchorId: String     // HTML锚点ID，用于JS滚动定位
+}
 
 struct ReadmeView: View {
     let markdownContent: String
@@ -26,13 +38,67 @@ struct ReadmeView: View {
     @State private var renderError: String?
     @State private var webViewHeight: CGFloat = 400
     @State private var webViewKey: UUID = UUID()
+    @State private var showOutline: Bool = false  // 是否显示大纲侧边栏
+
+    // MARK: - 计算属性：解析Markdown提取大纲
+    /// 从Markdown文本中解析所有标题，生成大纲列表
+    /// 解析规则：行首1-6个#号开头的行即为标题
+    var outlineItems: [ReadmeOutlineItem] {
+        let lines = markdownContent.components(separatedBy: .newlines)
+        var items: [ReadmeOutlineItem] = []
+        var anchorCounter = 0
+
+        for line in lines {
+            // 匹配Markdown标题语法：# ~ ######
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("#") else { continue }
+
+            // 计算#号数量，即标题级别
+            var level = 0
+            for char in trimmed {
+                if char == "#" {
+                    level += 1
+                } else {
+                    break
+                }
+            }
+
+            // 级别必须在1-6之间
+            guard level >= 1 && level <= 6 else { continue }
+
+            // 提取标题文本（去掉#号和空格）
+            let titleStartIndex = trimmed.index(trimmed.startIndex, offsetBy: level)
+            var titleText = String(trimmed[titleStartIndex...])
+            titleText = titleText.trimmingCharacters(in: .whitespaces)
+
+            // 去掉标题末尾的#号（Markdown允许的闭合#号）
+            while titleText.hasSuffix("#") {
+                titleText = String(titleText.dropLast()).trimmingCharacters(in: .whitespaces)
+            }
+
+            // 跳过空标题
+            guard !titleText.isEmpty else { continue }
+
+            // 生成锚点ID
+            anchorCounter += 1
+            let anchorId = "readme-heading-\(anchorCounter)"
+
+            items.append(ReadmeOutlineItem(
+                level: level,
+                title: titleText,
+                anchorId: anchorId
+            ))
+        }
+
+        return items
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // README标题栏
             HStack {
                 Image(systemName: "book.closed")
-                    .font(.system(size: 16))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 16))  // 这是字体大小尺寸，控制图标显示的大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难辨认；还能配合.imageScale设大小或用.tint改图标颜色
                     .foregroundColor(appState.isDarkMode ? .gray : .secondary)
 
                 Text("README.md")
@@ -40,6 +106,18 @@ struct ReadmeView: View {
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
 
                 Spacer()
+
+                // 大纲按钮（有大纲时才显示）
+                if !outlineItems.isEmpty {
+                    Button(action: {
+                        showOutline = true
+                    }) {
+                        Image(systemName: "list.bullet.indent")
+                            .font(.system(size: 16))  // 这是字体大小尺寸，控制图标显示的大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难辨认；还能配合.imageScale设大小或用.tint改图标颜色
+                            .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                    }
+                    .accessibilityLabel("查看大纲")
+                }
             }
             .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
             .padding(.vertical, 12)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
@@ -48,7 +126,7 @@ struct ReadmeView: View {
             // 分割线
             Rectangle()
                 .fill(appState.isDarkMode ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color(red: 0.85, green: 0.85, blue: 0.85))
-                .frame(height: 1)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+                .frame(height: 1)  // 这是视图高度尺寸，控制分割线的粗细高度，单位是pt；改大分割线更粗更明显，改小分割线更细更精致；还能改成不同颜色或用虚线样式
 
             // 内容区域
             ZStack {
@@ -69,6 +147,7 @@ struct ReadmeView: View {
                         owner: owner,
                         repo: repo,
                         branch: branch,
+                        outlineItems: outlineItems,
                         onHeightChange: { height in
                             DispatchQueue.main.async {
                                 webViewHeight = height
@@ -81,14 +160,14 @@ struct ReadmeView: View {
                     // 渲染失败，降级显示纯文本
                     VStack(alignment: .leading, spacing: 8) {
                         Text("渲染失败: \(error)")
-                            .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 12))  // 这是字体大小尺寸，控制错误文字的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格
                             .foregroundColor(Color.red)
                         ScrollView {
                             Text(markdownContent)
-                                .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .font(.system(size: 13))  // 这是字体大小尺寸，控制纯文本显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格
                                 .foregroundColor(appState.isDarkMode ? .white : .primary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(16)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
+                                .padding(16)  // 这是四向统一内边距，控制纯文本与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
                         }
                     }
                     .frame(height: webViewHeight)
@@ -96,19 +175,41 @@ struct ReadmeView: View {
             }
             .background(appState.isDarkMode ? Color(red: 0.08, green: 0.08, blue: 0.08) : .white)
         }
-        .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+        .cornerRadius(8)  // 这是圆角半径尺寸，控制README卡片四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(appState.isDarkMode ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
         )
-        .padding(.horizontal, 12)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-        .padding(.bottom, 16)  // 这是底部内边距，控制内容下方与边缘的空白距离，单位是pt；改大下方留白更宽，改小下方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
+        .padding(.horizontal, 12)  // 这是水平内边距，控制README卡片左右两侧与屏幕边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+        .padding(.bottom, 16)  // 这是底部内边距，控制README卡片下方与其他内容的空白距离，单位是pt；改大下方留白更宽，改小下方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
         .onAppear {
             renderMarkdown()
         }
         .onChange(of: appState.isDarkMode) { _ in
             // 暗黑模式切换时重新渲染
             webViewKey = UUID()
+        }
+        // 大纲侧边栏弹出
+        .sheet(isPresented: $showOutline) {
+            OutlineSheetView(
+                items: outlineItems,
+                isDarkMode: appState.isDarkMode,
+                onSelect: { anchorId in
+                    showOutline = false
+                    // 通过JS滚动到指定锚点
+                    webViewKey = UUID()
+                    // 延迟一点，等WebView重新加载完成后再滚动
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        // 注意：这里通过改变webViewKey重新加载，实际滚动需要通过WKWebView的evaluateJavaScript
+                        // 由于ReadmeWebView是UIViewRepresentable，我们通过通知方式传递滚动指令
+                        NotificationCenter.default.post(
+                            name: .readmeScrollToAnchor,
+                            object: nil,
+                            userInfo: ["anchorId": anchorId]
+                        )
+                    }
+                }
+            )
         }
     }
 
@@ -136,6 +237,63 @@ struct ReadmeView: View {
     }
 }
 
+// MARK: - 大纲侧边栏视图
+
+/// README大纲侧边栏弹窗
+/// 显示所有标题层级，点击可快速跳转
+struct OutlineSheetView: View {
+    let items: [ReadmeOutlineItem]
+    let isDarkMode: Bool
+    let onSelect: (String) -> Void
+
+    @Environment(\.presentationMode) var presentationMode  // iOS14兼容：使用presentationMode代替dismiss
+
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(items) { item in
+                    Button(action: {
+                        onSelect(item.anchorId)
+                    }) {
+                        HStack(spacing: 0) {
+                            // 根据标题级别缩进
+                            Spacer()
+                                .frame(width: CGFloat(item.level - 1) * 20)  // 这是缩进宽度尺寸，控制不同级别标题的左侧缩进距离，单位是pt；改大缩进差异更明显层级更清晰，改小缩进差异更小更紧凑；还能改成固定值或按级别乘更大系数
+                            
+                            Text(item.title)
+                                .font(.system(size: item.level <= 2 ? 15 : 14, weight: item.level <= 2 ? .semibold : .regular))  // 这是字体大小尺寸，控制大纲条目的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格
+                                .foregroundColor(isDarkMode ? .white : .primary)
+                                .multilineTextAlignment(.leading)
+                            
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .listRowBackground(isDarkMode ? Color(red: 0.12, green: 0.12, blue: 0.12) : .white)
+                }
+            }
+            .listStyle(PlainListStyle())
+            .navigationTitle("大纲")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("完成") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+        }
+        .preferredColorScheme(isDarkMode ? .dark : .light)
+    }
+}
+
+// MARK: - 通知名称扩展
+
+extension Notification.Name {
+    /// README滚动到指定锚点的通知名称
+    static let readmeScrollToAnchor = Notification.Name("ReadmeScrollToAnchor")
+}
+
 // MARK: - ReadmeWebView 用于渲染README的WebView
 
 struct ReadmeWebView: UIViewRepresentable {
@@ -144,6 +302,7 @@ struct ReadmeWebView: UIViewRepresentable {
     let owner: String
     let repo: String
     let branch: String
+    let outlineItems: [ReadmeOutlineItem]  // 大纲条目，用于给标题添加锚点ID
     var onHeightChange: ((CGFloat) -> Void)?
 
     func makeUIView(context: Context) -> WKWebView {
@@ -172,6 +331,14 @@ struct ReadmeWebView: UIViewRepresentable {
         webView.backgroundColor = .clear
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
+
+        // 监听滚动到锚点的通知
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.handleScrollToAnchor(_:)),
+            name: .readmeScrollToAnchor,
+            object: nil
+        )
 
         return webView
     }
@@ -334,6 +501,10 @@ struct ReadmeWebView: UIViewRepresentable {
         </style>
         """
 
+        // 生成标题锚点注入脚本
+        // 为所有h1-h6标题添加id属性，用于大纲跳转
+        let anchorJS = buildAnchorInjectionScript()
+
         // highlight.js 用于代码语法高亮（内联简化版）
         let highlightJS = """
         <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
@@ -400,6 +571,7 @@ struct ReadmeWebView: UIViewRepresentable {
             <div class="markdown-body">
                 \(htmlContent)
             </div>
+            \(anchorJS)
             \(highlightJS)
             \(imageFixJS)
         </body>
@@ -409,14 +581,75 @@ struct ReadmeWebView: UIViewRepresentable {
         return fullHTML
     }
 
+    // MARK: - 构建标题锚点注入脚本
+
+    /// 构建JavaScript脚本，为HTML中的标题添加id锚点
+    /// 这样大纲点击时可以通过document.getElementById定位并滚动
+    private func buildAnchorInjectionScript() -> String {
+        // 生成锚点映射表，用于调试
+        var anchorMapping: [String: String] = [:]
+        for item in outlineItems {
+            anchorMapping[item.anchorId] = item.title
+        }
+
+        // 构建JS脚本：为所有h1-h6添加id
+        // 注意：这里按顺序给每个标题分配id，与Swift端解析的顺序一致
+        var js = """
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var headings = document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6');
+            var anchorIds = [
+        """
+
+        // 添加所有锚点ID
+        for (index, item) in outlineItems.enumerated() {
+            js += "'\(item.anchorId)'"
+            if index < outlineItems.count - 1 {
+                js += ", "
+            }
+        }
+
+        js += """
+            ];
+            headings.forEach(function(heading, index) {
+                if (index < anchorIds.length) {
+                    heading.id = anchorIds[index];
+                }
+            });
+
+            // 暴露全局函数供原生端调用，滚动到指定锚点
+            window.scrollToAnchor = function(anchorId) {
+                var element = document.getElementById(anchorId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // 高亮当前标题，提示用户跳转成功
+                    element.style.transition = 'background-color 0.3s';
+                    element.style.backgroundColor = 'rgba(255, 235, 59, 0.3)';
+                    setTimeout(function() {
+                        element.style.backgroundColor = 'transparent';
+                    }, 2000);
+                }
+            };
+        });
+        </script>
+        """
+
+        return js
+    }
+
     // MARK: - Coordinator
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var parent: ReadmeWebView
         var hasLoaded: Bool = false
+        weak var webView: WKWebView?
 
         init(_ parent: ReadmeWebView) {
             self.parent = parent
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -426,6 +659,7 @@ struct ReadmeWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            self.webView = webView
             // 页面加载完成后获取内容高度
             webView.evaluateJavaScript("document.body.scrollHeight") { result, _ in
                 if let height = result as? CGFloat {
@@ -434,6 +668,17 @@ struct ReadmeWebView: UIViewRepresentable {
                     }
                 }
             }
+        }
+
+        /// 处理滚动到锚点的通知
+        /// 当用户在大纲中点击某个标题时，通过此方法调用JS滚动到对应位置
+        @objc func handleScrollToAnchor(_ notification: Notification) {
+            guard let anchorId = notification.userInfo?["anchorId"] as? String else { return }
+            guard let webView = webView else { return }
+
+            // 调用JS的scrollToAnchor函数滚动到指定标题
+            let js = "window.scrollToAnchor('\(anchorId)')"
+            webView.evaluateJavaScript(js)
         }
     }
 }
