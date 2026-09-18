@@ -605,6 +605,9 @@ struct FileBrowserView: View {
                 )
                 .environmentObject(appState)
 
+                // 顶部提交信息栏（上移到Tab栏上方，紧凑高度，关闭哈希显示）
+                latestCommitHeaderView
+
                 // 仓库功能Tab分段控件（代码/Issues/PR/Actions/设置）
                 repoTabBar
 
@@ -674,11 +677,6 @@ struct FileBrowserView: View {
         .environmentObject(appState)
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden)
-
-        // 顶部提交信息栏（GitHub官方风格）
-        latestCommitHeaderView
-            .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
 
             // 路径导航栏（仅子目录显示，可跟随屏幕滑动，字号和高度与文件夹行一致）
             if !currentPath.isEmpty {
@@ -929,23 +927,6 @@ struct FileBrowserView: View {
 
                 Spacer(minLength: 12)
 
-                // 提交哈希（生产级等宽字体，可点击复制）
-                Button(action: {
-                    UIPasteboard.general.string = commit.shortSha
-                    showMessage("提交哈希已复制: \(commit.shortSha)")
-                }) {
-                    Text(commit.shortSha)
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
-                }
-                .buttonStyle(PlainButtonStyle())
-                .accessibilityLabel("复制提交哈希")
-                .frame(minWidth: 56)
-
                 // 提交时间（生产级次要信息）
                 Text(commit.commit.committer.relativeDate)
                     .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
@@ -976,8 +957,8 @@ struct FileBrowserView: View {
             }
         }
         .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-        .padding(.vertical, 10)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
-        .frame(minHeight: 44) // 生产级最小行高，符合Apple HIG
+        .padding(.vertical, 5)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .frame(minHeight: 22) // 紧凑版最小行高，原44pt降低一半，节省空间
         .background(appState.isDarkMode ? Color(red: 0.1, green: 0.1, blue: 0.1) : Color(red: 0.96, green: 0.96, blue: 0.96))
         .contentShape(Rectangle())
         .onTapGesture {
