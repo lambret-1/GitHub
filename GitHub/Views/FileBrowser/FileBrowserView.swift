@@ -223,23 +223,34 @@ struct FileBrowserView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                // 仓库所有者头像（点击进入所有者的仓库主页）
-                Button(action: {
-                    showUserRepos = true
-                }) {
-                    AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 20))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                            .foregroundColor(.gray)
+                HStack(spacing: 16) {
+                    // 代码搜索图标按钮（点击弹出RepoCodeSearchView，使用GitHub官方搜索API）
+                    Button(action: {
+                        showCodeSearch = true
+                    }) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 18))  // 这是字体大小尺寸，控制图标显示的大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难辨认；还能配合.imageScale设大小或用.tint改图标颜色
                     }
-                    .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
-                    .clipShape(Circle())
+                    .buttonStyle(PlainButtonStyle())
+
+                    // 仓库所有者头像（点击进入所有者的仓库主页）
+                    Button(action: {
+                        showUserRepos = true
+                    }) {
+                        AsyncImage(url: URL(string: repository.owner.avatarUrl)) { image in
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 20))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .foregroundColor(.gray)
+                        }
+                        .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                        .clipShape(Circle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
-                .buttonStyle(PlainButtonStyle())
             }
         }
         // 程序导航：使用navigationDestination替代弃用的NavigationLink(destination:isActive:)
@@ -661,27 +672,6 @@ struct FileBrowserView: View {
             moreMenuContent
         }
         .environmentObject(appState)
-        .listRowInsets(EdgeInsets())
-        .listRowSeparator(.hidden)
-
-        // 代码搜索入口按钮（点击弹出新的RepoCodeSearchView，使用GitHub官方搜索API）
-        Button {
-            showCodeSearch = true
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.gray)
-                Text("搜索当前仓库代码...")
-                    .foregroundColor(.gray)
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(Color(.systemGray6))
-            .cornerRadius(8)
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden)
 
