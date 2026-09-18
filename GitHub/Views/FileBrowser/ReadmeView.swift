@@ -41,6 +41,7 @@ struct ReadmeView: View {
     @State private var showOutline: Bool = false  // 是否显示大纲侧边栏
     @State private var scrollAnchorId: String?  // 当前需要滚动到的锚点ID
     @State private var previewImageUrl: String?  // P1优化：图片预览URL，点击图片时设置
+    @State private var showImagePreview: Bool = false  // P1优化：是否显示图片全屏预览
     @State private var previewLinkUrl: String?  // P1优化：链接预览URL，长按链接时设置
     @State private var showLinkPreview: Bool = false  // P1优化：是否显示链接预览弹窗
 
@@ -161,6 +162,7 @@ struct ReadmeView: View {
                         onImageClick: { imageUrl in
                             // P1优化：点击图片显示全屏预览
                             previewImageUrl = imageUrl
+                            showImagePreview = true
                         },
                         onLinkLongPress: { linkUrl in
                             // P1优化：长按链接显示预览弹窗
@@ -216,11 +218,10 @@ struct ReadmeView: View {
             )
         }
         // P1优化：图片全屏预览
-        .fullScreenCover(item: Binding(
-            get: { previewImageUrl.map { ImagePreviewItem(url: $0) } },
-            set: { previewImageUrl = $0?.url }
-        )) { item in
-            ImagePreviewView(imageUrl: item.url, isDarkMode: appState.isDarkMode)
+        .fullScreenCover(isPresented: $showImagePreview) {
+            if let imageUrl = previewImageUrl {
+                ImagePreviewView(imageUrl: imageUrl, isDarkMode: appState.isDarkMode)
+            }
         }
         // P1优化：链接预览弹窗
         .alert("链接预览", isPresented: $showLinkPreview) {
@@ -241,12 +242,6 @@ struct ReadmeView: View {
             Text(previewLinkUrl ?? "")
         }
     }
-}
-
-// MARK: - P1优化：图片预览项模型
-struct ImagePreviewItem: Identifiable {
-    let id = UUID()
-    let url: String
 }
 
 // MARK: - P1优化：图片全屏预览视图
