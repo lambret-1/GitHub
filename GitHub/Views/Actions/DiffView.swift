@@ -44,7 +44,14 @@ struct DiffView: View {
 
     @ViewBuilder
     private var editorDestination: some View {
-        FileEditorView(owner: owner, repo: repo, filePath: changedFile.filename, branch: branch)
+        // 使用专业代码编辑器，替代简陋的普通编辑器
+        CodeEditorView(
+            owner: owner,
+            repo: repo,
+            path: changedFile.filename,
+            branch: branch,
+            fileName: (changedFile.filename as NSString).lastPathComponent
+        )
     }
 
     // MARK: - 文件信息头部
