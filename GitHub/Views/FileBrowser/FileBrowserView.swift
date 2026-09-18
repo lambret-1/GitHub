@@ -947,7 +947,7 @@ struct FileBrowserView: View {
         .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
         .padding(.vertical, 5)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
         .frame(minHeight: 22) // 紧凑版最小行高，原44pt降低一半，节省空间
-        .background(appState.isDarkMode ? Color(red: 0.1, green: 0.1, blue: 0.1) : Color(red: 0.96, green: 0.96, blue: 0.96))
+        .background(appState.isDarkMode ? Color(red: 0.08, green: 0.08, blue: 0.08) : Color(red: 0.98, green: 0.98, blue: 0.98))
         .contentShape(Rectangle())
         .onTapGesture {
             if latestCommit != nil {
