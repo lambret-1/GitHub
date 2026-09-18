@@ -3610,6 +3610,7 @@ struct CommitsView: View {
     @State var commits: [Commit] = []
     @State var isLoading: Bool = true
     @State var errorMessage: String?
+    @Environment(\.dismiss) private var dismiss  // 用于关闭当前sheet页面
     
     var body: some View {
         NavigationView {

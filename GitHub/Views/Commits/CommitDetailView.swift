@@ -380,6 +380,7 @@ struct ChangedFileRow: View {
 struct FileDiffView: View {
     let file: ChangedFile
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss  // 用于关闭当前sheet页面
 
     // 缩放比例
     @State private var scale: CGFloat = 1.0
