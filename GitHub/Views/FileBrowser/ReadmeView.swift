@@ -242,162 +242,8 @@ struct ReadmeView: View {
             Text(previewLinkUrl ?? "")
         }
     }
-}
 
-// MARK: - P1优化：图片全屏预览视图
-struct ImagePreviewView: View {
-    let imageUrl: String
-    let isDarkMode: Bool
-    @Environment(\.presentationMode) var presentationMode
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
-    @State private var offset: CGSize = .zero
-    @State private var lastOffset: CGSize = .zero
-    @State private var showSaveSuccess: Bool = false
-
-    var body: some View {
-        ZStack {
-            // 背景
-            (isDarkMode ? Color.black : Color(red: 0.05, green: 0.05, blue: 0.05))
-                .ignoresSafeArea()
-
-            // 图片
-            AsyncImage(url: URL(string: imageUrl)) { phase in
-                switch phase {
-                case .empty:
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .scaleEffect(scale)
-                        .offset(offset)
-                        .gesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    scale = lastScale * value
-                                }
-                                .onEnded { _ in
-                                    lastScale = scale
-                                    if scale < 1.0 {
-                                        withAnimation {
-                                            scale = 1.0
-                                            lastScale = 1.0
-                                            offset = .zero
-                                            lastOffset = .zero
-                                        }
-                                    }
-                                }
-                        )
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    if scale > 1.0 {
-                                        offset = CGSize(
-                                            width: lastOffset.width + value.translation.width,
-                                            height: lastOffset.height + value.translation.height
-                                        )
-                                    }
-                                }
-                                .onEnded { _ in
-                                    lastOffset = offset
-                                }
-                        )
-                        .onTapGesture(count: 2) {
-                            if scale > 1.0 {
-                                withAnimation {
-                                    scale = 1.0
-                                    lastScale = 1.0
-                                    offset = .zero
-                                    lastOffset = .zero
-                                }
-                            } else {
-                                withAnimation {
-                                    scale = 2.0
-                                    lastScale = 2.0
-                                }
-                            }
-                        }
-                case .failure:
-                    VStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.largeTitle)
-                            .foregroundColor(.white)
-                        Text("图片加载失败")
-                            .foregroundColor(.white)
-                    }
-                @unknown default:
-                    EmptyView()
-                }
-            }
-            .padding()
-
-            // 顶部工具栏
-            VStack {
-                HStack {
-                    Button(action: {
-                        presentationMode.wrappedValue.dismiss()
-                    }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(12)
-                            .background(Color.black.opacity(0.5))
-                            .clipShape(Circle())
-                    }
-                    Spacer()
-                    Button(action: {
-                        saveImage()
-                    }) {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(12)
-                            .background(Color.black.opacity(0.5))
-                            .clipShape(Circle())
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                Spacer()
-            }
-
-            // 保存成功提示
-            if showSaveSuccess {
-                VStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(.green)
-                    Text("已保存到相册")
-                        .foregroundColor(.white)
-                        .font(.system(size: 16, weight: .medium))
-                }
-                .padding(24)
-                .background(Color.black.opacity(0.8))
-                .cornerRadius(12)
-                .transition(.opacity)
-            }
-        }
-        .statusBar(hidden: true)
-    }
-
-    // 保存图片到相册
-    private func saveImage() {
-        guard let url = URL(string: imageUrl) else { return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            if let data = data, let image = UIImage(data: data) {
-                UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-                DispatchQueue.main.async {
-                    showSaveSuccess = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        showSaveSuccess = false
-                    }
-                }
-            }
-        }.resume()
-    }
-}
+    // MARK: - 使用GitHub官方Markdown API渲染
 
     private func renderMarkdown() {
         isRendering = true
@@ -1032,5 +878,160 @@ struct ReadmeWebView: UIViewRepresentable {
                 }
             }
         }
+    }
+}
+
+// MARK: - P1优化：图片全屏预览视图
+struct ImagePreviewView: View {
+    let imageUrl: String
+    let isDarkMode: Bool
+    @Environment(\.presentationMode) var presentationMode
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+    @State private var showSaveSuccess: Bool = false
+
+    var body: some View {
+        ZStack {
+            // 背景
+            (isDarkMode ? Color.black : Color(red: 0.05, green: 0.05, blue: 0.05))
+                .ignoresSafeArea()
+
+            // 图片
+            AsyncImage(url: URL(string: imageUrl)) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .scaleEffect(scale)
+                        .offset(offset)
+                        .gesture(
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    scale = lastScale * value
+                                }
+                                .onEnded { _ in
+                                    lastScale = scale
+                                    if scale < 1.0 {
+                                        withAnimation {
+                                            scale = 1.0
+                                            lastScale = 1.0
+                                            offset = .zero
+                                            lastOffset = .zero
+                                        }
+                                    }
+                                }
+                        )
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    if scale > 1.0 {
+                                        offset = CGSize(
+                                            width: lastOffset.width + value.translation.width,
+                                            height: lastOffset.height + value.translation.height
+                                        )
+                                    }
+                                }
+                                .onEnded { _ in
+                                    lastOffset = offset
+                                }
+                        )
+                        .onTapGesture(count: 2) {
+                            if scale > 1.0 {
+                                withAnimation {
+                                    scale = 1.0
+                                    lastScale = 1.0
+                                    offset = .zero
+                                    lastOffset = .zero
+                                }
+                            } else {
+                                withAnimation {
+                                    scale = 2.0
+                                    lastScale = 2.0
+                                }
+                            }
+                        }
+                case .failure:
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.largeTitle)
+                            .foregroundColor(.white)
+                        Text("图片加载失败")
+                            .foregroundColor(.white)
+                    }
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .padding()
+
+            // 顶部工具栏
+            VStack {
+                HStack {
+                    Button(action: {
+                        presentationMode.wrappedValue.dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .background(Color.black.opacity(0.5))
+                            .clipShape(Circle())
+                    }
+                    Spacer()
+                    Button(action: {
+                        saveImage()
+                    }) {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .background(Color.black.opacity(0.5))
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                Spacer()
+            }
+
+            // 保存成功提示
+            if showSaveSuccess {
+                VStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.green)
+                    Text("已保存到相册")
+                        .foregroundColor(.white)
+                        .font(.system(size: 16, weight: .medium))
+                }
+                .padding(24)
+                .background(Color.black.opacity(0.8))
+                .cornerRadius(12)
+                .transition(.opacity)
+            }
+        }
+        .statusBar(hidden: true)
+    }
+
+    // 保存图片到相册
+    private func saveImage() {
+        guard let url = URL(string: imageUrl) else { return }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            if let data = data, let image = UIImage(data: data) {
+                UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                DispatchQueue.main.async {
+                    showSaveSuccess = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showSaveSuccess = false
+                    }
+                }
+            }
+        }.resume()
     }
 }
