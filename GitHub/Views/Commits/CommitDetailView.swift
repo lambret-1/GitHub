@@ -6,6 +6,7 @@ struct CommitDetailView: View {
     let repo: String
     let commit: Commit
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss  // 用于关闭当前sheet页面
 
     // 变更文件状态
     @State private var changedFiles: [ChangedFile] = []
@@ -438,7 +439,7 @@ struct FileDiffView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("完成") {
-                        // 关闭sheet
+                        dismiss()  // 关闭当前sheet页面
                     }
                 }
             }

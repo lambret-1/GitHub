@@ -605,6 +605,7 @@ struct SymbolPickerView: View {
     @ObservedObject var symbolNavigator: SymbolNavigator
     var onSelect: (SymbolNavigator.Symbol) -> Void
     @State private var searchText: String = ""
+    @Environment(\.dismiss) private var dismiss  // 用于关闭当前sheet页面
 
     var body: some View {
         NavigationView {
@@ -669,7 +670,7 @@ struct SymbolPickerView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("关闭") {
-                        // 由调用方处理关闭
+                        dismiss()  // 关闭当前sheet页面
                     }
                 }
             }

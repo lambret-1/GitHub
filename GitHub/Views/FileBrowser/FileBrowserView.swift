@@ -3649,7 +3649,7 @@ struct CommitsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("关闭") {
-                        // 关闭sheet
+                        dismiss()  // 关闭当前sheet页面
                     }
                 }
             }
