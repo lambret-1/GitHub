@@ -42,6 +42,10 @@ struct ActionsListView: View {
     @State private var selectedRunForComparison2: WorkflowRun?
     @State private var showComparisonView: Bool = false
 
+    // 运行记录折叠状态
+    @State private var isRunsExpanded: Bool = false  // 是否展开全部运行记录，默认折叠只显示10条
+    private let defaultDisplayCount: Int = 10  // 默认显示的运行记录条数
+
     var body: some View {
         VStack(spacing: 0) {
             // 统计概览卡片
@@ -446,7 +450,10 @@ struct ActionsListView: View {
                     // 筛选和排序栏
                     filterSortBar
 
-                    ForEach(filteredRuns) { run in
+                    // 根据折叠状态决定显示多少条运行记录
+                    let displayRuns = isRunsExpanded ? filteredRuns : Array(filteredRuns.prefix(defaultDisplayCount))
+                    
+                    ForEach(displayRuns) { run in
                         if isComparisonMode {
                             // 对比模式：点击选择运行
                             Button(action: {
@@ -465,7 +472,7 @@ struct ActionsListView: View {
                                 WorkflowRunRow(run: run)
                             }
                             .onAppear {
-                                if run.id == filteredRuns.last?.id && hasMoreRuns && !isLoadingRuns {
+                                if run.id == displayRuns.last?.id && hasMoreRuns && !isLoadingRuns && isRunsExpanded {
                                     loadMoreRuns()
                                 }
                             }
@@ -473,6 +480,26 @@ struct ActionsListView: View {
                         // 手动添加分隔线，替代List默认分隔线
                         Divider()
                             .padding(.leading, 16)
+                    }
+
+                    // 折叠/展开按钮
+                    if filteredRuns.count > defaultDisplayCount {
+                        Button(action: {
+                            isRunsExpanded.toggle()
+                        }) {
+                            HStack {
+                                Spacer()
+                                Text(isRunsExpanded ? "收起" : "显示更多（还有 \(filteredRuns.count - defaultDisplayCount) 条）")
+                                    .font(.system(size: 14))  // 这是字体大小尺寸，控制按钮文字的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格
+                                    .foregroundColor(.blue)
+                                Image(systemName: isRunsExpanded ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 12))  // 这是字体大小尺寸，控制箭头图标的大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难辨认；还能配合.imageScale设大小或用.tint改图标颜色
+                                    .foregroundColor(.blue)
+                                Spacer()
+                            }
+                            .padding(.vertical, 12)  // 这是垂直内边距，控制按钮上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽按钮更大更好点击，改小上下留白更窄按钮更紧凑；还能改成.top/.bottom单独控制某一侧
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
 
                     if isLoadingRuns {
