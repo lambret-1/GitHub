@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-18 13:57:54 UTC
+**生成时间**: 2026-09-18 14:06:59 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -78,7 +78,7 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:358:71: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
 /Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:436:68: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/PythonTokenizer.swift:81:25: warning: initialization of immutable value 'quote' was never used; consider replacing with assignment to '_' or removing it
-/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/ReadmeView.swift:350:13: warning: initialization of immutable value 'theme' was never used; consider replacing with assignment to '_' or removing it
+/Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/ReadmeView.swift:357:13: warning: initialization of immutable value 'theme' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Settings/RepositorySettingsView.swift:325:20: warning: value 'size' was defined but never used; consider replacing with boolean test
 ```
 
@@ -101,7 +101,7 @@
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 38041 行
+- **代码总行数**: 38078 行
 
 ### 💡 修复建议
 
