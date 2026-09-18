@@ -39,6 +39,7 @@ struct ReadmeView: View {
     @State private var webViewHeight: CGFloat = 400
     @State private var webViewKey: UUID = UUID()
     @State private var showOutline: Bool = false  // 是否显示大纲侧边栏
+    @State private var scrollAnchorId: String?  // 当前需要滚动到的锚点ID
 
     // MARK: - 计算属性：解析Markdown提取大纲
     /// 从Markdown文本中解析所有标题，生成大纲列表
@@ -148,6 +149,7 @@ struct ReadmeView: View {
                         repo: repo,
                         branch: branch,
                         outlineItems: outlineItems,
+                        scrollAnchorId: scrollAnchorId,
                         onHeightChange: { height in
                             DispatchQueue.main.async {
                                 webViewHeight = height
@@ -196,18 +198,8 @@ struct ReadmeView: View {
                 isDarkMode: appState.isDarkMode,
                 onSelect: { anchorId in
                     showOutline = false
-                    // 通过JS滚动到指定锚点
-                    webViewKey = UUID()
-                    // 延迟一点，等WebView重新加载完成后再滚动
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        // 注意：这里通过改变webViewKey重新加载，实际滚动需要通过WKWebView的evaluateJavaScript
-                        // 由于ReadmeWebView是UIViewRepresentable，我们通过通知方式传递滚动指令
-                        NotificationCenter.default.post(
-                            name: .readmeScrollToAnchor,
-                            object: nil,
-                            userInfo: ["anchorId": anchorId]
-                        )
-                    }
+                    // 直接设置滚动锚点，ReadmeWebView会通过updateUIView检测变化并调用JS滚动
+                    scrollAnchorId = anchorId
                 }
             )
         }
@@ -287,13 +279,6 @@ struct OutlineSheetView: View {
     }
 }
 
-// MARK: - 通知名称扩展
-
-extension Notification.Name {
-    /// README滚动到指定锚点的通知名称
-    static let readmeScrollToAnchor = Notification.Name("ReadmeScrollToAnchor")
-}
-
 // MARK: - ReadmeWebView 用于渲染README的WebView
 
 struct ReadmeWebView: UIViewRepresentable {
@@ -303,6 +288,7 @@ struct ReadmeWebView: UIViewRepresentable {
     let repo: String
     let branch: String
     let outlineItems: [ReadmeOutlineItem]  // 大纲条目，用于给标题添加锚点ID
+    var scrollAnchorId: String?  // 需要滚动到的锚点ID，变化时触发滚动
     var onHeightChange: ((CGFloat) -> Void)?
 
     func makeUIView(context: Context) -> WKWebView {
@@ -332,21 +318,29 @@ struct ReadmeWebView: UIViewRepresentable {
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
 
-        // 监听滚动到锚点的通知
-        NotificationCenter.default.addObserver(
-            context.coordinator,
-            selector: #selector(Coordinator.handleScrollToAnchor(_:)),
-            name: .readmeScrollToAnchor,
-            object: nil
-        )
+        // 保存WebView引用到Coordinator，供后续调用evaluateJavaScript
+        context.coordinator.webView = webView
 
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
+        // 保存最新的parent引用
+        context.coordinator.parent = self
+
+        // 处理滚动到锚点的请求
+        // 当scrollAnchorId变化时，调用JS滚动到对应位置
+        if let anchorId = scrollAnchorId, anchorId != context.coordinator.lastScrolledAnchorId {
+            context.coordinator.lastScrolledAnchorId = anchorId
+            // 延迟一点执行，确保页面已经渲染完成
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let js = "window.scrollToAnchor('\(anchorId)')"
+                webView.evaluateJavaScript(js)
+            }
+        }
+
         guard !context.coordinator.hasLoaded else { return }
         context.coordinator.hasLoaded = true
-        context.coordinator.parent = self
 
         let fullHTML = buildFullHTML()
         webView.loadHTMLString(fullHTML, baseURL: nil)
@@ -643,13 +637,10 @@ struct ReadmeWebView: UIViewRepresentable {
         var parent: ReadmeWebView
         var hasLoaded: Bool = false
         weak var webView: WKWebView?
+        var lastScrolledAnchorId: String?  // 记录上次滚动的锚点ID，避免重复滚动
 
         init(_ parent: ReadmeWebView) {
             self.parent = parent
-        }
-
-        deinit {
-            NotificationCenter.default.removeObserver(self)
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -668,17 +659,6 @@ struct ReadmeWebView: UIViewRepresentable {
                     }
                 }
             }
-        }
-
-        /// 处理滚动到锚点的通知
-        /// 当用户在大纲中点击某个标题时，通过此方法调用JS滚动到对应位置
-        @objc func handleScrollToAnchor(_ notification: Notification) {
-            guard let anchorId = notification.userInfo?["anchorId"] as? String else { return }
-            guard let webView = webView else { return }
-
-            // 调用JS的scrollToAnchor函数滚动到指定标题
-            let js = "window.scrollToAnchor('\(anchorId)')"
-            webView.evaluateJavaScript(js)
         }
     }
 }
