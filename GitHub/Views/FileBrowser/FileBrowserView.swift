@@ -1258,13 +1258,6 @@ struct FileBrowserView: View {
         }
         .disabled(isDeleteMode)
 
-        Button(action: {
-            showActions = true
-        }) {
-            Label("Actions", systemImage: "bolt.fill")
-        }
-        .disabled(isDeleteMode)
-
         /*Button(action: {
             downloadRepositoryZip()
         }) {
