@@ -553,7 +553,10 @@ struct FileBrowserView: View {
             isForking: isForking,
             onToggleStar: toggleStar,
             onFork: forkRepository,
-            starCount: localStarCount
+            starCount: localStarCount,
+            onOwnerClick: {
+                showUserRepos = true
+            }
         )
         .environmentObject(appState)
         .listRowInsets(EdgeInsets())
@@ -601,7 +604,10 @@ struct FileBrowserView: View {
                     isForking: isForking,
                     onToggleStar: toggleStar,
                     onFork: forkRepository,
-                    starCount: localStarCount
+                    starCount: localStarCount,
+                    onOwnerClick: {
+                        showUserRepos = true
+                    }
                 )
                 .environmentObject(appState)
 

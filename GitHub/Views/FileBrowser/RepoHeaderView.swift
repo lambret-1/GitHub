@@ -18,6 +18,8 @@ struct RepoHeaderView: View {
     var starCount: Int? = nil
     // 新增回调：查看父仓库（Fork来源）
     var onViewParent: ((RepositoryParent) -> Void)? = nil
+    // 新增回调：点击所有者头像跳转到其主页仓库
+    var onOwnerClick: (() -> Void)? = nil
 
     @EnvironmentObject var appState: AppState
     // 描述展开状态
@@ -25,22 +27,36 @@ struct RepoHeaderView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // 第一行：仓库名称 + 图标
+            // 第一行：所有者头像 + 用户名（点击头像跳转到所有者主页仓库）
             HStack(spacing: 8) {
-                Image(systemName: "book.closed")
-                    .font(.system(size: 18))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                    .foregroundColor(appState.isDarkMode ? .gray : .secondary)
+                // 所有者头像（点击跳转到其主页仓库）
+                Button(action: {
+                    onOwnerClick?()
+                }) {
+                    Group {
+                        if let avatarUrl = repository.owner.avatarUrl, let url = URL(string: avatarUrl) {
+                            AsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Image(systemName: "person.circle.fill")
+                                    .font(.system(size: 20))  // 这是字体大小尺寸，控制占位图标显示的大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难辨认；还能配合.imageScale设大小或用.tint改图标颜色
+                                    .foregroundColor(.gray)
+                            }
+                        } else {
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 20))  // 这是字体大小尺寸，控制占位图标显示的大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难辨认；还能配合.imageScale设大小或用.tint改图标颜色
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .frame(width: 24, height: 24)  // 这是视图宽高尺寸，控制头像显示的宽度和高度，单位是pt（点）；改大头像显示更大更醒目，改小头像显示更小更精致；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                    .clipShape(Circle())
+                }
+                .buttonStyle(PlainButtonStyle())
 
                 Text(repository.ownerName)
                     .font(.system(size: 17))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                    .foregroundColor(.blue)
-
-                Text("/")
-                    .font(.system(size: 17))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                    .foregroundColor(appState.isDarkMode ? .gray : .secondary)
-
-                Text(repository.name)
-                    .font(.system(size: 17, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
                     .foregroundColor(.blue)
 
                 Spacer()
