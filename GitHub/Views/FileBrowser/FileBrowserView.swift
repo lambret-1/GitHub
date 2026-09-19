@@ -538,6 +538,11 @@ struct FileBrowserView: View {
             starCount: localStarCount,
             onOwnerClick: {
                 showUserRepos = true
+            },
+            latestCommit: latestCommit,
+            isLoadingLatestCommit: isLoadingLatestCommit,
+            onShowCommits: {
+                showCommits = true
             }
         )
         .environmentObject(appState)
@@ -577,7 +582,7 @@ struct FileBrowserView: View {
     var fileListView: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // 仓库头部（复刻GitHub网页布局，可跟随屏幕滑动）
+                // 仓库头部（复刻GitHub网页布局，可跟随屏幕滑动，包含提交信息栏）
                 RepoHeaderView(
                     repository: repository,
                     isStarred: isStarred,
@@ -589,12 +594,14 @@ struct FileBrowserView: View {
                     starCount: localStarCount,
                     onOwnerClick: {
                         showUserRepos = true
+                    },
+                    latestCommit: latestCommit,
+                    isLoadingLatestCommit: isLoadingLatestCommit,
+                    onShowCommits: {
+                        showCommits = true
                     }
                 )
                 .environmentObject(appState)
-
-                // 顶部提交信息栏（上移到Tab栏上方，紧凑高度，关闭哈希显示）
-                latestCommitHeaderView
 
                 // 仓库功能Tab分段控件（代码/Issues/PR/Actions/设置）
                 repoTabBar

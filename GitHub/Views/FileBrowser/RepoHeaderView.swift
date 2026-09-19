@@ -20,6 +20,10 @@ struct RepoHeaderView: View {
     var onViewParent: ((RepositoryParent) -> Void)? = nil
     // 新增回调：点击所有者头像跳转到其主页仓库
     var onOwnerClick: (() -> Void)? = nil
+    // 最新提交信息（用于在操作按钮组下方显示提交记录栏）
+    var latestCommit: Commit? = nil
+    var isLoadingLatestCommit: Bool = false
+    var onShowCommits: (() -> Void)? = nil
 
     @EnvironmentObject var appState: AppState
     // 描述展开状态
@@ -227,6 +231,98 @@ struct RepoHeaderView: View {
                 .buttonStyle(PlainButtonStyle())
 
                 Spacer()
+            }
+
+            // 提交信息栏（上移到操作按钮组下方，背景色与RepoHeaderView一致）
+            HStack(spacing: 10) {
+                if isLoadingLatestCommit {
+                    // 加载中状态
+                    ProgressView()
+                        .scaleEffect(0.8)  // 这是视图缩放比例，控制组件整体放大或缩小的倍数，单位是倍（相对原始尺寸）；改大组件放大更醒目，改小组件缩小更精致；还能配合.animation做缩放动画或用.anchorPoint设缩放锚点位置
+                    Text("加载提交信息...")
+                        .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .foregroundColor(.secondary)
+                    Spacer()
+                } else if let commit = latestCommit {
+                    // 提交者头像（24pt，生产级尺寸）
+                    Group {
+                        if let avatarUrl = commit.author?.avatarUrl, let url = URL(string: avatarUrl) {
+                            AsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Image(systemName: "person.circle.fill")
+                                    .font(.system(size: 24))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                    .foregroundColor(.gray)
+                            }
+                            .frame(width: 24, height: 24)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                            .clipShape(Circle())
+                        } else {
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 24))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .frame(width: 24, height: 24)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+
+                    // 提交者名称 + 提交信息（垂直布局，生产级信息层次）
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(commit.authorName)
+                                .font(.system(size: 13, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                            Text("提交了")
+                                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .foregroundColor(.secondary)
+                        }
+                        Text(commit.message)
+                            .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .layoutPriority(1)
+                    }
+
+                    Spacer(minLength: 12)
+
+                    // 提交时间（生产级次要信息）
+                    Text(commit.commit.committer.relativeDate)
+                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .frame(minWidth: 60, alignment: .trailing)
+
+                    // 查看提交历史按钮（生产级点击区域44pt）
+                    Button(action: {
+                        onShowCommits?()
+                    }) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .foregroundColor(.secondary)
+                            .frame(width: 20, height: 20)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .accessibilityLabel("查看提交历史")
+                } else {
+                    // 无提交信息（空仓库状态，生产级空态设计）
+                    Image(systemName: "exclamationmark.circle")
+                        .font(.system(size: 18))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .foregroundColor(.orange)
+                    Text("此目录暂无提交记录")
+                        .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+            }
+            .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+            .padding(.vertical, 5)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+            .frame(minHeight: 22) // 紧凑版最小行高，原44pt降低一半，节省空间
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if latestCommit != nil {
+                    onShowCommits?()
+                }
             }
 
             // 第四行：Topics标签（如果有）
