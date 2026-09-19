@@ -140,10 +140,9 @@ struct FileContent: Codable {
             return text
         }
         // UTF8失败后尝试GBK编码（中文TXT文件常用GBK编码）
-        if let gbkEncoding = CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)) {
-            if let text = String(data: data, encoding: String.Encoding(rawValue: gbkEncoding)) {
-                return text
-            }
+        let gbkEncoding = CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue))
+        if let text = String(data: data, encoding: String.Encoding(rawValue: gbkEncoding)) {
+            return text
         }
         // 尝试ASCII编码
         if let text = String(data: data, encoding: .ascii) {
