@@ -132,9 +132,24 @@ struct FileContent: Codable {
             return content ?? ""
         }
         let cleanedContent = content.replacingOccurrences(of: "\n", with: "")
-        if let data = Data(base64Encoded: cleanedContent), let text = String(data: data, encoding: .utf8) {
+        guard let data = Data(base64Encoded: cleanedContent) else {
+            return content
+        }
+        // 优先尝试UTF8解码
+        if let text = String(data: data, encoding: .utf8) {
             return text
         }
+        // UTF8失败后尝试GBK编码（中文TXT文件常用GBK编码）
+        if let gbkEncoding = CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)) {
+            if let text = String(data: data, encoding: String.Encoding(rawValue: gbkEncoding)) {
+                return text
+            }
+        }
+        // 尝试ASCII编码
+        if let text = String(data: data, encoding: .ascii) {
+            return text
+        }
+        // 所有编码都失败，返回原始base64内容
         return content
     }
     

@@ -103,11 +103,13 @@ struct CodeTextView: UIViewRepresentable {
         // 编辑模式下使用纯文本，避免语法高亮导致光标乱跳换行问题
         // 查看模式下使用带语法高亮的属性字符串
         // 大文件性能优化：超过1MB的文件自动禁用语法高亮，保证流畅浏览
+        // TXT文件特殊处理：纯文本文件无需语法高亮，直接打开
         let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         let fileSize = text.utf8.count
         let isLargeFile = fileSize > 1024 * 1024  // 1MB阈值，超过此大小自动禁用语法高亮
-        if isEditable || isLargeFile {
-            // 编辑模式或大文件：使用纯文本，保证性能和光标稳定性
+        let isTxtFile = fileName.lowercased().hasSuffix(".txt")  // TXT纯文本文件，无需语法高亮
+        if isEditable || isLargeFile || isTxtFile {
+            // 编辑模式、大文件或TXT文件：使用纯文本，保证性能和光标稳定性
             textStorage.setAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.label]))
         } else {
             // 小文件查看模式：使用语法高亮
