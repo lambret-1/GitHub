@@ -18,6 +18,64 @@ class LineNumberLayoutManager: NSLayoutManager {
     // textView的textContainerInset，用于计算行号位置偏移
     var containerInset: UIEdgeInsets = .zero
 
+    // MARK: - 换行符位置缓存（大文件性能优化）
+    // 预计算所有换行符的位置，使用二分查找计算行号，避免每次滚动都遍历整个文件
+    private var newlinePositions: [Int]?
+    private var cachedTextHash: Int?
+
+    /// 预计算换行符位置（在文本加载后调用一次）
+    func precomputeNewlinePositions() {
+        guard let text = textStorage?.string else { return }
+        let hash = text.hashValue
+        if hash == cachedTextHash && newlinePositions != nil {
+            return // 缓存有效，无需重新计算
+        }
+
+        var positions: [Int] = []
+        let nsString = text as NSString
+        let length = nsString.length
+        for i in 0..<length {
+            let char = nsString.character(at: i)
+            if char == 10 || char == 13 { // 10是\n，13是\r
+                positions.append(i)
+            }
+        }
+        newlinePositions = positions
+        cachedTextHash = hash
+    }
+
+    /// 使用二分查找计算指定位置的行号
+    private func lineNumber(for position: Int) -> Int {
+        guard let positions = newlinePositions else {
+            // 缓存未就绪，回退到原始方法
+            if position == 0 { return 1 }
+            if let nsString = textStorage?.string as NSString? {
+                var count = 1
+                for i in 0..<position {
+                    let char = nsString.character(at: i)
+                    if char == 10 || char == 13 {
+                        count += 1
+                    }
+                }
+                return count
+            }
+            return 1
+        }
+
+        // 二分查找：找到最后一个小于position的换行符的索引
+        var left = 0
+        var right = positions.count
+        while left < right {
+            let mid = (left + right) / 2
+            if positions[mid] < position {
+                left = mid + 1
+            } else {
+                right = mid
+            }
+        }
+        return left + 1 // 行号从1开始
+    }
+
     // MARK: - 计算自适应行号列宽
 
     /// 根据文本内容和字体计算自适应的行号列宽
@@ -67,14 +125,12 @@ class LineNumberLayoutManager: NSLayoutManager {
         UIColor.separator.setFill()
         context?.fill(separatorRect)
 
-        // 计算起始行号
+        // 预计算换行符位置（大文件性能优化，只在第一次或文本变化时计算）
+        precomputeNewlinePositions()
+
+        // 计算起始行号（使用二分查找，O(log n)复杂度）
         let charRange = characterRange(forGlyphRange: glyphsToShow, actualGlyphRange: nil)
-        var lineNumber = 1
-        if charRange.location > 0 {
-            if let nsString = textStorage?.string as NSString? {
-                lineNumber = nsString.substring(to: charRange.location).components(separatedBy: .newlines).count
-            }
-        }
+        var lineNumber = lineNumber(for: charRange.location)
 
         // 使用enumerateLineFragments精确遍历每一行
         enumerateLineFragments(forGlyphRange: glyphsToShow) { lineRect, _, _, glyphRange, _ in

@@ -1054,7 +1054,10 @@ struct CodeEditorView: View {
                     loadLastCommit()
 
                     // 解析文件符号（第三期：高级编辑功能）
-                    symbolNavigator.parseSymbols(in: codeText, language: file.fileExtension)
+                    // 大文件性能优化：超过1MB的文件跳过符号解析，保证流畅加载
+                    if file.size < 1024 * 1024 {
+                        symbolNavigator.parseSymbols(in: codeText, language: file.fileExtension)
+                    }
                 case .failure(let error):
                     errorMessage = error.localizedDescription
                 }

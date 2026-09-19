@@ -75,9 +75,20 @@ struct CodeTextView: UIViewRepresentable {
         // 配置行号 LayoutManager
         let lineNumberFont = UIFont.monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
         layoutManager.lineNumberFont = lineNumberFont
-        let calculatedLineNumberWidth = showLineNumbers
-            ? LineNumberLayoutManager.calculateLineNumberWidth(for: text, font: lineNumberFont)
-            : 0
+        // 大文件性能优化：超过1MB的文件不遍历计算行号宽度，直接使用最大宽度80pt
+        let fileSizeForLineNumber = text.utf8.count
+        let calculatedLineNumberWidth: CGFloat
+        if showLineNumbers {
+            if fileSizeForLineNumber > 1024 * 1024 {
+                // 大文件：直接使用最大宽度，避免遍历整个文件计算行数
+                calculatedLineNumberWidth = 80
+            } else {
+                // 小文件：精确计算行号宽度
+                calculatedLineNumberWidth = LineNumberLayoutManager.calculateLineNumberWidth(for: text, font: lineNumberFont)
+            }
+        } else {
+            calculatedLineNumberWidth = 0
+        }
         let clampedLineNumberWidth = min(max(calculatedLineNumberWidth, 30), 80)
         layoutManager.lineNumberWidth = clampedLineNumberWidth
         textView.textContainerInset = UIEdgeInsets(
@@ -91,13 +102,21 @@ struct CodeTextView: UIViewRepresentable {
         // 设置初始文本
         // 编辑模式下使用纯文本，避免语法高亮导致光标乱跳换行问题
         // 查看模式下使用带语法高亮的属性字符串
+        // 大文件性能优化：超过1MB的文件自动禁用语法高亮，保证流畅浏览
         let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        if isEditable {
+        let fileSize = text.utf8.count
+        let isLargeFile = fileSize > 1024 * 1024  // 1MB阈值，超过此大小自动禁用语法高亮
+        if isEditable || isLargeFile {
+            // 编辑模式或大文件：使用纯文本，保证性能和光标稳定性
             textStorage.setAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.label]))
         } else {
+            // 小文件查看模式：使用语法高亮
             let highlightedText = SyntaxHighlighter.highlight(text, font: font, fileName: fileName)
             textStorage.setAttributedString(highlightedText)
         }
+
+        // 预计算换行符位置（大文件性能优化，行号计算使用二分查找）
+        layoutManager.precomputeNewlinePositions()
 
         // 保存 coordinator 引用
         context.coordinator.textView = textView
@@ -145,9 +164,20 @@ struct CodeTextView: UIViewRepresentable {
         // 更新行号显示（仅当行号宽度或显示状态真的变化时才更新，避免每次updateUIView都触发重新布局导致光标乱跳）
         if let layoutManager = textView.layoutManager as? LineNumberLayoutManager {
             let lineNumberFont = UIFont.monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
-            let calculatedLineNumberWidth = showLineNumbers
-                ? LineNumberLayoutManager.calculateLineNumberWidth(for: textView.text, font: lineNumberFont)
-                : 0
+            // 大文件性能优化：超过1MB的文件不遍历计算行号宽度，直接使用最大宽度80pt
+            let fileSizeForUpdate = textView.text.utf8.count
+            let calculatedLineNumberWidth: CGFloat
+            if showLineNumbers {
+                if fileSizeForUpdate > 1024 * 1024 {
+                    // 大文件：直接使用最大宽度，避免遍历整个文件计算行数
+                    calculatedLineNumberWidth = 80
+                } else {
+                    // 小文件：精确计算行号宽度
+                    calculatedLineNumberWidth = LineNumberLayoutManager.calculateLineNumberWidth(for: textView.text, font: lineNumberFont)
+                }
+            } else {
+                calculatedLineNumberWidth = 0
+            }
             let clampedLineNumberWidth = min(max(calculatedLineNumberWidth, 30), 80)
 
             // 仅当行号宽度、字体或显示状态真的变化时才更新，避免不必要的重新布局
