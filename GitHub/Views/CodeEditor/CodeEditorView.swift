@@ -37,6 +37,7 @@ struct CodeEditorView: View {
     @State private var isDownloading: Bool = false
     @State private var downloadProgress: Double = 0
     @State private var showCopySuccess: Bool = false
+    @State private var showFormatSuccess: Bool = false
     @State private var lastCommitInfo: Commit?
 
     // 未保存提醒状态
@@ -239,6 +240,14 @@ struct CodeEditorView: View {
                             Label("复制全部内容", systemImage: "doc.on.doc")
                         }
 
+                        // 代码格式化（支持JSON、XML、Swift等）
+                        Button(action: {
+                            formatCode()
+                        }) {
+                            Label("格式化代码", systemImage: "text.alignleft")
+                        }
+                        .disabled(!CodeFormatter.shared.isFormatSupported(fileName: fileName))
+
                         // 代码片段（第二期：编辑体验增强）
                         Button(action: {
                             showSnippetPicker = true
@@ -351,6 +360,11 @@ struct CodeEditorView: View {
             Button("确定") {}
         } message: {
             Text("文件 Raw 地址已复制到剪贴板")
+        }
+        .alert("格式化完成", isPresented: $showFormatSuccess) {
+            Button("确定") {}
+        } message: {
+            Text("代码已按规范格式化，记得提交修改")
         }
         .alert("未选中文字", isPresented: $showNoSelectionAlert) {
             Button("确定") {}
@@ -1174,6 +1188,27 @@ struct CodeEditorView: View {
         let rawUrl = "https://raw.githubusercontent.com/\(owner)/\(repo)/\(branch)/\(path)"
         UIPasteboard.general.string = rawUrl
         showCopySuccess = true
+    }
+
+    // MARK: - 格式化代码
+
+    private func formatCode() {
+        let formatted = CodeFormatter.shared.format(code: codeText, fileName: fileName)
+        if formatted != codeText {
+            codeText = formatted
+            hasChanges = true
+            showFormatSuccess = true
+            // 3秒后自动隐藏成功提示
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                showFormatSuccess = false
+            }
+        } else {
+            // 格式化后内容未变化，也提示一下
+            showFormatSuccess = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                showFormatSuccess = false
+            }
+        }
     }
 
     // MARK: - 下载文件

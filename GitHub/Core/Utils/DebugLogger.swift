@@ -171,6 +171,11 @@ extension DebugLogger {
         shared.log(tag: "分享调试", message: message, level: .debug)
     }
 
+    /// 记录代码格式化日志
+    static func format(_ message: String) {
+        shared.log(tag: "代码格式化", message: message, level: .debug)
+    }
+
     /// 记录崩溃日志
     static func crash(_ message: String) {
         shared.log(tag: "崩溃日志", message: message, level: .crash)
