@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-20 16:21:11 UTC
+**生成时间**: 2026-09-20 16:43:19 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -11,7 +11,7 @@
 | 类型 | 数量 | 状态 |
 |------|------|------|
 | 🔴 错误 | **00** 个 | 无错误 |
-| 🟡 警告 | **31** 个 | 建议清理 |
+| 🟡 警告 | **32** 个 | 建议清理 |
 
 ---
 
@@ -20,10 +20,10 @@
 | 警告类型 | 数量 | 占比 |
 |----------|------|------|
 | ⚠️ 弃用API警告 | 00 个 | 0% |
-| 📦 未使用变量警告 | 25 个 | 80% |
+| 📦 未使用变量警告 | 25 个 | 78% |
 | 🔄 类型转换警告 | 00 个 | 0% |
 | 🔍 可空性警告 | 00 个 | 0% |
-| 📝 其他警告 | 6 个 | 19% |
+| 📝 其他警告 | 7 个 | 21% |
 
 ---
 
@@ -38,19 +38,19 @@
 | 5 | `HTMLTokenizer.swift` | 2 个 | 🟢 低 |
 | 6 | `FileDownloadManager.swift` | 2 个 | 🟢 低 |
 | 7 | `FileBrowserView.swift` | 2 个 | 🟢 低 |
-| 8 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 9 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 10 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
-| 11 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
-| 12 | `ReadmeView.swift` | 1 个 | 🟢 低 |
-| 13 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
-| 14 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
-| 15 | `JobLogView.swift` | 1 个 | 🟢 低 |
-| 16 | `INITokenizer.swift` | 1 个 | 🟢 低 |
-| 17 | `HighlightEngine.swift` | 1 个 | 🟢 低 |
-| 18 | `HighlightCache.swift` | 1 个 | 🟢 低 |
-| 19 | `GitHubApp.swift` | 1 个 | 🟢 低 |
-| 20 | `GitHubAPI.swift` | 1 个 | 🟢 低 |
+| 8 | `warning` | 1 个 | 🟢 低 |
+| 9 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 10 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 11 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
+| 12 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
+| 13 | `ReadmeView.swift` | 1 个 | 🟢 低 |
+| 14 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
+| 15 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
+| 16 | `JobLogView.swift` | 1 个 | 🟢 低 |
+| 17 | `INITokenizer.swift` | 1 个 | 🟢 低 |
+| 18 | `HighlightEngine.swift` | 1 个 | 🟢 低 |
+| 19 | `HighlightCache.swift` | 1 个 | 🟢 低 |
+| 20 | `GitHubApp.swift` | 1 个 | 🟢 低 |
 
 ---
 
@@ -82,7 +82,7 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Settings/RepositorySettingsView.swift:325:20: warning: value 'size' was defined but never used; consider replacing with boolean test
 ```
 
-### 📝 其他警告 (6个)
+### 📝 其他警告 (7个)
 
 ```
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: instance will be immediately deallocated because property 'delegate' is 'weak'
@@ -91,6 +91,7 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:497:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: weak reference will always be nil because the referenced object is deallocated here
+warning: Embedded binary's NSExtensionActivationRule is TRUEPREDICATE. Before you submit your containing app to the App Store, be sure to replace all uses of TRUEPREDICATE with specific predicate statements or NSExtensionActivationRule keys. If any extensions in your containing app include TRUEPREDICATE, the app will be rejected.
 ```
 
 ---
