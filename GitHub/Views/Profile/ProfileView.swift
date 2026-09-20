@@ -8,6 +8,7 @@ struct ProfileView: View {
     @State private var showAbout = false
     @State private var showAccountManager = false
     @State private var showCrashLogs = false
+    @State private var showDebugLogs = false
 
     // 检查更新相关状态
     @State private var isCheckingUpdate = false
@@ -212,6 +213,22 @@ struct ProfileView: View {
                             }
                         }
 
+                        // 调试日志
+                        Button(action: {
+                            showDebugLogs = true
+                        }) {
+                            HStack {
+                                Image(systemName: "ladybug")
+                                    .foregroundColor(.purple)
+                                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
+                                Text("调试日志")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+
                         Button(action: {
                             showLogoutAlert = true
                         }) {
@@ -303,6 +320,9 @@ struct ProfileView: View {
             }
             .navigationDestination(isPresented: $showCrashLogs) {
                 CrashLogListView()
+            }
+            .navigationDestination(isPresented: $showDebugLogs) {
+                DebugLogView()
             }
         }
         .alert(isPresented: $showLogoutAlert) {

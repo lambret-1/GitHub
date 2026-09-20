@@ -42,16 +42,20 @@ class ShareViewController: UIViewController {
     // MARK: - 处理分享的文件
 
     private func handleSharedFiles() {
+        DebugLogger.share("=== Share Extension handleSharedFiles 被调用 ===")
         guard let extensionItems = extensionContext?.inputItems as? [NSExtensionItem] else {
+            DebugLogger.share("❌ 无法获取extensionItems")
             completeWithErrorAndDismiss()
             return
         }
+        DebugLogger.share("extensionItems数量: \(extensionItems.count)")
 
         // 创建本次分享的独立文件夹（文件夹隔离）
         do {
             try FileManager.default.createDirectory(at: sessionDirectory, withIntermediateDirectories: true, attributes: nil)
+            DebugLogger.share("✅ 会话目录创建成功: \(sessionDirectory.path)")
         } catch {
-            print("创建会话目录失败: \(error.localizedDescription)")
+            DebugLogger.share("❌ 创建会话目录失败: \(error.localizedDescription)")
             completeWithErrorAndDismiss()
             return
         }
@@ -101,11 +105,14 @@ class ShareViewController: UIViewController {
 
         group.notify(queue: .main) { [weak self] in
             guard let self = self else { return }
+            DebugLogger.share("所有文件加载完成，成功保存 \(savedFileURLs.count) 个文件")
             if savedFileURLs.isEmpty {
+                DebugLogger.share("❌ 没有成功保存的文件，清理并关闭")
                 // 失败时清理本次会话目录
                 self.cleanupSessionDirectory()
                 self.completeWithErrorAndDismiss()
             } else {
+                DebugLogger.share("✅ 保存元数据并跳转主应用")
                 self.saveUploadMetadata(fileCount: savedFileURLs.count)
                 self.completeWithSuccessAndJump()
             }
@@ -257,13 +264,19 @@ class ShareViewController: UIViewController {
     /// 打开主应用（双重保障：先尝试Responder Chain，失败后用KVC获取UIApplication.shared）
     /// Share Extension中不能直接访问UIApplication.shared（被标记为不可用），需要通过特殊方式获取
     private func openMainApp() {
-        guard let url = URL(string: "githubclient://share") else { return }
+        DebugLogger.share("=== openMainApp 开始 ===")
+        guard let url = URL(string: "githubclient://share") else {
+            DebugLogger.share("❌ URL创建失败")
+            return
+        }
+        DebugLogger.share("目标URL: \(url.absoluteString)")
 
         // 方案1：通过Responder Chain获取UIApplication实例
         var responder: UIResponder? = self
         var opened = false
         while let currentResponder = responder {
             if let application = currentResponder as? UIApplication {
+                DebugLogger.share("✅ 方案1成功：通过Responder Chain获取UIApplication")
                 application.open(url)
                 opened = true
                 break
@@ -274,13 +287,25 @@ class ShareViewController: UIViewController {
         // 方案2：如果Responder Chain失败，通过KVC运行时获取UIApplication.shared
         // KVC方式不会触发编译器的API可用性检查，可以在App Extension中使用
         if !opened {
+            DebugLogger.share("⚠️ 方案1失败，尝试方案2：KVC获取UIApplication.shared")
             let selector = NSSelectorFromString("sharedApplication")
             if UIApplication.responds(to: selector) {
                 if let application = UIApplication.perform(selector)?.takeUnretainedValue() as? UIApplication {
+                    DebugLogger.share("✅ 方案2成功：通过KVC获取UIApplication")
                     application.open(url)
                     opened = true
+                } else {
+                    DebugLogger.share("❌ 方案2失败：KVC返回值不是UIApplication")
                 }
+            } else {
+                DebugLogger.share("❌ 方案2失败：UIApplication不响应sharedApplication")
             }
+        }
+
+        if !opened {
+            DebugLogger.share("❌❌❌ 所有方案都失败，无法打开主应用！")
+        } else {
+            DebugLogger.share("✅ 主应用打开请求已发送")
         }
     }
 }

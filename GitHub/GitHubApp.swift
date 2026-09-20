@@ -116,13 +116,32 @@ struct GitHubApp: App {
     /// 检测并显示分享文件上传视图
     /// 简化逻辑：直接扫描文件并弹出sheet，避免复杂的状态重置导致弹窗失败
     private func showShareUploadIfNeeded() {
+        DebugLogger.share("=== showShareUploadIfNeeded 被调用 ===")
         ShareFileManager.shared.scanPendingFiles()
-        guard ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn else { return }
+        DebugLogger.share("待上传文件数: \(ShareFileManager.shared.pendingFiles.count)")
+        DebugLogger.share("hasPendingFiles: \(ShareFileManager.shared.hasPendingFiles)")
+        DebugLogger.share("isLoggedIn: \(appState.isLoggedIn)")
+        DebugLogger.share("showShareUpload当前值: \(showShareUpload)")
+
+        guard ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn else {
+            DebugLogger.share("❌ 条件不满足，不弹出sheet")
+            if !ShareFileManager.shared.hasPendingFiles {
+                DebugLogger.share("   原因：没有待上传文件（文件可能未保存成功）")
+            }
+            if !appState.isLoggedIn {
+                DebugLogger.share("   原因：用户未登录")
+            }
+            return
+        }
 
         // 如果sheet已经在显示中，不重复设置
-        guard !showShareUpload else { return }
+        guard !showShareUpload else {
+            DebugLogger.share("⚠️ sheet已在显示中，不重复弹出")
+            return
+        }
 
         // 直接弹出sheet
+        DebugLogger.share("✅ 条件满足，弹出sheet")
         showShareUpload = true
     }
 }

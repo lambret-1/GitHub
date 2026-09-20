@@ -48,6 +48,8 @@ class ShareFileManager: ObservableObject {
 
     /// 扫描待上传根目录，加载所有会话文件夹中的文件
     func scanPendingFiles() {
+        DebugLogger.share("=== scanPendingFiles 开始扫描 ===")
+        DebugLogger.share("App Group目录: \(pendingUploadRootDirectory.path)")
         do {
             // 确保根目录存在
             try FileManager.default.createDirectory(at: pendingUploadRootDirectory, withIntermediateDirectories: true, attributes: nil)
@@ -124,8 +126,12 @@ class ShareFileManager: ObservableObject {
             // 此方法本来就在主线程调用，不需要DispatchQueue.main.async
             self.pendingFiles = files
             self.hasPendingFiles = !files.isEmpty
+            DebugLogger.share("✅ 扫描完成，找到 \(files.count) 个文件")
+            for file in files {
+                DebugLogger.share("   - \(file.fileName) (\(file.fileSize)字节) 会话: \(file.sessionID)")
+            }
         } catch {
-            print("扫描待上传文件失败: \(error.localizedDescription)")
+            DebugLogger.share("❌ 扫描失败: \(error.localizedDescription)")
             // 同步更新失败状态
             self.pendingFiles = []
             self.hasPendingFiles = false
