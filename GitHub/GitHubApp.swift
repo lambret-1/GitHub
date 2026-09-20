@@ -5,6 +5,8 @@ struct GitHubApp: App {
     @StateObject private var appState = AppState.shared
     // 分享文件上传视图显示状态
     @State private var showShareUpload: Bool = false
+    // 监听APP前后台状态，确保从后台唤起时也能检测分享文件
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         // 安装崩溃日志记录器（使用Signal Handler和NSException Handler双机制捕获崩溃）
@@ -32,9 +34,18 @@ struct GitHubApp: App {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     appState.checkForUpdatesAndNotify(force: true)
                 }
-                // 检测从Share Extension传递过来的待上传文件
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                // 检测从Share Extension传递过来的待上传文件（启动时检测）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     showShareUploadIfNeeded()
+                }
+            }
+            // 监听APP前后台状态变化，从后台回到前台时也检测分享文件（解决onOpenURL不触发的问题）
+            .onChange(of: scenePhase) { newPhase in
+                if newPhase == .active {
+                    // 延迟一下确保界面准备就绪
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showShareUploadIfNeeded()
+                    }
                 }
             }
             // 分享文件上传视图
