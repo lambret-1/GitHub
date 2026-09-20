@@ -141,21 +141,12 @@ class ShareViewController: UIViewController {
     // MARK: - 完成回调
 
     private func completeWithSuccess(fileCount: Int) {
-        // 延迟一下让用户看到成功状态
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            let alert = UIAlertController(
-                title: "分享成功",
-                message: "已接收 \(fileCount) 个文件，即将打开APP进行上传",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "立即上传", style: .default) { _ in
-                // 先打开主应用，再关闭分享界面
-                self?.openMainApp()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    self?.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
-                }
-            })
-            self?.present(alert, animated: true)
+        // 分享成功后直接打开主应用，不显示弹窗
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.openMainApp()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                self?.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+            }
         }
     }
 

@@ -5,6 +5,8 @@ struct GitHubApp: App {
     @StateObject private var appState = AppState.shared
     // 分享文件上传视图显示状态
     @State private var showShareUpload: Bool = false
+    // 分享上传触发ID，每次分享时更新，确保sheet能正确弹出（解决第二次分享不显示的问题）
+    @State private var shareUploadTriggerID: UUID = UUID()
 
     init() {
         // 安装崩溃日志记录器（使用Signal Handler和NSException Handler双机制捕获崩溃）
@@ -34,27 +36,22 @@ struct GitHubApp: App {
                 }
                 // 检测从Share Extension传递过来的待上传文件
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    ShareFileManager.shared.scanPendingFiles()
-                    if ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn {
-                        showShareUpload = true
-                    }
+                    showShareUploadIfNeeded()
                 }
             }
-            // 分享文件上传视图
+            // 分享文件上传视图（使用id确保每次分享都能正确弹出）
             .sheet(isPresented: $showShareUpload) {
                 ShareUploadView()
                     .environmentObject(appState)
             }
+            .id(shareUploadTriggerID)
             // 处理URL Scheme打开事件（从Share Extension跳转过来）
             .onOpenURL { url in
                 // 检测是否是分享文件上传的URL Scheme
                 if url.scheme == "githubclient" && url.host == "share" {
                     // 延迟一下确保App完全启动
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        ShareFileManager.shared.scanPendingFiles()
-                        if ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn {
-                            showShareUpload = true
-                        }
+                        showShareUploadIfNeeded()
                     }
                 }
             }
@@ -102,6 +99,22 @@ struct GitHubApp: App {
                         .cornerRadius(16)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
                     }
                 }
+            }
+        }
+    }
+
+    // MARK: - 分享上传辅助方法
+
+    /// 检测并显示分享文件上传视图
+    /// 每次调用时更新triggerID，确保sheet能正确弹出（解决第二次分享不显示的问题）
+    private func showShareUploadIfNeeded() {
+        ShareFileManager.shared.scanPendingFiles()
+        if ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn {
+            // 先重置状态，再显示，确保sheet能正确弹出
+            showShareUpload = false
+            shareUploadTriggerID = UUID()
+            DispatchQueue.main.async {
+                showShareUpload = true
             }
         }
     }
