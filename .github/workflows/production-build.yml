@@ -338,6 +338,17 @@ jobs:
           echo "=========================================="
 
           APP_PATH="build/Build/Products/Release-iphoneos/${{ env.PROJECT_NAME }}.app"
+          EXTENSION_PATH="build/Build/Products/Release-iphoneos/ShareExtension.appex"
+
+          # 未签名编译时Xcode不会自动embed扩展，需要手动将Share Extension复制到.app/PlugIns目录
+          if [ -d "${EXTENSION_PATH}" ]; then
+            echo "检测到Share Extension，手动嵌入到.app/PlugIns目录..."
+            mkdir -p "${APP_PATH}/PlugIns"
+            cp -R "${EXTENSION_PATH}" "${APP_PATH}/PlugIns/"
+            echo "Share Extension嵌入成功"
+          else
+            echo "::warning::未找到Share Extension.appex，分享功能可能不可用"
+          fi
 
           # 创建Payload目录（标准IPA结构）
           mkdir -p Payload
