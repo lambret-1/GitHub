@@ -50,73 +50,112 @@ struct ShareUploadView: View {
 
     var body: some View {
         NavigationView {
-            List {
+            Form {
                 // 文件列表部分
-                Section(header: Text("待上传文件（\(shareFileManager.pendingFiles.count)个）")) {
-                    ForEach(shareFileManager.pendingFiles) { file in
-                        HStack(spacing: 12) {
-                            // 文件图标
-                            Image(systemName: fileIcon(for: file.fileName))
-                                .font(.system(size: 24))
-                                .foregroundColor(.blue)
-                                .frame(width: 40, height: 40)
+                Section {
+                    if shareFileManager.pendingFiles.isEmpty {
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 8) {
+                                Image(systemName: "doc.badge.plus")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.gray)
+                                Text("暂无待上传文件")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 30)
+                            Spacer()
+                        }
+                    } else {
+                        ForEach(shareFileManager.pendingFiles) { file in
+                            HStack(spacing: 12) {
+                                // 文件图标（带背景色）
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(fileIconBackgroundColor(for: file.fileName))
+                                        .frame(width: 40, height: 40)
+                                    Image(systemName: fileIcon(for: file.fileName))
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(.white)
+                                }
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(file.fileName)
-                                    .font(.system(size: 15, weight: .medium))
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(file.fileName)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
 
-                                HStack(spacing: 8) {
-                                    Text(shareFileManager.formattedFileSize(file.fileSize))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
+                                    HStack(spacing: 6) {
+                                        Text(shareFileManager.formattedFileSize(file.fileSize))
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.secondary)
 
-                                    Text(formatDate(file.receivedDate))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
+                                        Text("·")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.secondary)
+
+                                        Text(formatDate(file.receivedDate))
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+
+                                Spacer()
+
+                                // 上传结果图标
+                                if let success = uploadResults[file.fileName] {
+                                    Image(systemName: success ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                        .foregroundColor(success ? .green : .red)
+                                        .font(.system(size: 20))
                                 }
                             }
+                            .padding(.vertical, 4)
+                        }
 
-                            Spacer()
-
-                            // 上传结果图标
-                            if let success = uploadResults[file.fileName] {
-                                Image(systemName: success ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                    .foregroundColor(success ? .green : .red)
+                        // 清空按钮
+                        Button(action: {
+                            shareFileManager.clearAllPendingFiles()
+                        }) {
+                            HStack {
+                                Spacer()
+                                Image(systemName: "trash")
+                                Text("清空列表")
+                                Spacer()
                             }
+                            .foregroundColor(.red)
                         }
-                        .padding(.vertical, 4)
                     }
-
-                    // 清空按钮
-                    Button(action: {
-                        shareFileManager.clearAllPendingFiles()
-                    }) {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("清空列表")
-                        }
-                        .foregroundColor(.red)
+                } header: {
+                    HStack {
+                        Text("待上传文件")
+                        Spacer()
+                        Text("\(shareFileManager.pendingFiles.count)个")
+                            .foregroundColor(.secondary)
                     }
                 }
 
                 // 上传配置部分
-                Section(header: Text("上传配置")) {
+                Section {
                     // 选择仓库
                     NavigationLink(destination: repoSelectionView) {
                         HStack {
+                            Image(systemName: "folder.fill")
+                                .foregroundColor(.blue)
+                                .frame(width: 24)
                             Text("选择仓库")
                             Spacer()
                             if let repo = selectedRepo {
                                 Text("\(repo.ownerName)/\(repo.name)")
                                     .foregroundColor(.secondary)
+                                    .lineLimit(1)
                             } else {
                                 Text("未选择")
                                     .foregroundColor(.gray)
                             }
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.gray)
+                                .font(.system(size: 12))
                         }
                     }
 
@@ -124,24 +163,57 @@ struct ShareUploadView: View {
                     if selectedRepo != nil {
                         NavigationLink(destination: branchSelectionView) {
                             HStack {
+                                Image(systemName: "arrow.triangle.branch")
+                                    .foregroundColor(.purple)
+                                    .frame(width: 24)
                                 Text("选择分支")
                                 Spacer()
                                 Text(selectedBranch)
                                     .foregroundColor(.secondary)
                                 Image(systemName: "chevron.right")
                                     .foregroundColor(.gray)
+                                    .font(.system(size: 12))
                             }
                         }
                     }
 
                     // 上传路径
-                    HStack {
-                        Text("上传路径")
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "folder")
+                                .foregroundColor(.orange)
+                                .frame(width: 24)
+                            Text("上传路径")
+                            Spacer()
+                        }
+
                         TextField("根目录（留空表示根目录）", text: $uploadPath)
-                            .multilineTextAlignment(.trailing)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
+
+                        // 快捷路径选项
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(quickPaths, id: \.self) { path in
+                                    Button(action: {
+                                        uploadPath = path
+                                    }) {
+                                        Text(path)
+                                            .font(.system(size: 12))
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(uploadPath == path ? Color.blue.opacity(0.15) : Color.gray.opacity(0.1))
+                                            .foregroundColor(uploadPath == path ? .blue : .primary)
+                                            .cornerRadius(8)
+                                    }
+                                }
+                            }
+                        }
                     }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("上传配置")
                 }
 
                 // 上传按钮
@@ -155,6 +227,7 @@ struct ShareUploadView: View {
                                 ProgressView()
                                     .padding(.trailing, 8)
                                 Text("正在上传 \(currentUploadingFileName)...")
+                                    .lineLimit(1)
                             } else {
                                 Image(systemName: "icloud.and.arrow.up")
                                 Text("开始上传（\(shareFileManager.pendingFiles.count)个文件）")
@@ -162,11 +235,13 @@ struct ShareUploadView: View {
                             Spacer()
                         }
                         .foregroundColor(.white)
-                        .padding(.vertical, 12)
-                        .background(canUpload ? Color.blue : Color.gray)
-                        .cornerRadius(8)
+                        .padding(.vertical, 14)
+                        .background(canUpload && !isUploading ? Color.blue : Color.gray)
+                        .cornerRadius(10)
                     }
                     .disabled(!canUpload || isUploading)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
                 }
             }
             .navigationTitle("分享文件上传")
@@ -205,6 +280,12 @@ struct ShareUploadView: View {
                 return Text("成功：\(successCount)个，失败：\(failCount)个")
             }
         }
+    }
+
+    // MARK: - 快捷路径选项
+
+    private var quickPaths: [String] {
+        ["src/", "docs/", "assets/", "images/", "scripts/", "tests/"]
     }
 
     // MARK: - 仓库选择视图
@@ -416,6 +497,25 @@ struct ShareUploadView: View {
             return "chevron.left.forwardslash.chevron.right"
         default:
             return "doc"
+        }
+    }
+
+    /// 根据文件类型返回图标背景色
+    private func fileIconBackgroundColor(for fileName: String) -> Color {
+        let ext = (fileName as NSString).pathExtension.lowercased()
+        switch ext {
+        case "png", "jpg", "jpeg", "gif", "bmp", "webp":
+            return .green
+        case "pdf":
+            return .red
+        case "zip", "rar", "7z":
+            return .orange
+        case "txt", "md":
+            return .blue
+        case "swift", "js", "py", "java", "kt", "go", "rs", "cpp", "c", "h":
+            return .purple
+        default:
+            return .gray
         }
     }
 

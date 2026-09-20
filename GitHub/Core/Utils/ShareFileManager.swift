@@ -52,6 +52,20 @@ class ShareFileManager: ObservableObject {
             // 确保根目录存在
             try FileManager.default.createDirectory(at: pendingUploadRootDirectory, withIntermediateDirectories: true, attributes: nil)
 
+            // 清理根目录中的旧文件（不在会话文件夹中的文件，兼容旧版本数据）
+            let rootItems = try FileManager.default.contentsOfDirectory(
+                at: pendingUploadRootDirectory,
+                includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles]
+            )
+            for item in rootItems {
+                let resourceValues = try item.resourceValues(forKeys: [.isDirectoryKey])
+                // 如果不是目录（是旧版本的文件），则删除
+                if resourceValues.isDirectory != true {
+                    try FileManager.default.removeItem(at: item)
+                }
+            }
+
             // 获取所有会话文件夹（每个文件夹是一次分享会话）
             let sessionDirectories = try FileManager.default.contentsOfDirectory(
                 at: pendingUploadRootDirectory,
@@ -71,7 +85,7 @@ class ShareFileManager: ObservableObject {
                 // 读取会话文件夹中的所有文件
                 let fileURLs = try FileManager.default.contentsOfDirectory(
                     at: sessionDir,
-                    includingPropertiesForKeys: [.fileSizeKey, .creationDateKey],
+                    includingPropertiesForKeys: [.fileSizeKey, .creationDateKey, .isDirectoryKey],
                     options: [.skipsHiddenFiles]
                 )
 
@@ -79,8 +93,15 @@ class ShareFileManager: ObservableObject {
                     // 跳过元数据文件
                     guard url.lastPathComponent != "upload_metadata.json" else { continue }
 
-                    let resources = try url.resourceValues(forKeys: [.fileSizeKey, .creationDateKey])
+                    let resources = try url.resourceValues(forKeys: [.fileSizeKey, .creationDateKey, .isDirectoryKey])
+
+                    // 跳过目录（只处理文件）
+                    if resources.isDirectory == true { continue }
+
                     let fileSize = Int64(resources.fileSize ?? 0)
+                    // 跳过0字节文件（无效文件）
+                    guard fileSize > 0 else { continue }
+
                     let creationDate = resources.creationDate ?? Date()
 
                     files.append(PendingFile(
@@ -91,6 +112,9 @@ class ShareFileManager: ObservableObject {
                         sessionID: sessionID
                     ))
                 }
+
+                // 检查会话文件夹是否已空（只有元数据文件或已空），如果已空则删除整个文件夹
+                cleanupEmptySessionDirectory(sessionID: sessionID)
             }
 
             // 按接收时间排序，最新的在前面

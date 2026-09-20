@@ -105,6 +105,19 @@ class ShareViewController: UIViewController {
 
     private func saveFileToSessionDirectory(_ sourceURL: URL) -> URL? {
         do {
+            // 检查是否是目录，如果是目录则跳过（只处理文件，不处理文件夹）
+            let resourceValues = try sourceURL.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
+            if resourceValues.isDirectory == true {
+                print("跳过目录: \(sourceURL.lastPathComponent)")
+                return nil
+            }
+
+            // 检查文件大小，如果是0字节则跳过（可能是无效文件或复制失败）
+            if let fileSize = resourceValues.fileSize, fileSize == 0 {
+                print("跳过0字节文件: \(sourceURL.lastPathComponent)")
+                return nil
+            }
+
             // 直接使用原始文件名，不添加时间戳前缀（因为已经在独立文件夹中，不会冲突）
             let destinationURL = sessionDirectory.appendingPathComponent(sourceURL.lastPathComponent)
 
@@ -121,6 +134,15 @@ class ShareViewController: UIViewController {
 
             // 复制文件到会话目录
             try FileManager.default.copyItem(at: sourceURL, to: finalURL)
+
+            // 复制完成后再次验证文件大小，如果是0字节则删除并返回nil
+            let copiedAttributes = try FileManager.default.attributesOfItem(atPath: finalURL.path)
+            if let copiedSize = copiedAttributes[.size] as? Int64, copiedSize == 0 {
+                print("复制后文件为0字节，删除: \(finalURL.lastPathComponent)")
+                try FileManager.default.removeItem(at: finalURL)
+                return nil
+            }
+
             return finalURL
         } catch {
             print("保存文件失败: \(error.localizedDescription)")
