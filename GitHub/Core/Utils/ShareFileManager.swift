@@ -2,9 +2,9 @@ import Foundation
 
 // ==============================================================================
 // ShareFileManager 分享文件管理器
-// 功能：检测从Share Extension传递过来的待上传文件（文件夹隔离），提供文件列表和清理功能
-// 位置：主应用端，处理分享扩展接收的文件
-// 设计原则：单例模式，文件夹隔离（每次分享一个独立目录），上传完成后删除对应文件夹
+// 功能：管理通过"打开方式"功能接收到的待上传文件（文件夹隔离），提供文件列表和清理功能
+// 位置：主应用端，处理系统分享/打开方式接收的文件
+// 设计原则：单例模式，文件夹隔离（每次接收一个独立目录），上传完成后删除对应文件夹
 // ==============================================================================
 
 class ShareFileManager: ObservableObject {
@@ -14,15 +14,12 @@ class ShareFileManager: ObservableObject {
 
     private init() {}
 
-    // MARK: - App Group配置
+    // MARK: - 目录配置
 
-    /// App Group标识（必须与Share Extension一致）
-    private let appGroupIdentifier = "group.com.github.client"
-
-    /// 共享目录下的待上传根文件夹
+    /// 待上传文件根目录（Documents/PendingUploads）
     private var pendingUploadRootDirectory: URL {
-        let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
-        return containerURL?.appendingPathComponent("PendingUploads", isDirectory: true) ?? URL(fileURLWithPath: NSTemporaryDirectory())
+        let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return documentsDir.appendingPathComponent("PendingUploads", isDirectory: true)
     }
 
     // MARK: - 发布属性
@@ -46,29 +43,46 @@ class ShareFileManager: ObservableObject {
 
     // MARK: - 公共方法
 
-    /// 扫描待上传根目录，加载所有会话文件夹中的文件
-    func scanPendingFiles() {
+    /// 接收从"打开方式"功能传递过来的文件
+    /// 将文件从系统Inbox目录移动到PendingUploads目录（文件夹隔离）
+    /// - Parameter sourceURL: 系统传递过来的文件URL
+    /// - Returns: 是否接收成功
+    @discardableResult
+    func receiveFile(from sourceURL: URL) -> Bool {
+        do {
+            // 创建本次接收的独立文件夹（文件夹隔离）
+            let sessionID = UUID().uuidString
+            let sessionDirectory = pendingUploadRootDirectory.appendingPathComponent(sessionID, isDirectory: true)
+            try FileManager.default.createDirectory(at: sessionDirectory, withIntermediateDirectories: true, attributes: nil)
+
+            // 移动文件到会话目录
+            let destinationURL = sessionDirectory.appendingPathComponent(sourceURL.lastPathComponent)
+
+            // 如果目标文件已存在，先删除
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+
+            try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
+
+            DebugLogger.share("✅ 文件接收成功: \(sourceURL.lastPathComponent) -> 会话: \(sessionID)")
+
+            // 重新扫描文件列表
+            scanPendingFiles()
+
+            return true
+        } catch {
+            DebugLogger.share("❌ 文件接收失败: \(error.localizedDescription)")
+            return false
+        }
+    }
         DebugLogger.share("=== scanPendingFiles 开始扫描 ===")
-        DebugLogger.share("App Group目录: \(pendingUploadRootDirectory.path)")
+        DebugLogger.share("待上传目录: \(pendingUploadRootDirectory.path)")
         do {
             // 确保根目录存在
             try FileManager.default.createDirectory(at: pendingUploadRootDirectory, withIntermediateDirectories: true, attributes: nil)
 
-            // 清理根目录中的旧文件（不在会话文件夹中的文件，兼容旧版本数据）
-            let rootItems = try FileManager.default.contentsOfDirectory(
-                at: pendingUploadRootDirectory,
-                includingPropertiesForKeys: [.isDirectoryKey],
-                options: [.skipsHiddenFiles]
-            )
-            for item in rootItems {
-                let resourceValues = try item.resourceValues(forKeys: [.isDirectoryKey])
-                // 如果不是目录（是旧版本的文件），则删除
-                if resourceValues.isDirectory != true {
-                    try FileManager.default.removeItem(at: item)
-                }
-            }
-
-            // 获取所有会话文件夹（每个文件夹是一次分享会话）
+            // 获取所有会话文件夹（每个文件夹是一次接收会话）
             let sessionDirectories = try FileManager.default.contentsOfDirectory(
                 at: pendingUploadRootDirectory,
                 includingPropertiesForKeys: [.creationDateKey],

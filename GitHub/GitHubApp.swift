@@ -53,9 +53,26 @@ struct GitHubApp: App {
                 ShareUploadView()
                     .environmentObject(appState)
             }
-            // 处理URL Scheme打开事件（从Share Extension跳转过来）
+            // 处理URL打开事件（包括"打开方式"传递的文件和URL Scheme）
             .onOpenURL { url in
-                // 检测是否是分享文件上传的URL Scheme
+                DebugLogger.share("onOpenURL接收到URL: \(url.absoluteString)")
+                DebugLogger.share("URL scheme: \(url.scheme ?? "nil")")
+
+                // 情况1：通过"打开方式"传递的文件URL
+                if url.scheme == "file" {
+                    DebugLogger.share("检测到文件URL，开始接收文件...")
+                    // 接收文件到待上传目录
+                    let success = ShareFileManager.shared.receiveFile(from: url)
+                    if success {
+                        // 延迟一下确保界面准备就绪，然后弹出上传确认界面
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            showShareUploadIfNeeded()
+                        }
+                    }
+                    return
+                }
+
+                // 情况2：URL Scheme（保留备用）
                 if url.scheme == "githubclient" && url.host == "share" {
                     // 延迟一下确保App完全启动和界面准备就绪
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
