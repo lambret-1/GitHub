@@ -66,6 +66,7 @@ targets:
     deploymentTarget: "16.0"
     sources:
       - path: ShareExtension
+      - path: GitHub/Core/Utils/DebugLogger.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.github.client.ShareExtension

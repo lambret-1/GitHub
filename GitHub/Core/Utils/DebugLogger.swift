@@ -29,10 +29,11 @@ class DebugLogger {
 
     // MARK: - 日志目录和文件
 
-    /// 日志文件保存目录（Documents/DebugLogs）
+    /// 日志文件保存目录（App Group共享目录，主应用和Share Extension都能访问）
     private var logDirectory: URL {
-        let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        return documentsDir.appendingPathComponent("DebugLogs", isDirectory: true)
+        let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.github.client")
+        let baseDir = containerURL ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return baseDir.appendingPathComponent("DebugLogs", isDirectory: true)
     }
 
     /// 当前日志文件路径（按日期命名，每天一个文件）
