@@ -56,13 +56,13 @@ struct ShareUploadView: View {
                     ForEach(shareFileManager.pendingFiles) { file in
                         HStack(spacing: 12) {
                             // 文件图标
-                            Image(systemName: fileIcon(for: file.originalName))
+                            Image(systemName: fileIcon(for: file.fileName))
                                 .font(.system(size: 24))
                                 .foregroundColor(.blue)
                                 .frame(width: 40, height: 40)
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(file.originalName)
+                                Text(file.fileName)
                                     .font(.system(size: 15, weight: .medium))
                                     .lineLimit(1)
                                     .truncationMode(.middle)
@@ -81,7 +81,7 @@ struct ShareUploadView: View {
                             Spacer()
 
                             // 上传结果图标
-                            if let success = uploadResults[file.originalName] {
+                            if let success = uploadResults[file.fileName] {
                                 Image(systemName: success ? "checkmark.circle.fill" : "xmark.circle.fill")
                                     .foregroundColor(success ? .green : .red)
                             }
@@ -174,8 +174,11 @@ struct ShareUploadView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("取消") {
-                        // 取消时清空待上传文件，防止下次启动时再次弹出
-                        shareFileManager.clearAllPendingFiles()
+                        // 取消时删除本次显示的文件所在的会话文件夹（文件夹隔离，不影响其他会话）
+                        let sessionIDs = Set(shareFileManager.pendingFiles.map { $0.sessionID })
+                        for sessionID in sessionIDs {
+                            shareFileManager.removeSessionDirectory(sessionID: sessionID)
+                        }
                         dismiss()
                     }
                 }
@@ -188,7 +191,11 @@ struct ShareUploadView: View {
                 Button("确定") {
                     let successCount = uploadResults.values.filter { $0 }.count
                     if successCount == uploadResults.count {
-                        shareFileManager.clearAllPendingFiles()
+                        // 全部成功：删除本次上传涉及的所有会话文件夹（文件夹隔离，不影响其他会话）
+                        let sessionIDs = Set(shareFileManager.pendingFiles.map { $0.sessionID })
+                        for sessionID in sessionIDs {
+                            shareFileManager.removeSessionDirectory(sessionID: sessionID)
+                        }
                         dismiss()
                     }
                 }
@@ -346,7 +353,7 @@ struct ShareUploadView: View {
 
             let file = files[index]
             DispatchQueue.main.async {
-                currentUploadingFileName = file.originalName
+                currentUploadingFileName = file.fileName
                 uploadProgress = Double(index) / Double(totalCount)
             }
 
@@ -360,7 +367,7 @@ struct ShareUploadView: View {
                 if !targetPath.isEmpty && !targetPath.hasSuffix("/") {
                     targetPath += "/"
                 }
-                targetPath += file.originalName
+                targetPath += file.fileName
 
                 // 上传到GitHub
                 GitHubAPI.shared.createFile(
@@ -368,22 +375,22 @@ struct ShareUploadView: View {
                     repo: repo.name,
                     path: targetPath,
                     content: contentBase64,
-                    message: "通过分享上传：\(file.originalName)（GitHub中文客户端）",
+                    message: "通过分享上传：\(file.fileName)（GitHub中文客户端）",
                     branch: selectedBranch
                 ) { result in
                     DispatchQueue.main.async {
                         switch result {
                         case .success:
-                            uploadResults[file.originalName] = true
+                            uploadResults[file.fileName] = true
                         case .failure:
-                            uploadResults[file.originalName] = false
+                            uploadResults[file.fileName] = false
                         }
                         uploadNext(index: index + 1)
                     }
                 }
             } catch {
                 DispatchQueue.main.async {
-                    uploadResults[file.originalName] = false
+                    uploadResults[file.fileName] = false
                     uploadNext(index: index + 1)
                 }
             }

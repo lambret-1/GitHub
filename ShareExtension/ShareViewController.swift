@@ -4,9 +4,9 @@ import UniformTypeIdentifiers
 
 // ==============================================================================
 // ShareViewController 分享扩展主视图控制器
-// 功能：接收系统分享的文件，暂存到App Group共享目录，自动跳转到主应用上传
+// 功能：接收系统分享的文件，保存到独立文件夹（文件夹隔离），自动跳转到主应用上传
 // 位置：Share Extension入口
-// 设计原则：无界面处理，直接保存文件并跳转，不显示任何加载界面或弹窗
+// 设计原则：无界面处理，文件夹隔离（每次分享一个独立目录），避免文件互相污染
 // ==============================================================================
 
 class ShareViewController: UIViewController {
@@ -14,11 +14,17 @@ class ShareViewController: UIViewController {
     // App Group标识（必须与主应用一致）
     private let appGroupIdentifier = "group.com.github.client"
 
-    // 共享目录下的待上传文件夹
-    private var pendingUploadDirectory: URL {
+    // 共享目录下的待上传根文件夹
+    private var pendingUploadRootDirectory: URL {
         let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
         return containerURL?.appendingPathComponent("PendingUploads", isDirectory: true) ?? URL(fileURLWithPath: NSTemporaryDirectory())
     }
+
+    // 本次分享的独立文件夹（使用UUID命名，实现文件夹隔离）
+    private lazy var sessionDirectory: URL = {
+        let sessionID = UUID().uuidString
+        return pendingUploadRootDirectory.appendingPathComponent(sessionID, isDirectory: true)
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -41,8 +47,14 @@ class ShareViewController: UIViewController {
             return
         }
 
-        // 每次分享前清空待上传目录，确保只显示当前分享的文件（避免旧文件累积）
-        clearPendingUploadDirectory()
+        // 创建本次分享的独立文件夹（文件夹隔离）
+        do {
+            try FileManager.default.createDirectory(at: sessionDirectory, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            print("创建会话目录失败: \(error.localizedDescription)")
+            completeWithErrorAndDismiss()
+            return
+        }
 
         var savedFileURLs: [URL] = []
         let group = DispatchGroup()
@@ -66,7 +78,7 @@ class ShareViewController: UIViewController {
                         provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { [weak self] url, error in
                             defer { group.leave() }
                             guard let self = self, let fileURL = url else { return }
-                            if let savedURL = self.saveFileToSharedDirectory(fileURL) {
+                            if let savedURL = self.saveFileToSessionDirectory(fileURL) {
                                 savedFileURLs.append(savedURL)
                             }
                         }
@@ -79,6 +91,8 @@ class ShareViewController: UIViewController {
         group.notify(queue: .main) { [weak self] in
             guard let self = self else { return }
             if savedFileURLs.isEmpty {
+                // 失败时清理本次会话目录
+                self.cleanupSessionDirectory()
                 self.completeWithErrorAndDismiss()
             } else {
                 self.saveUploadMetadata(fileCount: savedFileURLs.count)
@@ -87,60 +101,58 @@ class ShareViewController: UIViewController {
         }
     }
 
-    // MARK: - 清空待上传目录
+    // MARK: - 文件保存（保存到本次会话的独立文件夹）
 
-    /// 清空待上传目录，确保每次分享只显示当前分享的文件
-    private func clearPendingUploadDirectory() {
+    private func saveFileToSessionDirectory(_ sourceURL: URL) -> URL? {
         do {
-            let fileURLs = try FileManager.default.contentsOfDirectory(
-                at: pendingUploadDirectory,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            )
-            for url in fileURLs {
-                try FileManager.default.removeItem(at: url)
+            // 直接使用原始文件名，不添加时间戳前缀（因为已经在独立文件夹中，不会冲突）
+            let destinationURL = sessionDirectory.appendingPathComponent(sourceURL.lastPathComponent)
+
+            // 如果文件已存在，添加数字后缀
+            var finalURL = destinationURL
+            var counter = 1
+            while FileManager.default.fileExists(atPath: finalURL.path) {
+                let fileName = sourceURL.deletingPathExtension().lastPathComponent
+                let fileExtension = sourceURL.pathExtension
+                let newName = "\(fileName)_\(counter).\(fileExtension)"
+                finalURL = sessionDirectory.appendingPathComponent(newName)
+                counter += 1
             }
-        } catch {
-            // 目录不存在或清空失败，忽略错误（后续会创建目录）
-        }
-    }
 
-    // MARK: - 文件保存
-
-    private func saveFileToSharedDirectory(_ sourceURL: URL) -> URL? {
-        do {
-            // 确保待上传目录存在
-            try FileManager.default.createDirectory(at: pendingUploadDirectory, withIntermediateDirectories: true, attributes: nil)
-
-            // 生成唯一文件名，避免冲突（使用时间戳+原始文件名）
-            let timestamp = Int(Date().timeIntervalSince1970)
-            let originalName = sourceURL.lastPathComponent
-            let uniqueName = "\(timestamp)_\(originalName)"
-            let destinationURL = pendingUploadDirectory.appendingPathComponent(uniqueName)
-
-            // 复制文件到共享目录
-            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
-            return destinationURL
+            // 复制文件到会话目录
+            try FileManager.default.copyItem(at: sourceURL, to: finalURL)
+            return finalURL
         } catch {
             print("保存文件失败: \(error.localizedDescription)")
             return nil
         }
     }
 
-    // MARK: - 元数据保存
+    // MARK: - 元数据保存（保存到本次会话目录）
 
     private func saveUploadMetadata(fileCount: Int) {
         let metadata: [String: Any] = [
             "fileCount": fileCount,
             "timestamp": Date().timeIntervalSince1970,
-            "source": "ShareExtension"
+            "source": "ShareExtension",
+            "sessionID": sessionDirectory.lastPathComponent
         ]
-        let metadataURL = pendingUploadDirectory.appendingPathComponent("upload_metadata.json")
+        let metadataURL = sessionDirectory.appendingPathComponent("upload_metadata.json")
         do {
             let data = try JSONSerialization.data(withJSONObject: metadata, options: .prettyPrinted)
             try data.write(to: metadataURL)
         } catch {
             print("保存元数据失败: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 清理本次会话目录
+
+    private func cleanupSessionDirectory() {
+        do {
+            try FileManager.default.removeItem(at: sessionDirectory)
+        } catch {
+            // 清理失败，忽略错误
         }
     }
 

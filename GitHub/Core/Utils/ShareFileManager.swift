@@ -2,9 +2,9 @@ import Foundation
 
 // ==============================================================================
 // ShareFileManager 分享文件管理器
-// 功能：检测从Share Extension传递过来的待上传文件，提供文件列表和清理功能
+// 功能：检测从Share Extension传递过来的待上传文件（文件夹隔离），提供文件列表和清理功能
 // 位置：主应用端，处理分享扩展接收的文件
-// 设计原则：单例模式，统一管理共享目录文件，与主应用上传逻辑解耦
+// 设计原则：单例模式，文件夹隔离（每次分享一个独立目录），上传完成后删除对应文件夹
 // ==============================================================================
 
 class ShareFileManager: ObservableObject {
@@ -19,8 +19,8 @@ class ShareFileManager: ObservableObject {
     /// App Group标识（必须与Share Extension一致）
     private let appGroupIdentifier = "group.com.github.client"
 
-    /// 共享目录下的待上传文件夹
-    private var pendingUploadDirectory: URL {
+    /// 共享目录下的待上传根文件夹
+    private var pendingUploadRootDirectory: URL {
         let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
         return containerURL?.appendingPathComponent("PendingUploads", isDirectory: true) ?? URL(fileURLWithPath: NSTemporaryDirectory())
     }
@@ -38,43 +38,59 @@ class ShareFileManager: ObservableObject {
     struct PendingFile: Identifiable {
         let id = UUID()
         let fileURL: URL
-        let originalName: String
+        let fileName: String
         let fileSize: Int64
         let receivedDate: Date
+        let sessionID: String  // 所属会话文件夹ID，用于上传完成后删除对应文件夹
     }
 
     // MARK: - 公共方法
 
-    /// 扫描待上传目录，加载文件列表
+    /// 扫描待上传根目录，加载所有会话文件夹中的文件
     func scanPendingFiles() {
         do {
-            // 确保目录存在
-            try FileManager.default.createDirectory(at: pendingUploadDirectory, withIntermediateDirectories: true, attributes: nil)
+            // 确保根目录存在
+            try FileManager.default.createDirectory(at: pendingUploadRootDirectory, withIntermediateDirectories: true, attributes: nil)
 
-            let fileURLs = try FileManager.default.contentsOfDirectory(
-                at: pendingUploadDirectory,
-                includingPropertiesForKeys: [.fileSizeKey, .creationDateKey],
+            // 获取所有会话文件夹（每个文件夹是一次分享会话）
+            let sessionDirectories = try FileManager.default.contentsOfDirectory(
+                at: pendingUploadRootDirectory,
+                includingPropertiesForKeys: [.creationDateKey],
                 options: [.skipsHiddenFiles]
-            )
+            ).filter { url in
+                // 只处理目录（会话文件夹）
+                var isDirectory: ObjCBool = false
+                FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+                return isDirectory.boolValue
+            }
 
             var files: [PendingFile] = []
-            for url in fileURLs {
-                // 跳过元数据文件
-                guard url.lastPathComponent != "upload_metadata.json" else { continue }
+            for sessionDir in sessionDirectories {
+                let sessionID = sessionDir.lastPathComponent
 
-                let resources = try url.resourceValues(forKeys: [.fileSizeKey, .creationDateKey])
-                let fileSize = Int64(resources.fileSize ?? 0)
-                let creationDate = resources.creationDate ?? Date()
+                // 读取会话文件夹中的所有文件
+                let fileURLs = try FileManager.default.contentsOfDirectory(
+                    at: sessionDir,
+                    includingPropertiesForKeys: [.fileSizeKey, .creationDateKey],
+                    options: [.skipsHiddenFiles]
+                )
 
-                // 从文件名中提取原始文件名（格式：timestamp_originalName）
-                let originalName = extractOriginalName(from: url.lastPathComponent)
+                for url in fileURLs {
+                    // 跳过元数据文件
+                    guard url.lastPathComponent != "upload_metadata.json" else { continue }
 
-                files.append(PendingFile(
-                    fileURL: url,
-                    originalName: originalName,
-                    fileSize: fileSize,
-                    receivedDate: creationDate
-                ))
+                    let resources = try url.resourceValues(forKeys: [.fileSizeKey, .creationDateKey])
+                    let fileSize = Int64(resources.fileSize ?? 0)
+                    let creationDate = resources.creationDate ?? Date()
+
+                    files.append(PendingFile(
+                        fileURL: url,
+                        fileName: url.lastPathComponent,
+                        fileSize: fileSize,
+                        receivedDate: creationDate,
+                        sessionID: sessionID
+                    ))
+                }
             }
 
             // 按接收时间排序，最新的在前面
@@ -93,30 +109,62 @@ class ShareFileManager: ObservableObject {
         }
     }
 
-    /// 删除指定的待上传文件
+    /// 删除指定的待上传文件（如果该会话文件夹已空，则删除整个文件夹）
     func removeFile(_ file: PendingFile) {
         do {
             try FileManager.default.removeItem(at: file.fileURL)
+            // 检查该会话文件夹是否已空，如果已空则删除整个文件夹
+            cleanupEmptySessionDirectory(sessionID: file.sessionID)
             scanPendingFiles()
         } catch {
             print("删除文件失败: \(error.localizedDescription)")
         }
     }
 
-    /// 清空所有待上传文件
+    /// 清空所有待上传文件（删除所有会话文件夹）
     func clearAllPendingFiles() {
         do {
-            let fileURLs = try FileManager.default.contentsOfDirectory(
-                at: pendingUploadDirectory,
+            let sessionDirectories = try FileManager.default.contentsOfDirectory(
+                at: pendingUploadRootDirectory,
                 includingPropertiesForKeys: nil,
                 options: [.skipsHiddenFiles]
             )
-            for url in fileURLs {
-                try FileManager.default.removeItem(at: url)
+            for dir in sessionDirectories {
+                try FileManager.default.removeItem(at: dir)
             }
             scanPendingFiles()
         } catch {
             print("清空待上传文件失败: \(error.localizedDescription)")
+        }
+    }
+
+    /// 上传完成后，删除指定会话文件夹（该次分享的所有文件都已处理）
+    func removeSessionDirectory(sessionID: String) {
+        let sessionDir = pendingUploadRootDirectory.appendingPathComponent(sessionID, isDirectory: true)
+        do {
+            try FileManager.default.removeItem(at: sessionDir)
+            scanPendingFiles()
+        } catch {
+            print("删除会话目录失败: \(error.localizedDescription)")
+        }
+    }
+
+    /// 检查并清理空的会话文件夹
+    func cleanupEmptySessionDirectory(sessionID: String) {
+        let sessionDir = pendingUploadRootDirectory.appendingPathComponent(sessionID, isDirectory: true)
+        do {
+            let files = try FileManager.default.contentsOfDirectory(
+                at: sessionDir,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+            // 如果文件夹中只有元数据文件或已空，则删除整个文件夹
+            let actualFiles = files.filter { $0.lastPathComponent != "upload_metadata.json" }
+            if actualFiles.isEmpty {
+                try FileManager.default.removeItem(at: sessionDir)
+            }
+        } catch {
+            // 文件夹不存在或清理失败，忽略错误
         }
     }
 
@@ -126,17 +174,5 @@ class ShareFileManager: ObservableObject {
         formatter.allowedUnits = [.useBytes, .useKB, .useMB, .useGB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: size)
-    }
-
-    // MARK: - 私有方法
-
-    /// 从带时间戳的文件名中提取原始文件名
-    private func extractOriginalName(from fileName: String) -> String {
-        // 格式：timestamp_originalName
-        if let underscoreRange = fileName.range(of: "_") {
-            let originalName = String(fileName[underscoreRange.upperBound...])
-            return originalName
-        }
-        return fileName
     }
 }
