@@ -6,6 +6,17 @@
 	<string>zh_CN</string>
 	<key>CFBundleDisplayName</key>
 	<string>GitHub 中文</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.github.client</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>githubclient</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

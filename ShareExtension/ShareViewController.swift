@@ -145,13 +145,33 @@ class ShareViewController: UIViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             let alert = UIAlertController(
                 title: "分享成功",
-                message: "已接收 \(fileCount) 个文件，打开APP即可上传到GitHub",
+                message: "已接收 \(fileCount) 个文件，即将打开APP进行上传",
                 preferredStyle: .alert
             )
-            alert.addAction(UIAlertAction(title: "好的", style: .default) { _ in
-                self?.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+            alert.addAction(UIAlertAction(title: "立即上传", style: .default) { _ in
+                // 先打开主应用，再关闭分享界面
+                self?.openMainApp()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    self?.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+                }
             })
             self?.present(alert, animated: true)
+        }
+    }
+
+    // MARK: - 打开主应用
+
+    /// 通过Responder Chain获取UIApplication实例，使用URL Scheme打开主应用
+    /// Share Extension中不能直接访问UIApplication.shared，需要通过Responder Chain获取
+    private func openMainApp() {
+        guard let url = URL(string: "githubclient://share") else { return }
+        var responder: UIResponder? = self
+        while let currentResponder = responder {
+            if let application = currentResponder as? UIApplication {
+                application.open(url)
+                break
+            }
+            responder = currentResponder.next
         }
     }
 

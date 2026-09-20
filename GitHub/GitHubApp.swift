@@ -45,6 +45,19 @@ struct GitHubApp: App {
                 ShareUploadView()
                     .environmentObject(appState)
             }
+            // 处理URL Scheme打开事件（从Share Extension跳转过来）
+            .onOpenURL { url in
+                // 检测是否是分享文件上传的URL Scheme
+                if url.scheme == "githubclient" && url.host == "share" {
+                    // 延迟一下确保App完全启动
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        ShareFileManager.shared.scanPendingFiles()
+                        if ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn {
+                            showShareUpload = true
+                        }
+                    }
+                }
+            }
             // 更新推送对话框
             .alert("发现新版本", isPresented: $appState.showUpdateAlert) {
                 if let release = appState.latestRelease {
