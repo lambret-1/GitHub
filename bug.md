@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-19 19:52:29 UTC
+**生成时间**: 2026-09-20 16:21:11 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -64,7 +64,7 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/CodeTextView.swift:459:31: warning: value 'self' was defined but never used; consider replacing with boolean test
 /Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3528:25: warning: initialization of immutable value 'createdName' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3567:25: warning: initialization of immutable value 'newName' was never used; consider replacing with assignment to '_' or removing it
-/Users/runner/work/GitHub/GitHub/GitHub/GitHubApp.swift:36:24: warning: value 'release' was defined but never used; consider replacing with boolean test
+/Users/runner/work/GitHub/GitHub/GitHub/GitHubApp.swift:50:24: warning: value 'release' was defined but never used; consider replacing with boolean test
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/HTMLTokenizer.swift:42:17: warning: initialization of immutable value 'start' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/HTMLTokenizer.swift:75:21: warning: initialization of immutable value 'tagStart' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/HighlightCache.swift:239:23: warning: value 'self' was defined but never used; consider replacing with boolean test
@@ -101,7 +101,7 @@
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 38663 行
+- **代码总行数**: 39237 行
 
 ### 💡 修复建议
 
