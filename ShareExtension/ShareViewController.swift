@@ -62,14 +62,14 @@ class ShareViewController: UIViewController {
         for item in extensionItems {
             guard let attachments = item.attachments else { continue }
             for provider in attachments {
-                // 支持文件类型
+                // 支持所有文件类型（TRUEPREDICATE已激活所有类型）
+                // 优先尝试data类型（通用文件），其次text类型
                 let supportedTypes: [UTType] = [
-                    .data, .text, .plainText, .utf8PlainText,
+                    .data, .text, .plainText,
                     .image, .png, .jpeg, .gif,
                     .pdf, .zip, .json, .xml,
                     .sourceCode, .swiftSource, .cSource, .objectiveCSource,
-                    .pythonScript, .javaScript, .typeScript,
-                    .markdown, .html, .css, .csv, .log
+                    .pythonScript, .javaScript, .html
                 ]
 
                 for type in supportedTypes {
