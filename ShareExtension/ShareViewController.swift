@@ -78,8 +78,19 @@ class ShareViewController: UIViewController {
                         provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { [weak self] url, error in
                             defer { group.leave() }
                             guard let self = self, let fileURL = url else { return }
-                            if let savedURL = self.saveFileToSessionDirectory(fileURL) {
-                                savedFileURLs.append(savedURL)
+
+                            // 先读取数据再保存，避免loadFileRepresentation返回的临时URL被系统提前清理
+                            do {
+                                let data = try Data(contentsOf: fileURL)
+                                if let savedURL = self.saveDataToSessionDirectory(data: data, fileName: fileURL.lastPathComponent) {
+                                    savedFileURLs.append(savedURL)
+                                }
+                            } catch {
+                                print("读取文件数据失败: \(error.localizedDescription)")
+                                // 如果读取数据失败，回退到直接复制文件的方式
+                                if let savedURL = self.saveFileToSessionDirectory(fileURL) {
+                                    savedFileURLs.append(savedURL)
+                                }
                             }
                         }
                         break
@@ -150,6 +161,49 @@ class ShareViewController: UIViewController {
         }
     }
 
+    // MARK: - 数据保存（先读取数据再写入，避免临时文件被系统清理）
+
+    /// 将文件数据保存到会话目录（避免loadFileRepresentation返回的临时URL被系统提前清理）
+    private func saveDataToSessionDirectory(data: Data, fileName: String) -> URL? {
+        do {
+            // 检查数据大小，如果是0字节则跳过
+            guard data.count > 0 else {
+                print("跳过0字节数据: \(fileName)")
+                return nil
+            }
+
+            // 直接使用原始文件名
+            let destinationURL = sessionDirectory.appendingPathComponent(fileName)
+
+            // 如果文件已存在，添加数字后缀
+            var finalURL = destinationURL
+            var counter = 1
+            while FileManager.default.fileExists(atPath: finalURL.path) {
+                let fileNameWithoutExt = (fileName as NSString).deletingPathExtension
+                let fileExtension = (fileName as NSString).pathExtension
+                let newName = "\(fileNameWithoutExt)_\(counter).\(fileExtension)"
+                finalURL = sessionDirectory.appendingPathComponent(newName)
+                counter += 1
+            }
+
+            // 写入数据到会话目录
+            try data.write(to: finalURL, options: .atomic)
+
+            // 写入完成后再次验证文件大小
+            let writtenAttributes = try FileManager.default.attributesOfItem(atPath: finalURL.path)
+            if let writtenSize = writtenAttributes[.size] as? Int64, writtenSize == 0 {
+                print("写入后文件为0字节，删除: \(finalURL.lastPathComponent)")
+                try FileManager.default.removeItem(at: finalURL)
+                return nil
+            }
+
+            return finalURL
+        } catch {
+            print("保存数据失败: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     // MARK: - 元数据保存（保存到本次会话目录）
 
     private func saveUploadMetadata(fileCount: Int) {
@@ -200,17 +254,38 @@ class ShareViewController: UIViewController {
 
     // MARK: - 打开主应用
 
-    /// 通过Responder Chain获取UIApplication实例，使用URL Scheme打开主应用
-    /// Share Extension中不能直接访问UIApplication.shared，需要通过Responder Chain获取
+    /// 打开主应用（双重保障：先尝试Responder Chain，失败后用KVC获取UIApplication.shared）
+    /// Share Extension中不能直接访问UIApplication.shared，需要通过特殊方式获取
     private func openMainApp() {
         guard let url = URL(string: "githubclient://share") else { return }
+
+        // 方案1：通过Responder Chain获取UIApplication实例
         var responder: UIResponder? = self
+        var opened = false
         while let currentResponder = responder {
             if let application = currentResponder as? UIApplication {
                 application.open(url)
+                opened = true
                 break
             }
             responder = currentResponder.next
+        }
+
+        // 方案2：如果Responder Chain失败，通过KVC获取UIApplication.shared
+        if !opened {
+            let selector = NSSelectorFromString("sharedApplication")
+            if UIApplication.responds(to: selector) {
+                if let application = UIApplication.perform(selector)?.takeUnretainedValue() as? UIApplication {
+                    application.open(url)
+                    opened = true
+                }
+            }
+        }
+
+        // 方案3：如果KVC也失败，尝试通过unsafeBitCast获取
+        if !opened {
+            let application = unsafeBitCast(UIApplication.self, to: UIApplication.Type.self).shared
+            application.open(url)
         }
     }
 }

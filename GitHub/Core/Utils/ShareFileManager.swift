@@ -120,16 +120,15 @@ class ShareFileManager: ObservableObject {
             // 按接收时间排序，最新的在前面
             files.sort { $0.receivedDate > $1.receivedDate }
 
-            DispatchQueue.main.async {
-                self.pendingFiles = files
-                self.hasPendingFiles = !files.isEmpty
-            }
+            // 同步更新@Published属性（必须同步，否则调用方立即检查hasPendingFiles时还是旧值false）
+            // 此方法本来就在主线程调用，不需要DispatchQueue.main.async
+            self.pendingFiles = files
+            self.hasPendingFiles = !files.isEmpty
         } catch {
             print("扫描待上传文件失败: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                self.pendingFiles = []
-                self.hasPendingFiles = false
-            }
+            // 同步更新失败状态
+            self.pendingFiles = []
+            self.hasPendingFiles = false
         }
     }
 
