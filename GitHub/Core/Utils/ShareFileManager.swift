@@ -76,6 +76,9 @@ class ShareFileManager: ObservableObject {
             return false
         }
     }
+
+    /// 扫描待上传根目录，加载所有会话文件夹中的文件
+    func scanPendingFiles() {
         DebugLogger.share("=== scanPendingFiles 开始扫描 ===")
         DebugLogger.share("待上传目录: \(pendingUploadRootDirectory.path)")
         do {
