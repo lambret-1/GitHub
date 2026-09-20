@@ -51,3 +51,25 @@ targets:
         PRODUCT_NAME: GitHub
         INFOPLIST_FILE: GitHub/Info.plist
         GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: GitHub/GitHub.entitlements
+
+  # ==============================================================================
+  # Share Extension 分享扩展Target
+  # 功能：接收系统分享的文件，暂存到App Group共享目录，通知主应用上传
+  # ==============================================================================
+  ShareExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: ShareExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.github.client.ShareExtension
+        PRODUCT_NAME: ShareExtension
+        INFOPLIST_FILE: ShareExtension/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+        CODE_SIGN_ENTITLEMENTS: ShareExtension/ShareExtension.entitlements
+    dependencies:
+      - target: GitHub

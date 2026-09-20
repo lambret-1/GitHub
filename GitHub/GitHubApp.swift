@@ -3,6 +3,8 @@ import SwiftUI
 @main
 struct GitHubApp: App {
     @StateObject private var appState = AppState.shared
+    // 分享文件上传视图显示状态
+    @State private var showShareUpload: Bool = false
 
     init() {
         // 安装崩溃日志记录器（使用Signal Handler和NSException Handler双机制捕获崩溃）
@@ -30,6 +32,18 @@ struct GitHubApp: App {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     appState.checkForUpdatesAndNotify(force: true)
                 }
+                // 检测从Share Extension传递过来的待上传文件
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    ShareFileManager.shared.scanPendingFiles()
+                    if ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn {
+                        showShareUpload = true
+                    }
+                }
+            }
+            // 分享文件上传视图
+            .sheet(isPresented: $showShareUpload) {
+                ShareUploadView()
+                    .environmentObject(appState)
             }
             // 更新推送对话框
             .alert("发现新版本", isPresented: $appState.showUpdateAlert) {
