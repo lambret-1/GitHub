@@ -255,7 +255,7 @@ class ShareViewController: UIViewController {
     // MARK: - 打开主应用
 
     /// 打开主应用（双重保障：先尝试Responder Chain，失败后用KVC获取UIApplication.shared）
-    /// Share Extension中不能直接访问UIApplication.shared，需要通过特殊方式获取
+    /// Share Extension中不能直接访问UIApplication.shared（被标记为不可用），需要通过特殊方式获取
     private func openMainApp() {
         guard let url = URL(string: "githubclient://share") else { return }
 
@@ -271,7 +271,8 @@ class ShareViewController: UIViewController {
             responder = currentResponder.next
         }
 
-        // 方案2：如果Responder Chain失败，通过KVC获取UIApplication.shared
+        // 方案2：如果Responder Chain失败，通过KVC运行时获取UIApplication.shared
+        // KVC方式不会触发编译器的API可用性检查，可以在App Extension中使用
         if !opened {
             let selector = NSSelectorFromString("sharedApplication")
             if UIApplication.responds(to: selector) {
@@ -280,12 +281,6 @@ class ShareViewController: UIViewController {
                     opened = true
                 }
             }
-        }
-
-        // 方案3：如果KVC也失败，尝试通过unsafeBitCast获取
-        if !opened {
-            let application = unsafeBitCast(UIApplication.self, to: UIApplication.Type.self).shared
-            application.open(url)
         }
     }
 }
