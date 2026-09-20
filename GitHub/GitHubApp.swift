@@ -7,6 +7,8 @@ struct GitHubApp: App {
     @State private var showShareUpload: Bool = false
     // 分享上传触发ID，每次分享时更新，确保sheet能正确弹出（解决第二次分享不显示的问题）
     @State private var shareUploadTriggerID: UUID = UUID()
+    // 防重复弹出标志：记录上一次弹出的时间戳，3秒内不重复弹出（防止无限循环弹窗）
+    @State private var lastShareUploadShowTime: Date = Date.distantPast
 
     init() {
         // 安装崩溃日志记录器（使用Signal Handler和NSException Handler双机制捕获崩溃）
@@ -107,15 +109,23 @@ struct GitHubApp: App {
 
     /// 检测并显示分享文件上传视图
     /// 每次调用时更新triggerID，确保sheet能正确弹出（解决第二次分享不显示的问题）
+    /// 添加防重复弹出机制：3秒内不重复弹出（防止无限循环弹窗）
     private func showShareUploadIfNeeded() {
         ShareFileManager.shared.scanPendingFiles()
-        if ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn {
-            // 先重置状态，再显示，确保sheet能正确弹出
-            showShareUpload = false
-            shareUploadTriggerID = UUID()
-            DispatchQueue.main.async {
-                showShareUpload = true
-            }
+        guard ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn else { return }
+
+        // 防重复弹出：距离上一次弹出不足3秒时，不重复弹出
+        let timeSinceLastShow = Date().timeIntervalSince(lastShareUploadShowTime)
+        guard timeSinceLastShow > 3 else { return }
+
+        // 记录本次弹出时间
+        lastShareUploadShowTime = Date()
+
+        // 先重置状态，再显示，确保sheet能正确弹出
+        showShareUpload = false
+        shareUploadTriggerID = UUID()
+        DispatchQueue.main.async {
+            showShareUpload = true
         }
     }
 }

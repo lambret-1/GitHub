@@ -174,6 +174,8 @@ struct ShareUploadView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("取消") {
+                        // 取消时清空待上传文件，防止下次启动时再次弹出
+                        shareFileManager.clearAllPendingFiles()
                         dismiss()
                     }
                 }
