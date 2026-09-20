@@ -1196,7 +1196,6 @@ struct CodeEditorView: View {
         let formatted = CodeFormatter.shared.format(code: codeText, fileName: fileName)
         if formatted != codeText {
             codeText = formatted
-            hasChanges = true
             showFormatSuccess = true
             // 3秒后自动隐藏成功提示
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {

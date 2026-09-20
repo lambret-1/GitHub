@@ -82,28 +82,11 @@ class CodeFormatter {
 
     /// 格式化XML代码
     /// - Parameter code: 原始XML内容
-    /// - Returns: 格式化后的XML，如果解析失败则返回原始内容
+    /// - Returns: 格式化后的XML
     private func formatXML(_ code: String) -> String {
-        guard let data = code.data(using: .utf8) else {
-            DebugLogger.format("❌ XML格式化失败：无法转换为Data")
-            return code
-        }
-
-        do {
-            // 使用XMLDocument解析并格式化
-            let xmlDoc = try XMLDocument(data: data, options: [.nodePreserveWhitespace])
-            let formattedData = xmlDoc.xmlData(options: [.nodePrettyPrint])
-            guard let formattedString = String(data: formattedData, encoding: .utf8) else {
-                DebugLogger.format("❌ XML格式化失败：无法转换为String")
-                return code
-            }
-            DebugLogger.format("✅ XML格式化成功")
-            return formattedString
-        } catch {
-            DebugLogger.format("❌ XML格式化失败：\(error.localizedDescription)")
-            // 解析失败，尝试简单的缩进格式化
-            return simpleXMLFormat(code)
-        }
+        // iOS上XMLDocument不可用，直接使用简单的缩进格式化
+        DebugLogger.format("✅ XML简单格式化成功")
+        return simpleXMLFormat(code)
     }
 
     /// 简单的XML缩进格式化（作为XMLDocument失败时的备选）
