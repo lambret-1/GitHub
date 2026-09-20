@@ -5,10 +5,6 @@ struct GitHubApp: App {
     @StateObject private var appState = AppState.shared
     // 分享文件上传视图显示状态
     @State private var showShareUpload: Bool = false
-    // 分享上传触发ID，每次分享时更新，确保sheet能正确弹出（解决第二次分享不显示的问题）
-    @State private var shareUploadTriggerID: UUID = UUID()
-    // 防重复弹出标志：记录上一次弹出的时间戳，3秒内不重复弹出（防止无限循环弹窗）
-    @State private var lastShareUploadShowTime: Date = Date.distantPast
 
     init() {
         // 安装崩溃日志记录器（使用Signal Handler和NSException Handler双机制捕获崩溃）
@@ -41,18 +37,17 @@ struct GitHubApp: App {
                     showShareUploadIfNeeded()
                 }
             }
-            // 分享文件上传视图（使用id确保每次分享都能正确弹出）
+            // 分享文件上传视图
             .sheet(isPresented: $showShareUpload) {
                 ShareUploadView()
                     .environmentObject(appState)
             }
-            .id(shareUploadTriggerID)
             // 处理URL Scheme打开事件（从Share Extension跳转过来）
             .onOpenURL { url in
                 // 检测是否是分享文件上传的URL Scheme
                 if url.scheme == "githubclient" && url.host == "share" {
-                    // 延迟一下确保App完全启动
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    // 延迟一下确保App完全启动和界面准备就绪
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         showShareUploadIfNeeded()
                     }
                 }
@@ -108,25 +103,16 @@ struct GitHubApp: App {
     // MARK: - 分享上传辅助方法
 
     /// 检测并显示分享文件上传视图
-    /// 每次调用时更新triggerID，确保sheet能正确弹出（解决第二次分享不显示的问题）
-    /// 添加防重复弹出机制：3秒内不重复弹出（防止无限循环弹窗）
+    /// 简化逻辑：直接扫描文件并弹出sheet，避免复杂的状态重置导致弹窗失败
     private func showShareUploadIfNeeded() {
         ShareFileManager.shared.scanPendingFiles()
         guard ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn else { return }
 
-        // 防重复弹出：距离上一次弹出不足3秒时，不重复弹出
-        let timeSinceLastShow = Date().timeIntervalSince(lastShareUploadShowTime)
-        guard timeSinceLastShow > 3 else { return }
+        // 如果sheet已经在显示中，不重复设置
+        guard !showShareUpload else { return }
 
-        // 记录本次弹出时间
-        lastShareUploadShowTime = Date()
-
-        // 先重置状态，再显示，确保sheet能正确弹出
-        showShareUpload = false
-        shareUploadTriggerID = UUID()
-        DispatchQueue.main.async {
-            showShareUpload = true
-        }
+        // 直接弹出sheet
+        showShareUpload = true
     }
 }
 
