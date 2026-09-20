@@ -52,6 +52,9 @@ targets:
         INFOPLIST_FILE: GitHub/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: GitHub/GitHub.entitlements
+    dependencies:
+      - target: ShareExtension
+        embed: true
 
   # ==============================================================================
   # Share Extension 分享扩展Target
@@ -71,5 +74,3 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         SKIP_INSTALL: YES
         CODE_SIGN_ENTITLEMENTS: ShareExtension/ShareExtension.entitlements
-    dependencies:
-      - target: GitHub
