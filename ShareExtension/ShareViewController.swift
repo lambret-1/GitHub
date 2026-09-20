@@ -4,9 +4,9 @@ import UniformTypeIdentifiers
 
 // ==============================================================================
 // ShareViewController 分享扩展主视图控制器
-// 功能：接收系统分享的文件，暂存到App Group共享目录，通知主应用上传
+// 功能：接收系统分享的文件，暂存到App Group共享目录，自动跳转到主应用上传
 // 位置：Share Extension入口
-// 设计原则：轻量级处理，只做文件接收和暂存，上传逻辑交给主应用
+// 设计原则：无界面处理，直接保存文件并跳转，不显示任何加载界面或弹窗
 // ==============================================================================
 
 class ShareViewController: UIViewController {
@@ -22,39 +22,27 @@ class ShareViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
-        setupUI()
+        // 无界面处理：设置透明背景，不显示任何加载界面
+        view.backgroundColor = .clear
+        view.isOpaque = false
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        // 页面出现后立即处理分享文件，不延迟
         handleSharedFiles()
-    }
-
-    // MARK: - UI设置
-
-    private func setupUI() {
-        let indicatorView = UIActivityIndicatorView(style: .large)
-        indicatorView.center = view.center
-        indicatorView.startAnimating()
-        view.addSubview(indicatorView)
-
-        let label = UILabel()
-        label.text = "正在处理文件..."
-        label.textColor = .secondaryLabel
-        label.font = .systemFont(ofSize: 15)
-        label.sizeToFit()
-        label.center = CGPoint(x: view.center.x, y: view.center.y + 40)
-        view.addSubview(label)
     }
 
     // MARK: - 处理分享的文件
 
     private func handleSharedFiles() {
         guard let extensionItems = extensionContext?.inputItems as? [NSExtensionItem] else {
-            completeWithError()
+            completeWithErrorAndDismiss()
             return
         }
+
+        // 每次分享前清空待上传目录，确保只显示当前分享的文件（避免旧文件累积）
+        clearPendingUploadDirectory()
 
         var savedFileURLs: [URL] = []
         let group = DispatchGroup()
@@ -91,11 +79,29 @@ class ShareViewController: UIViewController {
         group.notify(queue: .main) { [weak self] in
             guard let self = self else { return }
             if savedFileURLs.isEmpty {
-                self.completeWithError()
+                self.completeWithErrorAndDismiss()
             } else {
                 self.saveUploadMetadata(fileCount: savedFileURLs.count)
-                self.completeWithSuccess(fileCount: savedFileURLs.count)
+                self.completeWithSuccessAndJump()
             }
+        }
+    }
+
+    // MARK: - 清空待上传目录
+
+    /// 清空待上传目录，确保每次分享只显示当前分享的文件
+    private func clearPendingUploadDirectory() {
+        do {
+            let fileURLs = try FileManager.default.contentsOfDirectory(
+                at: pendingUploadDirectory,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+            for url in fileURLs {
+                try FileManager.default.removeItem(at: url)
+            }
+        } catch {
+            // 目录不存在或清空失败，忽略错误（后续会创建目录）
         }
     }
 
@@ -106,7 +112,7 @@ class ShareViewController: UIViewController {
             // 确保待上传目录存在
             try FileManager.default.createDirectory(at: pendingUploadDirectory, withIntermediateDirectories: true, attributes: nil)
 
-            // 生成唯一文件名，避免冲突
+            // 生成唯一文件名，避免冲突（使用时间戳+原始文件名）
             let timestamp = Int(Date().timeIntervalSince1970)
             let originalName = sourceURL.lastPathComponent
             let uniqueName = "\(timestamp)_\(originalName)"
@@ -138,15 +144,23 @@ class ShareViewController: UIViewController {
         }
     }
 
-    // MARK: - 完成回调
+    // MARK: - 完成回调（成功：直接跳转主应用）
 
-    private func completeWithSuccess(fileCount: Int) {
-        // 分享成功后直接打开主应用，不显示弹窗
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.openMainApp()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                self?.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
-            }
+    private func completeWithSuccessAndJump() {
+        // 分享成功后直接打开主应用，不显示任何弹窗
+        openMainApp()
+        // 延迟一下再关闭分享扩展，确保主应用能被打开
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
+        }
+    }
+
+    // MARK: - 完成回调（失败：直接关闭，不显示弹窗）
+
+    private func completeWithErrorAndDismiss() {
+        // 失败时直接关闭分享扩展，不显示错误弹窗（避免打扰用户）
+        DispatchQueue.main.async { [weak self] in
+            self?.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
         }
     }
 
@@ -163,20 +177,6 @@ class ShareViewController: UIViewController {
                 break
             }
             responder = currentResponder.next
-        }
-    }
-
-    private func completeWithError() {
-        DispatchQueue.main.async { [weak self] in
-            let alert = UIAlertController(
-                title: "分享失败",
-                message: "无法识别该文件类型，请尝试其他文件",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "好的", style: .default) { _ in
-                self?.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
-            })
-            self?.present(alert, animated: true)
         }
     }
 }
