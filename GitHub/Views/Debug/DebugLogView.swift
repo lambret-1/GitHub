@@ -69,48 +69,46 @@ struct DebugLogView: View {
     // MARK: - 视图主体
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // 搜索+统计合并栏（减少顶部高度）
-                searchAndStatsBar
+        VStack(spacing: 0) {
+            // 搜索+统计合并栏（减少顶部高度）
+            searchAndStatsBar
 
-                // 标签+级别合并选择栏
-                filterSelector
+            // 标签+级别合并选择栏
+            filterSelector
 
-                // 日志内容区域
-                logContentArea
+            // 日志内容区域
+            logContentArea
 
-                // 底部操作栏
-                bottomBar
-            }
-            .navigationTitle("调试日志")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        autoScroll.toggle()
-                    }) {
-                        Image(systemName: autoScroll ? "arrow.down.circle.fill" : "arrow.down.circle")
-                            .foregroundColor(autoScroll ? .blue : .gray)
-                    }
+            // 底部操作栏
+            bottomBar
+        }
+        .navigationTitle("调试日志")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    autoScroll.toggle()
+                }) {
+                    Image(systemName: autoScroll ? "arrow.down.circle.fill" : "arrow.down.circle")
+                        .foregroundColor(autoScroll ? .blue : .gray)
                 }
             }
-            .onAppear {
+        }
+        .onAppear {
+            loadLogs()
+        }
+        .alert("确认清理", isPresented: $showClearConfirm) {
+            Button("取消", role: .cancel) { }
+            Button("清理", role: .destructive) {
+                DebugLogger.shared.clearTodayLogs()
                 loadLogs()
             }
-            .alert("确认清理", isPresented: $showClearConfirm) {
-                Button("取消", role: .cancel) { }
-                Button("清理", role: .destructive) {
-                    DebugLogger.shared.clearTodayLogs()
-                    loadLogs()
-                }
-            } message: {
-                Text("确定要清理今天的所有调试日志吗？此操作不可恢复。")
-            }
-            .sheet(isPresented: $showExportSheet) {
-                // 分享日志文件
-                ActivityViewController(activityItems: [exportLogFile()])
-            }
+        } message: {
+            Text("确定要清理今天的所有调试日志吗？此操作不可恢复。")
+        }
+        .sheet(isPresented: $showExportSheet) {
+            // 分享日志文件
+            ActivityViewController(activityItems: [exportLogFile()])
         }
     }
 
@@ -195,18 +193,26 @@ struct DebugLogView: View {
                     .fill(Color.gray.opacity(0.3))
                     .frame(width: 1, height: 16)
 
-                // 级别选择
+                // 级别选择（用漏斗图标表示全部级别，避免与标签"全部"重复）
                 ForEach(allLevels, id: \.self) { level in
                     Button(action: {
                         selectedLevel = level
                     }) {
-                        Text(level == "全部" ? "全部级别" : level)
-                            .font(.system(size: 11))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(selectedLevel == level ? levelColor(level).opacity(0.15) : Color.gray.opacity(0.1))
-                            .foregroundColor(selectedLevel == level ? levelColor(level) : .primary)
-                            .cornerRadius(4)
+                        if level == "全部" {
+                            Image(systemName: selectedLevel == "全部" ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                                .font(.system(size: 12))
+                                .foregroundColor(selectedLevel == "全部" ? .blue : .gray)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                        } else {
+                            Text(level)
+                                .font(.system(size: 11))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(selectedLevel == level ? levelColor(level).opacity(0.15) : Color.gray.opacity(0.1))
+                                .foregroundColor(selectedLevel == level ? levelColor(level) : .primary)
+                                .cornerRadius(4)
+                        }
                     }
                 }
             }
