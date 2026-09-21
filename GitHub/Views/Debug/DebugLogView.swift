@@ -71,17 +71,11 @@ struct DebugLogView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // 统计信息栏
-                statsBar
+                // 搜索+统计合并栏（减少顶部高度）
+                searchAndStatsBar
 
-                // 搜索框
-                searchBar
-
-                // 标签选择栏
-                tagSelector
-
-                // 级别选择栏
-                levelSelector
+                // 标签+级别合并选择栏
+                filterSelector
 
                 // 日志内容区域
                 logContentArea
@@ -120,30 +114,54 @@ struct DebugLogView: View {
         }
     }
 
-    // MARK: - 统计信息栏
+    // MARK: - 搜索+统计合并栏
 
-    private var statsBar: some View {
-        HStack(spacing: 12) {
-            statItem(label: "总数", value: "\(logCount)", color: .primary)
-            statItem(label: "DEBUG", value: "\(levelStats["DEBUG"] ?? 0)", color: .gray)
-            statItem(label: "INFO", value: "\(levelStats["INFO"] ?? 0)", color: .blue)
-            statItem(label: "WARN", value: "\(levelStats["WARNING"] ?? 0)", color: .orange)
-            statItem(label: "ERROR", value: "\(levelStats["ERROR"] ?? 0)", color: .red)
-            statItem(label: "CRASH", value: "\(levelStats["CRASH"] ?? 0)", color: .purple)
+    private var searchAndStatsBar: some View {
+        HStack(spacing: 10) {
+            // 搜索框
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray)
+                TextField("搜索", text: $searchText)
+                    .font(.system(size: 13))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                if !searchText.isEmpty {
+                    Button(action: {
+                        searchText = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color(.systemGray6))
+            .cornerRadius(6)
+
             Spacer()
-            Text(formatFileSize(logFileSize))
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
+
+            // 精简统计（只显示关键指标）
+            HStack(spacing: 8) {
+                statItemCompact(label: "总", value: "\(logCount)", color: .primary)
+                statItemCompact(label: "错", value: "\((levelStats["ERROR"] ?? 0) + (levelStats["CRASH"] ?? 0))", color: .red)
+                Text(formatFileSize(logFileSize))
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color(.systemGray6))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color(.systemBackground))
     }
 
-    private func statItem(label: String, value: String, color: Color) -> some View {
-        VStack(spacing: 2) {
+    private func statItemCompact(label: String, value: String, color: Color) -> some View {
+        HStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundColor(color)
             Text(label)
                 .font(.system(size: 10))
@@ -151,68 +169,38 @@ struct DebugLogView: View {
         }
     }
 
-    // MARK: - 搜索框
+    // MARK: - 标签+级别合并选择栏
 
-    private var searchBar: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(.gray)
-            TextField("搜索日志内容", text: $searchText)
-                .font(.system(size: 14))
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            if !searchText.isEmpty {
-                Button(action: {
-                    searchText = ""
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray)
-                }
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color(.systemGray6))
-        .cornerRadius(8)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-    }
-
-    // MARK: - 标签选择栏
-
-    private var tagSelector: some View {
+    private var filterSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                // 标签选择
                 ForEach(allTags, id: \.self) { tag in
                     Button(action: {
                         selectedTag = tag
                         loadLogs()
                     }) {
                         Text(tag)
-                            .font(.system(size: 12))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
+                            .font(.system(size: 11))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
                             .background(selectedTag == tag ? Color.blue.opacity(0.15) : Color.gray.opacity(0.1))
                             .foregroundColor(selectedTag == tag ? .blue : .primary)
-                            .cornerRadius(6)
+                            .cornerRadius(4)
                     }
                 }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 4)
-        }
-    }
 
-    // MARK: - 级别选择栏
+                // 分隔符
+                Rectangle()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 1, height: 16)
 
-    private var levelSelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+                // 级别选择
                 ForEach(allLevels, id: \.self) { level in
                     Button(action: {
                         selectedLevel = level
                     }) {
-                        Text(level)
+                        Text(level == "全部" ? "全部级别" : level)
                             .font(.system(size: 11))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -222,9 +210,10 @@ struct DebugLogView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 12)
             .padding(.vertical, 4)
         }
+        .background(Color(.systemGray6))
     }
 
     private func levelColor(_ level: String) -> Color {
