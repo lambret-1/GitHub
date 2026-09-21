@@ -33,7 +33,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>6.0.1</string>
+	<string>6.0.2</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -46,7 +46,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1789956802</string>
+	<string>1789962606</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
