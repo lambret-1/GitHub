@@ -45,8 +45,9 @@ class CodeFormatter {
     /// - Returns: 是否支持格式化
     func isFormatSupported(fileName: String) -> Bool {
         let ext = (fileName as NSString).pathExtension.lowercased()
-        let supportedExtensions = ["json", "xml", "plist", "storyboard", "xib", "swift"]
-        return supportedExtensions.contains(ext)
+        // 支持所有常见的文本/代码格式（YAML除外，因为对缩进敏感）
+        let unsupportedExtensions = ["yml", "yaml"]
+        return !unsupportedExtensions.contains(ext)
     }
 
     // MARK: - JSON格式化

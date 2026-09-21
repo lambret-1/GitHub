@@ -187,6 +187,13 @@ struct CodeEditorView: View {
                         Label("下载该文件", systemImage: "square.and.arrow.down")
                     }
 
+                    // 代码格式化（所有文本文件可用，不支持的格式会提示）
+                    Button(action: {
+                        formatCode()
+                    }) {
+                        Label("格式化代码", systemImage: "text.alignleft")
+                    }
+
                     Divider()
 
                     if fileContent?.isTextFile ?? false {
@@ -239,14 +246,6 @@ struct CodeEditorView: View {
                         }) {
                             Label("复制全部内容", systemImage: "doc.on.doc")
                         }
-
-                        // 代码格式化（支持JSON、XML、Swift等）
-                        Button(action: {
-                            formatCode()
-                        }) {
-                            Label("格式化代码", systemImage: "text.alignleft")
-                        }
-                        .disabled(!CodeFormatter.shared.isFormatSupported(fileName: fileName))
 
                         // 代码片段（第二期：编辑体验增强）
                         Button(action: {
@@ -1193,16 +1192,26 @@ struct CodeEditorView: View {
     // MARK: - 格式化代码
 
     private func formatCode() {
+        // 检查是否是文本文件
+        guard fileContent?.isTextFile ?? false else {
+            renameErrorMessage = "该文件不是文本文件，无法格式化"
+            return
+        }
+
         let formatted = CodeFormatter.shared.format(code: codeText, fileName: fileName)
         if formatted != codeText {
             codeText = formatted
+            // 格式化后自动进入编辑模式，方便用户提交修改
+            if !isEditing {
+                isEditing = true
+            }
             showFormatSuccess = true
             // 3秒后自动隐藏成功提示
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 showFormatSuccess = false
             }
         } else {
-            // 格式化后内容未变化，也提示一下
+            // 格式化后内容未变化，提示一下
             showFormatSuccess = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 showFormatSuccess = false
