@@ -113,33 +113,40 @@ class GitHubAPI {
     
     private func performRequest(url: String, method: String = "GET", body: [String: Any]? = nil, completion: @escaping (Result<Data, Error>) -> Void) {
         guard let urlObj = URL(string: url) else {
+            DebugLogger.networkError("无效的URL: \(url)")
             completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
             return
         }
-        
+
+        DebugLogger.network("\(method) \(url)")
+
         var request = URLRequest(url: urlObj)
         request.httpMethod = method
         request.allHTTPHeaderFields = getHeaders()
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData // 禁用缓存，确保每次刷新都获取最新数据
-        
+
         if let body = body {
             request.httpBody = try? JSONSerialization.data(withJSONObject: body)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        
+
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
+                    DebugLogger.networkError("\(method) \(url) 失败: \(error.localizedDescription)")
                     completion(.failure(error))
                     return
                 }
-                
+
                 guard let httpResponse = response as? HTTPURLResponse else {
+                    DebugLogger.networkError("\(method) \(url) 无效响应")
                     completion(.failure(NSError(domain: "GitHubAPI", code: -2, userInfo: [NSLocalizedDescriptionKey: "无效响应"])))
                     return
                 }
-                
+
                 if (200...299).contains(httpResponse.statusCode) {
+                    let dataSize = data?.count ?? 0
+                    DebugLogger.network("\(method) \(url) 成功 (HTTP \(httpResponse.statusCode), \(dataSize)字节)")
                     if let data = data {
                         completion(.success(data))
                     } else {
@@ -148,6 +155,7 @@ class GitHubAPI {
                 } else {
                     // 检测401未授权错误：token失效或权限不足
                     if httpResponse.statusCode == 401 {
+                        DebugLogger.networkError("\(method) \(url) 401未授权，token已失效")
                         self.handleUnauthorizedError()
                         completion(.failure(NSError(domain: "GitHubAPI", code: 401, userInfo: [NSLocalizedDescriptionKey: "登录已过期，请重新登录"])))
                         return
@@ -157,6 +165,7 @@ class GitHubAPI {
                     if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let message = json["message"] as? String {
                         errorMessage = message
                     }
+                    DebugLogger.networkError("\(method) \(url) 失败 (HTTP \(httpResponse.statusCode)): \(errorMessage)")
                     completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
                 }
             }

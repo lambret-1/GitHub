@@ -190,4 +190,69 @@ extension DebugLogger {
     static func info(tag: String, _ message: String) {
         shared.log(tag: tag, message: message, level: .info)
     }
+
+    /// 记录网络请求日志
+    static func network(_ message: String) {
+        shared.log(tag: "网络请求", message: message, level: .debug)
+    }
+
+    /// 记录网络错误日志
+    static func networkError(_ message: String) {
+        shared.log(tag: "网络请求", message: message, level: .error)
+    }
+
+    /// 记录文件操作日志
+    static func file(_ message: String) {
+        shared.log(tag: "文件操作", message: message, level: .debug)
+    }
+
+    /// 记录文件错误日志
+    static func fileError(_ message: String) {
+        shared.log(tag: "文件操作", message: message, level: .error)
+    }
+
+    /// 记录登录/认证日志
+    static func auth(_ message: String) {
+        shared.log(tag: "登录认证", message: message, level: .debug)
+    }
+
+    /// 记录登录错误日志
+    static func authError(_ message: String) {
+        shared.log(tag: "登录认证", message: message, level: .error)
+    }
+
+    /// 记录页面跳转日志
+    static func navigation(_ message: String) {
+        shared.log(tag: "页面跳转", message: message, level: .info)
+    }
+
+    /// 记录代码编辑器操作日志
+    static func editor(_ message: String) {
+        shared.log(tag: "代码编辑器", message: message, level: .debug)
+    }
+
+    /// 记录Actions操作日志
+    static func actions(_ message: String) {
+        shared.log(tag: "Actions", message: message, level: .debug)
+    }
+
+    /// 记录搜索操作日志
+    static func search(_ message: String) {
+        shared.log(tag: "搜索", message: message, level: .debug)
+    }
+
+    /// 记录上传操作日志
+    static func upload(_ message: String) {
+        shared.log(tag: "文件上传", message: message, level: .debug)
+    }
+
+    /// 记录下载操作日志
+    static func download(_ message: String) {
+        shared.log(tag: "文件下载", message: message, level: .debug)
+    }
+
+    /// 记录更新检查日志
+    static func update(_ message: String) {
+        shared.log(tag: "应用更新", message: message, level: .debug)
+    }
 }
