@@ -2665,7 +2665,12 @@ struct FileBrowserView: View {
                 case .success:
                     showCreateFolderSuccess = true
                 case .failure(let error):
-                    createFolderErrorMessage = "创建失败: \(error.localizedDescription)"
+                    let nsError = error as NSError
+                    if nsError.code == 409 {
+                        createFolderErrorMessage = "创建失败：该名称已被占用，请换一个名字"
+                    } else {
+                        createFolderErrorMessage = "创建失败: \(error.localizedDescription)"
+                    }
                 }
             }
         }
@@ -2700,7 +2705,12 @@ struct FileBrowserView: View {
                     // 同时刷新文件列表
                     loadFiles()
                 case .failure(let error):
-                    createFileErrorMessage = "创建失败: \(error.localizedDescription)"
+                    let nsError = error as NSError
+                    if nsError.code == 409 {
+                        createFileErrorMessage = "创建失败：该名称已被占用，请换一个名字"
+                    } else {
+                        createFileErrorMessage = "创建失败: \(error.localizedDescription)"
+                    }
                 }
             }
         }
@@ -2970,7 +2980,12 @@ struct FileBrowserView: View {
                     loadFiles()
                 case .failure(let error):
                     // 重命名失败，显示错误信息
-                    errorMessage = "重命名失败: \(error.localizedDescription)"
+                    let nsError = error as NSError
+                    if nsError.code == 409 {
+                        errorMessage = "重命名失败：新名称已被占用，请换一个名字"
+                    } else {
+                        errorMessage = "重命名失败: \(error.localizedDescription)"
+                    }
                 }
             }
         }
