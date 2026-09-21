@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-21 01:48:33 UTC
+**生成时间**: 2026-09-21 02:17:58 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -86,7 +86,7 @@
 
 ```
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: instance will be immediately deallocated because property 'delegate' is 'weak'
-/Users/runner/work/GitHub/GitHub/GitHub/Core/Network/GitHubAPI.swift:997:13: warning: variable 'body' was never mutated; consider changing to 'let' constant
+/Users/runner/work/GitHub/GitHub/GitHub/Core/Network/GitHubAPI.swift:1006:13: warning: variable 'body' was never mutated; consider changing to 'let' constant
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:494:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:497:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
@@ -102,7 +102,7 @@ warning: The application supports opening files, but doesn't declare whether it 
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 40099 行
+- **代码总行数**: 40467 行
 
 ### 💡 修复建议
 
