@@ -14,6 +14,7 @@
 import Foundation
 import NetworkExtension
 import UIKit
+import os.log
 
 // MARK: - VPN 连接状态枚举
 
@@ -85,6 +86,11 @@ final class VPNManager: NSObject {
         // 监听 VPN 状态变化
         setupVPNStatusObserver()
     }
+
+    // MARK: - 日志记录器
+
+    /// 统一日志记录器，用于记录 VPN 管理器运行日志
+    private let logger = OSLog(subsystem: "com.github.client", category: "VPNManager")
 
     // MARK: - App Group 标识
 
@@ -178,29 +184,39 @@ final class VPNManager: NSObject {
     /// 使用当前选中的节点建立 VPN 连接
     /// - Parameter completion: 完成回调
     func connect(completion: ((Error?) -> Void)? = nil) {
+        os_log("🚀 开始连接 VPN", log: logger, type: .info)
+
         // 检查是否有选中的节点
         guard let node = currentNode else {
             let error = NSError(domain: "VPNManager", code: -1,
                                userInfo: [NSLocalizedDescriptionKey: "请先选择一个节点"])
+            os_log("❌ 连接失败：未选择节点", log: logger, type: .error)
             completion?(error)
             onConnectionError?(error)
             return
         }
 
+        os_log("📋 使用节点：%{public}@ (%{public}@:%d)", log: logger, type: .info,
+               node.remark, node.serverAddress, node.serverPort)
+
         // 将当前节点配置保存到 App Group，供 VPN 扩展读取
         saveCurrentNodeToAppGroup(node)
+        os_log("💾 节点配置已保存到 App Group", log: logger, type: .debug)
 
         // 加载并更新 VPN 配置
         vpnManager.loadFromPreferences { [weak self] error in
             guard let self = self else { return }
 
             if let error = error {
+                os_log("❌ 加载 VPN 配置失败: %{public}@", log: self.logger, type: .error, error.localizedDescription)
                 DispatchQueue.main.async {
                     completion?(error)
                     self.onConnectionError?(error)
                 }
                 return
             }
+
+            os_log("✅ VPN 配置加载成功", log: self.logger, type: .debug)
 
             // 更新协议配置
             let protocolConfiguration = NETunnelProviderProtocol()
@@ -215,6 +231,7 @@ final class VPNManager: NSObject {
             // 保存配置
             self.vpnManager.saveToPreferences { saveError in
                 if let saveError = saveError {
+                    os_log("❌ 保存 VPN 配置失败: %{public}@", log: self.logger, type: .error, saveError.localizedDescription)
                     DispatchQueue.main.async {
                         completion?(saveError)
                         self.onConnectionError?(saveError)
@@ -222,10 +239,13 @@ final class VPNManager: NSObject {
                     return
                 }
 
+                os_log("✅ VPN 配置保存成功", log: self.logger, type: .debug)
+
                 // 保存配置后必须重新加载，否则系统可能还使用旧配置
                 // 这是 NEVPNManager 的最佳实践，避免启动隧道时配置不完整
                 self.vpnManager.loadFromPreferences { reloadError in
                     if let reloadError = reloadError {
+                        os_log("❌ 重新加载 VPN 配置失败: %{public}@", log: self.logger, type: .error, reloadError.localizedDescription)
                         DispatchQueue.main.async {
                             completion?(reloadError)
                             self.onConnectionError?(reloadError)
@@ -240,6 +260,7 @@ final class VPNManager: NSObject {
                             code: -2,
                             userInfo: [NSLocalizedDescriptionKey: "VPN 配置类型错误，请重新添加 VPN 配置"]
                         )
+                        os_log("❌ VPN 配置类型错误", log: self.logger, type: .error)
                         DispatchQueue.main.async {
                             completion?(configError)
                             self.onConnectionError?(configError)
@@ -250,14 +271,13 @@ final class VPNManager: NSObject {
                     // 启动 VPN 隧道
                     do {
                         try self.vpnManager.connection.startVPNTunnel()
+                        os_log("✅ VPN 隧道启动命令已发送", log: self.logger, type: .info)
                         DispatchQueue.main.async {
                             completion?(nil)
                         }
                     } catch {
-                        // 常见错误：
-                        // - NEVPNErrorConfigurationDisabled: VPN 配置未启用
-                        // - NEVPNErrorConnectionFailed: 连接失败
-                        // - NEVPNErrorConfigurationInvalid: 配置无效
+                        os_log("❌ 启动 VPN 隧道失败: %{public}@ (code: %d)", log: self.logger, type: .error,
+                               error.localizedDescription, (error as NSError).code)
                         DispatchQueue.main.async {
                             completion?(error)
                             self.onConnectionError?(error)
