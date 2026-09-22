@@ -25,9 +25,6 @@ struct VPNMainView: View {
     /// 是否显示添加节点页面
     @State private var showAddNodeView = false
 
-    /// 是否显示手动添加节点对话框
-    @State private var showManualAddDialog = false
-
     /// 是否显示导入中提示
     @State private var isImporting = false
 
@@ -66,7 +63,7 @@ struct VPNMainView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
-                            showManualAddDialog = true
+                            showAddNodeView = true
                         }) {
                             Label("手动添加节点", systemImage: "plus.circle")
                         }
@@ -88,8 +85,7 @@ struct VPNMainView: View {
                 }
             }
             .sheet(isPresented: $showAddNodeView) {
-                // 后续期：添加节点详情页
-                Text("添加节点页面（后续实现）")
+                AddNodeView()
             }
             .alert("提示", isPresented: $showAlert) {
                 Button("确定", role: .cancel) { }
@@ -401,7 +397,7 @@ struct VPNMainView: View {
             // 还能怎么改：可以根据屏幕宽度动态调整
 
             Button(action: {
-                showManualAddDialog = true
+                showAddNodeView = true
             }) {
                 Text("添加节点")
                     .font(.headline)
@@ -448,13 +444,6 @@ struct VPNMainView: View {
         .padding(.vertical, 12)
         .background(Color(.systemBackground))
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: -2)
-    }
-
-    // MARK: - 手动添加节点对话框
-
-    /// 手动添加节点对话框（使用 alert 实现简单表单）
-    private var manualAddDialog: some View {
-        EmptyView() // 第一期使用简单的 alert，后续期实现完整的添加页面
     }
 
     // MARK: - 计算属性
