@@ -144,7 +144,7 @@ final class VPNManager: NSObject {
     /// 首次使用 VPN 时需要调用此方法请求系统权限
     /// - Parameter completion: 完成回调，success 为 true 表示权限获取成功
     func requestVPNPermission(completion: @escaping (Bool, Error?) -> Void) {
-        vpnManager.loadFromPreferences { [weak self] error in
+        vpnManager.loadFromPreferences { [weak self] (error: Error?) in
             guard let self = self else { return }
 
             if let error = error {
@@ -166,7 +166,7 @@ final class VPNManager: NSObject {
             self.vpnManager.isEnabled = true
 
             // 保存配置到系统
-            self.vpnManager.saveToPreferences { saveError in
+            self.vpnManager.saveToPreferences { (saveError: Error?) in
                 DispatchQueue.main.async {
                     if let saveError = saveError {
                         completion(false, saveError)
@@ -208,7 +208,7 @@ final class VPNManager: NSObject {
         os_log("💾 节点配置已保存到 App Group", log: logger, type: .debug)
 
         // 加载并更新 VPN 配置
-        vpnManager.loadFromPreferences { [weak self] error in
+        vpnManager.loadFromPreferences { [weak self] (error: Error?) in
             guard let self = self else { return }
 
             if let error = error {
@@ -270,7 +270,7 @@ final class VPNManager: NSObject {
             DebugLogger.vpn("providerConfiguration keys: \(protocolConfiguration.providerConfiguration?.keys ?? [])")
 
             // 保存配置
-            self.vpnManager.saveToPreferences { saveError in
+            self.vpnManager.saveToPreferences { (saveError: Error?) in
                 if let saveError = saveError {
                     os_log("❌ 保存 VPN 配置失败: %{public}@", log: self.logger, type: .error, saveError.localizedDescription)
                     DebugLogger.vpnError("保存 VPN 配置失败：\(saveError.localizedDescription) (code: \((saveError as NSError).code))")
@@ -286,7 +286,7 @@ final class VPNManager: NSObject {
 
                 // 保存配置后必须重新加载，否则系统可能还使用旧配置
                 // 这是 NEVPNManager 的最佳实践，避免启动隧道时配置不完整
-                self.vpnManager.loadFromPreferences { reloadError in
+                self.vpnManager.loadFromPreferences { (reloadError: Error?) in
                     if let reloadError = reloadError {
                         os_log("❌ 重新加载 VPN 配置失败: %{public}@", log: self.logger, type: .error, reloadError.localizedDescription)
                         DispatchQueue.main.async {
