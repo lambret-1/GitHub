@@ -9,6 +9,7 @@ struct ProfileView: View {
     @State private var showAccountManager = false
     @State private var showCrashLogs = false
     @State private var showDebugLogs = false
+    @State private var showVPN = false
 
     // 检查更新相关状态
     @State private var isCheckingUpdate = false
@@ -150,6 +151,22 @@ struct ProfileView: View {
                                     .foregroundColor(.blue)
                                     .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
                                 Text("在 GitHub 查看主页")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+
+                        // VPN 代理
+                        Button(action: {
+                            showVPN = true
+                        }) {
+                            HStack {
+                                Image(systemName: "network")
+                                    .foregroundColor(.blue)
+                                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
+                                Text("VPN 代理")
                                     .foregroundColor(.primary)
                                 Spacer()
                                 Image(systemName: "chevron.right")
@@ -323,6 +340,9 @@ struct ProfileView: View {
             }
             .navigationDestination(isPresented: $showDebugLogs) {
                 DebugLogView()
+            }
+            .navigationDestination(isPresented: $showVPN) {
+                VPNMainView()
             }
         }
         .alert(isPresented: $showLogoutAlert) {

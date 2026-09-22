@@ -52,3 +52,26 @@ targets:
         INFOPLIST_FILE: GitHub/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: GitHub/GitHub.entitlements
+
+  # ============================================================================
+  # VPN 网络扩展 Target（PacketTunnelProvider）
+  # 用途：提供系统级 VPN 隧道能力，支持 VLESS/VMess 等协议代理
+  # 注意：此扩展在独立进程运行，有内存限制（约50MB）
+  # ============================================================================
+  VPNPacketTunnel:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: VPNPacketTunnel
+        excludes:
+          - "**/README.md"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.github.client.vpn
+        PRODUCT_NAME: VPNPacketTunnel
+        INFOPLIST_FILE: VPNPacketTunnel/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: VPNPacketTunnel/VPNPacketTunnel.entitlements
+    dependencies:
+      - target: GitHub
