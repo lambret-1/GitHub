@@ -61,25 +61,9 @@ struct VPNMainView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button(action: {
-                            showAddNodeView = true
-                        }) {
-                            Label("手动添加节点", systemImage: "plus.circle")
-                        }
-
-                        Button(action: {
-                            importFromPasteboard()
-                        }) {
-                            Label("从剪贴板导入", systemImage: "doc.on.clipboard")
-                        }
-
-                        Button(action: {
-                            toggleEditMode()
-                        }) {
-                            Label(editMode == .active ? "完成" : "管理节点", systemImage: "slider.horizontal.3")
-                        }
-                    } label: {
+                    Button(action: {
+                        showAddNodeView = true
+                    }) {
                         Image(systemName: "plus")
                     }
                 }
@@ -129,44 +113,25 @@ struct VPNMainView: View {
         VStack(spacing: 12) {
             // 状态图标和文字
             HStack(spacing: 12) {
-                // 状态图标
+                // 状态图标（地球）
                 ZStack {
                     Circle()
-                        .fill(statusColor.opacity(0.2))
-                        .frame(width: 48, height: 48)
-                    // 这是一个什么东西：状态图标圆形背景
-                    // 控制哪里：连接状态卡片左侧的圆形图标背景
-                    // 单位是什么：pt（点）
-                    // 改大有什么效果：图标背景变大，更醒目
-                    // 改小有什么效果：图标背景变小，更紧凑
-                    // 还能怎么改：可以改成圆角矩形、或者添加渐变效果
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 40, height: 40)
 
-                    Image(systemName: statusIconName)
-                        .font(.system(size: 24))
-                        // 这是一个什么东西：状态图标字体大小
-                        // 控制哪里：连接状态图标的大小
-                        // 单位是什么：pt（点）
-                        // 改大有什么效果：图标变大，更醒目
-                        // 改小有什么效果：图标变小，更精致
-                        // 还能怎么改：可以根据状态动态改变大小，连接时添加动画
-                        .foregroundColor(statusColor)
+                    Image(systemName: "globe")
+                        .font(.system(size: 20))
+                        .foregroundColor(.gray)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(statusText)
                         .font(.headline)
                         .foregroundColor(.primary)
 
-                    if let node = vpnManagerObservable.currentNode {
-                        Text(node.remark)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    } else {
-                        Text("未选择节点")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
+                    Text("\(vpnManagerObservable.nodes.count)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
 
                 Spacer()
@@ -177,113 +142,75 @@ struct VPNMainView: View {
                 toggleConnection()
             }) {
                 HStack {
-                    Image(systemName: vpnManagerObservable.connectionStatus.isActive ? "pause.circle.fill" : "play.circle.fill")
+                    Image(systemName: vpnManagerObservable.connectionStatus.isActive ? "pause.fill" : "play.fill")
                     Text(vpnManagerObservable.connectionStatus.isActive ? "断开连接" : "连接 VPN")
                 }
                 .font(.headline)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                // 这是一个什么东西：连接按钮垂直内边距
-                // 控制哪里：连接按钮的高度
-                // 单位是什么：pt（点）
-                // 改大有什么效果：按钮变高，点击区域更大
-                // 改小有什么效果：按钮变矮，更紧凑
-                // 还能怎么改：可以根据屏幕动态调整，或者使用固定高度
-                .background(statusColor)
+                .background(Color(.darkGray))
                 .cornerRadius(10)
-                // 这是一个什么东西：连接按钮圆角半径
-                // 控制哪里：连接按钮四个角的圆润程度
-                // 单位是什么：pt（点）
-                // 改大有什么效果：按钮角更圆，更柔和
-                // 改小有什么效果：按钮角更尖，更硬朗
-                // 还能怎么改：可以改成完全圆形（高度的一半），或者直角
             }
             .disabled(vpnManagerObservable.currentNode == nil)
             .opacity(vpnManagerObservable.currentNode == nil ? 0.5 : 1.0)
         }
         .padding(16)
-        // 这是一个什么东西：状态卡片内边距
-        // 控制哪里：连接状态卡片内容与卡片边缘的距离
-        // 单位是什么：pt（点）
-        // 改大有什么效果：卡片内容更宽松
-        // 改小有什么效果：卡片内容更紧凑
-        // 还能怎么改：可以分别设置上下左右不同的内边距
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
-        // 这是一个什么东西：状态卡片圆角半径
-        // 控制哪里：连接状态卡片四个角的圆润程度
-        // 单位是什么：pt（点）
-        // 改大有什么效果：卡片角更圆
-        // 改小有什么效果：卡片角更尖
-        // 还能怎么改：可以使用不同的圆角风格
     }
 
     // MARK: - 节点列表
 
     /// 节点列表
     private var nodeList: some View {
-        List {
-            if vpnManagerObservable.nodes.isEmpty {
-                // 空状态
-                emptyStateView
-                    .listRowSeparator(.hidden)
-            } else {
-                ForEach(vpnManagerObservable.nodes) { node in
-                    nodeRow(node)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        // 这是一个什么东西：节点行内边距
-                        // 控制哪里：每个节点行内容与列表边缘的距离
-                        // 单位是什么：pt（点）
-                        // 改大有什么效果：行内容更宽松
-                        // 改小有什么效果：行内容更紧凑
-                        // 还能怎么改：可以分别设置上下左右不同的内边距
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if editMode == .inactive {
-                                selectNode(node)
-                            } else {
-                                toggleSelection(node)
+        ScrollView {
+            LazyVStack(spacing: 10) {
+                if vpnManagerObservable.nodes.isEmpty {
+                    // 空状态
+                    emptyStateView
+                } else {
+                    ForEach(vpnManagerObservable.nodes) { node in
+                        nodeRow(node)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if editMode == .inactive {
+                                    selectNode(node)
+                                } else {
+                                    toggleSelection(node)
+                                }
                             }
-                        }
-                        .contextMenu {
-                            Button(action: {
-                                selectNode(node)
-                            }) {
-                                Label("使用此节点", systemImage: "checkmark.circle")
-                            }
+                            .contextMenu {
+                                Button(action: {
+                                    selectNode(node)
+                                }) {
+                                    Label("使用此节点", systemImage: "checkmark.circle")
+                                }
 
-                            Button(action: {
-                                // 后续期：编辑节点
-                                showAlert(message: "编辑节点功能（后续实现）")
-                            }) {
-                                Label("编辑节点", systemImage: "pencil")
-                            }
+                                Button(action: {
+                                    showAlert(message: "编辑节点功能（后续实现）")
+                                }) {
+                                    Label("编辑节点", systemImage: "pencil")
+                                }
 
-                            Button(action: {
-                                // 后续期：节点测速
-                                showAlert(message: "节点测速功能（后续实现）")
-                            }) {
-                                Label("测速", systemImage: "gauge")
-                            }
+                                Button(action: {
+                                    showAlert(message: "节点测速功能（后续实现）")
+                                }) {
+                                    Label("测速", systemImage: "gauge")
+                                }
 
-                            Button(role: .destructive, action: {
-                                nodeToDelete = node
-                            }) {
-                                Label("删除节点", systemImage: "trash")
+                                Button(role: .destructive, action: {
+                                    nodeToDelete = node
+                                }) {
+                                    Label("删除节点", systemImage: "trash")
+                                }
                             }
-                        }
-                }
-                .onDelete { indexSet in
-                    // 批量删除
-                    let nodesToDelete = indexSet.map { vpnManagerObservable.nodes[$0] }
-                    VPNManager.shared.removeNodes(nodesToDelete)
-                    vpnManagerObservable.refresh()
+                    }
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 20)
         }
-        .listStyle(.plain)
-        .environment(\.editMode, $editMode)
         .overlay(alignment: .bottom) {
             // 编辑模式下的底部操作栏
             if editMode == .active && !selectedNodes.isEmpty {
@@ -295,7 +222,7 @@ struct VPNMainView: View {
 
     // MARK: - 节点行
 
-    /// 单个节点行
+    /// 单个节点行（卡片样式）
     private func nodeRow(_ node: VPNNode) -> some View {
         HStack(spacing: 12) {
             // 编辑模式下的选择框
@@ -310,12 +237,6 @@ struct VPNMainView: View {
                 Circle()
                     .fill(protocolColor(node.protocolType).opacity(0.15))
                     .frame(width: 40, height: 40)
-                // 这是一个什么东西：协议图标圆形背景大小
-                // 控制哪里：节点行左侧协议图标的背景大小
-                // 单位是什么：pt（点）
-                // 改大有什么效果：图标背景变大
-                // 改小有什么效果：图标背景变小
-                // 还能怎么改：可以改成圆角矩形
 
                 Text(node.protocolType.displayName.prefix(2))
                     .font(.system(size: 10, weight: .bold))
@@ -363,15 +284,13 @@ struct VPNMainView: View {
                     .font(.system(size: 14))
             }
         }
-        .padding(.vertical, 8)
-        // 这是一个什么东西：节点行垂直内边距
-        // 控制哪里：每个节点行内容上下的间距
-        // 单位是什么：pt（点）
-        // 改大有什么效果：行变高，更宽松
-        // 改小有什么效果：行变矮，更紧凑
-        // 还能怎么改：可以根据内容动态调整
-        .background(vpnManagerObservable.currentNode?.id == node.id ? Color.blue.opacity(0.05) : Color.clear)
-        .cornerRadius(8)
+        .padding(12)
+        .background(vpnManagerObservable.currentNode?.id == node.id ? Color.blue.opacity(0.08) : Color(.systemBackground))
+        .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.gray.opacity(0.15), lineWidth: 0.5)
+        )
     }
 
     // MARK: - 空状态视图
