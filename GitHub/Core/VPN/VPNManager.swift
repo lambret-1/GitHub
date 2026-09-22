@@ -4,14 +4,14 @@
 //
 //  用途：VPN 管理器，负责 VPN 配置、连接控制、节点管理
 //  职责：
-//    1. 管理 VPN 配置（NEAppProxyManager）
+//    1. 管理 VPN 配置（NETunnelProviderManager）
 //    2. 控制 VPN 连接/断开
 //    3. 节点数据持久化存储
 //    4. 与 VPN 扩展（PacketTunnelProvider）通信
 //    5. 监听 VPN 连接状态变化
 //
 //  关键实现说明：
-//    - 使用 NEAppProxyManager 而非 NEVPNManager.shared()
+//    - 使用 NETunnelProviderManager 而非 NEVPNManager.shared()
 //    - 参考 LightBrowser 项目的成功实现模式
 //    - 连接前先删除旧配置，延迟后创建新配置，避免配置冲突
 //
@@ -112,8 +112,8 @@ final class VPNManager: NSObject {
     private let vpnExtensionBundleID = "com.github.client.vpn"
 
     /// 当前活动的 VPN 管理器实例
-    /// NEAppProxyManager 不是单例，需要从 loadAllFromPreferences 获取或创建新实例
-    private var currentVPNManager: NEAppProxyManager?
+    /// NETunnelProviderManager 不是单例，需要从 loadAllFromPreferences 获取或创建新实例
+    private var currentVPNManager: NETunnelProviderManager?
 
     // MARK: - 节点存储
 
@@ -153,10 +153,10 @@ final class VPNManager: NSObject {
     // MARK: - 获取或创建 VPN 管理器
 
     /// 获取已存在的 VPN 配置管理器，或创建新的
-    /// 参考 LightBrowser 的实现：使用 NEAppProxyManager.loadAllFromPreferences
+    /// 参考 LightBrowser 的实现：使用 NETunnelProviderManager.loadAllFromPreferences
     /// - Parameter completion: 完成回调，返回管理器实例
-    private func getOrCreateVPNManager(completion: @escaping (NEAppProxyManager) -> Void) {
-        NEAppProxyManager.loadAllFromPreferences { [weak self] managers, error in
+    private func getOrCreateVPNManager(completion: @escaping (NETunnelProviderManager) -> Void) {
+        NETunnelProviderManager.loadAllFromPreferences { [weak self] managers, error in
             guard let self = self else { return }
 
             if let error = error {
@@ -173,7 +173,7 @@ final class VPNManager: NSObject {
 
             // 没有找到，创建新的
             DebugLogger.vpn("创建新的VPN配置管理器")
-            let newManager = NEAppProxyManager()
+            let newManager = NETunnelProviderManager()
             newManager.localizedDescription = self.vpnConfigurationDescription
             self.currentVPNManager = newManager
             completion(newManager)
@@ -184,7 +184,7 @@ final class VPNManager: NSObject {
     /// 参考 LightBrowser：连接前先删除旧配置，避免配置冲突
     /// - Parameter completion: 完成回调
     private func removeAllOldVPNConfigurations(completion: @escaping () -> Void) {
-        NEAppProxyManager.loadAllFromPreferences { managers, error in
+        NETunnelProviderManager.loadAllFromPreferences { managers, error in
             if let error = error {
                 DebugLogger.vpnError("加载VPN配置列表失败：\(error.localizedDescription)")
                 completion()
@@ -292,7 +292,7 @@ final class VPNManager: NSObject {
     ///   - manager: VPN 管理器实例
     ///   - node: VPN 节点
     ///   - completion: 完成回调
-    private func updateConfigAndStartTunnel(manager: NEAppProxyManager, node: VPNNode, completion: ((Error?) -> Void)?) {
+    private func updateConfigAndStartTunnel(manager: NETunnelProviderManager, node: VPNNode, completion: ((Error?) -> Void)?) {
         DebugLogger.vpn("更新VPN配置并启动隧道")
         currentVPNManager = manager
 
@@ -410,7 +410,7 @@ final class VPNManager: NSObject {
         }
 
         // 如果当前管理器不存在，从配置列表中查找
-        NEAppProxyManager.loadAllFromPreferences { [weak self] managers, _ in
+        NETunnelProviderManager.loadAllFromPreferences { [weak self] managers, _ in
             guard let self = self else { return }
             if let manager = managers?.first(where: { $0.localizedDescription == self.vpnConfigurationDescription }) {
                 manager.connection.stopVPNTunnel()
