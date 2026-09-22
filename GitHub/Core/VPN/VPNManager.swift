@@ -18,6 +18,7 @@
 
 import Foundation
 import NetworkExtension
+import Network
 import UIKit
 import os.log
 
@@ -476,6 +477,95 @@ final class VPNManager: NSObject {
         currentNode = node
         saveCurrentNode()
         DebugLogger.vpn("选择节点：\(node.remark)")
+    }
+
+    // MARK: - 节点测速
+
+    /// 测试节点延迟（TCP 连接测试）
+    /// - Parameters:
+    ///   - node: 要测试的节点
+    ///   - completion: 完成回调（成功返回延迟毫秒数，失败返回错误）
+    func testNodeLatency(_ node: VPNNode, completion: @escaping (Result<Int, Error>) -> Void) {
+        let host = NWEndpoint.Host(node.serverAddress)
+        let port = NWEndpoint.Port(rawValue: UInt16(node.serverPort)) ?? 443
+
+        let connection = NWConnection(host: host, port: port, using: .tcp)
+
+        // 记录开始时间
+        let startTime = Date()
+
+        // 设置超时（5秒）
+        let timeoutWorkItem = DispatchWorkItem {
+            connection.cancel()
+            let error = NSError(domain: "VPNManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "连接超时（5秒）"])
+            completion(.failure(error))
+        }
+
+        connection.stateUpdateHandler = { state in
+            switch state {
+            case .ready:
+                // 连接成功，计算延迟
+                timeoutWorkItem.cancel()
+                let latency = Int(Date().timeIntervalSince(startTime) * 1000)
+                connection.cancel()
+
+                // 更新节点延迟
+                if let index = self.nodes.firstIndex(where: { $0.id == node.id }) {
+                    self.nodes[index].latency = latency
+                    self.nodes[index].lastSpeedTest = Date()
+                    self.saveNodes()
+                }
+
+                DebugLogger.vpn("节点测速成功：\(node.remark) 延迟 \(latency)ms")
+                completion(.success(latency))
+
+            case .failed(let error):
+                timeoutWorkItem.cancel()
+                DebugLogger.vpn("节点测速失败：\(node.remark) 错误 \(error.localizedDescription)")
+                completion(.failure(error))
+
+            case .cancelled:
+                break
+
+            default:
+                break
+            }
+        }
+
+        // 启动连接
+        connection.start(queue: .global())
+
+        // 设置超时
+        DispatchQueue.global().asyncAfter(deadline: .now() + 5, execute: timeoutWorkItem)
+    }
+
+    /// 批量测试所有节点延迟
+    /// - Parameters:
+    ///   - nodes: 要测试的节点列表
+    ///   - progress: 进度回调（当前完成数，总数）
+    ///   - completion: 全部完成回调
+    func testAllNodesLatency(nodes: [VPNNode], progress: @escaping (_ completed: Int, _ total: Int) -> Void, completion: @escaping () -> Void) {
+        let total = nodes.count
+        guard total > 0 else {
+            completion()
+            return
+        }
+
+        var completed = 0
+        let group = DispatchGroup()
+
+        for node in nodes {
+            group.enter()
+            testNodeLatency(node) { _ in
+                completed += 1
+                progress(completed, total)
+                group.leave()
+            }
+        }
+
+        group.notify(queue: .main) {
+            completion()
+        }
     }
 
     /// 加载节点列表（从本地存储）

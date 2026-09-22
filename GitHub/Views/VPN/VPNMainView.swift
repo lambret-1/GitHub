@@ -129,6 +129,10 @@ struct VPNMainView: View {
             .onAppear {
                 // 页面出现时刷新节点列表和连接状态
                 vpnManagerObservable.refresh()
+                // 默认展开所有分组，让用户一进来就能看到所有节点
+                if expandedGroups.isEmpty {
+                    expandedGroups = Set(sortedGroupNames)
+                }
             }
             .alert("提示", isPresented: $showAlert) {
                 Button("确定", role: .cancel) { }
@@ -350,7 +354,7 @@ struct VPNMainView: View {
                             }
 
                             Button(action: {
-                                displayAlert(message: "节点测速功能（后续实现）")
+                                testNodeLatency(node)
                             }) {
                                 Label("测速", systemImage: "gauge")
                             }
@@ -641,6 +645,24 @@ struct VPNMainView: View {
         VPNManager.shared.selectNode(node)
         vpnManagerObservable.refresh()
         displayAlert(message: "已选择节点：\(node.remark)")
+    }
+
+    /// 测试节点延迟
+    /// - Parameter node: 要测试的节点
+    private func testNodeLatency(_ node: VPNNode) {
+        displayAlert(message: "正在测速：\(node.remark)...")
+
+        VPNManager.shared.testNodeLatency(node) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let latency):
+                    self.vpnManagerObservable.refresh()
+                    self.displayAlert(message: "测速完成：\(node.remark) 延迟 \(latency)ms")
+                case .failure(let error):
+                    self.displayAlert(message: "测速失败：\(error.localizedDescription)")
+                }
+            }
+        }
     }
 
     /// 从剪贴板导入节点
