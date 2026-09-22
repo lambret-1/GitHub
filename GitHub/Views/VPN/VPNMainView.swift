@@ -22,6 +22,9 @@ struct VPNMainView: View {
     /// VPN 管理器
     @ObservedObject private var vpnManagerObservable = VPNManagerObservable()
 
+    /// 页面关闭控制器（用于独立全屏页面返回）
+    @Environment(\.dismiss) private var dismiss
+
     /// 是否显示添加节点页面
     @State private var showAddNodeView = false
 
@@ -60,6 +63,16 @@ struct VPNMainView: View {
             .navigationTitle("VPN 代理")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("我的")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
