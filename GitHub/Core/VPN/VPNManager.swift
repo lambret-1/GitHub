@@ -222,16 +222,50 @@ final class VPNManager: NSObject {
             }
 
             os_log("✅ VPN 配置加载成功", log: self.logger, type: .debug)
+            DebugLogger.vpn("VPN 配置加载成功")
+            DebugLogger.vpn("当前配置是否启用：\(self.vpnManager.isEnabled)")
+            DebugLogger.vpn("当前配置类型：\(String(describing: type(of: self.vpnManager.protocolConfiguration)))")
 
             // 更新协议配置
-            let protocolConfiguration = NETunnelProviderProtocol()
+            // 关键修复：优先复用已有的 NETunnelProviderProtocol 配置，而不是每次都新建
+            // 新建配置可能导致系统认为配置无效（Missing protocol or protocol has invalid type）
+            let protocolConfiguration: NETunnelProviderProtocol
+            if let existingConfig = self.vpnManager.protocolConfiguration as? NETunnelProviderProtocol {
+                // 复用已有配置，只更新必要字段
+                protocolConfiguration = existingConfig
+                os_log("复用已有 VPN 配置", log: self.logger, type: .debug)
+                DebugLogger.vpn("复用已有 VPN 配置")
+            } else {
+                // 没有有效配置，创建新的
+                protocolConfiguration = NETunnelProviderProtocol()
+                os_log("创建新的 VPN 配置", log: self.logger, type: .debug)
+                DebugLogger.vpn("创建新的 VPN 配置")
+            }
+
+            // 设置必要字段
             protocolConfiguration.providerBundleIdentifier = "com.github.client.vpn"
             protocolConfiguration.serverAddress = node.serverAddress
             protocolConfiguration.username = node.uuid
 
+            // 设置 providerConfiguration，将节点信息传递给 VPN 扩展
+            // 扩展可以通过 protocolConfiguration.providerConfiguration 获取这些信息
+            protocolConfiguration.providerConfiguration = [
+                "node_remark": node.remark,
+                "node_server": node.serverAddress,
+                "node_port": node.serverPort,
+                "node_uuid": node.uuid,
+                "node_protocol": node.protocolType.rawValue,
+                "node_transport": node.transportType.rawValue,
+                "node_enable_tls": node.enableTLS
+            ]
+
             self.vpnManager.protocolConfiguration = protocolConfiguration
             self.vpnManager.localizedDescription = "GitHub 中文 VPN - \(node.remark)"
             self.vpnManager.isEnabled = true
+
+            DebugLogger.vpn("协议配置已设置，providerBundleIdentifier: \(protocolConfiguration.providerBundleIdentifier ?? "未知")")
+            DebugLogger.vpn("serverAddress: \(protocolConfiguration.serverAddress ?? "未知")")
+            DebugLogger.vpn("providerConfiguration keys: \(protocolConfiguration.providerConfiguration?.keys ?? [])")
 
             // 保存配置
             self.vpnManager.saveToPreferences { saveError in
