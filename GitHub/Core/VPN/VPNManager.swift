@@ -450,6 +450,21 @@ final class VPNManager: NSObject {
         DebugLogger.vpn("删除节点：\(node.remark)")
     }
 
+    /// 批量删除节点
+    /// - Parameter nodesToRemove: 要删除的节点数组
+    func removeNodes(_ nodesToRemove: [VPNNode]) {
+        for node in nodesToRemove {
+            nodes.removeAll { $0.id == node.id }
+            // 如果删除的是当前选中的节点，清空当前节点
+            if currentNode?.id == node.id {
+                currentNode = nil
+                saveCurrentNodeToAppGroup(nil)
+            }
+        }
+        saveNodes()
+        DebugLogger.vpn("批量删除 \(nodesToRemove.count) 个节点")
+    }
+
     /// 选择节点
     /// - Parameter node: 要选择的节点
     func selectNode(_ node: VPNNode) {
