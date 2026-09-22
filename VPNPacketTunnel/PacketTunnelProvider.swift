@@ -160,23 +160,28 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     /// 第一期：读取数据包后直接写回（不做代理，相当于直连）
     /// 后续期：将数据包通过 VLESS/VMess 协议发送到代理节点
     private func startPacketHandling() {
-        // 使用后台队列处理数据包，避免阻塞主线程
-        let packetQueue = DispatchQueue(label: "com.github.client.vpn.packet", qos: .userInitiated)
-
-        packetQueue.async { [weak self] in
+        // 使用 Task.detached 在后台任务中处理数据包
+        // readPackets() 在 iOS 16+ 是 async 方法，必须在 async 上下文中调用
+        Task.detached { [weak self] in
             guard let self = self else { return }
 
             while self.isRunning {
-                // 读取系统发来的数据包
-                // 一次最多读取 10 个数据包，提高处理效率
-                let packets = self.packetFlow.readPackets()
+                do {
+                    // 读取系统发来的数据包（async 方法，会等待直到有数据包可用）
+                    let packets = try await self.packetFlow.readPackets()
 
-                // readPackets() 返回 ([Data], [NSNumber]) 元组
-                // 需要用 zip 将两个数组合并后才能遍历
-                for (packetData, protocolNumber) in zip(packets.0, packets.1) {
-                    // 第一期：直接将数据包写回（不做代理）
-                    // 后续期：在这里实现协议代理逻辑
-                    self.packetFlow.writePackets([packetData], withProtocols: [protocolNumber])
+                    // readPackets() 返回 ([Data], [NSNumber]) 元组
+                    // 需要用 zip 将两个数组合并后才能遍历
+                    for (packetData, protocolNumber) in zip(packets.0, packets.1) {
+                        // 第一期：直接将数据包写回（不做代理）
+                        // 后续期：在这里实现协议代理逻辑
+                        self.packetFlow.writePackets([packetData], withProtocols: [protocolNumber])
+                    }
+                } catch {
+                    // 读取数据包失败，记录日志后继续循环
+                    os_log("❌ 读取数据包失败: %{public}@", log: self.logger, type: .error, error.localizedDescription)
+                    // 短暂等待后重试，避免 CPU 占用过高
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 100毫秒
                 }
             }
         }
