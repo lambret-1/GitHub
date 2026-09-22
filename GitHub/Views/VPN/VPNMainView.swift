@@ -49,6 +49,12 @@ struct VPNMainView: View {
     /// 选中的节点（批量删除用）
     @State private var selectedNodes = Set<String>()
 
+    /// 展开的分组名称集合（用于分组折叠/展开）
+    @State private var expandedGroups: Set<String> = []
+
+    /// 本地节点分组名称常量
+    private let localGroupName = "本地节点"
+
     // MARK: - 视图主体
 
     var body: some View {
@@ -248,7 +254,38 @@ struct VPNMainView: View {
 
     // MARK: - 节点列表
 
-    /// 节点列表
+    // MARK: - 分组计算属性
+
+    /// 节点分组字典（分组名称 -> 节点列表）
+    /// 本地节点（group为nil或空）放在"本地节点"分组，订阅节点按订阅名称分组
+    private var groupedNodes: [String: [VPNNode]] {
+        var groups: [String: [VPNNode]] = [:]
+
+        for node in vpnManagerObservable.nodes {
+            let groupName = (node.group?.isEmpty == false) ? node.group! : localGroupName
+            if groups[groupName] == nil {
+                groups[groupName] = []
+            }
+            groups[groupName]?.append(node)
+        }
+
+        return groups
+    }
+
+    /// 排序后的分组名称列表（本地节点排在最前面）
+    private var sortedGroupNames: [String] {
+        let names = groupedNodes.keys.sorted()
+        // 本地节点排在最前面
+        return names.sorted { first, second in
+            if first == localGroupName { return true }
+            if second == localGroupName { return false }
+            return first < second
+        }
+    }
+
+    // MARK: - 节点列表
+
+    /// 节点列表（分组折叠展示）
     private var nodeList: some View {
         List {
             if vpnManagerObservable.nodes.isEmpty {
@@ -256,7 +293,33 @@ struct VPNMainView: View {
                 emptyStateView
                     .listRowSeparator(.hidden)
             } else {
-                ForEach(vpnManagerObservable.nodes) { node in
+                // 按分组展示节点
+                ForEach(sortedGroupNames, id: \.self) { groupName in
+                    groupSection(groupName: groupName, nodes: groupedNodes[groupName] ?? [])
+                }
+            }
+        }
+        .listStyle(.plain)
+        .environment(\.editMode, $editMode)
+        .overlay(alignment: .bottom) {
+            // 编辑模式下的底部操作栏
+            if editMode == .active && !selectedNodes.isEmpty {
+                editModeBottomBar
+                    .transition(.move(edge: .bottom))
+            }
+        }
+    }
+
+    // MARK: - 分组区域
+
+    /// 单个分组区域（可折叠/展开）
+    private func groupSection(groupName: String, nodes: [VPNNode]) -> some View {
+        let isExpanded = expandedGroups.contains(groupName)
+
+        return Section {
+            if isExpanded {
+                // 展开状态：显示该分组下的所有节点
+                ForEach(nodes) { node in
                     nodeRow(node)
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         // 这是一个什么东西：节点行内边距
@@ -281,15 +344,13 @@ struct VPNMainView: View {
                             }
 
                             Button(action: {
-                                // 后续期：编辑节点
-                                showAlert(message: "编辑节点功能（后续实现）")
+                                displayAlert(message: "编辑节点功能（后续实现）")
                             }) {
                                 Label("编辑节点", systemImage: "pencil")
                             }
 
                             Button(action: {
-                                // 后续期：节点测速
-                                showAlert(message: "节点测速功能（后续实现）")
+                                displayAlert(message: "节点测速功能（后续实现）")
                             }) {
                                 Label("测速", systemImage: "gauge")
                             }
@@ -302,21 +363,67 @@ struct VPNMainView: View {
                         }
                 }
                 .onDelete { indexSet in
-                    // 批量删除
-                    let nodesToDelete = indexSet.map { vpnManagerObservable.nodes[$0] }
+                    // 批量删除（仅删除当前分组内的节点）
+                    let nodesToDelete = indexSet.map { nodes[$0] }
                     VPNManager.shared.removeNodes(nodesToDelete)
                     vpnManagerObservable.refresh()
                 }
             }
-        }
-        .listStyle(.plain)
-        .environment(\.editMode, $editMode)
-        .overlay(alignment: .bottom) {
-            // 编辑模式下的底部操作栏
-            if editMode == .active && !selectedNodes.isEmpty {
-                editModeBottomBar
-                    .transition(.move(edge: .bottom))
+        } header: {
+            // 分组标题（点击折叠/展开）
+            Button(action: {
+                toggleGroup(groupName)
+            }) {
+                HStack(spacing: 8) {
+                    // 折叠/展开箭头图标
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 16)
+                    // 这是一个什么东西：折叠箭头图标宽度
+                    // 控制哪里：分组标题左侧箭头图标的宽度
+                    // 单位是什么：pt（点）
+                    // 改大有什么效果：箭头区域变宽
+                    // 改小有什么效果：箭头区域变窄
+                    // 还能怎么改：可以根据图标大小动态调整
+
+                    // 分组图标（本地节点用文件夹，订阅用天线图标）
+                    Image(systemName: groupName == localGroupName ? "folder.fill" : "dot.radiowaves.left.and.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(groupName == localGroupName ? .orange : .blue)
+
+                    // 分组名称
+                    Text(groupName)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+
+                    // 节点数量
+                    Text("(\(nodes.count))")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+                }
+                .padding(.vertical, 6)
+                // 这是一个什么东西：分组标题垂直内边距
+                // 控制哪里：分组标题栏的高度
+                // 单位是什么：pt（点）
+                // 改大有什么效果：标题栏变高，点击区域更大
+                // 改小有什么效果：标题栏变矮，更紧凑
+                // 还能怎么改：可以使用固定高度
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// 切换分组展开/折叠状态
+    private func toggleGroup(_ groupName: String) {
+        if expandedGroups.contains(groupName) {
+            expandedGroups.remove(groupName)
+        } else {
+            expandedGroups.insert(groupName)
         }
     }
 
@@ -524,7 +631,7 @@ struct VPNMainView: View {
     private func toggleConnection() {
         VPNManager.shared.toggleConnection { error in
             if let error = error {
-                showAlert(message: "连接失败: \(error.localizedDescription)")
+                displayAlert(message: "连接失败: \(error.localizedDescription)")
             }
         }
     }
@@ -533,7 +640,7 @@ struct VPNMainView: View {
     private func selectNode(_ node: VPNNode) {
         VPNManager.shared.selectNode(node)
         vpnManagerObservable.refresh()
-        showAlert(message: "已选择节点：\(node.remark)")
+        displayAlert(message: "已选择节点：\(node.remark)")
     }
 
     /// 从剪贴板导入节点
@@ -549,10 +656,10 @@ struct VPNMainView: View {
                     VPNManager.shared.addNode(node)
                 }
                 vpnManagerObservable.refresh()
-                showAlert(message: "成功导入 \(nodes.count) 个节点")
+                displayAlert(message: "成功导入 \(nodes.count) 个节点")
 
             case .failure(let error):
-                showAlert(message: "导入失败: \(error.localizedDescription)")
+                displayAlert(message: "导入失败: \(error.localizedDescription)")
             }
         }
     }
@@ -584,11 +691,11 @@ struct VPNMainView: View {
         VPNManager.shared.removeNodes(nodesToDelete)
         vpnManagerObservable.refresh()
         selectedNodes.removeAll()
-        showAlert(message: "已删除 \(nodesToDelete.count) 个节点")
+        displayAlert(message: "已删除 \(nodesToDelete.count) 个节点")
     }
 
     /// 显示提示
-    private func showAlert(message: String) {
+    private func displayAlert(message: String) {
         alertMessage = message
         showAlert = true
     }
