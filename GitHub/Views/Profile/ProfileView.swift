@@ -1,4 +1,5 @@
 import SwiftUI
+import NetworkExtension
 
 struct ProfileView: View {
     @EnvironmentObject var appState: AppState
@@ -10,6 +11,10 @@ struct ProfileView: View {
     @State private var showCrashLogs = false
     @State private var showDebugLogs = false
     @State private var showVPN = false
+
+    // VPN 连接状态观察
+    // 用于导航栏显示 VPN 连接状态图标
+    @State private var vpnConnectionStatus: NEVPNStatus = .invalid
 
     // 检查更新相关状态
     @State private var isCheckingUpdate = false
@@ -158,22 +163,6 @@ struct ProfileView: View {
                             }
                         }
 
-                        // VPN 代理
-                        Button(action: {
-                            showVPN = true
-                        }) {
-                            HStack {
-                                Image(systemName: "network")
-                                    .foregroundColor(.blue)
-                                    .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
-                                Text("VPN 代理")
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.gray)
-                            }
-                        }
-
                         // 检查更新
                         Button(action: {
                             checkForUpdates()
@@ -271,6 +260,24 @@ struct ProfileView: View {
             }
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("我的")
+            // 导航栏右侧添加 VPN 状态按钮，与"我的"标题同排
+            // 点击跳转到 VPN 代理页面，图标颜色反映连接状态
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showVPN = true
+                    }) {
+                        // 根据 VPN 连接状态显示不同图标和颜色
+                        // 已连接：绿色，连接中：橙色，其他：灰色
+                        Image(systemName: vpnStatusIconName)
+                            .foregroundColor(vpnStatusColor)
+                    }
+                }
+            }
+            // 页面出现时刷新 VPN 连接状态
+            .onAppear {
+                refreshVPNStatus()
+            }
             // 检查更新结果alert
             .alert(isPresented: $showUpdateResult) {
                 Alert(
@@ -355,6 +362,44 @@ struct ProfileView: View {
                 secondaryButton: .cancel(Text("取消"))
             )
         }
+    }
+
+    // MARK: - VPN 状态
+
+    /// 根据 VPN 连接状态返回对应图标名称
+    /// 已连接：network.badge.shield.half.filled（带盾牌的网络图标）
+    /// 连接中/重新连接：arrow.triangle.2.circlepath（循环箭头）
+    /// 断开/无效/其他：network（普通网络图标）
+    private var vpnStatusIconName: String {
+        switch vpnConnectionStatus {
+        case .connected:
+            return "network.badge.shield.half.filled"
+        case .connecting, .reasserting:
+            return "arrow.triangle.2.circlepath"
+        default:
+            return "network"
+        }
+    }
+
+    /// 根据 VPN 连接状态返回对应颜色
+    /// 已连接：绿色（表示安全连接）
+    /// 连接中/重新连接：橙色（表示正在连接）
+    /// 断开/无效/其他：灰色（表示未连接）
+    private var vpnStatusColor: Color {
+        switch vpnConnectionStatus {
+        case .connected:
+            return .green
+        case .connecting, .reasserting:
+            return .orange
+        default:
+            return .gray
+        }
+    }
+
+    /// 刷新 VPN 连接状态
+    /// 从 VPNManager 获取当前连接状态并更新 UI
+    private func refreshVPNStatus() {
+        vpnConnectionStatus = VPNManager.shared.connectionStatus
     }
 
     // MARK: - 检查更新
