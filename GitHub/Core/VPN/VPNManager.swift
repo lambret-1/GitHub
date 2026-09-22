@@ -249,7 +249,8 @@ final class VPNManager: NSObject {
 
             // 设置 providerConfiguration，将节点信息传递给 VPN 扩展
             // 扩展可以通过 protocolConfiguration.providerConfiguration 获取这些信息
-            protocolConfiguration.providerConfiguration = [
+            // 明确指定 [String: Any] 类型，避免编译器类型推断失败
+            let providerConfig: [String: Any] = [
                 "node_remark": node.remark,
                 "node_server": node.serverAddress,
                 "node_port": node.serverPort,
@@ -258,6 +259,7 @@ final class VPNManager: NSObject {
                 "node_transport": node.transportType.rawValue,
                 "node_enable_tls": node.enableTLS
             ]
+            protocolConfiguration.providerConfiguration = providerConfig
 
             self.vpnManager.protocolConfiguration = protocolConfiguration
             self.vpnManager.localizedDescription = "GitHub 中文 VPN - \(node.remark)"
