@@ -277,33 +277,39 @@ final class VPNManager: NSObject {
         saveCurrentNodeToAppGroup(node)
         os_log("💾 节点配置已保存到 App Group", log: logger, type: .debug)
 
-        // 关键步骤：先删除所有旧的 VPN 配置，避免配置冲突
-        // 参考 LightBrowser 的成功实现
-        removeAllOldVPNConfigurations { [weak self] in
+        // 优化：已有配置时直接复用，不删除重建
+        // 首次无配置时才创建新配置（系统会弹出权限请求对话框）
+        // 配置后再次连接只需更新节点信息，不会重复弹出权限请求
+        getOrCreateVPNManager { [weak self] manager in
             guard let self = self else { return }
-
-            // 延迟 0.5 秒再创建新配置，确保系统完全清理旧配置
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.createAndStartVPNTunnel(node: node, completion: completion)
-            }
+            self.updateConfigAndStartTunnel(manager: manager, node: node, completion: completion)
         }
     }
 
-    /// 创建 VPN 配置并启动隧道
+    /// 更新 VPN 配置并启动隧道
+    /// 已有配置时直接更新节点信息，无需删除重建；首次配置时系统会弹出权限请求
     /// - Parameters:
+    ///   - manager: VPN 管理器实例
     ///   - node: VPN 节点
     ///   - completion: 完成回调
-    private func createAndStartVPNTunnel(node: VPNNode, completion: ((Error?) -> Void)?) {
-        DebugLogger.vpn("开始创建VPN配置并启动隧道")
-
-        // 创建新的 VPN 管理器实例
-        let manager = NETunnelProviderManager()
-        manager.localizedDescription = vpnConfigurationDescription
+    private func updateConfigAndStartTunnel(manager: NETunnelProviderManager, node: VPNNode, completion: ((Error?) -> Void)?) {
+        DebugLogger.vpn("更新VPN配置并启动隧道")
         currentVPNManager = manager
 
-        // 配置协议
-        let protocolConfiguration = NETunnelProviderProtocol()
-        protocolConfiguration.providerBundleIdentifier = vpnExtensionBundleID
+        // 配置协议（复用已有配置，只更新节点信息）
+        let protocolConfiguration: NETunnelProviderProtocol
+        if let existingConfig = manager.protocolConfiguration as? NETunnelProviderProtocol {
+            // 复用已有协议配置，只更新节点相关字段
+            protocolConfiguration = existingConfig
+            DebugLogger.vpn("复用已有协议配置，更新节点信息")
+        } else {
+            // 没有有效协议配置，创建新的（首次配置）
+            protocolConfiguration = NETunnelProviderProtocol()
+            protocolConfiguration.providerBundleIdentifier = vpnExtensionBundleID
+            DebugLogger.vpn("创建新的协议配置（首次配置）")
+        }
+
+        // 更新节点信息
         protocolConfiguration.serverAddress = "\(node.serverAddress):\(node.serverPort)"
 
         // 设置 providerConfiguration，传递节点信息给扩展
@@ -319,20 +325,19 @@ final class VPNManager: NSObject {
         protocolConfiguration.providerConfiguration = providerConfig
 
         manager.protocolConfiguration = protocolConfiguration
+        manager.localizedDescription = vpnConfigurationDescription
         manager.isEnabled = true
 
-        DebugLogger.vpn("VPN协议配置已设置")
-        DebugLogger.vpn("providerBundleIdentifier: \(vpnExtensionBundleID)")
+        DebugLogger.vpn("VPN配置已更新")
         DebugLogger.vpn("serverAddress: \(protocolConfiguration.serverAddress ?? "未知")")
 
-        // 保存配置
+        // 保存配置（首次配置时系统会弹出权限请求，已有配置时不会弹出）
         manager.saveToPreferences { [weak self] (saveError: Error?) in
             guard let self = self else { return }
 
             if let saveError = saveError {
                 DebugLogger.vpnError("保存VPN配置失败：\(saveError.localizedDescription) (code: \((saveError as NSError).code))")
                 DebugLogger.vpnError("错误域：\((saveError as NSError).domain)")
-                DebugLogger.vpnError("错误用户信息：\((saveError as NSError).userInfo)")
                 DispatchQueue.main.async {
                     completion?(saveError)
                     self.onConnectionError?(saveError)
