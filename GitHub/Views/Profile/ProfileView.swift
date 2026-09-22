@@ -347,7 +347,7 @@ struct ProfileView: View {
             .navigationDestination(isPresented: $showDebugLogs) {
                 DebugLogView()
             }
-            .navigationDestination(isPresented: $showVPN) {
+            .fullScreenCover(isPresented: $showVPN) {
                 VPNMainView()
             }
         }
