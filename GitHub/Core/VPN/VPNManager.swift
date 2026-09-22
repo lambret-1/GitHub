@@ -185,12 +185,14 @@ final class VPNManager: NSObject {
     /// - Parameter completion: 完成回调
     func connect(completion: ((Error?) -> Void)? = nil) {
         os_log("🚀 开始连接 VPN", log: logger, type: .info)
+        DebugLogger.vpnInfo("=== 开始连接 VPN ===")
 
         // 检查是否有选中的节点
         guard let node = currentNode else {
             let error = NSError(domain: "VPNManager", code: -1,
                                userInfo: [NSLocalizedDescriptionKey: "请先选择一个节点"])
             os_log("❌ 连接失败：未选择节点", log: logger, type: .error)
+            DebugLogger.vpnError("连接失败：未选择节点")
             completion?(error)
             onConnectionError?(error)
             return
@@ -198,6 +200,8 @@ final class VPNManager: NSObject {
 
         os_log("📋 使用节点：%{public}@ (%{public}@:%d)", log: logger, type: .info,
                node.remark, node.serverAddress, node.serverPort)
+        DebugLogger.vpn("使用节点：\(node.remark) (\(node.serverAddress):\(node.serverPort))")
+        DebugLogger.vpn("节点协议：\(node.protocolType.displayName)，UUID：\(node.uuid)")
 
         // 将当前节点配置保存到 App Group，供 VPN 扩展读取
         saveCurrentNodeToAppGroup(node)
@@ -209,6 +213,7 @@ final class VPNManager: NSObject {
 
             if let error = error {
                 os_log("❌ 加载 VPN 配置失败: %{public}@", log: self.logger, type: .error, error.localizedDescription)
+                DebugLogger.vpnError("加载 VPN 配置失败：\(error.localizedDescription) (code: \((error as NSError).code))")
                 DispatchQueue.main.async {
                     completion?(error)
                     self.onConnectionError?(error)
@@ -232,6 +237,8 @@ final class VPNManager: NSObject {
             self.vpnManager.saveToPreferences { saveError in
                 if let saveError = saveError {
                     os_log("❌ 保存 VPN 配置失败: %{public}@", log: self.logger, type: .error, saveError.localizedDescription)
+                    DebugLogger.vpnError("保存 VPN 配置失败：\(saveError.localizedDescription) (code: \((saveError as NSError).code))")
+                    DebugLogger.vpnError("错误域：\((saveError as NSError).domain)")
                     DispatchQueue.main.async {
                         completion?(saveError)
                         self.onConnectionError?(saveError)
@@ -278,6 +285,10 @@ final class VPNManager: NSObject {
                     } catch {
                         os_log("❌ 启动 VPN 隧道失败: %{public}@ (code: %d)", log: self.logger, type: .error,
                                error.localizedDescription, (error as NSError).code)
+                        DebugLogger.vpnError("启动 VPN 隧道失败：\(error.localizedDescription)")
+                        DebugLogger.vpnError("错误码：\((error as NSError).code)")
+                        DebugLogger.vpnError("错误域：\((error as NSError).domain)")
+                        DebugLogger.vpnError("错误用户信息：\((error as NSError).userInfo)")
                         DispatchQueue.main.async {
                             completion?(error)
                             self.onConnectionError?(error)
@@ -290,6 +301,8 @@ final class VPNManager: NSObject {
 
     /// 断开 VPN 连接
     func disconnect() {
+        os_log("🛑 断开 VPN 连接", log: logger, type: .info)
+        DebugLogger.vpnInfo("断开 VPN 连接")
         vpnManager.connection.stopVPNTunnel()
     }
 
@@ -473,7 +486,9 @@ final class VPNManager: NSObject {
     /// VPN 状态变化处理
     @objc private func vpnStatusDidChange(_ notification: Notification) {
         let newStatus = VPNConnectionStatus(from: vpnManager.connection.status)
+        let oldStatus = connectionStatus
         connectionStatus = newStatus
+        DebugLogger.vpnInfo("VPN状态变化：\(oldStatus.displayText) → \(newStatus.displayText)")
     }
 
     // MARK: - 与 VPN 扩展通信

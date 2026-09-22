@@ -255,4 +255,19 @@ extension DebugLogger {
     static func update(_ message: String) {
         shared.log(tag: "应用更新", message: message, level: .debug)
     }
+
+    /// 记录VPN调试日志
+    static func vpn(_ message: String) {
+        shared.log(tag: "VPN调试", message: message, level: .debug)
+    }
+
+    /// 记录VPN错误日志
+    static func vpnError(_ message: String) {
+        shared.log(tag: "VPN调试", message: message, level: .error)
+    }
+
+    /// 记录VPN信息日志
+    static func vpnInfo(_ message: String) {
+        shared.log(tag: "VPN调试", message: message, level: .info)
+    }
 }
