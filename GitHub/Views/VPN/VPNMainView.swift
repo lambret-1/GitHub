@@ -87,6 +87,16 @@ struct VPNMainView: View {
             .sheet(isPresented: $showAddNodeView) {
                 AddNodeView()
             }
+            .onChange(of: showAddNodeView) { newValue in
+                // 添加节点页面关闭后刷新节点列表
+                if !newValue {
+                    vpnManagerObservable.refresh()
+                }
+            }
+            .onAppear {
+                // 页面出现时刷新节点列表和连接状态
+                vpnManagerObservable.refresh()
+            }
             .alert("提示", isPresented: $showAlert) {
                 Button("确定", role: .cancel) { }
             } message: {

@@ -193,14 +193,16 @@ struct VPNNodeImporter {
     // MARK: - VLESS 导入
 
     /// 从 VLESS 链接导入节点
-    /// VLESS 链接格式：vless://uuid@server:port?params#remark
+    /// 支持两种格式：
+    /// 1. 标准格式：vless://uuid@server:port?params#remark
+    /// 2. Shadowrocket 格式：vless://base64(auth:uuid@server:port)?remarks=...&obfs=...&tls=1&peer=...
     /// - Parameter string: VLESS 链接字符串
     /// - Returns: 导入的节点
     private static func importVLESS(from string: String) throws -> VPNNode {
         // 移除前缀 "vless://"
         let urlString = String(string.dropFirst(8))
 
-        // 分离备注（# 后面的部分）
+        // 分离备注（# 后面的部分，标准格式）
         var remark = "VLESS 节点"
         var mainPart = urlString
         if let range = urlString.range(of: "#") {
@@ -215,60 +217,133 @@ struct VPNNodeImporter {
             mainPart = String(mainPart[..<range.lowerBound])
         }
 
-        // 分离 UUID 和服务器地址（@ 分隔）
-        let parts = mainPart.components(separatedBy: "@")
-        guard parts.count == 2 else {
-            throw VPNNodeImportError.invalidURL
-        }
-
-        let uuid = parts[0].removingPercentEncoding ?? parts[0]
-        let serverPart = parts[1]
-
-        // 分离服务器地址和端口（: 分隔）
-        let serverParts = serverPart.components(separatedBy: ":")
-        guard serverParts.count >= 2,
-              let port = Int(serverParts.last ?? "") else {
-            throw VPNNodeImportError.missingRequiredField
-        }
-
-        let serverAddress = serverParts.dropLast().joined(separator: ":")
-            .removingPercentEncoding ?? serverParts[0]
-
         // 解析查询参数
         let queryParams = parseQueryString(queryString)
+
+        // 检测是否是 Shadowrocket 的 base64 编码格式
+        // 特征：mainPart 不包含 @ 符号，且可以 base64 解码
+        var uuid: String
+        var serverAddress: String
+        var serverPort: Int
+
+        if !mainPart.contains("@"), let decodedData = Data(base64Encoded: mainPart),
+           let decodedString = String(data: decodedData, encoding: .utf8) {
+            // Shadowrocket 格式：base64(auth:uuid@server:port)
+            // 解码后格式如：auth:62bc5cd2-5eef-4e12-b9b3-24087eff5082@visa.com:443
+
+            // 移除可能的 "auth:" 前缀
+            var authPart = decodedString
+            if authPart.hasPrefix("auth:") {
+                authPart = String(authPart.dropFirst(5))
+            }
+
+            // 分离 UUID 和服务器地址（@ 分隔）
+            let parts = authPart.components(separatedBy: "@")
+            guard parts.count == 2 else {
+                throw VPNNodeImportError.invalidURL
+            }
+
+            uuid = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+            let serverPart = parts[1]
+
+            // 分离服务器地址和端口
+            let serverParts = serverPart.components(separatedBy: ":")
+            guard serverParts.count >= 2,
+                  let port = Int(serverParts.last ?? "") else {
+                throw VPNNodeImportError.missingRequiredField
+            }
+
+            serverAddress = serverParts.dropLast().joined(separator: ":")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            serverPort = port
+
+            // Shadowrocket 格式的备注在查询参数的 remarks 字段
+            if let remarksValue = queryParams["remarks"] as? String,
+               !remarksValue.isEmpty {
+                remark = remarksValue.removingPercentEncoding ?? remarksValue
+            }
+
+        } else {
+            // 标准格式：uuid@server:port
+
+            // 分离 UUID 和服务器地址（@ 分隔）
+            let parts = mainPart.components(separatedBy: "@")
+            guard parts.count == 2 else {
+                throw VPNNodeImportError.invalidURL
+            }
+
+            uuid = parts[0].removingPercentEncoding ?? parts[0]
+            let serverPart = parts[1]
+
+            // 分离服务器地址和端口（: 分隔）
+            let serverParts = serverPart.components(separatedBy: ":")
+            guard serverParts.count >= 2,
+                  let port = Int(serverParts.last ?? "") else {
+                throw VPNNodeImportError.missingRequiredField
+            }
+
+            serverAddress = serverParts.dropLast().joined(separator: ":")
+                .removingPercentEncoding ?? serverParts[0]
+            serverPort = port
+        }
 
         // 创建节点
         var node = VPNNode(
             remark: remark,
             protocolType: .vless,
             serverAddress: serverAddress,
-            serverPort: port,
+            serverPort: serverPort,
             uuid: uuid
         )
 
         // VLESS 默认不加密
         node.encryption = .none
 
-        // 传输协议
-        let typeString = (queryParams["type"] as? String)?.lowercased() ?? "tcp"
+        // 传输协议（兼容两种格式的参数名）
+        // 标准格式用 type，Shadowrocket 格式用 obfs
+        let typeString = ((queryParams["type"] as? String) ?? (queryParams["obfs"] as? String))?.lowercased() ?? "tcp"
         node.transportType = parseTransportType(typeString)
 
         // WebSocket 配置
         if node.transportType == .websocket {
-            node.wsPath = (queryParams["path"] as? String)?.removingPercentEncoding
-            node.wsHost = (queryParams["host"] as? String)?.removingPercentEncoding
+            // 标准格式：path 和 host
+            // Shadowrocket 格式：obfsParam 可能包含 path 或 host
+            if let pathValue = queryParams["path"] as? String {
+                node.wsPath = pathValue.removingPercentEncoding
+            } else if let obfsParam = queryParams["obfsParam"] as? String {
+                // Shadowrocket 的 obfsParam 可能是 path，也可能是 host，需要判断
+                if obfsParam.hasPrefix("/") {
+                    node.wsPath = obfsParam.removingPercentEncoding
+                } else {
+                    node.wsHost = obfsParam.removingPercentEncoding
+                }
+            }
+            if let hostValue = queryParams["host"] as? String {
+                node.wsHost = hostValue.removingPercentEncoding
+            }
         }
 
         // gRPC 配置
         if node.transportType == .grpc {
-            node.grpcServiceName = (queryParams["serviceName"] as? String)?.removingPercentEncoding
+            if let serviceName = queryParams["serviceName"] as? String {
+                node.grpcServiceName = serviceName.removingPercentEncoding
+            }
         }
 
-        // TLS 配置
-        let securityString = (queryParams["security"] as? String)?.lowercased() ?? "none"
-        node.enableTLS = (securityString == "tls" || securityString == "reality")
+        // TLS 配置（兼容两种格式）
+        // 标准格式：security=tls
+        // Shadowrocket 格式：tls=1
+        let securityString = ((queryParams["security"] as? String) ?? "").lowercased()
+        let tlsValue = queryParams["tls"] as? String
+        node.enableTLS = (securityString == "tls" || securityString == "reality" || tlsValue == "1")
+
         if node.enableTLS {
-            node.tlsServerName = (queryParams["sni"] as? String)?.removingPercentEncoding
+            // 标准格式用 sni，Shadowrocket 格式用 peer
+            if let sniValue = queryParams["sni"] as? String {
+                node.tlsServerName = sniValue.removingPercentEncoding
+            } else if let peerValue = queryParams["peer"] as? String {
+                node.tlsServerName = peerValue.removingPercentEncoding
+            }
             node.allowInsecure = (queryParams["allowInsecure"] as? String) == "1"
             if let alpnString = queryParams["alpn"] as? String {
                 node.alpn = alpnString.components(separatedBy: ",")
@@ -276,7 +351,9 @@ struct VPNNodeImporter {
         }
 
         // 流控
-        node.flow = (queryParams["flow"] as? String)?.removingPercentEncoding
+        if let flowValue = queryParams["flow"] as? String {
+            node.flow = flowValue.removingPercentEncoding
+        }
 
         return node
     }
