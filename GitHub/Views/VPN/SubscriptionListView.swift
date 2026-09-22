@@ -99,7 +99,7 @@ struct SubscriptionListView: View {
                 Button("删除", role: .destructive) {
                     if let subscription = subscriptionToDelete {
                         subscriptionObservable.removeSubscription(subscription)
-                        showAlert(message: "已删除订阅「\(subscription.name)」")
+                        displayAlert(message: "已删除订阅「\(subscription.name)」")
                     }
                     subscriptionToDelete = nil
                 }
@@ -322,9 +322,9 @@ struct SubscriptionListView: View {
         subscriptionObservable.updateSubscription(subscription) { result in
             switch result {
             case .success(let subscription, let nodes):
-                showAlert(message: "更新成功，获取到 \(nodes.count) 个节点")
+                displayAlert(message: "更新成功，获取到 \(nodes.count) 个节点")
             case .failure(_, let error):
-                showAlert(message: "更新失败：\(error.localizedDescription)")
+                displayAlert(message: "更新失败：\(error.localizedDescription)")
             }
         }
     }
@@ -333,15 +333,15 @@ struct SubscriptionListView: View {
     private func updateAllSubscriptions() {
         subscriptionObservable.updateAllSubscriptions { successCount, failureCount in
             if failureCount == 0 {
-                showAlert(message: "全部更新成功，共更新 \(successCount) 个订阅")
+                displayAlert(message: "全部更新成功，共更新 \(successCount) 个订阅")
             } else {
-                showAlert(message: "更新完成：成功 \(successCount) 个，失败 \(failureCount) 个")
+                displayAlert(message: "更新完成：成功 \(successCount) 个，失败 \(failureCount) 个")
             }
         }
     }
 
     /// 显示提示
-    private func showAlert(message: String) {
+    private func displayAlert(message: String) {
         alertMessage = message
         showAlert = true
     }

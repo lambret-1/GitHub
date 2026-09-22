@@ -215,10 +215,10 @@ struct AddSubscriptionView: View {
                 subscriptionName = generateName(from: pasteboardString)
             }
         } else {
-            showAlert(message: "剪贴板为空")
+            displayAlert(message: "剪贴板为空")
         }
         #else
-        showAlert(message: "当前平台不支持剪贴板")
+        displayAlert(message: "当前平台不支持剪贴板")
         #endif
     }
 
@@ -236,6 +236,12 @@ struct AddSubscriptionView: View {
             return parts[parts.count - 2]
         }
         return host
+    }
+
+    /// 显示提示
+    private func displayAlert(message: String) {
+        alertMessage = message
+        showAlert = true
     }
 
     /// 添加订阅
