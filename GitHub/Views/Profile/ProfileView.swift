@@ -1,5 +1,4 @@
 import SwiftUI
-import NetworkExtension
 
 struct ProfileView: View {
     @EnvironmentObject var appState: AppState
@@ -14,7 +13,7 @@ struct ProfileView: View {
 
     // VPN 连接状态观察
     // 用于导航栏显示 VPN 连接状态图标
-    @State private var vpnConnectionStatus: NEVPNStatus = .invalid
+    @State private var vpnConnectionStatus: VPNConnectionStatus = .disconnected
 
     // 检查更新相关状态
     @State private var isCheckingUpdate = false
