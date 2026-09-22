@@ -222,16 +222,46 @@ final class VPNManager: NSObject {
                     return
                 }
 
-                // 启动 VPN 隧道
-                do {
-                    try self.vpnManager.connection.startVPNTunnel()
-                    DispatchQueue.main.async {
-                        completion?(nil)
+                // 保存配置后必须重新加载，否则系统可能还使用旧配置
+                // 这是 NEVPNManager 的最佳实践，避免启动隧道时配置不完整
+                self.vpnManager.loadFromPreferences { reloadError in
+                    if let reloadError = reloadError {
+                        DispatchQueue.main.async {
+                            completion?(reloadError)
+                            self.onConnectionError?(reloadError)
+                        }
+                        return
                     }
-                } catch {
-                    DispatchQueue.main.async {
-                        completion?(error)
-                        self.onConnectionError?(error)
+
+                    // 确保协议配置是 NETunnelProviderProtocol 类型
+                    guard self.vpnManager.protocolConfiguration is NETunnelProviderProtocol else {
+                        let configError = NSError(
+                            domain: "VPNManager",
+                            code: -2,
+                            userInfo: [NSLocalizedDescriptionKey: "VPN 配置类型错误，请重新添加 VPN 配置"]
+                        )
+                        DispatchQueue.main.async {
+                            completion?(configError)
+                            self.onConnectionError?(configError)
+                        }
+                        return
+                    }
+
+                    // 启动 VPN 隧道
+                    do {
+                        try self.vpnManager.connection.startVPNTunnel()
+                        DispatchQueue.main.async {
+                            completion?(nil)
+                        }
+                    } catch {
+                        // 常见错误：
+                        // - NEVPNErrorConfigurationDisabled: VPN 配置未启用
+                        // - NEVPNErrorConnectionFailed: 连接失败
+                        // - NEVPNErrorConfigurationInvalid: 配置无效
+                        DispatchQueue.main.async {
+                            completion?(error)
+                            self.onConnectionError?(error)
+                        }
                     }
                 }
             }

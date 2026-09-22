@@ -52,6 +52,11 @@ targets:
         INFOPLIST_FILE: GitHub/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: GitHub/GitHub.entitlements
+    # 主应用依赖 VPN 扩展，并将其嵌入到 .app 包的 PlugIns 目录中
+    # embed: true 确保扩展被复制到 APP 包内，系统才能找到并启动 VPN 扩展
+    dependencies:
+      - target: VPNPacketTunnel
+        embed: true
 
   # ============================================================================
   # VPN 网络扩展 Target（PacketTunnelProvider）
@@ -73,5 +78,5 @@ targets:
         INFOPLIST_FILE: VPNPacketTunnel/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: VPNPacketTunnel/VPNPacketTunnel.entitlements
-    dependencies:
-      - target: GitHub
+    # 扩展不需要依赖主应用，它是独立运行的进程
+    # 主应用通过 dependencies 嵌入此扩展
