@@ -171,7 +171,9 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
                 // 一次最多读取 10 个数据包，提高处理效率
                 let packets = self.packetFlow.readPackets()
 
-                for (packetData, protocolNumber) in packets {
+                // readPackets() 返回 ([Data], [NSNumber]) 元组
+                // 需要用 zip 将两个数组合并后才能遍历
+                for (packetData, protocolNumber) in zip(packets.0, packets.1) {
                     // 第一期：直接将数据包写回（不做代理）
                     // 后续期：在这里实现协议代理逻辑
                     self.packetFlow.writePackets([packetData], withProtocols: [protocolNumber])
@@ -202,7 +204,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
             }
 
-            os_log("⚠️ 未找到节点配置", log: self.logger, type: .warning)
+            os_log("⚠️ 未找到节点配置", log: self.logger, type: .error)
             completion(nil)
         }
     }
