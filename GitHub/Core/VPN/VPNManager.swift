@@ -232,39 +232,25 @@ final class VPNManager: NSObject {
         DebugLogger.vpn("当前配置是否启用：\(vpnManager.isEnabled)")
         DebugLogger.vpn("当前配置类型：\(String(describing: type(of: vpnManager.protocolConfiguration)))")
 
-        // 更新协议配置
-        // 关键修复：优先复用已有的 NETunnelProviderProtocol 配置，而不是每次都新建
-        let protocolConfiguration: NETunnelProviderProtocol
-        if let existingConfig = vpnManager.protocolConfiguration as? NETunnelProviderProtocol {
-            protocolConfiguration = existingConfig
-            DebugLogger.vpn("复用已有 VPN 配置")
-        } else {
-            protocolConfiguration = NETunnelProviderProtocol()
-            DebugLogger.vpn("创建新的 VPN 配置")
-        }
+        // 关键修复：每次都创建全新的 NETunnelProviderProtocol 配置
+        // 不复用旧配置，避免旧配置的无效状态导致 "Missing protocol or protocol has invalid type" 错误
+        let protocolConfiguration = NETunnelProviderProtocol()
 
-        // 设置必要字段
+        // 只设置最必要的字段，避免多余属性导致类型校验失败
         protocolConfiguration.providerBundleIdentifier = "com.github.client.vpn"
         protocolConfiguration.serverAddress = node.serverAddress
-        protocolConfiguration.username = node.uuid
 
-        // 设置 providerConfiguration，将节点信息传递给 VPN 扩展
-        let providerConfig: [String: Any] = [
-            "node_remark": node.remark,
-            "node_server": node.serverAddress,
-            "node_port": node.serverPort,
-            "node_uuid": node.uuid,
-            "node_protocol": node.protocolType.rawValue,
-            "node_transport": node.transportType.rawValue,
-            "node_enable_tls": node.enableTLS
-        ]
-        protocolConfiguration.providerConfiguration = providerConfig
+        // 不设置 username 和 providerConfiguration，先确保基础配置能保存成功
+        // 节点信息通过 App Group 传递给扩展，不依赖 providerConfiguration
 
         vpnManager.protocolConfiguration = protocolConfiguration
         vpnManager.localizedDescription = "GitHub 中文 VPN - \(node.remark)"
         vpnManager.isEnabled = true
 
-        DebugLogger.vpn("协议配置已设置，providerBundleIdentifier: \(protocolConfiguration.providerBundleIdentifier ?? "未知")")
+        DebugLogger.vpn("协议配置已设置（最简模式）")
+        DebugLogger.vpn("providerBundleIdentifier: \(protocolConfiguration.providerBundleIdentifier ?? "未知")")
+        DebugLogger.vpn("serverAddress: \(protocolConfiguration.serverAddress ?? "未知")")
+        DebugLogger.vpn("配置类型: \(String(describing: type(of: protocolConfiguration)))")
 
         // 保存配置
         vpnManager.saveToPreferences { [weak self] (saveError: Error?) in
@@ -272,6 +258,7 @@ final class VPNManager: NSObject {
             if let saveError = saveError {
                 DebugLogger.vpnError("保存 VPN 配置失败：\(saveError.localizedDescription) (code: \((saveError as NSError).code))")
                 DebugLogger.vpnError("错误域：\((saveError as NSError).domain)")
+                DebugLogger.vpnError("错误用户信息：\((saveError as NSError).userInfo)")
                 DispatchQueue.main.async {
                     completion?(saveError)
                     self.onConnectionError?(saveError)
