@@ -4,11 +4,16 @@
 //
 //  用途：VPN 管理器，负责 VPN 配置、连接控制、节点管理
 //  职责：
-//    1. 管理 VPN 配置（NEVPNManager）
+//    1. 管理 VPN 配置（NETunnelProviderManager）
 //    2. 控制 VPN 连接/断开
 //    3. 节点数据持久化存储
 //    4. 与 VPN 扩展（PacketTunnelProvider）通信
 //    5. 监听 VPN 连接状态变化
+//
+//  关键实现说明：
+//    - 使用 NETunnelProviderManager 而非 NEVPNManager.shared()
+//    - 参考 LightBrowser 项目的成功实现模式
+//    - 连接前先删除旧配置，延迟后创建新配置，避免配置冲突
 //
 
 import Foundation
@@ -98,10 +103,17 @@ final class VPNManager: NSObject {
     /// 必须与 VPNPacketTunnel.entitlements 中配置一致
     private let appGroupIdentifier = "group.com.github.client"
 
-    // MARK: - VPN 配置管理器
+    // MARK: - VPN 配置标识
 
-    /// NEVPNManager 实例，用于管理 VPN 配置
-    private let vpnManager = NEVPNManager.shared()
+    /// VPN 配置本地化描述，用于识别我们的 VPN 配置
+    private let vpnConfigurationDescription = "GitHub中文VPN"
+
+    /// VPN 扩展 Bundle Identifier
+    private let vpnExtensionBundleID = "com.github.client.vpn"
+
+    /// 当前活动的 VPN 管理器实例
+    /// NETunnelProviderManager 不是单例，需要从 loadAllFromPreferences 获取或创建新实例
+    private var currentVPNManager: NETunnelProviderManager?
 
     // MARK: - 节点存储
 
@@ -138,39 +150,97 @@ final class VPNManager: NSObject {
         }
     }
 
+    // MARK: - 获取或创建 VPN 管理器
+
+    /// 获取已存在的 VPN 配置管理器，或创建新的
+    /// 参考 LightBrowser 的实现：使用 NETunnelProviderManager.loadAllFromPreferences
+    /// - Parameter completion: 完成回调，返回管理器实例
+    private func getOrCreateVPNManager(completion: @escaping (NETunnelProviderManager) -> Void) {
+        NETunnelProviderManager.loadAllFromPreferences { [weak self] managers, error in
+            guard let self = self else { return }
+
+            if let error = error {
+                DebugLogger.vpnError("加载所有VPN配置失败：\(error.localizedDescription)")
+            }
+
+            // 查找我们的 VPN 配置（通过 localizedDescription 识别）
+            if let existingManager = managers?.first(where: { $0.localizedDescription == self.vpnConfigurationDescription }) {
+                DebugLogger.vpn("找到已存在的VPN配置")
+                self.currentVPNManager = existingManager
+                completion(existingManager)
+                return
+            }
+
+            // 没有找到，创建新的
+            DebugLogger.vpn("创建新的VPN配置管理器")
+            let newManager = NETunnelProviderManager()
+            newManager.localizedDescription = self.vpnConfigurationDescription
+            self.currentVPNManager = newManager
+            completion(newManager)
+        }
+    }
+
+    /// 删除所有旧的 VPN 配置
+    /// 参考 LightBrowser：连接前先删除旧配置，避免配置冲突
+    /// - Parameter completion: 完成回调
+    private func removeAllOldVPNConfigurations(completion: @escaping () -> Void) {
+        NETunnelProviderManager.loadAllFromPreferences { managers, error in
+            if let error = error {
+                DebugLogger.vpnError("加载VPN配置列表失败：\(error.localizedDescription)")
+                completion()
+                return
+            }
+
+            guard let managers = managers, !managers.isEmpty else {
+                DebugLogger.vpn("没有旧的VPN配置需要删除")
+                completion()
+                return
+            }
+
+            DebugLogger.vpn("找到 \(managers.count) 个旧VPN配置，准备删除")
+
+            let group = DispatchGroup()
+            for manager in managers {
+                group.enter()
+                manager.removeFromPreferences { _ in
+                    group.leave()
+                }
+            }
+
+            group.notify(queue: .main) {
+                DebugLogger.vpn("所有旧VPN配置已删除")
+                completion()
+            }
+        }
+    }
+
     // MARK: - VPN 权限与配置
 
     /// 请求 VPN 权限并加载配置
     /// 首次使用 VPN 时需要调用此方法请求系统权限
     /// - Parameter completion: 完成回调，success 为 true 表示权限获取成功
     func requestVPNPermission(completion: @escaping (Bool, Error?) -> Void) {
-        vpnManager.loadFromPreferences { [weak self] (error: Error?) in
+        getOrCreateVPNManager { [weak self] manager in
             guard let self = self else { return }
-
-            if let error = error {
-                DispatchQueue.main.async {
-                    completion(false, error)
-                }
-                return
-            }
 
             // 配置 VPN 协议（PacketTunnel 类型）
             let protocolConfiguration = NETunnelProviderProtocol()
-            protocolConfiguration.providerBundleIdentifier = "com.github.client.vpn"
+            protocolConfiguration.providerBundleIdentifier = self.vpnExtensionBundleID
             protocolConfiguration.serverAddress = self.currentNode?.serverAddress ?? "未知服务器"
-            protocolConfiguration.username = self.currentNode?.uuid
 
             // 设置 VPN 配置
-            self.vpnManager.protocolConfiguration = protocolConfiguration
-            self.vpnManager.localizedDescription = "GitHub 中文 VPN"
-            self.vpnManager.isEnabled = true
+            manager.protocolConfiguration = protocolConfiguration
+            manager.localizedDescription = self.vpnConfigurationDescription
+            manager.isEnabled = true
 
             // 保存配置到系统
-            self.vpnManager.saveToPreferences { (saveError: Error?) in
+            manager.saveToPreferences { (saveError: Error?) in
                 DispatchQueue.main.async {
                     if let saveError = saveError {
+                        DebugLogger.vpnError("请求VPN权限保存配置失败：\(saveError.localizedDescription)")
                         completion(false, saveError)
                     } else {
+                        DebugLogger.vpn("VPN权限请求成功")
                         completion(true, nil)
                     }
                 }
@@ -207,56 +277,60 @@ final class VPNManager: NSObject {
         saveCurrentNodeToAppGroup(node)
         os_log("💾 节点配置已保存到 App Group", log: logger, type: .debug)
 
-        // 加载 VPN 配置（闭包简化，复杂逻辑移到单独方法）
-        vpnManager.loadFromPreferences { [weak self] (error: Error?) in
+        // 关键步骤：先删除所有旧的 VPN 配置，避免配置冲突
+        // 参考 LightBrowser 的成功实现
+        removeAllOldVPNConfigurations { [weak self] in
             guard let self = self else { return }
-            if let error = error {
-                DebugLogger.vpnError("加载 VPN 配置失败：\(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    completion?(error)
-                    self.onConnectionError?(error)
-                }
-                return
+
+            // 延迟 0.5 秒再创建新配置，确保系统完全清理旧配置
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.createAndStartVPNTunnel(node: node, completion: completion)
             }
-            // 调用单独方法处理配置和连接，避免闭包过于复杂导致编译器类型推断失败
-            self.configureAndConnectVPN(node: node, completion: completion)
         }
     }
 
-    /// 配置 VPN 并启动连接（从 connect 方法提取，简化闭包复杂度）
+    /// 创建 VPN 配置并启动隧道
     /// - Parameters:
     ///   - node: VPN 节点
     ///   - completion: 完成回调
-    private func configureAndConnectVPN(node: VPNNode, completion: ((Error?) -> Void)?) {
-        DebugLogger.vpn("VPN 配置加载成功")
-        DebugLogger.vpn("当前配置是否启用：\(vpnManager.isEnabled)")
-        DebugLogger.vpn("当前配置类型：\(String(describing: type(of: vpnManager.protocolConfiguration)))")
+    private func createAndStartVPNTunnel(node: VPNNode, completion: ((Error?) -> Void)?) {
+        DebugLogger.vpn("开始创建VPN配置并启动隧道")
 
-        // 关键修复：每次都创建全新的 NETunnelProviderProtocol 配置
-        // 不复用旧配置，避免旧配置的无效状态导致 "Missing protocol or protocol has invalid type" 错误
+        // 创建新的 VPN 管理器实例
+        let manager = NETunnelProviderManager()
+        manager.localizedDescription = vpnConfigurationDescription
+        currentVPNManager = manager
+
+        // 配置协议
         let protocolConfiguration = NETunnelProviderProtocol()
+        protocolConfiguration.providerBundleIdentifier = vpnExtensionBundleID
+        protocolConfiguration.serverAddress = "\(node.serverAddress):\(node.serverPort)"
 
-        // 只设置最必要的字段，避免多余属性导致类型校验失败
-        protocolConfiguration.providerBundleIdentifier = "com.github.client.vpn"
-        protocolConfiguration.serverAddress = node.serverAddress
+        // 设置 providerConfiguration，传递节点信息给扩展
+        let providerConfig: [String: Any] = [
+            "node_remark": node.remark,
+            "node_server": node.serverAddress,
+            "node_port": node.serverPort,
+            "node_uuid": node.uuid,
+            "node_protocol": node.protocolType.rawValue,
+            "node_transport": node.transportType.rawValue,
+            "node_enable_tls": node.enableTLS
+        ]
+        protocolConfiguration.providerConfiguration = providerConfig
 
-        // 不设置 username 和 providerConfiguration，先确保基础配置能保存成功
-        // 节点信息通过 App Group 传递给扩展，不依赖 providerConfiguration
+        manager.protocolConfiguration = protocolConfiguration
+        manager.isEnabled = true
 
-        vpnManager.protocolConfiguration = protocolConfiguration
-        vpnManager.localizedDescription = "GitHub 中文 VPN - \(node.remark)"
-        vpnManager.isEnabled = true
-
-        DebugLogger.vpn("协议配置已设置（最简模式）")
-        DebugLogger.vpn("providerBundleIdentifier: \(protocolConfiguration.providerBundleIdentifier ?? "未知")")
+        DebugLogger.vpn("VPN协议配置已设置")
+        DebugLogger.vpn("providerBundleIdentifier: \(vpnExtensionBundleID)")
         DebugLogger.vpn("serverAddress: \(protocolConfiguration.serverAddress ?? "未知")")
-        DebugLogger.vpn("配置类型: \(String(describing: type(of: protocolConfiguration)))")
 
         // 保存配置
-        vpnManager.saveToPreferences { [weak self] (saveError: Error?) in
+        manager.saveToPreferences { [weak self] (saveError: Error?) in
             guard let self = self else { return }
+
             if let saveError = saveError {
-                DebugLogger.vpnError("保存 VPN 配置失败：\(saveError.localizedDescription) (code: \((saveError as NSError).code))")
+                DebugLogger.vpnError("保存VPN配置失败：\(saveError.localizedDescription) (code: \((saveError as NSError).code))")
                 DebugLogger.vpnError("错误域：\((saveError as NSError).domain)")
                 DebugLogger.vpnError("错误用户信息：\((saveError as NSError).userInfo)")
                 DispatchQueue.main.async {
@@ -266,13 +340,14 @@ final class VPNManager: NSObject {
                 return
             }
 
-            DebugLogger.vpn("VPN 配置保存成功")
+            DebugLogger.vpn("VPN配置保存成功")
 
-            // 保存配置后重新加载
-            self.vpnManager.loadFromPreferences { [weak self] (reloadError: Error?) in
+            // 保存后重新加载配置
+            manager.loadFromPreferences { [weak self] (reloadError: Error?) in
                 guard let self = self else { return }
+
                 if let reloadError = reloadError {
-                    DebugLogger.vpnError("重新加载 VPN 配置失败：\(reloadError.localizedDescription)")
+                    DebugLogger.vpnError("重新加载VPN配置失败：\(reloadError.localizedDescription)")
                     DispatchQueue.main.async {
                         completion?(reloadError)
                         self.onConnectionError?(reloadError)
@@ -281,13 +356,13 @@ final class VPNManager: NSObject {
                 }
 
                 // 确保协议配置类型正确
-                guard self.vpnManager.protocolConfiguration is NETunnelProviderProtocol else {
+                guard manager.protocolConfiguration is NETunnelProviderProtocol else {
                     let configError = NSError(
                         domain: "VPNManager",
                         code: -2,
                         userInfo: [NSLocalizedDescriptionKey: "VPN 配置类型错误，请重新添加 VPN 配置"]
                     )
-                    DebugLogger.vpnError("VPN 配置类型错误")
+                    DebugLogger.vpnError("VPN配置类型错误")
                     DispatchQueue.main.async {
                         completion?(configError)
                         self.onConnectionError?(configError)
@@ -299,14 +374,14 @@ final class VPNManager: NSObject {
 
                 // 启动 VPN 隧道
                 do {
-                    try self.vpnManager.connection.startVPNTunnel()
+                    try manager.connection.startVPNTunnel()
                     os_log("✅ VPN 隧道启动命令已发送", log: self.logger, type: .info)
-                    DebugLogger.vpnInfo("VPN 隧道启动命令已发送，等待状态变化...")
+                    DebugLogger.vpnInfo("VPN隧道启动命令已发送，等待状态变化...")
                     DispatchQueue.main.async {
                         completion?(nil)
                     }
                 } catch {
-                    DebugLogger.vpnError("启动 VPN 隧道失败：\(error.localizedDescription)")
+                    DebugLogger.vpnError("启动VPN隧道失败：\(error.localizedDescription)")
                     DebugLogger.vpnError("错误码：\((error as NSError).code)")
                     DebugLogger.vpnError("错误域：\((error as NSError).domain)")
                     DispatchQueue.main.async {
@@ -322,7 +397,21 @@ final class VPNManager: NSObject {
     func disconnect() {
         os_log("🛑 断开 VPN 连接", log: logger, type: .info)
         DebugLogger.vpnInfo("断开 VPN 连接")
-        vpnManager.connection.stopVPNTunnel()
+
+        // 优先使用当前管理器
+        if let manager = currentVPNManager {
+            manager.connection.stopVPNTunnel()
+            return
+        }
+
+        // 如果当前管理器不存在，从配置列表中查找
+        NETunnelProviderManager.loadAllFromPreferences { [weak self] managers, _ in
+            guard let self = self else { return }
+            if let manager = managers?.first(where: { $0.localizedDescription == self.vpnConfigurationDescription }) {
+                manager.connection.stopVPNTunnel()
+                self.currentVPNManager = manager
+            }
+        }
     }
 
     /// 切换连接状态（连接则断开，断开则连接）
@@ -340,151 +429,91 @@ final class VPNManager: NSObject {
     /// 添加节点
     /// - Parameter node: 要添加的节点
     func addNode(_ node: VPNNode) {
-        nodes.append(node)
-        saveNodes()
+        // 检查是否已存在相同节点（通过 UUID 和服务器地址判断）
+        if !nodes.contains(where: { $0.id == node.id }) {
+            nodes.append(node)
+            saveNodes()
+            DebugLogger.vpn("添加节点：\(node.remark)")
+        }
     }
 
     /// 删除节点
     /// - Parameter node: 要删除的节点
     func removeNode(_ node: VPNNode) {
         nodes.removeAll { $0.id == node.id }
-        // 如果删除的是当前节点，清空当前节点
+        saveNodes()
+        // 如果删除的是当前选中的节点，清空当前节点
         if currentNode?.id == node.id {
             currentNode = nil
-            clearCurrentNodeFromAppGroup()
+            saveCurrentNodeToAppGroup(nil)
         }
-        saveNodes()
+        DebugLogger.vpn("删除节点：\(node.remark)")
     }
 
-    /// 更新节点
-    /// - Parameter node: 要更新的节点（通过 id 匹配）
-    func updateNode(_ node: VPNNode) {
-        if let index = nodes.firstIndex(where: { $0.id == node.id }) {
-            var updatedNode = node
-            updatedNode.updatedAt = Date()
-            nodes[index] = updatedNode
-            saveNodes()
-            // 如果更新的是当前节点，同步更新
-            if currentNode?.id == node.id {
-                currentNode = updatedNode
-                saveCurrentNodeToAppGroup(updatedNode)
-            }
-        }
-    }
-
-    /// 选择节点（设置为当前连接节点）
+    /// 选择节点
     /// - Parameter node: 要选择的节点
     func selectNode(_ node: VPNNode) {
         currentNode = node
-        saveCurrentNodeToAppGroup(node)
-        // 保存当前节点 ID 到本地
-        UserDefaults.standard.set(node.id, forKey: "vpn_current_node_id")
+        saveCurrentNode()
+        DebugLogger.vpn("选择节点：\(node.remark)")
     }
 
-    /// 批量删除节点
-    /// - Parameter nodes: 要删除的节点数组
-    func removeNodes(_ nodesToRemove: [VPNNode]) {
-        let idsToRemove = Set(nodesToRemove.map { $0.id })
-        nodes.removeAll { idsToRemove.contains($0.id) }
-        // 如果当前节点在删除列表中，清空
-        if let currentNode = currentNode, idsToRemove.contains(currentNode.id) {
-            self.currentNode = nil
-            clearCurrentNodeFromAppGroup()
-        }
-        saveNodes()
-    }
-
-    /// 清空所有节点
-    func clearAllNodes() {
-        nodes.removeAll()
-        currentNode = nil
-        clearCurrentNodeFromAppGroup()
-        saveNodes()
-    }
-
-    // MARK: - 节点持久化
-
-    /// 保存节点列表到本地文件
-    private func saveNodes() {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            encoder.outputFormatting = .prettyPrinted
-
-            do {
-                let data = try encoder.encode(self.nodes)
-                let fileURL = self.getNodesFileURL()
-                try data.write(to: fileURL, options: .atomic)
-            } catch {
-                print("❌ 保存节点列表失败: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    /// 从本地文件加载节点列表
+    /// 加载节点列表（从本地存储）
     private func loadNodes() {
-        let fileURL = getNodesFileURL()
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             return
         }
+        let fileURL = documentsDirectory.appendingPathComponent(nodesFileName)
+        guard let data = try? Data(contentsOf: fileURL),
+              let decodedNodes = try? JSONDecoder().decode([VPNNode].self, from: data) else {
+            return
+        }
+        nodes = decodedNodes
+    }
 
-        do {
-            let data = try Data(contentsOf: fileURL)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            nodes = try decoder.decode([VPNNode].self, from: data)
-        } catch {
-            print("❌ 加载节点列表失败: \(error.localizedDescription)")
+    /// 保存节点列表（到本地存储）
+    private func saveNodes() {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return
+        }
+        let fileURL = documentsDirectory.appendingPathComponent(nodesFileName)
+        if let data = try? JSONEncoder().encode(nodes) {
+            try? data.write(to: fileURL)
         }
     }
-
-    /// 获取节点存储文件路径
-    /// - Returns: 文件 URL
-    private func getNodesFileURL() -> URL {
-        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return documentsDirectory.appendingPathComponent(nodesFileName)
-    }
-
-    // MARK: - 当前节点加载
 
     /// 加载当前选中的节点
     private func loadCurrentNode() {
-        if let nodeId = UserDefaults.standard.string(forKey: "vpn_current_node_id"),
-           let node = nodes.first(where: { $0.id == nodeId }) {
-            currentNode = node
-            saveCurrentNodeToAppGroup(node)
-        }
-    }
-
-    // MARK: - App Group 数据共享
-
-    /// 保存当前节点到 App Group（供 VPN 扩展读取）
-    /// - Parameter node: 节点对象
-    private func saveCurrentNodeToAppGroup(_ node: VPNNode) {
-        guard let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
-            print("❌ 无法访问 App Group 共享数据")
+        guard let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier),
+              let nodeData = sharedDefaults.data(forKey: currentNodeKey),
+              let node = try? JSONDecoder().decode(VPNNode.self, from: nodeData) else {
             return
         }
-
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-
-        do {
-            let data = try encoder.encode(node)
-            sharedDefaults.set(data, forKey: currentNodeKey)
-            sharedDefaults.synchronize()
-        } catch {
-            print("❌ 保存节点到 App Group 失败: \(error.localizedDescription)")
-        }
+        currentNode = node
     }
 
-    /// 清除 App Group 中的当前节点
-    private func clearCurrentNodeFromAppGroup() {
+    /// 保存当前选中的节点
+    private func saveCurrentNode() {
+        guard let node = currentNode,
+              let nodeData = try? JSONEncoder().encode(node),
+              let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
+            return
+        }
+        sharedDefaults.set(nodeData, forKey: currentNodeKey)
+        sharedDefaults.synchronize()
+    }
+
+    /// 将当前节点配置保存到 App Group，供 VPN 扩展读取
+    /// - Parameter node: VPN 节点，传 nil 表示清空
+    private func saveCurrentNodeToAppGroup(_ node: VPNNode?) {
         guard let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
             return
         }
-        sharedDefaults.removeObject(forKey: currentNodeKey)
+        if let node = node, let nodeData = try? JSONEncoder().encode(node) {
+            sharedDefaults.set(nodeData, forKey: currentNodeKey)
+        } else {
+            sharedDefaults.removeObject(forKey: currentNodeKey)
+        }
         sharedDefaults.synchronize()
     }
 
@@ -498,13 +527,24 @@ final class VPNManager: NSObject {
             name: .NEVPNStatusDidChange,
             object: nil
         )
-        // 初始化当前状态
-        connectionStatus = VPNConnectionStatus(from: vpnManager.connection.status)
+        // 初始化当前状态（从当前管理器或默认断开）
+        if let manager = currentVPNManager {
+            connectionStatus = VPNConnectionStatus(from: manager.connection.status)
+        }
     }
 
     /// VPN 状态变化处理
     @objc private func vpnStatusDidChange(_ notification: Notification) {
-        let newStatus = VPNConnectionStatus(from: vpnManager.connection.status)
+        // 从通知对象获取状态，或从当前管理器获取
+        let newStatus: VPNConnectionStatus
+        if let session = notification.object as? NETunnelProviderSession {
+            newStatus = VPNConnectionStatus(from: session.status)
+        } else if let manager = currentVPNManager {
+            newStatus = VPNConnectionStatus(from: manager.connection.status)
+        } else {
+            newStatus = .disconnected
+        }
+
         let oldStatus = connectionStatus
         connectionStatus = newStatus
         DebugLogger.vpnInfo("VPN状态变化：\(oldStatus.displayText) → \(newStatus.displayText)")
@@ -517,7 +557,8 @@ final class VPNManager: NSObject {
     ///   - message: 消息字符串
     ///   - completion: 回复回调
     func sendMessageToExtension(_ message: String, completion: ((Data?) -> Void)? = nil) {
-        guard let session = vpnManager.connection as? NETunnelProviderSession else {
+        guard let manager = currentVPNManager,
+              let session = manager.connection as? NETunnelProviderSession else {
             completion?(nil)
             return
         }
