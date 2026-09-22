@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-22 20:42:46 UTC
+**生成时间**: 2026-09-22 21:00:44 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -11,7 +11,7 @@
 | 类型 | 数量 | 状态 |
 |------|------|------|
 | 🔴 错误 | **00** 个 | 无错误 |
-| 🟡 警告 | **35** 个 | 建议清理 |
+| 🟡 警告 | **36** 个 | 建议清理 |
 
 ---
 
@@ -20,10 +20,10 @@
 | 警告类型 | 数量 | 占比 |
 |----------|------|------|
 | ⚠️ 弃用API警告 | 00 个 | 0% |
-| 📦 未使用变量警告 | 25 个 | 71% |
+| 📦 未使用变量警告 | 26 个 | 72% |
 | 🔄 类型转换警告 | 00 个 | 0% |
 | 🔍 可空性警告 | 00 个 | 0% |
-| 📝 其他警告 | 10 个 | 28% |
+| 📝 其他警告 | 10 个 | 27% |
 
 ---
 
@@ -42,22 +42,22 @@
 | 9 | `FileBrowserView.swift` | 2 个 | 🟢 低 |
 | 10 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
 | 11 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 12 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
-| 13 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
-| 14 | `ReadmeView.swift` | 1 个 | 🟢 低 |
-| 15 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
-| 16 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
-| 17 | `JobLogView.swift` | 1 个 | 🟢 低 |
-| 18 | `INITokenizer.swift` | 1 个 | 🟢 低 |
-| 19 | `HighlightEngine.swift` | 1 个 | 🟢 低 |
-| 20 | `HighlightCache.swift` | 1 个 | 🟢 低 |
+| 12 | `SubscriptionListView.swift` | 1 个 | 🟢 低 |
+| 13 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
+| 14 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
+| 15 | `ReadmeView.swift` | 1 个 | 🟢 低 |
+| 16 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
+| 17 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
+| 18 | `JobLogView.swift` | 1 个 | 🟢 低 |
+| 19 | `INITokenizer.swift` | 1 个 | 🟢 低 |
+| 20 | `HighlightEngine.swift` | 1 个 | 🟢 低 |
 
 ---
 
 ## 📝 警告详情列表
 
 
-### 📦 未使用变量警告 (25个)
+### 📦 未使用变量警告 (26个)
 
 ```
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/AppState.swift:37:44: warning: immutable value 'account' was never used; consider replacing with '_' or removing it
@@ -94,7 +94,7 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: weak reference will always be nil because the referenced object is deallocated here
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'GitHub' from project 'GitHub')
-warning: The CFBundleVersion of an app extension ('1') must match that of its containing parent app ('1790109555').
+warning: The CFBundleVersion of an app extension ('1') must match that of its containing parent app ('1790110530').
 ```
 
 ---
@@ -105,12 +105,12 @@ warning: The CFBundleVersion of an app extension ('1') must match that of its co
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 43088 行
+- **代码总行数**: 44757 行
 
 ### 💡 修复建议
 
 
-#### 2. 未使用变量警告 (25个)
+#### 2. 未使用变量警告 (26个)
 - 删除未使用的变量和函数
 - 检查是否是调试代码遗留
 - 使用Xcode的静态分析工具辅助清理
