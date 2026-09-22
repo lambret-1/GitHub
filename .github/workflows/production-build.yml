@@ -349,6 +349,54 @@ jobs:
             exit 1
           fi
 
+          # ======================================================================
+          # 关键步骤：使用 ldid 注入 entitlements 到二进制文件
+          # 原因：未签名IPA用TrollStore/全能签重签时，entitlements可能丢失
+          #       导致VPN等需要特殊权限的功能出现 permission denied 错误
+          # 解决：将entitlements直接写入Mach-O二进制的代码签名区域
+          #       重签工具选择"保留原始entitlements"时即可保留权限
+          # ======================================================================
+          echo "注入 entitlements 到二进制文件（防止重签后权限丢失）..."
+
+          # 安装 ldid（用于修改Mach-O二进制签名）
+          if ! command -v ldid &> /dev/null; then
+            echo "安装 ldid..."
+            brew install ldid || echo "::warning::ldid安装失败，跳过entitlements注入"
+          fi
+
+          if command -v ldid &> /dev/null; then
+            # 注入主应用 entitlements
+            MAIN_BINARY="Payload/${{ env.PROJECT_NAME }}.app/${{ env.PROJECT_NAME }}"
+            MAIN_ENTITLEMENTS="${{ env.PROJECT_NAME }}/${{ env.PROJECT_NAME }}.entitlements"
+            if [ -f "${MAIN_ENTITLEMENTS}" ]; then
+              ldid -S"${MAIN_ENTITLEMENTS}" "${MAIN_BINARY}"
+              echo "✅ 主应用 entitlements 注入成功"
+            else
+              echo "::warning::主应用entitlements文件不存在: ${MAIN_ENTITLEMENTS}"
+            fi
+
+            # 注入 VPN 扩展 entitlements（如果存在）
+            VPN_EXTENSION_PATH="Payload/${{ env.PROJECT_NAME }}.app/PlugIns/VPNPacketTunnel.appex"
+            if [ -d "${VPN_EXTENSION_PATH}" ]; then
+              VPN_BINARY="${VPN_EXTENSION_PATH}/VPNPacketTunnel"
+              VPN_ENTITLEMENTS="VPNPacketTunnel/VPNPacketTunnel.entitlements"
+              if [ -f "${VPN_ENTITLEMENTS}" ]; then
+                ldid -S"${VPN_ENTITLEMENTS}" "${VPN_BINARY}"
+                echo "✅ VPN扩展 entitlements 注入成功"
+              else
+                echo "::warning::VPN扩展entitlements文件不存在"
+              fi
+            else
+              echo "ℹ️ 未找到VPN扩展，跳过扩展entitlements注入"
+            fi
+
+            # 验证注入结果
+            echo "主应用 entitlements 验证:"
+            ldid -e "${MAIN_BINARY}" 2>/dev/null | head -20 || echo "验证失败"
+          else
+            echo "::warning::ldid不可用，跳过entitlements注入，VPN功能可能无法正常工作"
+          fi
+
           # 打包为IPA（zip格式，标准iOS包结构）
           zip -r -q "${{ env.IPA_FILE_NAME }}" Payload
           rm -rf Payload
