@@ -786,6 +786,49 @@ struct VPNMainView: View {
         alertMessage = message
         showAlert = true
     }
+
+    /// 选择节点
+    private func selectNode(_ node: VPNNode) {
+        VPNManager.shared.selectNode(node)
+        vpnManagerObservable.refresh()
+        displayAlert(message: "已选择节点：\(node.remark)")
+    }
+
+    /// 测试节点延迟
+    private func testNodeLatency(_ node: VPNNode) {
+        displayAlert(message: "正在测速：\(node.remark)...")
+
+        VPNManager.shared.testNodeLatency(node) { result in
+            DispatchQueue.main.async {
+                self.vpnManagerObservable.refresh()
+                switch result {
+                case .success(let latency):
+                    self.displayAlert(message: "测速完成：\(node.remark) 延迟 \(latency)ms")
+                case .failure(let error):
+                    self.displayAlert(message: "测速失败：\(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    /// 获取协议对应的颜色
+    private func protocolColor(_ type: VPNProtocolType) -> Color {
+        switch type {
+        case .vmess: return .blue
+        case .vless: return .purple
+        case .trojan: return .green
+        case .shadowsocks: return .orange
+        case .hysteria: return .pink
+        case .tuic: return .teal
+        }
+    }
+
+    /// 获取延迟对应的颜色
+    private func latencyColor(_ latency: Int) -> Color {
+        if latency < 100 { return .green }
+        if latency < 300 { return .yellow }
+        return .red
+    }
 }
 
 // MARK: - 分组详情页面
