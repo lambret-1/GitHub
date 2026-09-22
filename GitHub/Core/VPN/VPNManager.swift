@@ -224,7 +224,7 @@ final class VPNManager: NSObject {
             guard let self = self else { return }
 
             // 配置 VPN 协议（PacketTunnel 类型）
-            let protocolConfiguration = NEAppProxyProtocol()
+            let protocolConfiguration = NETunnelProviderProtocol()
             protocolConfiguration.providerBundleIdentifier = self.vpnExtensionBundleID
             protocolConfiguration.serverAddress = self.currentNode?.serverAddress ?? "未知服务器"
 
@@ -297,14 +297,14 @@ final class VPNManager: NSObject {
         currentVPNManager = manager
 
         // 配置协议（复用已有配置，只更新节点信息）
-        let protocolConfiguration: NEAppProxyProtocol
-        if let existingConfig = manager.protocolConfiguration as? NEAppProxyProtocol {
+        let protocolConfiguration: NETunnelProviderProtocol
+        if let existingConfig = manager.protocolConfiguration as? NETunnelProviderProtocol {
             // 复用已有协议配置，只更新节点相关字段
             protocolConfiguration = existingConfig
             DebugLogger.vpn("复用已有协议配置，更新节点信息")
         } else {
             // 没有有效协议配置，创建新的（首次配置）
-            protocolConfiguration = NEAppProxyProtocol()
+            protocolConfiguration = NETunnelProviderProtocol()
             protocolConfiguration.providerBundleIdentifier = vpnExtensionBundleID
             DebugLogger.vpn("创建新的协议配置（首次配置）")
         }
@@ -361,7 +361,7 @@ final class VPNManager: NSObject {
                 }
 
                 // 确保协议配置类型正确
-                guard manager.protocolConfiguration is NEAppProxyProtocol else {
+                guard manager.protocolConfiguration is NETunnelProviderProtocol else {
                     let configError = NSError(
                         domain: "VPNManager",
                         code: -2,
