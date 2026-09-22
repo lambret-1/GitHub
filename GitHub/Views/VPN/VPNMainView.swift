@@ -28,6 +28,9 @@ struct VPNMainView: View {
     /// 是否显示添加节点页面
     @State private var showAddNodeView = false
 
+    /// 是否显示订阅管理页面
+    @State private var showSubscriptionView = false
+
     /// 是否显示导入中提示
     @State private var isImporting = false
 
@@ -76,6 +79,14 @@ struct VPNMainView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button(action: {
+                            showSubscriptionView = true
+                        }) {
+                            Label("订阅管理", systemImage: "dot.radiowaves.left.and.right")
+                        }
+
+                        Divider()
+
+                        Button(action: {
                             showAddNodeView = true
                         }) {
                             Label("手动添加节点", systemImage: "plus.circle")
@@ -99,6 +110,9 @@ struct VPNMainView: View {
             }
             .sheet(isPresented: $showAddNodeView) {
                 AddNodeView()
+            }
+            .fullScreenCover(isPresented: $showSubscriptionView) {
+                SubscriptionListView()
             }
             .onChange(of: showAddNodeView) { newValue in
                 // 添加节点页面关闭后刷新节点列表
