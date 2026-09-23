@@ -672,6 +672,23 @@ class GitHubAPI {
         }
     }
 
+    /// 根据标签名获取Release信息（含资产文件列表）
+    func getReleaseByTag(owner: String, repo: String, tag: String, completion: @escaping (Result<ReleaseInfo, Error>) -> Void) {
+        performRequest(url: APIEndpoints.releaseByTag(owner: owner, repo: repo, tag: tag).url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let release = try JSONDecoder().decode(ReleaseInfo.self, from: data)
+                    completion(.success(release))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     /// 创建新分支（基于指定分支）
     func createBranch(owner: String, repo: String, newBranchName: String, fromBranch: String, completion: @escaping (Result<Bool, Error>) -> Void) {
         // 先获取源分支的最新commit SHA

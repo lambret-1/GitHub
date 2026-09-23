@@ -17,6 +17,7 @@ enum APIEndpoints {
     case renameBranch(owner: String, repo: String, branch: String) // 重命名分支
     case deleteBranch(owner: String, repo: String, branch: String) // 删除分支
     case repoTags(owner: String, repo: String) // 获取标签列表
+    case releaseByTag(owner: String, repo: String, tag: String) // 根据标签名获取Release信息
     case commits(owner: String, repo: String, path: String?, branch: String?, perPage: Int?)
     case searchRepos(query: String, page: Int)
     case searchUsers(query: String, page: Int)
@@ -118,6 +119,9 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/git/refs/heads/\(encodedBranch)"
         case .repoTags(let owner, let repo):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/tags?per_page=100"
+        case .releaseByTag(let owner, let repo, let tag):
+            let encodedTag = tag.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? tag
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/releases/tags/\(encodedTag)"
         case .commits(let owner, let repo, let path, let branch, let perPage):
             let page = perPage ?? 30
             var url = "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/commits?per_page=\(page)"

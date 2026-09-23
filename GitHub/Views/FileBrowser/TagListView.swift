@@ -94,6 +94,32 @@ struct TagListView: View {
     /// 下载结果弹窗消息
     @State private var 下载结果消息: String = ""
 
+    // MARK: - 资产选择相关状态
+
+    /// 是否显示资产选择弹窗
+    @State private var 显示资产选择弹窗: Bool = false
+
+    /// 当前查看资产的标签名
+    @State private var 当前资产标签名: String = ""
+
+    /// 当前标签的Release资产列表
+    @State private var 当前标签资产列表: [ReleaseAsset] = []
+
+    /// 资产列表加载中
+    @State private var 资产加载中: Bool = false
+
+    /// 资产列表加载错误
+    @State private var 资产加载错误: String?
+
+    /// 是否显示下载确认弹窗
+    @State private var 显示下载确认弹窗: Bool = false
+
+    /// 待下载的文件名（用于确认弹窗显示）
+    @State private var 待下载文件名: String = ""
+
+    /// 待下载的URL
+    @State private var 待下载URL: String = ""
+
     // MARK: - 过滤后的标签列表
 
     private var 过滤后标签: [GitTag] {
@@ -154,6 +180,24 @@ struct TagListView: View {
                     message: Text(下载结果消息),
                     dismissButton: .default(Text("知道了"))
                 )
+            }
+            // 下载确认弹窗
+            .alert("确认下载", isPresented: $显示下载确认弹窗) {
+                Button("取消", role: .cancel) {
+                    待下载URL = ""
+                    待下载文件名 = ""
+                }
+                Button("下载") {
+                    开始下载(下载地址: 待下载URL, 标签名: 当前资产标签名, 文件名: 待下载文件名)
+                    待下载URL = ""
+                    待下载文件名 = ""
+                }
+            } message: {
+                Text("是否下载「\(待下载文件名)」？")
+            }
+            // 资产选择弹窗（独立全屏页）
+            .fullScreenCover(isPresented: $显示资产选择弹窗) {
+                资产选择页
             }
         }
         .navigationViewStyle(.stack)
@@ -332,7 +376,7 @@ struct TagListView: View {
 
                         // 下载按钮（独立Button，使用borderless样式确保在List中可点击）
                         Button(action: {
-                            开始下载标签(标签名: 标签.name)
+                            获取标签资产并弹窗(标签名: 标签.name)
                         }) {
                             Image(systemName: "square.and.arrow.down")
                                 .font(.system(size: 16))
@@ -368,17 +412,42 @@ struct TagListView: View {
         }
     }
 
-    // MARK: - 下载标签源代码ZIP
+    // MARK: - 获取标签资产并弹窗
 
-    private func 开始下载标签(标签名: String) {
+    /// 点击下载按钮时调用：获取该标签的Release资产列表，然后弹出资产选择页
+    private func 获取标签资产并弹窗(标签名: String) {
+        当前资产标签名 = 标签名
+        当前标签资产列表 = []
+        资产加载中 = true
+        资产加载错误 = nil
+        显示资产选择弹窗 = true
+
+        GitHubAPI.shared.getReleaseByTag(owner: owner, repo: repo, tag: 标签名) { 结果 in
+            DispatchQueue.main.async {
+                self.资产加载中 = false
+                switch 结果 {
+                case .success(let release):
+                    self.当前标签资产列表 = release.assets ?? []
+                case .failure:
+                    // 获取失败（如404表示该标签无Release），资产列表为空，仅显示源代码选项
+                    self.当前标签资产列表 = []
+                }
+            }
+        }
+    }
+
+    // MARK: - 开始下载
+
+    /// 开始下载指定URL的文件
+    /// - Parameters:
+    ///   - 下载地址: 文件下载URL
+    ///   - 标签名: 所属标签名（用于进度浮层显示和临时文件命名）
+    ///   - 文件名: 下载文件名（用于临时文件命名和分享面板显示）
+    private func 开始下载(下载地址: String, 标签名: String, 文件名: String) {
         下载中 = true
         下载进度 = 0
         下载消息 = "正在准备下载..."
         当前下载标签名 = 标签名
-
-        // 使用GitHub官方zipball API
-        let 编码标签名 = 标签名.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? 标签名
-        let 下载地址 = "https://api.github.com/repos/\(owner)/\(repo)/zipball/\(编码标签名)"
 
         guard let url = URL(string: 下载地址) else {
             下载失败处理(错误消息: "下载链接无效")
@@ -400,7 +469,7 @@ struct TagListView: View {
             }
         }
         代理.完成回调 = { 临时文件URL, 响应 in
-            self.处理下载完成(临时文件URL: 临时文件URL, 响应: 响应, 标签名: 标签名)
+            self.处理下载完成(临时文件URL: 临时文件URL, 响应: 响应, 文件名: 文件名)
         }
         代理.失败回调 = { 错误 in
             DispatchQueue.main.async {
@@ -417,7 +486,7 @@ struct TagListView: View {
     /// 处理下载完成
     /// 注意：URLSessionDownloadTask的临时文件在delegate回调返回后会被系统自动删除，
     /// 因此必须在此方法中同步复制文件到自管理的tmp目录，再异步唤起分享面板
-    private func 处理下载完成(临时文件URL: URL, 响应: URLResponse?, 标签名: String) {
+    private func 处理下载完成(临时文件URL: URL, 响应: URLResponse?, 文件名: String) {
         // 检查HTTP状态码
         if let http响应 = 响应 as? HTTPURLResponse, !(200...299).contains(http响应.statusCode) {
             DispatchQueue.main.async {
@@ -435,7 +504,6 @@ struct TagListView: View {
         }
 
         // 同步复制临时文件到自管理tmp目录（必须在delegate回调返回前完成）
-        let 文件名 = "\(self.repo)-\(标签名).zip"
         let 目标URL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(文件名)
 
         do {
@@ -484,6 +552,166 @@ struct TagListView: View {
             }
             顶层控制器.present(活动控制器, animated: true)
         }
+    }
+
+    // MARK: - 资产选择页
+
+    /// 资产选择页（独立全屏页）：展示该标签的Release资产和源代码下载选项
+    private var 资产选择页: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                if 资产加载中 {
+                    // 加载中
+                    VStack {
+                        Spacer()
+                        ProgressView("正在获取下载列表...")
+                        Spacer()
+                    }
+                } else {
+                    // 资产列表
+                    List {
+                        // Release资产部分（如果有）
+                        if !当前标签资产列表.isEmpty {
+                            Section(header: Text("Release 资产")) {
+                                ForEach(当前标签资产列表) { 资产 in
+                                    资产行(资产: 资产)
+                                }
+                            }
+                        }
+
+                        // 源代码部分（始终显示）
+                        Section(header: Text("源代码")) {
+                            // ZIP格式
+                            Button(action: {
+                                let 编码标签名 = 当前资产标签名.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? 当前资产标签名
+                                待下载文件名 = "\(repo)-\(当前资产标签名)-源码.zip"
+                                待下载URL = "https://api.github.com/repos/\(owner)/\(repo)/zipball/\(编码标签名)"
+                                显示资产选择弹窗 = false
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    显示下载确认弹窗 = true
+                                }
+                            }) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "doc.zipper")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(.blue)
+                                        .frame(width: 28)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("源代码 (ZIP)")
+                                            .font(.subheadline)
+                                            .foregroundColor(.primary)
+                                        Text("仓库完整源代码压缩包")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "square.and.arrow.down")
+                                        .foregroundColor(.blue)
+                                        .font(.system(size: 14))
+                                }
+                                .padding(.vertical, 6)
+                            }
+                            .buttonStyle(.borderless)
+
+                            // TAR.GZ格式
+                            Button(action: {
+                                let 编码标签名 = 当前资产标签名.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? 当前资产标签名
+                                待下载文件名 = "\(repo)-\(当前资产标签名)-源码.tar.gz"
+                                待下载URL = "https://api.github.com/repos/\(owner)/\(repo)/tarball/\(编码标签名)"
+                                显示资产选择弹窗 = false
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    显示下载确认弹窗 = true
+                                }
+                            }) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "doc.zipper")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(.blue)
+                                        .frame(width: 28)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("源代码 (TAR.GZ)")
+                                            .font(.subheadline)
+                                            .foregroundColor(.primary)
+                                        Text("仓库完整源代码压缩包")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "square.and.arrow.down")
+                                        .foregroundColor(.blue)
+                                        .font(.system(size: 14))
+                                }
+                                .padding(.vertical, 6)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                    .listStyle(InsetGroupedListStyle())
+                }
+            }
+            .navigationTitle("下载 \(当前资产标签名)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        显示资产选择弹窗 = false
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("返回")
+                        }
+                    }
+                }
+            }
+        }
+        .navigationViewStyle(.stack)
+    }
+
+    /// 资产行视图
+    private func 资产行(资产: ReleaseAsset) -> some View {
+        Button(action: {
+            待下载文件名 = 资产.name
+            待下载URL = 资产.browserDownloadUrl
+            显示资产选择弹窗 = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                显示下载确认弹窗 = true
+            }
+        }) {
+            HStack(spacing: 12) {
+                // 文件类型图标
+                Image(systemName: 资产.是源代码包 ? "doc.zipper" : "doc")
+                    .font(.system(size: 18))
+                    .foregroundColor(.blue)
+                    .frame(width: 28)
+
+                // 文件名 + 大小 + 下载次数
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(资产.name)
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    HStack(spacing: 8) {
+                        Text(资产.格式化大小)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        if let 下载次数 = 资产.downloadCount, 下载次数 > 0 {
+                            Text("下载 \(下载次数) 次")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // 下载图标
+                Image(systemName: "square.and.arrow.down")
+                    .foregroundColor(.blue)
+                    .font(.system(size: 14))
+            }
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(.borderless)
     }
 }
 

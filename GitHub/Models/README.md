@@ -102,6 +102,40 @@
 
 ---
 
+### ReleaseAsset.swift
+**GitHub Release 资产文件数据模型**
+
+对应 GitHub API：`GET /repos/{owner}/{repo}/releases/tags/{tag}` 返回的 assets 数组
+
+**ReleaseAsset 资产文件模型：**
+
+| 属性名 | 中文释义 | 说明 |
+|--------|---------|------|
+| `id` | 资产唯一ID | GitHub 资产文件的唯一数字标识 |
+| `name` | 文件名 | 资产文件名（如 "App-v1.0.0.ipa"） |
+| `size` | 文件大小 | 文件大小（字节） |
+| `downloadCount` | 下载次数 | 该资产被下载的次数（可选） |
+| `browserDownloadUrl` | 浏览器下载地址 | 资产文件的直接下载URL |
+| `contentType` | MIME类型 | 文件的MIME类型（可选） |
+| `createdAt` | 创建时间 | 资产创建时间（可选） |
+| `updatedAt` | 更新时间 | 资产最后更新时间（可选） |
+| `格式化大小` | 可读大小 | 计算属性，返回人类可读的文件大小（B/KB/MB/GB） |
+| `文件扩展名` | 扩展名 | 计算属性，返回文件扩展名（小写） |
+| `是源代码包` | 是否源代码 | 计算属性，判断是否为zip或tar.gz源代码包 |
+
+**ReleaseInfo Release信息模型：**
+
+| 属性名 | 中文释义 | 说明 |
+|--------|---------|------|
+| `id` | Release ID | Release的唯一数字标识（可选） |
+| `name` | Release名称 | Release的标题名称（可选） |
+| `tagName` | 标签名 | 该Release对应的Git标签名 |
+| `assets` | 资产列表 | 该Release包含的资产文件数组（可选） |
+| `draft` | 是否草稿 | 是否为草稿Release（可选） |
+| `prerelease` | 是否预发布 | 是否为预发布版本（可选） |
+
+---
+
 ### User.swift
 **用户数据模型**
 
