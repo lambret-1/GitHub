@@ -2,88 +2,78 @@
 //  VLESSClient.swift
 //  VPNPacketTunnel
 //
-//  用途：VLESS 协议客户端
-//  职责：建立到 VLESS 代理服务器的连接，进行协议握手，转发 TCP 数据
+//  用途：VLESS 协议客户端（生产级实现）
+//  职责：建立到 VLESS 代理服务器的连接，处理 WebSocket/TLS 握手，转发 TCP 数据
 //  支持：VLESS over TCP、VLESS over WebSocket、VLESS over TLS
 //
 
 import Foundation
 import Network
 
-// MARK: - VLESS 协议版本
+// MARK: - VLESS 协议常量
 
 /// VLESS 协议版本
 private let vlessVersion: UInt8 = 0
 
-// MARK: - VLESS 指令类型
-
 /// VLESS 指令类型
-enum VLESSCommand: UInt8 {
-    case connect = 1   // TCP 连接
-    case bind = 2      // 绑定
-    case udp = 3       // UDP 关联
+private enum VLESSCommand: UInt8 {
+    case connect = 1
 }
 
-// MARK: - VLESS 地址类型
-
 /// VLESS 地址类型
-enum VLESSAddressType: UInt8 {
-    case ipv4 = 1      // IPv4 地址
-    case domain = 2    // 域名
-    case ipv6 = 3      // IPv6 地址
+private enum VLESSAddressType: UInt8 {
+    case ipv4 = 1
+    case domain = 2
+    case ipv6 = 3
 }
 
 // MARK: - VLESS 客户端配置
 
 /// VLESS 客户端配置
 struct VLESSClientConfig {
-    /// 服务器地址
     let serverAddress: String
-    /// 服务器端口
     let serverPort: UInt16
-    /// 用户 UUID
     let uuid: String
-    /// 传输方式（tcp / websocket）
     let transportType: String
-    /// 是否启用 TLS
     let enableTLS: Bool
-    /// TLS 服务器名（SNI）
     let tlsServerName: String?
-    /// WebSocket 主机
     let wsHost: String?
-    /// WebSocket 路径
     let wsPath: String?
-    /// 流控（xtls-rprx-vision 等）
     let flow: String?
+}
+
+// MARK: - 连接状态
+
+/// VLESS 客户端连接状态
+private enum ConnectionState {
+    case idle
+    case connecting
+    case websocketHandshake
+    case vlessHandshake
+    case connected
+    case failed
+    case closed
 }
 
 // MARK: - VLESS 客户端
 
-/// VLESS 协议客户端
-/// 负责建立到代理服务器的连接并转发 TCP 数据
+/// VLESS 协议客户端（生产级实现）
 class VLESSClient {
 
     // MARK: - 属性
 
-    /// 配置
     let config: VLESSClientConfig
-
-    /// 网络连接
     private var connection: NWConnection?
+    private var state: ConnectionState = .idle
 
-    /// 是否已完成 VLESS 握手
-    private var handshakeCompleted: Bool = false
-
-    /// 待发送的数据缓冲区（握手完成前缓存）
     private var pendingData: Data = Data()
+    private var receiveBuffer: Data = Data()
+    private var vlessResponseHeaderParsed: Bool = false
 
-    /// 接收到的数据回调
+    // MARK: - 回调
+
     var onData: ((Data) -> Void)?
-
-    /// 连接状态变化回调
-    var onStateChange: ((NWConnection.State) -> Void)?
-
-    /// 连接失败回调
+    var onStateChange: ((ConnectionState) -> Void)?
     var onError: ((Error) -> Void)?
 
     // MARK: - 初始化
@@ -94,17 +84,16 @@ class VLESSClient {
 
     // MARK: - 连接
 
-    /// 建立到代理服务器的连接
-    /// - Parameters:
-    ///   - targetHost: 目标主机（要访问的网站域名或 IP）
-    ///   - targetPort: 目标端口
     func connect(targetHost: String, targetPort: UInt16) {
-        // 创建连接参数
+        guard state == .idle || state == .closed || state == .failed else { return }
+
+        state = .connecting
+        onStateChange?(.connecting)
+
         let parameters: NWParameters
         if config.enableTLS {
-            // TLS 配置
             let tlsOptions = NWProtocolTLS.Options()
-            if let serverName = config.tlsServerName {
+            if let serverName = config.tlsServerName ?? config.wsHost {
                 sec_protocol_options_set_tls_server_name(tlsOptions.securityProtocolOptions, serverName)
             }
             parameters = NWParameters(tls: tlsOptions, tcp: .init())
@@ -112,150 +101,171 @@ class VLESSClient {
             parameters = NWParameters.tcp
         }
 
-        // 创建连接
+        parameters.proxyConfigurations = []
+
         let host = NWEndpoint.Host(config.serverAddress)
         let port = NWEndpoint.Port(rawValue: config.serverPort)!
         connection = NWConnection(host: host, port: port, using: parameters)
 
-        // 设置状态回调
         connection?.stateUpdateHandler = { [weak self] state in
             guard let self = self else { return }
-            self.onStateChange?(state)
 
             switch state {
             case .ready:
-                // 连接已建立，发送 VLESS 握手
-                self.sendVLESSHandshake(targetHost: targetHost, targetPort: targetPort)
+                if self.config.transportType == "websocket" {
+                    self.startWebSocketHandshake(targetHost: targetHost, targetPort: targetPort)
+                } else {
+                    self.sendVLESSHandshake(targetHost: targetHost, targetPort: targetPort)
+                }
             case .failed(let error):
+                self.state = .failed
+                self.onStateChange?(.failed)
                 self.onError?(error)
+            case .cancelled:
+                self.state = .closed
+                self.onStateChange?(.closed)
             default:
                 break
             }
         }
 
-        // 开始接收数据
         startReceiving()
-
-        // 启动连接
         connection?.start(queue: .global(qos: .userInitiated))
-    }
-
-    // MARK: - VLESS 握手
-
-    /// 发送 VLESS 握手包
-    private func sendVLESSHandshake(targetHost: String, targetPort: UInt16) {
-        var handshake = Data()
-
-        // 1. 协议版本
-        handshake.append(vlessVersion)
-
-        // 2. UUID（16 字节）
-        if let uuidData = uuidToBytes(config.uuid) {
-            handshake.append(uuidData)
-        } else {
-            // UUID 解析失败，使用全零
-            handshake.append(contentsOf: [UInt8](repeating: 0, count: 16))
-        }
-
-        // 3. 附加信息长度（0 表示无附加信息）
-        handshake.append(0)
-
-        // 4. 指令类型（CONNECT）
-        handshake.append(VLESSCommand.connect.rawValue)
-
-        // 5. 端口（2 字节，大端）
-        handshake.append(contentsOf: withUnsafeBytes(of: targetPort.bigEndian) { Array($0) })
-
-        // 6. 地址类型 + 地址
-        if let ipv4 = IPv4Address(targetHost) {
-            // IPv4 地址
-            handshake.append(VLESSAddressType.ipv4.rawValue)
-            handshake.append(ipv4.rawValue)
-        } else if let ipv6 = IPv6Address(targetHost) {
-            // IPv6 地址
-            handshake.append(VLESSAddressType.ipv6.rawValue)
-            handshake.append(ipv6.rawValue)
-        } else {
-            // 域名
-            handshake.append(VLESSAddressType.domain.rawValue)
-            let hostData = targetHost.data(using: .utf8) ?? Data()
-            handshake.append(UInt8(hostData.count))
-            handshake.append(hostData)
-        }
-
-        // 如果是 WebSocket 传输，需要先进行 WebSocket 握手
-        if config.transportType == "websocket" {
-            sendWebSocketHandshake(initialData: handshake)
-        } else {
-            // 直接发送 VLESS 握手
-            sendData(handshake)
-            handshakeCompleted = true
-            // 发送缓存的数据
-            flushPendingData()
-        }
     }
 
     // MARK: - WebSocket 握手
 
-    /// 发送 WebSocket 握手请求
-    private func sendWebSocketHandshake(initialData: Data) {
-        // 生成 WebSocket Key
-        let wsKey = UUID().uuidString.replacingOccurrences(of: "-", with: "")
-            .data(using: .utf8)?.base64EncodedString() ?? "dGhlIHNhbXBsZSBub25jZQ=="
+    private func startWebSocketHandshake(targetHost: String, targetPort: UInt16) {
+        state = .websocketHandshake
+        onStateChange?(.websocketHandshake)
+
+        var wsKeyBytes = [UInt8](repeating: 0, count: 16)
+        for i in 0..<16 { wsKeyBytes[i] = UInt8.random(in: 0...255) }
+        let wsKey = Data(wsKeyBytes).base64EncodedString()
 
         let host = config.wsHost ?? config.serverAddress
         let path = config.wsPath ?? "/"
 
-        // 构造 HTTP 升级请求
         var request = "GET \(path) HTTP/1.1\r\n"
         request += "Host: \(host)\r\n"
         request += "Upgrade: websocket\r\n"
         request += "Connection: Upgrade\r\n"
         request += "Sec-WebSocket-Key: \(wsKey)\r\n"
         request += "Sec-WebSocket-Version: 13\r\n"
+        request += "User-Agent: Mozilla/5.0\r\n"
         request += "\r\n"
 
-        guard let requestData = request.data(using: .utf8) else { return }
-
-        // 缓存 VLESS 握手数据，等 WebSocket 握手完成后发送
-        pendingData.append(initialData)
-
-        // 发送 WebSocket 握手请求
-        sendData(requestData)
-
-        // 等待 WebSocket 握手响应（在 startReceiving 中处理）
-        // 简化实现：假设服务器立即响应，直接标记握手完成
-        // 实际实现中需要解析 HTTP 101 响应
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.handshakeCompleted = true
-            self?.flushPendingData()
+        guard let requestData = request.data(using: .utf8) else {
+            failWithError(NSError(domain: "VLESSClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "WebSocket请求编码失败"]))
+            return
         }
+
+        let vlessHandshake = buildVLESSHandshake(targetHost: targetHost, targetPort: targetPort)
+        pendingData.append(vlessHandshake)
+
+        sendRaw(requestData)
+    }
+
+    private func handleWebSocketHandshakeResponse(_ data: Data) -> Bool {
+        guard let headerEnd = data.range(of: Data("\r\n\r\n".utf8)) else {
+            return false
+        }
+
+        let headerData = data.subdata(in: 0..<headerEnd.lowerBound)
+        guard let headerString = String(data: headerData, encoding: .utf8) else {
+            failWithError(NSError(domain: "VLESSClient", code: -2, userInfo: [NSLocalizedDescriptionKey: "WebSocket响应解析失败"]))
+            return true
+        }
+
+        if headerString.contains("101") {
+            state = .connected
+            onStateChange?(.connected)
+
+            let remainingData = data.subdata(in: headerEnd.upperBound..<data.count)
+            receiveBuffer = remainingData
+
+            flushPendingData()
+            processReceiveBuffer()
+
+            return true
+        } else {
+            failWithError(NSError(domain: "VLESSClient", code: -3, userInfo: [NSLocalizedDescriptionKey: "WebSocket握手失败"]))
+            return true
+        }
+    }
+
+    // MARK: - VLESS 握手
+
+    private func sendVLESSHandshake(targetHost: String, targetPort: UInt16) {
+        state = .vlessHandshake
+        onStateChange?(.vlessHandshake)
+
+        let handshake = buildVLESSHandshake(targetHost: targetHost, targetPort: targetPort)
+        sendRaw(handshake)
+
+        state = .connected
+        onStateChange?(.connected)
+        flushPendingData()
+    }
+
+    private func buildVLESSHandshake(targetHost: String, targetPort: UInt16) -> Data {
+        var handshake = Data()
+
+        handshake.append(vlessVersion)
+
+        if let uuidData = uuidToBytes(config.uuid) {
+            handshake.append(uuidData)
+        } else {
+            handshake.append(contentsOf: [UInt8](repeating: 0, count: 16))
+        }
+
+        handshake.append(0) // 附加信息长度
+
+        handshake.append(VLESSCommand.connect.rawValue)
+
+        handshake.append(contentsOf: withUnsafeBytes(of: targetPort.bigEndian) { Array($0) })
+
+        if let ipv4 = IPv4Address(targetHost) {
+            handshake.append(VLESSAddressType.ipv4.rawValue)
+            handshake.append(ipv4.rawValue)
+        } else if let ipv6 = IPv6Address(targetHost) {
+            handshake.append(VLESSAddressType.ipv6.rawValue)
+            handshake.append(ipv6.rawValue)
+        } else {
+            handshake.append(VLESSAddressType.domain.rawValue)
+            let hostData = targetHost.data(using: .utf8) ?? Data()
+            handshake.append(UInt8(min(hostData.count, 255)))
+            handshake.append(hostData)
+        }
+
+        return handshake
     }
 
     // MARK: - 发送数据
 
-    /// 发送数据到代理服务器
-    /// - Parameter data: 要发送的数据
     func send(_ data: Data) {
-        if handshakeCompleted {
+        if state == .connected {
             if config.transportType == "websocket" {
                 sendWebSocketFrame(data: data)
             } else {
-                sendData(data)
+                sendRaw(data)
             }
         } else {
-            // 握手未完成，缓存数据
             pendingData.append(data)
         }
     }
 
-    /// 发送 WebSocket 数据帧
+    private func flushPendingData() {
+        guard !pendingData.isEmpty else { return }
+        let data = pendingData
+        pendingData = Data()
+        send(data)
+    }
+
     private func sendWebSocketFrame(data: Data) {
         var frame = Data()
-        // FIN=1, 操作码=0x2（二进制帧）
-        frame.append(0x82)
+        frame.append(0x82) // FIN=1, 二进制帧
 
-        // 掩码位 + 长度
         if data.count < 126 {
             frame.append(0x80 | UInt8(data.count))
         } else if data.count < 65536 {
@@ -266,130 +276,180 @@ class VLESSClient {
             frame.append(contentsOf: withUnsafeBytes(of: UInt64(data.count).bigEndian) { Array($0) })
         }
 
-        // 掩码密钥（4 字节）
-        let maskKey: [UInt8] = [0x12, 0x34, 0x56, 0x78]
+        let maskKey: [UInt8] = (0..<4).map { _ in UInt8.random(in: 0...255) }
         frame.append(contentsOf: maskKey)
 
-        // 掩码后的数据
         var maskedData = Data()
+        maskedData.reserveCapacity(data.count)
         for (index, byte) in data.enumerated() {
             maskedData.append(byte ^ maskKey[index % 4])
         }
         frame.append(maskedData)
 
-        sendData(frame)
+        sendRaw(frame)
     }
 
-    /// 刷新待发送数据
-    private func flushPendingData() {
-        guard !pendingData.isEmpty else { return }
-        let data = pendingData
-        pendingData = Data()
-        send(data)
-    }
-
-    /// 底层发送数据
-    private func sendData(_ data: Data) {
-        connection?.send(content: data, completion: .contentProcessed { error in
+    private func sendRaw(_ data: Data) {
+        connection?.send(content: data, completion: .contentProcessed { [weak self] error in
             if let error = error {
-                self.onError?(error)
+                self?.failWithError(error)
             }
         })
     }
 
     // MARK: - 接收数据
 
-    /// 开始接收数据
     private func startReceiving() {
         connection?.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] content, _, isComplete, error in
             guard let self = self else { return }
 
             if let error = error {
-                self.onError?(error)
+                self.failWithError(error)
                 return
             }
 
             if let content = content, !content.isEmpty {
-                self.handleReceivedData(content)
+                self.receiveBuffer.append(content)
+                self.processReceiveBuffer()
             }
 
             if isComplete {
+                self.state = .closed
+                self.onStateChange?(.closed)
                 return
             }
 
-            // 继续接收
             self.startReceiving()
         }
     }
 
-    /// 处理接收到的数据
-    private func handleReceivedData(_ data: Data) {
+    private func processReceiveBuffer() {
+        guard !receiveBuffer.isEmpty else { return }
+
+        if state == .websocketHandshake {
+            if handleWebSocketHandshakeResponse(receiveBuffer) {
+                return
+            }
+            return
+        }
+
         if config.transportType == "websocket" {
-            // WebSocket 模式：解析 WebSocket 帧
-            handleWebSocketFrame(data)
+            processWebSocketFrames()
         } else {
-            // 裸 TCP 模式：直接传递
+            processVLESSData()
+        }
+    }
+
+    private func processWebSocketFrames() {
+        while receiveBuffer.count >= 2 {
+            let firstByte = receiveBuffer[0]
+            let secondByte = receiveBuffer[1]
+
+            let opcode = firstByte & 0x0F
+            let masked = (secondByte & 0x80) != 0
+            var payloadLength = Int(secondByte & 0x7F)
+            var offset = 2
+
+            if payloadLength == 126 {
+                guard receiveBuffer.count >= 4 else { return }
+                payloadLength = Int(UInt16(bigEndian: receiveBuffer.subdata(in: 2..<4).withUnsafeBytes { $0.load(as: UInt16.self) }))
+                offset = 4
+            } else if payloadLength == 127 {
+                guard receiveBuffer.count >= 10 else { return }
+                payloadLength = Int(UInt64(bigEndian: receiveBuffer.subdata(in: 2..<10).withUnsafeBytes { $0.load(as: UInt64.self) }))
+                offset = 10
+            }
+
+            if masked {
+                guard receiveBuffer.count >= offset + 4 else { return }
+                offset += 4
+            }
+
+            guard receiveBuffer.count >= offset + payloadLength else { return }
+
+            var payload = receiveBuffer.subdata(in: offset..<offset+payloadLength)
+
+            if opcode == 0x8 {
+                state = .closed
+                onStateChange?(.closed)
+                return
+            }
+
+            receiveBuffer.removeFirst(offset + payloadLength)
+
+            if !vlessResponseHeaderParsed {
+                if let stripped = stripVLESSResponseHeader(payload) {
+                    payload = stripped
+                    vlessResponseHeaderParsed = true
+                } else {
+                    receiveBuffer.insert(contentsOf: payload, at: 0)
+                    return
+                }
+            }
+
+            if !payload.isEmpty {
+                onData?(payload)
+            }
+        }
+    }
+
+    private func processVLESSData() {
+        if !vlessResponseHeaderParsed {
+            guard receiveBuffer.count >= 2 else { return }
+            if let stripped = stripVLESSResponseHeader(receiveBuffer) {
+                receiveBuffer = stripped
+                vlessResponseHeaderParsed = true
+            } else {
+                return
+            }
+        }
+
+        if !receiveBuffer.isEmpty {
+            let data = receiveBuffer
+            receiveBuffer = Data()
             onData?(data)
         }
     }
 
-    /// 处理 WebSocket 数据帧（简化实现）
-    private func handleWebSocketFrame(_ data: Data) {
-        // 简化实现：假设数据是完整的 WebSocket 帧，直接去除帧头
-        // 实际实现中需要处理分片、多帧等情况
-        guard data.count >= 2 else { return }
+    private func stripVLESSResponseHeader(_ data: Data) -> Data? {
+        guard data.count >= 2 else { return nil }
 
-        let opcode = data[0] & 0x0F
-        let masked = (data[1] & 0x80) != 0
-        var payloadLength = Int(data[1] & 0x7F)
-        var offset = 2
+        let addonLength = Int(data[1])
+        guard data.count >= 2 + addonLength else { return nil }
 
-        if payloadLength == 126 {
-            guard data.count >= 4 else { return }
-            payloadLength = Int(UInt16(bigEndian: data.subdata(in: 2..<4).withUnsafeBytes { $0.load(as: UInt16.self) }))
-            offset = 4
-        } else if payloadLength == 127 {
-            guard data.count >= 10 else { return }
-            payloadLength = Int(UInt64(bigEndian: data.subdata(in: 2..<10).withUnsafeBytes { $0.load(as: UInt64.self) }))
-            offset = 10
-        }
+        return data.subdata(in: (2 + addonLength)..<data.count)
+    }
 
-        if masked {
-            guard data.count >= offset + 4 else { return }
-            let maskKey = Array(data[offset..<offset+4])
-            offset += 4
+    // MARK: - 错误处理
 
-            guard data.count >= offset + payloadLength else { return }
-            var payload = Data()
-            for i in 0..<payloadLength {
-                payload.append(data[offset + i] ^ maskKey[i % 4])
-            }
-            onData?(payload)
-        } else {
-            guard data.count >= offset + payloadLength else { return }
-            let payload = data.subdata(in: offset..<offset+payloadLength)
-            onData?(payload)
-        }
+    private func failWithError(_ error: Error) {
+        guard state != .failed && state != .closed else { return }
+        state = .failed
+        onStateChange?(.failed)
+        onError?(error)
+        connection?.cancel()
     }
 
     // MARK: - 断开连接
 
-    /// 断开连接
     func disconnect() {
+        state = .closed
+        onStateChange?(.closed)
         connection?.cancel()
         connection = nil
-        handshakeCompleted = false
         pendingData = Data()
+        receiveBuffer = Data()
+        vlessResponseHeaderParsed = false
     }
 
     // MARK: - 工具方法
 
-    /// 将 UUID 字符串转换为 16 字节数据
     private func uuidToBytes(_ uuidString: String) -> Data? {
         let cleaned = uuidString.replacingOccurrences(of: "-", with: "")
         guard cleaned.count == 32 else { return nil }
 
         var data = Data()
+        data.reserveCapacity(16)
         var index = cleaned.startIndex
         for _ in 0..<16 {
             let nextIndex = cleaned.index(index, offsetBy: 2)

@@ -619,8 +619,23 @@ final class VPNManager: NSObject {
         guard let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
             return
         }
-        if let node = node, let nodeData = try? JSONEncoder().encode(node) {
-            sharedDefaults.set(nodeData, forKey: currentNodeKey)
+        if let node = node {
+            // 将 VPNNode 转换为 [String: Any] 字典，与 PacketTunnelProvider 读取格式一致
+            let nodeDict: [String: Any] = [
+                "node_remark": node.remark,
+                "node_server": node.serverAddress,
+                "node_port": node.serverPort,
+                "node_uuid": node.uuid,
+                "node_protocol": node.protocolType.rawValue,
+                "node_transport": node.transportType.rawValue,
+                "node_enable_tls": node.enableTLS,
+                "node_ws_host": node.tlsServerName ?? node.wsHost ?? "",
+                "node_ws_path": node.wsPath ?? "/",
+                "node_flow": node.flow ?? ""
+            ]
+            if let nodeData = try? JSONSerialization.data(withJSONObject: nodeDict) {
+                sharedDefaults.set(nodeData, forKey: currentNodeKey)
+            }
         } else {
             sharedDefaults.removeObject(forKey: currentNodeKey)
         }
