@@ -244,11 +244,11 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             状态锁.lock()
             let 运行中 = xray已启动
             状态锁.unlock()
-            completionHandler?(Data(运行中 ? "running" : "stopped", using: .utf8))
+            completionHandler?(Data((运行中 ? "running" : "stopped").utf8))
         case "getVersion":
-            completionHandler?(Data(XrayCore.shared.getVersion(), using: .utf8))
+            completionHandler?(Data(XrayCore.shared.getVersion().utf8))
         case "getStats":
-            completionHandler?(Data(XrayCore.shared.queryStats(tag: "proxy"), using: .utf8))
+            completionHandler?(Data(XrayCore.shared.queryStats(tag: "proxy").utf8))
         default:
             completionHandler?(nil)
         }
