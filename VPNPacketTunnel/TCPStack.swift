@@ -29,7 +29,7 @@ struct IPv4Header {
     var identification: UInt16    // 标识
     var flagsAndFragmentOffset: UInt16 // 标志(高3位) + 片偏移(低13位)
     var timeToLive: UInt8         // 生存时间
-    var protocol: UInt8           // 协议号
+    var protocolNumber: UInt8     // 协议号
     var headerChecksum: UInt16    // 头校验和
     var sourceAddress: UInt32     // 源 IP 地址（大端）
     var destinationAddress: UInt32 // 目标 IP 地址（大端）
@@ -44,7 +44,7 @@ struct IPv4Header {
             identification: UInt16(bigEndian: data.subdata(in: 4..<6).withUnsafeBytes { $0.load(as: UInt16.self) }),
             flagsAndFragmentOffset: UInt16(bigEndian: data.subdata(in: 6..<8).withUnsafeBytes { $0.load(as: UInt16.self) }),
             timeToLive: data[8],
-            protocol: data[9],
+            protocolNumber: data[9],
             headerChecksum: UInt16(bigEndian: data.subdata(in: 10..<12).withUnsafeBytes { $0.load(as: UInt16.self) }),
             sourceAddress: UInt32(bigEndian: data.subdata(in: 12..<16).withUnsafeBytes { $0.load(as: UInt32.self) }),
             destinationAddress: UInt32(bigEndian: data.subdata(in: 16..<20).withUnsafeBytes { $0.load(as: UInt32.self) })
@@ -214,7 +214,7 @@ class TCPStack {
         guard (ipHeader.versionAndIHL >> 4) == 4 else { return }
 
         // 只处理 TCP
-        guard ipHeader.protocol == IPProtocol.tcp.rawValue else { return }
+        guard ipHeader.protocolNumber == IPProtocol.tcp.rawValue else { return }
 
         // 提取 TCP 数据
         let ipHeaderLength = ipHeader.headerLength
