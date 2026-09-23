@@ -568,9 +568,6 @@ struct FileBrowserView: View {
             tags: tags,
             onTagSelected: { _ in
                 loadFiles()
-            },
-            onDownloadTag: { tagName in
-                downloadTagZip(tagName: tagName)
             }
         ) {
             moreMenuContent
@@ -683,9 +680,6 @@ struct FileBrowserView: View {
             tags: tags,
             onTagSelected: { _ in
                 loadFiles()
-            },
-            onDownloadTag: { tagName in
-                downloadTagZip(tagName: tagName)
             }
         ) {
             moreMenuContent

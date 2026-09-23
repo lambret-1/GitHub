@@ -18,7 +18,6 @@ struct BranchBarView<MenuContent: View>: View {
     // 标签相关
     let tags: [GitTag]
     let onTagSelected: (String) -> Void
-    let onDownloadTag: (String) -> Void
 
     @EnvironmentObject var appState: AppState
     @State private var showBranchPicker: Bool = false
@@ -33,7 +32,6 @@ struct BranchBarView<MenuContent: View>: View {
         onBranchesChanged: @escaping () -> Void,
         tags: [GitTag] = [],
         onTagSelected: @escaping (String) -> Void = { _ in },
-        onDownloadTag: @escaping (String) -> Void = { _ in },
         @ViewBuilder menuContent: @escaping () -> MenuContent
     ) {
         self._branches = branches
@@ -44,7 +42,6 @@ struct BranchBarView<MenuContent: View>: View {
         self.onBranchesChanged = onBranchesChanged
         self.tags = tags
         self.onTagSelected = onTagSelected
-        self.onDownloadTag = onDownloadTag
         self.menuContent = menuContent
     }
 
@@ -158,9 +155,6 @@ struct BranchBarView<MenuContent: View>: View {
                 当前选中Ref: $selectedBranch,
                 onTagSelected: { tagName in
                     onTagSelected(tagName)
-                },
-                onDownloadTag: { tagName in
-                    onDownloadTag(tagName)
                 }
             )
             .environmentObject(appState)
