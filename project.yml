@@ -91,6 +91,10 @@ targets:
         STRIP_INSTALLED_PRODUCT: NO
         # 不执行 dead code stripping（Go 运行时需要）
         DEAD_CODE_STRIPPING: NO
+        # 禁用模块接口生成（桥接头文件不支持与模块接口一起使用）
+        BUILD_LIBRARY_FOR_DISTRIBUTION: NO
+        # 禁用模块验证器
+        ENABLE_MODULE_VERIFIER: NO
     dependencies:
       # 链接 Xray 核心框架
       - framework: VPNPacketTunnel/Xray.xcframework
