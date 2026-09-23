@@ -198,56 +198,54 @@ struct TagListView: View {
             } else {
                 ForEach(过滤后标签) { 标签 in
                     HStack(spacing: 12) {
-                        // 标签选择按钮（点击整行选中）
-                        Button(action: {
+                        // 标签选择区域（点击整行选中，使用onTapGesture避免List中多Button点击冲突）
+                        HStack(spacing: 12) {
+                            // 标签图标
+                            Image(systemName: "tag.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.blue)
+                                .frame(width: 24)
+
+                            // 标签名 + commit 短码
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(标签.name)
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                Text(标签.短码)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+
+                            // 选中标记
+                            if 当前选中Ref == 标签.name {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                    .font(.system(size: 16))
+                            }
+                        }
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
                             当前选中Ref = 标签.name
                             onTagSelected(标签.name)
                             dismiss()
-                        }) {
-                            HStack(spacing: 12) {
-                                // 标签图标
-                                Image(systemName: "tag.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.blue)
-                                    .frame(width: 24)
-
-                                // 标签名 + commit 短码
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(标签.name)
-                                        .font(.subheadline)
-                                        .foregroundColor(.primary)
-                                        .lineLimit(1)
-                                    Text(标签.短码)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Spacer()
-
-                                // 选中标记
-                                if 当前选中Ref == 标签.name {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
-                                        .font(.system(size: 16))
-                                }
-                            }
-                            .padding(.vertical, 4)
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(PlainButtonStyle())
 
-                        // 下载按钮（独立按钮，不触发选中）
+                        // 下载按钮（独立Button，使用borderless样式确保在List中可点击）
                         Button(action: {
                             onDownloadTag(标签.name)
                         }) {
                             Image(systemName: "square.and.arrow.down")
                                 .font(.system(size: 16))
                                 .foregroundColor(.blue)
-                                .frame(width: 32, height: 32)
+                                .frame(width: 40, height: 40)
                                 .background(Color.blue.opacity(0.08))
                                 .cornerRadius(8)
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(.borderless)
                         .padding(.trailing, 4)
                     }
                 }
