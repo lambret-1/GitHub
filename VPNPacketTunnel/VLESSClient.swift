@@ -73,7 +73,6 @@ class VLESSClient {
     // MARK: - 回调
 
     var onData: ((Data) -> Void)?
-    var onStateChange: ((ConnectionState) -> Void)?
     var onError: ((Error) -> Void)?
 
     // MARK: - 初始化
@@ -88,7 +87,6 @@ class VLESSClient {
         guard state == .idle || state == .closed || state == .failed else { return }
 
         state = .connecting
-        onStateChange?(.connecting)
 
         let parameters: NWParameters
         if config.enableTLS {
@@ -119,11 +117,9 @@ class VLESSClient {
                 }
             case .failed(let error):
                 self.state = .failed
-                self.onStateChange?(.failed)
                 self.onError?(error)
             case .cancelled:
                 self.state = .closed
-                self.onStateChange?(.closed)
             default:
                 break
             }
@@ -137,7 +133,6 @@ class VLESSClient {
 
     private func startWebSocketHandshake(targetHost: String, targetPort: UInt16) {
         state = .websocketHandshake
-        onStateChange?(.websocketHandshake)
 
         var wsKeyBytes = [UInt8](repeating: 0, count: 16)
         for i in 0..<16 { wsKeyBytes[i] = UInt8.random(in: 0...255) }
@@ -179,7 +174,6 @@ class VLESSClient {
 
         if headerString.contains("101") {
             state = .connected
-            onStateChange?(.connected)
 
             let remainingData = data.subdata(in: headerEnd.upperBound..<data.count)
             receiveBuffer = remainingData
@@ -198,13 +192,11 @@ class VLESSClient {
 
     private func sendVLESSHandshake(targetHost: String, targetPort: UInt16) {
         state = .vlessHandshake
-        onStateChange?(.vlessHandshake)
 
         let handshake = buildVLESSHandshake(targetHost: targetHost, targetPort: targetPort)
         sendRaw(handshake)
 
         state = .connected
-        onStateChange?(.connected)
         flushPendingData()
     }
 
@@ -315,7 +307,6 @@ class VLESSClient {
 
             if isComplete {
                 self.state = .closed
-                self.onStateChange?(.closed)
                 return
             }
 
@@ -371,7 +362,6 @@ class VLESSClient {
 
             if opcode == 0x8 {
                 state = .closed
-                onStateChange?(.closed)
                 return
             }
 
@@ -425,7 +415,6 @@ class VLESSClient {
     private func failWithError(_ error: Error) {
         guard state != .failed && state != .closed else { return }
         state = .failed
-        onStateChange?(.failed)
         onError?(error)
         connection?.cancel()
     }
@@ -434,7 +423,6 @@ class VLESSClient {
 
     func disconnect() {
         state = .closed
-        onStateChange?(.closed)
         connection?.cancel()
         connection = nil
         pendingData = Data()
