@@ -19,8 +19,33 @@ private let kAppGroup = "group.com.github.client"
 /// Xray 配置在 App Group UserDefaults 中的存储键
 private let kXrayConfigKey = "xray_config_json"
 
+/// 扩展日志在 App Group UserDefaults 中的存储键
+private let kExtensionLogKey = "vpn_extension_logs"
+
 /// 日志记录器
 private let logger = Logger(subsystem: "com.github.client.vpn", category: "PacketTunnel")
+
+// MARK: - 扩展日志写入 App Group
+
+/// 将扩展日志写入 App Group，供主 App 读取
+/// - Parameter message: 日志消息
+private func logToAppGroup(_ message: String) {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+    let timestamp = formatter.string(from: Date())
+    let logLine = "[\(timestamp)] [VPN扩展] \(message)\n"
+
+    if let defaults = UserDefaults(suiteName: kAppGroup) {
+        var existing = defaults.string(forKey: kExtensionLogKey) ?? ""
+        existing += logLine
+        // 限制日志长度，最多保留 100KB
+        if existing.count > 100 * 1024 {
+            existing = String(existing.suffix(50 * 1024))
+        }
+        defaults.set(existing, forKey: kExtensionLogKey)
+        defaults.synchronize()
+    }
+}
 
 // MARK: - PacketTunnelProvider 主类
 
@@ -45,6 +70,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     ///   - completionHandler: 完成回调，nil 表示成功，Error 表示失败
     override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
         logger.info("startTunnel 被调用，开始启动 VPN 隧道")
+        logToAppGroup("=== startTunnel 被调用 ===")
 
         // 1. 从启动选项或 App Group 读取 Xray 配置
         var configJson: String? = options?["config"] as? String
@@ -55,7 +81,12 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
                 configJson = defaults.string(forKey: kXrayConfigKey)
                 if configJson != nil {
                     logger.info("从 App Group 读取到 Xray 配置（\(configJson!.count) 字节）")
+                    logToAppGroup("从 App Group 读取到 Xray 配置（\(configJson!.count) 字节）")
+                } else {
+                    logToAppGroup("❌ App Group 中未找到 Xray 配置")
                 }
+            } else {
+                logToAppGroup("❌ 无法初始化 App Group UserDefaults")
             }
         }
 
@@ -66,12 +97,18 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
                 userInfo: [NSLocalizedDescriptionKey: "未找到 Xray 配置，请在主 App 中配置节点"]
             )
             logger.error("启动失败：\(error.localizedDescription)")
+            logToAppGroup("❌ 启动失败：未找到 Xray 配置")
             completionHandler(error)
             return
         }
 
+        // 打印配置前 200 字符用于调试
+        let configPreview = String(finalConfig.prefix(200))
+        logToAppGroup("配置预览：\(configPreview)...")
+
         // 2. 配置虚拟 TUN 网卡网络设置
         let settings = createTunnelNetworkSettings()
+        logToAppGroup("网络设置已创建")
 
         // 3. 应用网络设置
         setTunnelNetworkSettings(settings) { [weak self] error in
@@ -79,11 +116,13 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
 
             if let error = error {
                 logger.error("设置网络配置失败：\(error.localizedDescription)")
+                logToAppGroup("❌ 设置网络配置失败：\(error.localizedDescription)")
                 completionHandler(error)
                 return
             }
 
             logger.info("网络配置应用成功")
+            logToAppGroup("✅ 网络配置应用成功")
 
             // 4. 获取 TUN 设备文件描述符
             guard let tunFd = self.getTunnelFileDescriptor() else {
@@ -93,13 +132,16 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
                     userInfo: [NSLocalizedDescriptionKey: "获取 TUN 文件描述符失败"]
                 )
                 logger.error("启动失败：\(error.localizedDescription)")
+                logToAppGroup("❌ 获取 TUN 文件描述符失败")
                 completionHandler(error)
                 return
             }
 
             logger.info("获取到 TUN 文件描述符：\(tunFd)")
+            logToAppGroup("✅ 获取到 TUN 文件描述符：\(tunFd)")
 
             // 5. 启动 Xray 核心
+            logToAppGroup("正在启动 Xray 核心...")
             let result = finalConfig.withCString { configPtr in
                 StartXray(UnsafeMutablePointer(mutating: configPtr), Int32(tunFd))
             }
@@ -111,11 +153,13 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
                     userInfo: [NSLocalizedDescriptionKey: "Xray 核心启动失败，错误码：\(result)"]
                 )
                 logger.error("Xray 启动失败，错误码：\(result)")
+                logToAppGroup("❌ Xray 启动失败，错误码：\(result)")
                 completionHandler(error)
                 return
             }
 
             logger.info("Xray 核心启动成功")
+            logToAppGroup("✅ Xray 核心启动成功")
             self.xrayStarted = true
             completionHandler(nil)
         }
@@ -130,14 +174,17 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     ///   - completionHandler: 完成回调
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
         logger.info("stopTunnel 被调用，原因：\(reason.rawValue)")
+        logToAppGroup("=== stopTunnel 被调用，原因：\(reason.rawValue) ===")
 
         // 停止 Xray 核心
         if xrayStarted {
             let result = StopXray()
             if result != 0 {
                 logger.error("StopXray 返回错误码：\(result)")
+                logToAppGroup("❌ StopXray 返回错误码：\(result)")
             } else {
                 logger.info("Xray 核心已停止")
+                logToAppGroup("✅ Xray 核心已停止")
             }
             xrayStarted = false
         }
