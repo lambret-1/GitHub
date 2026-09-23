@@ -99,8 +99,6 @@ class VLESSClient {
             parameters = NWParameters.tcp
         }
 
-        parameters.proxyConfigurations = []
-
         let host = NWEndpoint.Host(config.serverAddress)
         let port = NWEndpoint.Port(rawValue: config.serverPort)!
         connection = NWConnection(host: host, port: port, using: parameters)
