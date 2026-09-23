@@ -2,316 +2,272 @@
 //  PacketTunnelProvider.swift
 //  VPNPacketTunnel
 //
-//  用途：VPN 数据包隧道提供者，是 NetworkExtension 的核心类
-//  职责：接收系统网络数据包，通过 VLESS 协议转发到代理服务器
-//  架构：TCPStack（用户态TCP/IP协议栈）+ VLESSClient（VLESS协议客户端）
+//  用途：VPN 数据包隧道提供者（Xray-core 集成版）
+//  职责：管理 VPN 隧道生命周期，获取 TUN 文件描述符，启动 Xray 核心代理
+//  核心原理：Xray Go 核心直接读写 TUN 设备，处理所有网络协议（TCP/UDP/VLESS/VMess/Trojan 等）
+//  架构：主 App 生成 Xray JSON 配置 → App Group 共享 → 扩展读取配置 → StartXray(config, tunFd)
 //
 
 import NetworkExtension
 import os.log
 
+// MARK: - 常量定义
+
+/// App Group 标识，用于主 App 与扩展共享数据
+private let kAppGroup = "group.com.github.client"
+
+/// Xray 配置在 App Group UserDefaults 中的存储键
+private let kXrayConfigKey = "xray_config_json"
+
+/// 日志记录器
+private let logger = Logger(subsystem: "com.github.client.vpn", category: "PacketTunnel")
+
+// MARK: - PacketTunnelProvider 主类
+
 /// VPN 数据包隧道提供者
-/// 继承自 NEPacketTunnelProvider，由系统在 VPN 启动时实例化
+/// 继承 NEPacketTunnelProvider，由系统在 VPN 连接时实例化
 class PacketTunnelProvider: NEPacketTunnelProvider {
 
-    // MARK: - 日志记录器
+    // MARK: - 属性
 
-    /// 统一日志记录器，用于记录 VPN 扩展运行日志
-    private let logger = OSLog(subsystem: "com.github.client.vpn", category: "PacketTunnel")
+    /// Xray 核心是否已启动
+    private var xrayStarted = false
 
-    // MARK: - 状态属性
+    /// 流量统计锁（多线程安全）
+    private let statsLock = NSLock()
 
-    /// VPN 隧道是否正在运行
-    private var isRunning = false
-
-    /// 当前使用的节点配置（从 App Group 共享数据读取）
-    private var currentNode: [String: Any]?
-
-    /// TCP/IP 协议栈
-    private var tcpStack: TCPStack?
-
-    /// 活跃的 VLESS 客户端（按 TCP 连接索引）
-    private var vlessClients: [ObjectIdentifier: VLESSClient] = [:]
-
-    // MARK: - App Group 标识
-
-    /// App Group 标识，用于与主 APP 共享数据
-    /// 必须与主 APP 和 entitlements 中配置一致
-    private let appGroupIdentifier = "group.com.github.client"
-
-    // MARK: - 隧道生命周期
+    // MARK: - startTunnel（启动 VPN 隧道）
 
     /// 启动 VPN 隧道
     /// 系统在用户点击连接时调用此方法
+    /// - Parameters:
+    ///   - options: 启动选项（可包含配置）
+    ///   - completionHandler: 完成回调，nil 表示成功，Error 表示失败
     override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
-        os_log("🚀 开始启动 VPN 隧道", log: logger, type: .info)
+        logger.info("startTunnel 被调用，开始启动 VPN 隧道")
 
-        // 从启动选项或 App Group 读取节点配置
-        loadNodeConfiguration { [weak self] node in
+        // 1. 从启动选项或 App Group 读取 Xray 配置
+        var configJson: String? = options?["config"] as? String
+
+        if configJson == nil {
+            // 从 App Group UserDefaults 读取配置
+            if let defaults = UserDefaults(suiteName: kAppGroup) {
+                configJson = defaults.string(forKey: kXrayConfigKey)
+                if configJson != nil {
+                    logger.info("从 App Group 读取到 Xray 配置（\(configJson!.count) 字节）")
+                }
+            }
+        }
+
+        guard let finalConfig = configJson, !finalConfig.isEmpty else {
+            let error = NSError(
+                domain: "XrayTunnel",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "未找到 Xray 配置，请在主 App 中配置节点"]
+            )
+            logger.error("启动失败：\(error.localizedDescription)")
+            completionHandler(error)
+            return
+        }
+
+        // 2. 配置虚拟 TUN 网卡网络设置
+        let settings = createTunnelNetworkSettings()
+
+        // 3. 应用网络设置
+        setTunnelNetworkSettings(settings) { [weak self] error in
             guard let self = self else { return }
 
-            self.currentNode = node
-
-            // 初始化 TCP/IP 协议栈
-            self.setupTCPStack()
-
-            // 配置隧道网络设置
-            let tunnelNetworkSettings = self.createTunnelNetworkSettings()
-
-            // 设置隧道网络配置
-            self.setTunnelNetworkSettings(tunnelNetworkSettings) { error in
-                if let error = error {
-                    os_log("❌ 设置隧道网络配置失败: %{public}@", log: self.logger, type: .error, error.localizedDescription)
-                    completionHandler(error)
-                    return
-                }
-
-                // 开始读取并处理数据包
-                self.isRunning = true
-                self.startPacketHandling()
-
-                // 启动连接清理定时器
-                self.startConnectionCleanupTimer()
-
-                os_log("✅ VPN 隧道启动成功", log: self.logger, type: .info)
-                completionHandler(nil)
+            if let error = error {
+                logger.error("设置网络配置失败：\(error.localizedDescription)")
+                completionHandler(error)
+                return
             }
+
+            logger.info("网络配置应用成功")
+
+            // 4. 获取 TUN 设备文件描述符
+            guard let tunFd = self.getTunnelFileDescriptor() else {
+                let error = NSError(
+                    domain: "XrayTunnel",
+                    code: -2,
+                    userInfo: [NSLocalizedDescriptionKey: "获取 TUN 文件描述符失败"]
+                )
+                logger.error("启动失败：\(error.localizedDescription)")
+                completionHandler(error)
+                return
+            }
+
+            logger.info("获取到 TUN 文件描述符：\(tunFd)")
+
+            // 5. 启动 Xray 核心
+            let result = finalConfig.withCString { configPtr in
+                StartXray(UnsafeMutablePointer(mutating: configPtr), Int32(tunFd))
+            }
+
+            if result != 0 {
+                let error = NSError(
+                    domain: "XrayTunnel",
+                    code: Int(result),
+                    userInfo: [NSLocalizedDescriptionKey: "Xray 核心启动失败，错误码：\(result)"]
+                )
+                logger.error("Xray 启动失败，错误码：\(result)")
+                completionHandler(error)
+                return
+            }
+
+            logger.info("Xray 核心启动成功")
+            self.xrayStarted = true
+            completionHandler(nil)
         }
     }
 
+    // MARK: - stopTunnel（停止 VPN 隧道）
+
     /// 停止 VPN 隧道
+    /// 系统在用户点击断开或 VPN 异常时调用
+    /// - Parameters:
+    ///   - reason: 停止原因
+    ///   - completionHandler: 完成回调
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
-        os_log("🛑 停止 VPN 隧道，原因: %{public}ld", log: logger, type: .info, reason.rawValue)
+        logger.info("stopTunnel 被调用，原因：\(reason.rawValue)")
 
-        // 停止数据包处理
-        isRunning = false
-
-        // 断开所有 VLESS 连接
-        for (_, client) in vlessClients {
-            client.disconnect()
+        // 停止 Xray 核心
+        if xrayStarted {
+            let result = StopXray()
+            if result != 0 {
+                logger.error("StopXray 返回错误码：\(result)")
+            } else {
+                logger.info("Xray 核心已停止")
+            }
+            xrayStarted = false
         }
-        vlessClients.removeAll()
 
-        // 清理资源
-        cleanupResources()
-
-        os_log("✅ VPN 隧道已停止", log: logger, type: .info)
         completionHandler()
     }
 
-    /// 处理来自系统的消息
-    override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
-        if let message = String(data: messageData, encoding: .utf8) {
-            os_log("📨 收到主 APP 消息: %{public}@", log: logger, type: .debug, message)
+    // MARK: - handleAppMessage（处理主 App 消息）
 
-            if message == "getStatus" {
-                let status = ["isRunning": isRunning, "node": currentNode ?? [:]] as [String: Any]
-                if let data = try? JSONSerialization.data(withJSONObject: status) {
-                    completionHandler?(data)
-                    return
-                }
+    /// 处理来自主 App 的消息
+    /// 主 App 可通过 NETunnelProviderSession.sendProviderMessage 与扩展通信
+    /// - Parameters:
+    ///   - messageData: 消息数据
+    ///   - completionHandler: 回复回调
+    override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)?) {
+        guard let message = String(data: messageData, encoding: .utf8) else {
+            completionHandler?(nil)
+            return
+        }
+
+        logger.info("收到主 App 消息：\(message)")
+
+        switch message {
+        case "getStatus":
+            // 返回 VPN 运行状态
+            let status = xrayStarted ? "running" : "stopped"
+            completionHandler?(Data(status.utf8))
+
+        case "getVersion":
+            // 返回 Xray 版本
+            if let versionPtr = GetVersion() {
+                let version = String(cString: versionPtr)
+                FreeString(versionPtr)
+                completionHandler?(Data(version.utf8))
+            } else {
+                completionHandler?(Data("unknown".utf8))
             }
-        }
 
-        completionHandler?(nil)
-    }
+        case "getStats":
+            // 返回流量统计（查询 proxy 出站的统计）
+            let tag = "proxy"
+            if let statsPtr = QueryStats(UnsafeMutablePointer(mutating: (tag as NSString).utf8String)) {
+                let stats = String(cString: statsPtr)
+                FreeString(statsPtr)
+                completionHandler?(Data(stats.utf8))
+            } else {
+                completionHandler?(Data("{}".utf8))
+            }
 
-    // MARK: - TCP/IP 协议栈初始化
-
-    /// 初始化 TCP/IP 协议栈
-    private func setupTCPStack() {
-        let stack = TCPStack()
-
-        // 设置写回 IP 数据包的回调
-        stack.writePacket = { [weak self] packet in
-            self?.packetFlow.writePackets([packet], withProtocols: [AF_INET as NSNumber])
-        }
-
-        // 设置新连接回调
-        stack.onNewConnection = { [weak self] connection, targetHost, targetPort in
-            self?.handleNewConnection(connection: connection, targetHost: targetHost, targetPort: targetPort)
-        }
-
-        // 设置客户端数据回调
-        stack.onClientData = { [weak self] connection, data in
-            self?.handleClientData(connection: connection, data: data)
-        }
-
-        tcpStack = stack
-    }
-
-    // MARK: - 处理新连接
-
-    /// 处理新的 TCP 连接
-    private func handleNewConnection(connection: TCPConnection, targetHost: String, targetPort: UInt16) {
-        guard let node = currentNode else { return }
-
-        // 从节点配置中提取 VLESS 参数
-        let serverAddress = node["node_server"] as? String ?? ""
-        let serverPort = node["node_port"] as? Int ?? 443
-        let uuid = node["node_uuid"] as? String ?? ""
-        let transport = node["node_transport"] as? String ?? "tcp"
-        let enableTLS = node["node_enable_tls"] as? Bool ?? true
-
-        // 创建 VLESS 客户端配置
-        let config = VLESSClientConfig(
-            serverAddress: serverAddress,
-            serverPort: UInt16(serverPort),
-            uuid: uuid,
-            transportType: transport,
-            enableTLS: enableTLS,
-            tlsServerName: node["node_ws_host"] as? String,
-            wsHost: node["node_ws_host"] as? String,
-            wsPath: node["node_ws_path"] as? String,
-            flow: node["node_flow"] as? String
-        )
-
-        // 创建 VLESS 客户端
-        let client = VLESSClient(config: config)
-
-        // 设置数据回调
-        client.onData = { [weak self, weak connection] data in
-            guard let connection = connection else { return }
-            // 将代理服务器返回的数据发送给客户端
-            self?.tcpStack?.sendToClient(connection: connection, data: data)
-        }
-
-        client.onError = { [weak self] error in
-            os_log("❌ VLESS 连接错误: %{public}@", log: self?.logger ?? .default, type: .error, error.localizedDescription)
-        }
-
-        // 保存客户端引用
-        let connectionID = ObjectIdentifier(connection)
-        vlessClients[connectionID] = client
-        connection.proxyConnection = nil // 使用 VLESSClient 管理连接
-
-        // 建立连接
-        client.connect(targetHost: targetHost, targetPort: targetPort)
-    }
-
-    // MARK: - 处理客户端数据
-
-    /// 处理从客户端收到的数据
-    private func handleClientData(connection: TCPConnection, data: Data) {
-        let connectionID = ObjectIdentifier(connection)
-        if let client = vlessClients[connectionID] {
-            client.send(data)
+        default:
+            logger.warning("未知消息类型：\(message)")
+            completionHandler?(nil)
         }
     }
 
-    // MARK: - 创建隧道网络设置
+    // MARK: - sleep / wake（系统休眠/唤醒）
 
-    /// 创建隧道网络设置
+    /// 系统休眠时调用
+    override func sleep(completionHandler: @escaping () -> Void) {
+        logger.info("系统休眠")
+        completionHandler()
+    }
+
+    /// 系统唤醒时调用
+    override func wake() {
+        logger.info("系统唤醒")
+    }
+
+    // MARK: - 私有方法
+
+    /// 创建隧道网络配置
+    /// - Returns: NEPacketTunnelNetworkSettings 网络设置对象
     private func createTunnelNetworkSettings() -> NEPacketTunnelNetworkSettings {
-        // 远程服务器地址（占位，实际代理由用户态协议栈处理）
-        let settings = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: "10.0.0.1")
+        // 远程服务器地址（占位，实际由 Xray 配置决定）
+        let settings = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: "240.0.0.1")
 
-        // 配置 IPv4 地址
-        let ipv4Settings = NEIPv4Settings(addresses: ["10.0.0.2"], subnetMasks: ["255.255.255.0"])
+        // IPv4 配置：使用 Xray 常用的虚拟地址段 198.18.0.0/16
+        let ipv4 = NEIPv4Settings(addresses: ["198.18.0.1"], subnetMasks: ["255.255.0.0"])
+        ipv4.includedRoutes = [NEIPv4Route.default()] // 所有流量走 VPN
+        settings.ipv4Settings = ipv4
 
-        // 配置路由：使用默认路由（捕获所有流量）
-        ipv4Settings.includedRoutes = [NEIPv4Route.default()]
+        // IPv6 配置（可选，用于支持 IPv6 网络）
+        let ipv6 = NEIPv6Settings(addresses: ["fd6e:a81b:704f:1211::1"], networkPrefixLengths: [64])
+        ipv6.includedRoutes = [NEIPv6Route.default()]
+        settings.ipv6Settings = ipv6
 
-        // 排除局域网地址（局域网直连，不走代理）
-        ipv4Settings.excludedRoutes = [
-            NEIPv4Route(destinationAddress: "10.0.0.0", subnetMask: "255.0.0.0"),
-            NEIPv4Route(destinationAddress: "172.16.0.0", subnetMask: "255.240.0.0"),
-            NEIPv4Route(destinationAddress: "192.168.0.0", subnetMask: "255.255.0.0"),
-            NEIPv4Route(destinationAddress: "127.0.0.0", subnetMask: "255.0.0.0")
-        ]
+        // DNS 配置：使用公共 DNS，防止 DNS 泄漏
+        // 注意：Xray 内部也有 DNS 配置，这里的 DNS 用于系统层面的域名解析
+        settings.dnsSettings = NEDNSSettings(servers: ["1.1.1.1", "8.8.8.8"])
+        settings.dnsSettings?.matchDomains = [""] // 匹配所有域名
 
-        settings.ipv4Settings = ipv4Settings
-
-        // 配置 DNS 服务器
-        let dnsSettings = NEDNSSettings(servers: ["8.8.8.8", "1.1.1.1"])
-        dnsSettings.matchDomains = [""] // 空字符串表示匹配所有域名
-        settings.dnsSettings = dnsSettings
-
-        // 设置 MTU
-        settings.mtu = 1400
+        // MTU 设置：避免 VPN 隧道分片
+        settings.mtu = 1500
 
         return settings
     }
 
-    // MARK: - 数据包处理
+    /// 获取 TUN 设备文件描述符
+    ///
+    /// 原理：扫描所有文件描述符，通过 getsockopt 获取接口名称，找到最高编号的 utun 设备
+    /// 这是 WireGuard-Go、sing-box、Xray 等项目的标准做法
+    ///
+    /// - Returns: TUN 设备文件描述符，失败返回 nil
+    private func getTunnelFileDescriptor() -> Int32? {
+        var lastFd: Int32? = nil
+        var buffer = [CChar](repeating: 0, count: Int(IFNAMSIZ))
 
-    /// 开始处理数据包
-    private func startPacketHandling() {
-        Task.detached { [weak self] in
-            guard let self = self else { return }
-
-            while self.isRunning {
-                do {
-                    // 读取系统发来的数据包
-                    let packets = try await self.packetFlow.readPackets()
-
-                    for (packetData, protocolNumber) in zip(packets.0, packets.1) {
-                        // 只处理 IPv4 数据包（协议号 AF_INET = 2）
-                        if protocolNumber.intValue == AF_INET {
-                            self.tcpStack?.processPacket(packetData)
-                        }
-                    }
-                } catch {
-                    os_log("❌ 读取数据包失败: %{public}@", log: self.logger, type: .error, error.localizedDescription)
-                    try? await Task.sleep(nanoseconds: 100_000_000)
+        // 扫描 0-1023 范围内的所有文件描述符
+        for fd: Int32 in 0..<1024 {
+            var length = socklen_t(buffer.count)
+            // SYSPROTO_CONTROL = 2, UTUN_OPT_IFNAME = 2
+            if getsockopt(fd, 2, 2, &buffer, &length) == 0 {
+                let interfaceName = String(cString: buffer)
+                if interfaceName.hasPrefix("utun") {
+                    lastFd = fd // 保留最高编号的 utun（当前 VPN 隧道）
                 }
             }
         }
-    }
 
-    // MARK: - 连接清理定时器
-
-    /// 启动连接清理定时器
-    private func startConnectionCleanupTimer() {
-        Task.detached { [weak self] in
-            guard let self = self else { return }
-
-            while self.isRunning {
-                try? await Task.sleep(nanoseconds: 60_000_000_000) // 60 秒
-                self.tcpStack?.cleanupTimeoutConnections(timeout: 300)
-
-                // 清理已断开的 VLESS 客户端
-                let keysToRemove = self.vlessClients.keys.filter { key in
-                    // 简单清理：如果对应的 TCPConnection 已不存在，则移除
-                    return false // 暂时保留，由 TCPStack 清理时处理
-                }
-                for key in keysToRemove {
-                    self.vlessClients[key]?.disconnect()
-                    self.vlessClients.removeValue(forKey: key)
-                }
-            }
+        if let fd = lastFd {
+            return fd
         }
-    }
 
-    // MARK: - 从 App Group 加载节点配置
-
-    /// 从 App Group 加载节点配置
-    private func loadNodeConfiguration(completion: @escaping ([String: Any]?) -> Void) {
-        DispatchQueue.global(qos: .userInitiated).async {
-            guard let sharedDefaults = UserDefaults(suiteName: self.appGroupIdentifier) else {
-                os_log("❌ 无法访问 App Group 共享数据", log: self.logger, type: .error)
-                completion(nil)
-                return
-            }
-
-            if let nodeData = sharedDefaults.data(forKey: "vpn_current_node") {
-                if let node = try? JSONSerialization.jsonObject(with: nodeData) as? [String: Any] {
-                    os_log("✅ 成功加载节点配置: %{public}@", log: self.logger, type: .debug, node["node_remark"] as? String ?? "未知节点")
-                    completion(node)
-                    return
-                }
-            }
-
-            os_log("⚠️ 未找到节点配置", log: self.logger, type: .error)
-            completion(nil)
+        // 备用方案：通过 KVC 获取 packetFlow 的 socket 文件描述符
+        if let value = self.value(forKeyPath: "packetFlow.socket.fileDescriptor") as? Int32 {
+            logger.info("通过 KVC 获取到 TUN fd：\(value)")
+            return value
         }
-    }
 
-    // MARK: - 清理资源
-
-    /// 清理资源
-    private func cleanupResources() {
-        tcpStack = nil
-        os_log("🧹 资源清理完成", log: logger, type: .debug)
+        logger.error("无法获取 TUN 文件描述符")
+        return nil
     }
 }

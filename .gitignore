@@ -111,3 +111,6 @@ iOSInjectionProject/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Xray 核心框架（CI 构建时自动下载，不纳入版本控制）
+VPNPacketTunnel/Xray.xcframework/

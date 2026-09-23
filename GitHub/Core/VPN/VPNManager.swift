@@ -130,6 +130,9 @@ final class VPNManager: NSObject {
     /// 当前节点存储 Key（用于 App Group 共享）
     private let currentNodeKey = "vpn_current_node"
 
+    /// Xray 配置存储 Key（用于 App Group 共享，供 VPN 扩展读取）
+    private let xrayConfigKey = "xray_config_json"
+
     // MARK: - 回调闭包
 
     /// VPN 状态变化回调
@@ -276,7 +279,9 @@ final class VPNManager: NSObject {
 
         // 将当前节点配置保存到 App Group，供 VPN 扩展读取
         saveCurrentNodeToAppGroup(node)
-        os_log("💾 节点配置已保存到 App Group", log: logger, type: .debug)
+        // 生成 Xray JSON 配置并保存到 App Group，供 VPN 扩展启动 Xray 核心使用
+        saveXrayConfigToAppGroup(node)
+        os_log("💾 节点配置和 Xray 配置已保存到 App Group", log: logger, type: .debug)
 
         // 优化：已有配置时直接复用，不删除重建
         // 首次无配置时才创建新配置（系统会弹出权限请求对话框）
@@ -640,6 +645,239 @@ final class VPNManager: NSObject {
             sharedDefaults.removeObject(forKey: currentNodeKey)
         }
         sharedDefaults.synchronize()
+    }
+
+    // MARK: - Xray 配置生成
+
+    /// 生成 Xray JSON 配置并保存到 App Group
+    ///
+    /// 配置结构：
+    /// - log: 日志级别
+    /// - inbounds: TUN 入站（dokodemo-door，捕获所有流量）
+    /// - outbounds: 代理出站（根据节点类型生成 VLESS/VMess/Trojan/Shadowsocks 配置）
+    ///
+    /// - Parameter node: VPN 节点
+    private func saveXrayConfigToAppGroup(_ node: VPNNode) {
+        guard let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
+            return
+        }
+
+        let config = generateXrayConfig(from: node)
+
+        if let configData = try? JSONSerialization.data(withJSONObject: config, options: .prettyPrinted),
+           let configString = String(data: configData, encoding: .utf8) {
+            sharedDefaults.set(configString, forKey: xrayConfigKey)
+            sharedDefaults.synchronize()
+            DebugLogger.vpn("Xray 配置已保存到 App Group（\(configString.count) 字节）")
+        } else {
+            DebugLogger.vpnError("生成 Xray 配置失败")
+        }
+    }
+
+    /// 根据 VPN 节点生成 Xray 配置字典
+    /// - Parameter node: VPN 节点
+    /// - Returns: Xray 配置字典
+    private func generateXrayConfig(from node: VPNNode) -> [String: Any] {
+        // 出站配置（根据协议类型生成）
+        let outbound = generateOutboundConfig(from: node)
+
+        // 完整配置
+        var config: [String: Any] = [
+            // 日志配置
+            "log": [
+                "loglevel": "warning",
+                "access": "",
+                "error": ""
+            ],
+            // 入站配置：TUN 模式使用 dokodemo-door 捕获所有流量
+            "inbounds": [
+                [
+                    "tag": "tun",
+                    "port": 0,
+                    "protocol": "dokodemo-door",
+                    "settings": [
+                        "network": "tcp,udp",
+                        "followRedirect": true
+                    ],
+                    "sniffing": [
+                        "enabled": true,
+                        "destOverride": ["http", "tls", "quic"]
+                    ]
+                ]
+            ],
+            // 出站配置
+            "outbounds": [outbound],
+            // 路由配置
+            "routing": [
+                "domainStrategy": "IPIfNonMatch",
+                "rules": []
+            ],
+            // DNS 配置
+            "dns": [
+                "servers": ["1.1.1.1", "8.8.8.8"]
+            ]
+        ]
+
+        return config
+    }
+
+    /// 生成出站配置（根据节点协议类型）
+    /// - Parameter node: VPN 节点
+    /// - Returns: 出站配置字典
+    private func generateOutboundConfig(from node: VPNNode) -> [String: Any] {
+        // 流设置（传输层配置）
+        let streamSettings = generateStreamSettings(from: node)
+
+        switch node.protocolType {
+        case .vless:
+            // VLESS 协议配置
+            var user: [String: Any] = [
+                "id": node.uuid,
+                "encryption": "none"
+            ]
+            // VLESS flow（如 xtls-rprx-vision）
+            if let flow = node.flow, !flow.isEmpty {
+                user["flow"] = flow
+            }
+
+            return [
+                "tag": "proxy",
+                "protocol": "vless",
+                "settings": [
+                    "vnext": [
+                        [
+                            "address": node.serverAddress,
+                            "port": node.serverPort,
+                            "users": [user]
+                        ]
+                    ]
+                ],
+                "streamSettings": streamSettings
+            ]
+
+        case .vmess:
+            // VMess 协议配置
+            return [
+                "tag": "proxy",
+                "protocol": "vmess",
+                "settings": [
+                    "vnext": [
+                        [
+                            "address": node.serverAddress,
+                            "port": node.serverPort,
+                            "users": [
+                                [
+                                    "id": node.uuid,
+                                    "alterId": 0,
+                                    "security": "auto"
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                "streamSettings": streamSettings
+            ]
+
+        case .trojan:
+            // Trojan 协议配置（密码存储在 uuid 字段）
+            return [
+                "tag": "proxy",
+                "protocol": "trojan",
+                "settings": [
+                    "servers": [
+                        [
+                            "address": node.serverAddress,
+                            "port": node.serverPort,
+                            "password": node.uuid
+                        ]
+                    ]
+                ],
+                "streamSettings": streamSettings
+            ]
+
+        case .shadowsocks:
+            // Shadowsocks 协议配置（密码存储在 uuid 字段，加密方式需额外字段）
+            return [
+                "tag": "proxy",
+                "protocol": "shadowsocks",
+                "settings": [
+                    "servers": [
+                        [
+                            "address": node.serverAddress,
+                            "port": node.serverPort,
+                            "password": node.uuid,
+                            "method": "aes-256-gcm"
+                        ]
+                    ]
+                ],
+                "streamSettings": streamSettings
+            ]
+        }
+    }
+
+    /// 生成流设置（传输层配置）
+    /// - Parameter node: VPN 节点
+    /// - Returns: 流设置字典
+    private func generateStreamSettings(from node: VPNNode) -> [String: Any] {
+        var streamSettings: [String: Any] = [:]
+
+        // 传输类型
+        switch node.transportType {
+        case .tcp:
+            streamSettings["network"] = "tcp"
+            streamSettings["tcpSettings"] = [
+                "header": ["type": "none"]
+            ]
+
+        case .websocket:
+            streamSettings["network"] = "ws"
+            var wsSettings: [String: Any] = [
+                "path": node.wsPath ?? "/"
+            ]
+            // WebSocket Host 头
+            let wsHost = node.wsHost ?? node.tlsServerName ?? node.serverAddress
+            wsSettings["headers"] = ["Host": wsHost]
+            streamSettings["wsSettings"] = wsSettings
+
+        case .grpc:
+            streamSettings["network"] = "grpc"
+            streamSettings["grpcSettings"] = [
+                "serviceName": node.grpcServiceName ?? "",
+                "multiMode": false
+            ]
+
+        case .http:
+            streamSettings["network"] = "http"
+            streamSettings["httpSettings"] = [
+                "host": [node.tlsServerName ?? node.serverAddress],
+                "path": node.wsPath ?? "/"
+            ]
+        }
+
+        // 安全设置（TLS / Reality / 无加密）
+        if node.enableTLS {
+            if let flow = node.flow, flow.contains("vision") {
+                // XTLS Vision 使用 TLS
+                streamSettings["security"] = "tls"
+                streamSettings["tlsSettings"] = [
+                    "serverName": node.tlsServerName ?? node.serverAddress,
+                    "allowInsecure": false,
+                    "fingerprint": "chrome"
+                ]
+            } else {
+                // 普通 TLS
+                streamSettings["security"] = "tls"
+                streamSettings["tlsSettings"] = [
+                    "serverName": node.tlsServerName ?? node.serverAddress,
+                    "allowInsecure": false
+                ]
+            }
+        } else {
+            // 无加密（明文传输）
+            streamSettings["security"] = "none"
+        }
+
+        return streamSettings
     }
 
     // MARK: - VPN 状态监听

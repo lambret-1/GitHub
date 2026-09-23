@@ -71,6 +71,7 @@ targets:
       - path: VPNPacketTunnel
         excludes:
           - "**/README.md"
+          - "Xray.xcframework"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.github.client.vpn
@@ -78,5 +79,21 @@ targets:
         INFOPLIST_FILE: VPNPacketTunnel/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: VPNPacketTunnel/VPNPacketTunnel.entitlements
+        # 桥接头文件配置：导入 Xray 核心 C API
+        SWIFT_OBJC_BRIDGING_HEADER: VPNPacketTunnel/VPNPacketTunnel-Bridging-Header.h
+        # 头文件搜索路径：让编译器能找到 libxray.h
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/VPNPacketTunnel/Xray.xcframework/ios-arm64/Headers"
+        # Go 静态库需要链接 resolv 库（DNS 解析）
+        OTHER_LDFLAGS: "-lresolv"
+        # 禁用 bitcode（Go 静态库不支持）
+        ENABLE_BITCODE: NO
+        # 不剥离调试符号（Go 静态库需要）
+        STRIP_INSTALLED_PRODUCT: NO
+        # 不执行 dead code stripping（Go 运行时需要）
+        DEAD_CODE_STRIPPING: NO
+    dependencies:
+      # 链接 Xray 核心框架
+      - framework: VPNPacketTunnel/Xray.xcframework
+        embed: false
     # 扩展不需要依赖主应用，它是独立运行的进程
     # 主应用通过 dependencies 嵌入此扩展

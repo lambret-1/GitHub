@@ -179,6 +179,18 @@ jobs:
           rm -rf GitHub.xcodeproj
 
           echo "=========================================="
+          echo "下载 Xray.xcframework 核心框架..."
+          echo "=========================================="
+          chmod +x scripts/download_xray_framework.sh
+          bash scripts/download_xray_framework.sh
+          if [ ! -f "VPNPacketTunnel/Xray.xcframework/ios-arm64/libxray.a" ]; then
+            echo "::error::Xray.xcframework 下载失败，libxray.a 不存在"
+            exit 1
+          fi
+          echo "::notice::Xray.xcframework 下载成功"
+          ls -lh VPNPacketTunnel/Xray.xcframework/ios-arm64/libxray.a
+
+          echo "=========================================="
           echo "使用XcodeGen生成标准Xcode项目..."
           echo "=========================================="
           xcodegen generate
