@@ -812,6 +812,30 @@ final class VPNManager: NSObject {
                 ],
                 "streamSettings": streamSettings
             ]
+
+        case .hysteria, .tuic:
+            // Hysteria 和 TUIC 协议：Xray-core 暂不直接支持，回退为 VLESS 配置
+            // 注意：这两种协议基于 QUIC，需要专用客户端支持
+            DebugLogger.vpnError("不支持的协议类型：\(node.protocolType.displayName)，回退为 VLESS 配置")
+            return [
+                "tag": "proxy",
+                "protocol": "vless",
+                "settings": [
+                    "vnext": [
+                        [
+                            "address": node.serverAddress,
+                            "port": node.serverPort,
+                            "users": [
+                                [
+                                    "id": node.uuid,
+                                    "encryption": "none"
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                "streamSettings": streamSettings
+            ]
         }
     }
 
@@ -846,11 +870,34 @@ final class VPNManager: NSObject {
                 "multiMode": false
             ]
 
-        case .http:
+        case .http2:
             streamSettings["network"] = "http"
             streamSettings["httpSettings"] = [
                 "host": [node.tlsServerName ?? node.serverAddress],
                 "path": node.wsPath ?? "/"
+            ]
+
+        case .mkcp:
+            // mKCP 传输（基于 KCP，低延迟）
+            streamSettings["network"] = "kcp"
+            streamSettings["kcpSettings"] = [
+                "mtu": 1350,
+                "tti": 20,
+                "uplinkCapacity": 5,
+                "downlinkCapacity": 20,
+                "congestion": false,
+                "readBufferSize": 1,
+                "writeBufferSize": 1,
+                "header": ["type": "none"]
+            ]
+
+        case .quic:
+            // QUIC 传输（基于 UDP）
+            streamSettings["network"] = "quic"
+            streamSettings["quicSettings"] = [
+                "security": "none",
+                "key": "",
+                "header": ["type": "none"]
             ]
         }
 
