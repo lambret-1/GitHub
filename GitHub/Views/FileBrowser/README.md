@@ -55,6 +55,8 @@
   - `loadTags()` - 加载标签列表
   - `loadFilesAsync()` - 异步加载文件（用于下拉刷新）
   - `下拉刷新全部数据()` - 下拉刷新入口，并行刷新文件列表、分支、标签、星标状态
+  - `downloadRepositoryZip()` - 下载当前分支源代码ZIP
+  - `downloadTagZip(tagName:)` - 下载指定标签源代码ZIP
   - `navigateUp()` - 返回上级目录
 
 ### RepoHeaderView 仓库头部
@@ -85,6 +87,7 @@
 - `onBranchesChanged: () -> Void` - 分支列表变化回调
 - `tags: [GitTag]` - 标签列表（用于判断当前是否标签视图）
 - `onTagSelected: (String) -> Void` - 标签选中回调
+- `onDownloadTag: (String) -> Void` - 下载标签源代码ZIP回调
 - `menuContent: () -> MenuContent` - 代码操作菜单内容（泛型）
 - 布局：左侧分支选择按钮 + 标签选择按钮，右侧代码操作下拉按钮
 - 标签视图时标签按钮蓝色高亮，显示当前标签名
@@ -98,9 +101,11 @@
 - `repo: String` - 仓库名称
 - `当前选中Ref: Binding<String>` - 当前选中的ref（分支名或标签名）
 - `onTagSelected: (String) -> Void` - 标签选中回调
+- `onDownloadTag: (String) -> Void` - 下载标签源代码ZIP回调
 - 独立全屏页（fullScreenCover），自带NavigationView，左上角返回按钮
 - 顶部搜索框，实时过滤标签名
-- 列表每行：标签图标 + 标签名 + commit短码（7位）+ 选中标记
+- 列表每行：标签图标 + 标签名 + commit短码（7位）+ 下载按钮 + 选中标记
+- 下载按钮：点击后下载该标签版本的源代码ZIP包（使用GitHub zipball API）
 - 空态："该仓库暂无标签"
 - 加载态：ProgressView
 - 错误态：错误信息 + 重试按钮

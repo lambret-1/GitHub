@@ -180,6 +180,7 @@ struct FileBrowserView: View {
     @State var zipDownloadProgress: Double = 0
     @State var showZipDownloadAlert: Bool = false
     @State var zipDownloadMessage: String = ""
+    @State var zipDownloadRefName: String = "" // 当前正在下载的ref名称（分支名或标签名）
 
     // MARK: - 最新提交信息（顶部提交栏）
     @State var latestCommit: Commit?
@@ -567,6 +568,9 @@ struct FileBrowserView: View {
             tags: tags,
             onTagSelected: { _ in
                 loadFiles()
+            },
+            onDownloadTag: { tagName in
+                downloadTagZip(tagName: tagName)
             }
         ) {
             moreMenuContent
@@ -679,6 +683,9 @@ struct FileBrowserView: View {
             tags: tags,
             onTagSelected: { _ in
                 loadFiles()
+            },
+            onDownloadTag: { tagName in
+                downloadTagZip(tagName: tagName)
             }
         ) {
             moreMenuContent
@@ -2134,6 +2141,7 @@ struct FileBrowserView: View {
         zipDownloadMessage = "正在准备下载..."
 
         let branch = selectedBranch.isEmpty ? "main" : selectedBranch
+        zipDownloadRefName = branch
         // 使用GitHub官方zipball API
         let apiUrl = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/zipball/\(branch)"
 
@@ -2178,9 +2186,9 @@ struct FileBrowserView: View {
                 return
             }
 
-            // 生成文件名：仓库名-分支名.zip
-            let branch = selectedBranch.isEmpty ? "main" : selectedBranch
-            let fileName = "\(repository.name)-\(branch).zip"
+            // 生成文件名：仓库名-ref名.zip（ref可以是分支名或标签名）
+            let refName = zipDownloadRefName.isEmpty ? (selectedBranch.isEmpty ? "main" : selectedBranch) : zipDownloadRefName
+            let fileName = "\(repository.name)-\(refName).zip"
 
             // 保存到"下载"文件夹
             let downloadDir = FileDownloadManager.shared.downloadDirectoryURL()
@@ -2234,6 +2242,41 @@ struct FileBrowserView: View {
             zipDownloadMessage = "下载失败：\(error.localizedDescription)"
             showZipDownloadAlert = true
         }
+    }
+
+    // MARK: - 下载标签源代码ZIP
+
+    /// 下载指定标签的源代码ZIP包
+    /// - Parameter tagName: 标签名称
+    func downloadTagZip(tagName: String) {
+        isDownloadingZip = true
+        zipDownloadProgress = 0
+        zipDownloadMessage = "正在准备下载标签 \(tagName)..."
+        zipDownloadRefName = tagName
+
+        // 使用GitHub官方zipball API，标签名作为ref参数
+        let encodedTag = tagName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? tagName
+        let apiUrl = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/zipball/\(encodedTag)"
+
+        guard let url = URL(string: apiUrl) else {
+            isDownloadingZip = false
+            zipDownloadMessage = "下载链接无效"
+            showZipDownloadAlert = true
+            return
+        }
+
+        var request = URLRequest(url: url)
+        if let token = TokenKeychain.shared.getToken() {
+            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        }
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
+
+        let config = URLSessionConfiguration.default
+        let session = URLSession(configuration: config, delegate: ZipDownloadDelegate(view: self), delegateQueue: nil)
+
+        let task = session.downloadTask(with: request)
+        task.resume()
     }
 
     // MARK: - 加载当前目录最新提交（用于顶部提交栏）
