@@ -61,6 +61,16 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     /// 流量统计锁（多线程安全）
     private let statsLock = NSLock()
 
+    // MARK: - init（扩展初始化）
+
+    /// 扩展初始化方法
+    /// 系统在实例化 PacketTunnelProvider 时调用
+    override init() {
+        super.init()
+        logToAppGroup("=== PacketTunnelProvider init 被调用 ===")
+        logger.info("PacketTunnelProvider 初始化完成")
+    }
+
     // MARK: - startTunnel（启动 VPN 隧道）
 
     /// 启动 VPN 隧道
