@@ -68,7 +68,7 @@ struct TagListView: View {
                 if 加载中 {
                     加载中视图
                 } else if let 错误 = 错误信息 {
-                    错误视图(错误信息: 错误)
+                    错误视图(错误详情: 错误)
                 } else if 标签列表.isEmpty {
                     空态视图
                 } else {
@@ -131,7 +131,7 @@ struct TagListView: View {
 
     // MARK: - 错误视图
 
-    private func 错误视图(错误信息: String) -> some View {
+    private func 错误视图(错误详情: String) -> some View {
         VStack(spacing: 16) {
             Spacer()
             Image(systemName: "exclamationmark.triangle")
@@ -139,14 +139,14 @@ struct TagListView: View {
                 .foregroundColor(.orange)
             Text("加载失败")
                 .font(.headline)
-            Text(错误信息)
+            Text(错误详情)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
             Button(action: {
                 加载中 = true
-                错误信息 = nil
+                self.错误信息 = nil
                 加载标签列表()
             }) {
                 Text("重试")
