@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-23 01:04:07 UTC
+**生成时间**: 2026-09-23 01:53:09 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -11,7 +11,7 @@
 | 类型 | 数量 | 状态 |
 |------|------|------|
 | 🔴 错误 | **00** 个 | 无错误 |
-| 🟡 警告 | **36** 个 | 建议清理 |
+| 🟡 警告 | **35** 个 | 建议清理 |
 
 ---
 
@@ -20,10 +20,10 @@
 | 警告类型 | 数量 | 占比 |
 |----------|------|------|
 | ⚠️ 弃用API警告 | 00 个 | 0% |
-| 📦 未使用变量警告 | 26 个 | 72% |
+| 📦 未使用变量警告 | 26 个 | 74% |
 | 🔄 类型转换警告 | 00 个 | 0% |
 | 🔍 可空性警告 | 00 个 | 0% |
-| 📝 其他警告 | 10 个 | 27% |
+| 📝 其他警告 | 9 个 | 25% |
 
 ---
 
@@ -35,12 +35,12 @@
 | 2 | `PullRequestDetailView.swift` | 3 个 | 🟢 低 |
 | 3 | `warning` | 2 个 | 🟢 低 |
 | 4 | `XMLTokenizer.swift` | 2 个 | 🟢 低 |
-| 5 | `PacketTunnelProvider.swift` | 2 个 | 🟢 低 |
-| 6 | `IssueDetailView.swift` | 2 个 | 🟢 低 |
-| 7 | `HTMLTokenizer.swift` | 2 个 | 🟢 低 |
-| 8 | `FileDownloadManager.swift` | 2 个 | 🟢 低 |
-| 9 | `FileBrowserView.swift` | 2 个 | 🟢 低 |
-| 10 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 5 | `IssueDetailView.swift` | 2 个 | 🟢 低 |
+| 6 | `HTMLTokenizer.swift` | 2 个 | 🟢 低 |
+| 7 | `FileDownloadManager.swift` | 2 个 | 🟢 低 |
+| 8 | `FileBrowserView.swift` | 2 个 | 🟢 低 |
+| 9 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 10 | `VPNManager.swift` | 1 个 | 🟢 低 |
 | 11 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
 | 12 | `SubscriptionListView.swift` | 1 个 | 🟢 低 |
 | 13 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
@@ -82,19 +82,18 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Settings/RepositorySettingsView.swift:325:20: warning: value 'size' was defined but never used; consider replacing with boolean test
 ```
 
-### 📝 其他警告 (10个)
+### 📝 其他警告 (9个)
 
 ```
-/Users/runner/work/GitHub/GitHub/VPNPacketTunnel/PacketTunnelProvider.swift:246:35: warning: no calls to throwing functions occur within 'try' expression
-/Users/runner/work/GitHub/GitHub/VPNPacketTunnel/PacketTunnelProvider.swift:254:19: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: instance will be immediately deallocated because property 'delegate' is 'weak'
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Network/GitHubAPI.swift:1006:13: warning: variable 'body' was never mutated; consider changing to 'let' constant
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:494:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:497:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
+/Users/runner/work/GitHub/GitHub/GitHub/Core/VPN/VPNManager.swift:685:13: warning: variable 'config' was never mutated; consider changing to 'let' constant
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: weak reference will always be nil because the referenced object is deallocated here
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'GitHub' from project 'GitHub')
-warning: The CFBundleVersion of an app extension ('1') must match that of its containing parent app ('1790125177').
+warning: The CFBundleVersion of an app extension ('1') must match that of its containing parent app ('1790128096').
 ```
 
 ---
@@ -105,7 +104,7 @@ warning: The CFBundleVersion of an app extension ('1') must match that of its co
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 45446 行
+- **代码总行数**: 45731 行
 
 ### 💡 修复建议
 
