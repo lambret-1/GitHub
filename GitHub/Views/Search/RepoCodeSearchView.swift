@@ -236,6 +236,11 @@ struct RepoCodeSearchView: View {
                 Text("未找到匹配结果")
                     .font(.headline)
                     .foregroundColor(.gray)
+                Text("代码搜索仅覆盖仓库默认分支（main/master），\n且新推送的代码可能需要时间建立索引")
+                    .font(.subheadline)
+                    .foregroundColor(.gray.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
             }
             Spacer()
         case .error(let msg):

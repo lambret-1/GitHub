@@ -100,8 +100,7 @@ final class RepoCodeSearchViewModel: ObservableObject {
         searchTask = Task { [weak self] in
             guard let self = self else { return }
             do {
-                try await Task.sleep(nanoseconds: 300_000_000)
-                if Task.isCancelled { return }
+                // 注意：View层已有300ms输入防抖，这里不再额外延迟，避免搜索响应过慢
                 let items = try await CodeSearchService.shared.searchCode(
                     owner: self.owner,
                     repo: self.repo,

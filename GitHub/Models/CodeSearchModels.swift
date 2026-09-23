@@ -95,6 +95,17 @@ struct CodeSearchResponse: Codable {
     }
 }
 
+// GitHub API错误响应模型
+struct GitHubAPIError: Codable {
+    let message: String
+    let documentationUrl: String?
+
+    enum CodingKeys: String, CodingKey {
+        case message
+        case documentationUrl = "documentation_url"
+    }
+}
+
 // 代码行
 struct CodeLine: Identifiable {
     let id = UUID()

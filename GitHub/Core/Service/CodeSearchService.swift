@@ -43,9 +43,10 @@ final class CodeSearchService {
         }
 
         var request = URLRequest(url: url)
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
         if let token = TokenKeychain.shared.getToken() {
-            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
         let (data, _) = try await URLSession.shared.data(for: request)
@@ -215,6 +216,11 @@ final class CodeSearchService {
             throw NSError(domain: "CodeSearch", code: -1, userInfo: [NSLocalizedDescriptionKey: "搜索词不能为空"])
         }
 
+        // 检查是否已登录（GitHub代码搜索API必须认证，未认证返回401）
+        guard let token = TokenKeychain.shared.getToken(), !token.isEmpty else {
+            throw NSError(domain: "CodeSearch", code: -5, userInfo: [NSLocalizedDescriptionKey: "代码搜索需要登录GitHub账号，请先在设置中登录"])
+        }
+
         // 注意：GitHub代码搜索API的branch筛选器存在索引延迟问题，可能返回0结果
         // 因此暂不使用branch筛选器，搜索默认分支（通常是main/master）
         var components = URLComponents(string: "https://api.github.com/search/code")!
@@ -229,18 +235,36 @@ final class CodeSearchService {
         }
 
         var request = URLRequest(url: url)
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
-        if let token = TokenKeychain.shared.getToken() {
-            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
-        }
+        // 使用GitHub推荐的Accept header（代码搜索API需要特定的media type）
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        // GitHub API要求设置User-Agent，否则可能返回403
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
+        // 代码搜索API必须认证
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw NSError(domain: "CodeSearch", code: -3, userInfo: [NSLocalizedDescriptionKey: "无效响应"])
         }
+
         guard (200...299).contains(http.statusCode) else {
-            let msg = "请求失败(\(http.statusCode))"
-            throw NSError(domain: "CodeSearch", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: msg])
+            // 尝试解析GitHub返回的详细错误信息
+            var 错误消息 = "请求失败(\(http.statusCode))"
+            if let 错误响应 = try? JSONDecoder().decode(GitHubAPIError.self, from: data) {
+                错误消息 = 错误响应.message
+            }
+            // 针对常见状态码给出更友好的提示
+            switch http.statusCode {
+            case 401:
+                错误消息 = "登录状态已失效，请重新登录后再搜索"
+            case 403:
+                错误消息 = "API请求频率超限或权限不足，请稍后重试"
+            case 422:
+                错误消息 = "搜索查询语法无效，请检查搜索词"
+            default:
+                break
+            }
+            throw NSError(domain: "CodeSearch", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: 错误消息])
         }
 
         let result = try JSONDecoder().decode(CodeSearchResponse.self, from: data)
@@ -286,9 +310,10 @@ final class CodeSearchService {
         }
 
         var request = URLRequest(url: url)
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
         if let token = TokenKeychain.shared.getToken() {
-            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
         let (data, _) = try await URLSession.shared.data(for: request)
