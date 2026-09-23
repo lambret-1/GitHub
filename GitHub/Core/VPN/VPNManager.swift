@@ -682,28 +682,12 @@ final class VPNManager: NSObject {
         let outbound = generateOutboundConfig(from: node)
 
         // 完整配置
+        // 注意：使用 StartXray(config, tunFd) 时，Xray 核心会自动处理 TUN 设备
+        // 不需要手动配置 inbound，Xray 会自动创建 tun inbound
         var config: [String: Any] = [
-            // 日志配置
+            // 日志配置（仅设置级别，不设置文件路径，避免文件写入失败）
             "log": [
-                "loglevel": "warning",
-                "access": "",
-                "error": ""
-            ],
-            // 入站配置：TUN 模式使用 dokodemo-door 捕获所有流量
-            "inbounds": [
-                [
-                    "tag": "tun",
-                    "port": 0,
-                    "protocol": "dokodemo-door",
-                    "settings": [
-                        "network": "tcp,udp",
-                        "followRedirect": true
-                    ],
-                    "sniffing": [
-                        "enabled": true,
-                        "destOverride": ["http", "tls", "quic"]
-                    ]
-                ]
+                "loglevel": "warning"
             ],
             // 出站配置
             "outbounds": [outbound],
