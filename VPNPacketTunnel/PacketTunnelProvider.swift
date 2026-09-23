@@ -10,6 +10,7 @@
 
 import NetworkExtension
 import os.log
+import XrayKit
 
 // MARK: - 常量定义
 
@@ -176,11 +177,9 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             logger.info("获取到 TUN 文件描述符：\(tunFd)")
             logToAppGroup("✅ 获取到 TUN 文件描述符：\(tunFd)")
 
-            // 5. 启动 Xray 核心
+            // 5. 启动 Xray 核心（通过 XrayKit 动态框架调用）
             logToAppGroup("正在启动 Xray 核心...")
-            let result = finalConfig.withCString { configPtr in
-                StartXray(UnsafeMutablePointer(mutating: configPtr), Int32(tunFd))
-            }
+            let result = XrayCore.shared.start(configJSON: finalConfig, tunFd: Int32(tunFd))
 
             if result != 0 {
                 let error = NSError(
@@ -212,9 +211,9 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         logger.info("stopTunnel 被调用，原因：\(reason.rawValue)")
         logToAppGroup("=== stopTunnel 被调用，原因：\(reason.rawValue) ===")
 
-        // 停止 Xray 核心
+        // 停止 Xray 核心（通过 XrayKit 动态框架调用）
         if xrayStarted {
-            let result = StopXray()
+            let result = XrayCore.shared.stop()
             if result != 0 {
                 logger.error("StopXray 返回错误码：\(result)")
                 logToAppGroup("❌ StopXray 返回错误码：\(result)")
@@ -250,25 +249,14 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             completionHandler?(Data(status.utf8))
 
         case "getVersion":
-            // 返回 Xray 版本
-            if let versionPtr = GetVersion() {
-                let version = String(cString: versionPtr)
-                FreeString(versionPtr)
-                completionHandler?(Data(version.utf8))
-            } else {
-                completionHandler?(Data("unknown".utf8))
-            }
+            // 返回 Xray 版本（通过 XrayKit 动态框架调用）
+            let version = XrayCore.shared.getVersion()
+            completionHandler?(Data(version.utf8))
 
         case "getStats":
-            // 返回流量统计（查询 proxy 出站的统计）
-            let tag = "proxy"
-            if let statsPtr = QueryStats(UnsafeMutablePointer(mutating: (tag as NSString).utf8String)) {
-                let stats = String(cString: statsPtr)
-                FreeString(statsPtr)
-                completionHandler?(Data(stats.utf8))
-            } else {
-                completionHandler?(Data("{}".utf8))
-            }
+            // 返回流量统计（查询 proxy 出站的统计，通过 XrayKit 动态框架调用）
+            let stats = XrayCore.shared.queryStats(tag: "proxy")
+            completionHandler?(Data(stats.utf8))
 
         default:
             logger.warning("未知消息类型：\(message)")

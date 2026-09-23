@@ -59,9 +59,52 @@ targets:
         embed: true
 
   # ============================================================================
+  # Xray 动态框架 Target
+  # 用途：将 Xray Go 静态库封装为动态框架，避免扩展二进制过大
+  # 原理：扩展只链接动态框架，二进制体积小（<1MB），Go 运行时在框架中动态加载
+  # 注意：此框架必须嵌入到扩展的 Frameworks 目录中
+  # ============================================================================
+  XrayKit:
+    type: framework
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: VPNPacketTunnel/XrayKit
+        excludes:
+          - "**/README.md"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.github.client.xraykit
+        PRODUCT_NAME: XrayKit
+        # 桥接头文件配置：导入 Xray 核心 C API
+        SWIFT_OBJC_BRIDGING_HEADER: VPNPacketTunnel/XrayKit/XrayKit-Bridging-Header.h
+        # 头文件搜索路径：让编译器能找到 libxray.h
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/VPNPacketTunnel/Xray.xcframework/ios-arm64/Headers"
+        # Go 静态库需要链接 resolv 库（DNS 解析）
+        OTHER_LDFLAGS: "-lresolv"
+        # 禁用 bitcode（Go 静态库不支持）
+        ENABLE_BITCODE: NO
+        # 动态框架不需要剥离符号（运行时需要）
+        STRIP_INSTALLED_PRODUCT: NO
+        DEAD_CODE_STRIPPING: NO
+        # 禁用模块接口生成（桥接头文件不支持与模块接口一起使用）
+        BUILD_LIBRARY_FOR_DISTRIBUTION: NO
+        ENABLE_MODULE_VERIFIER: NO
+        SWIFT_ENABLE_LIBRARY_EVOLUTION: NO
+        SWIFT_EMIT_MODULE_INTERFACE: NO
+        SWIFT_EMIT_PRIVATE_MODULE_INTERFACE: NO
+        # 确保动态框架被正确签名
+        CODE_SIGN_STYLE: Automatic
+    dependencies:
+      # 链接 Xray 核心静态库（不嵌入，因为是静态库）
+      - framework: VPNPacketTunnel/Xray.xcframework
+        embed: false
+
+  # ============================================================================
   # VPN 网络扩展 Target（PacketTunnelProvider）
   # 用途：提供系统级 VPN 隧道能力，支持 VLESS/VMess 等协议代理
   # 注意：此扩展在独立进程运行，有内存限制（约50MB）
+  #       二进制必须小（<1MB），Go 核心放在 XrayKit 动态框架中
   # ============================================================================
   VPNPacketTunnel:
     type: app-extension
@@ -72,6 +115,7 @@ targets:
         excludes:
           - "**/README.md"
           - "Xray.xcframework"
+          - "XrayKit"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.github.client.vpn
@@ -79,34 +123,19 @@ targets:
         INFOPLIST_FILE: VPNPacketTunnel/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: VPNPacketTunnel/VPNPacketTunnel.entitlements
-        # 桥接头文件配置：导入 Xray 核心 C API
-        SWIFT_OBJC_BRIDGING_HEADER: VPNPacketTunnel/VPNPacketTunnel-Bridging-Header.h
-        # 头文件搜索路径：让编译器能找到 libxray.h
-        HEADER_SEARCH_PATHS: "$(SRCROOT)/VPNPacketTunnel/Xray.xcframework/ios-arm64/Headers"
-        # Go 静态库需要链接 resolv 库（DNS 解析）
-        OTHER_LDFLAGS: "-lresolv"
-        # 禁用 bitcode（Go 静态库不支持）
+        # 扩展二进制很小，不需要特殊链接参数
+        # 禁用 bitcode
         ENABLE_BITCODE: NO
-        # 剥离调试符号（减小二进制体积，NetworkExtension 内存限制约50MB）
+        # 剥离调试符号（减小体积）
         STRIP_INSTALLED_PRODUCT: YES
         STRIP_STYLE: all
-        # 执行 dead code stripping（移除未使用代码，减小体积）
         DEAD_CODE_STRIPPING: YES
-        # 剥离 Swift 反射元数据（减小体积）
         SWIFT_REFLECTION_METADATA_LEVEL: none
-        # 禁用模块接口生成（桥接头文件不支持与模块接口一起使用）
-        BUILD_LIBRARY_FOR_DISTRIBUTION: NO
-        # 禁用模块验证器
-        ENABLE_MODULE_VERIFIER: NO
-        # 禁用 Swift 库进化（会导致生成模块接口）
-        SWIFT_ENABLE_LIBRARY_EVOLUTION: NO
-        # 不生成 Swift 模块接口文件
-        SWIFT_EMIT_MODULE_INTERFACE: NO
-        # 不生成私有模块接口
-        SWIFT_EMIT_PRIVATE_MODULE_INTERFACE: NO
+        # 运行路径搜索：让扩展能找到嵌入的动态框架
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
     dependencies:
-      # 链接 Xray 核心框架
-      - framework: VPNPacketTunnel/Xray.xcframework
-        embed: false
+      # 链接并嵌入 Xray 动态框架
+      - target: XrayKit
+        embed: true
     # 扩展不需要依赖主应用，它是独立运行的进程
     # 主应用通过 dependencies 嵌入此扩展

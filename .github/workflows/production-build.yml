@@ -362,22 +362,25 @@ jobs:
           fi
 
           # ======================================================================
-          # 关键步骤：剥离 VPN 扩展二进制文件的调试符号
-          # 原因：Xray 静态库(64MB)链接后扩展二进制达54MB
-          #       NetworkExtension 内存限制约50MB，超限时系统直接杀死扩展进程
-          # 解决：使用 strip 剥离调试符号和未使用代码，将体积压缩到限制内
+          # 验证 VPN 扩展二进制大小（动态框架方案，扩展二进制应 < 1MB）
+          # 原理：Xray Go 核心放在 XrayKit 动态框架中，扩展只包含 Swift 代码
+          # 目的：确保扩展二进制不会超出 NetworkExtension 内存限制（约50MB）
           # ======================================================================
-          echo "剥离 VPN 扩展二进制调试符号（减小体积，避免NE内存限制）..."
+          echo "验证 VPN 扩展二进制大小（动态框架方案）..."
           VPN_EXTENSION_PATH="Payload/${{ env.PROJECT_NAME }}.app/PlugIns/VPNPacketTunnel.appex"
           if [ -f "${VPN_EXTENSION_PATH}/VPNPacketTunnel" ]; then
-            echo "剥离前大小: $(du -h ${VPN_EXTENSION_PATH}/VPNPacketTunnel | cut -f1)"
-            # 剥离所有符号（包括调试符号和局部符号）
-            strip -rST "${VPN_EXTENSION_PATH}/VPNPacketTunnel" 2>/dev/null || \
-              strip -S "${VPN_EXTENSION_PATH}/VPNPacketTunnel" 2>/dev/null || \
-              echo "::warning::strip命令执行失败，跳过符号剥离"
-            echo "剥离后大小: $(du -h ${VPN_EXTENSION_PATH}/VPNPacketTunnel | cut -f1)"
+            EXT_SIZE=$(stat -f%z "${VPN_EXTENSION_PATH}/VPNPacketTunnel" 2>/dev/null || du -b "${VPN_EXTENSION_PATH}/VPNPacketTunnel" | cut -f1)
+            echo "扩展二进制大小: ${EXT_SIZE} 字节 ($(du -h ${VPN_EXTENSION_PATH}/VPNPacketTunnel | cut -f1))"
+            # 检查 XrayKit 动态框架是否被正确嵌入
+            if [ -d "${VPN_EXTENSION_PATH}/Frameworks/XrayKit.framework" ]; then
+              echo "✅ XrayKit 动态框架已正确嵌入到扩展中"
+              ls -lh "${VPN_EXTENSION_PATH}/Frameworks/XrayKit.framework/"
+            else
+              echo "::warning::XrayKit 动态框架未找到，VPN 功能可能无法正常工作"
+              ls -la "${VPN_EXTENSION_PATH}/Frameworks/" 2>/dev/null || echo "扩展 Frameworks 目录不存在"
+            fi
           else
-            echo "ℹ️ 未找到VPN扩展二进制文件，跳过符号剥离"
+            echo "ℹ️ 未找到VPN扩展二进制文件"
           fi
 
           # ======================================================================

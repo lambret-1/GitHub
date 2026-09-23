@@ -1,10 +1,16 @@
-# VPNPacketTunnel（VPN 网络扩展 - Xray-core 集成版）
+# VPNPacketTunnel（VPN 网络扩展 - Xray-core 动态框架版）
 
 ## 模块概述
 
 本目录是 iOS NetworkExtension 的 PacketTunnelProvider 扩展 Target，负责在系统层面拦截和处理网络数据包。
 
-**核心架构**：集成 Xray-core（Go 语言编译的静态库），由 Xray 核心直接读写 TUN 设备，处理所有网络协议（TCP/UDP/VLESS/VMess/Trojan/Shadowsocks 等）。
+**核心架构**：采用动态框架方案，将 Xray-core（Go 语言编译的静态库）封装为 `XrayKit.framework` 动态框架，扩展只包含 Swift 代码（二进制 < 1MB），运行时动态加载 Xray 核心。
+
+**为什么用动态框架？**
+- Xray 静态库约 64MB，直接链接到扩展会导致扩展二进制达 54MB
+- NetworkExtension 内存限制约 50MB，超限时系统在 dyld 加载阶段直接杀死扩展进程
+- 动态框架方案：扩展二进制仅 127KB（参考官方 sing-box），Go 运行时在框架中动态加载
+- 参考实现：官方 sing-box-for-apple（Extension.appex 二进制 127KB，Library.framework 91MB）
 
 ## 目录结构
 
@@ -12,14 +18,17 @@
 VPNPacketTunnel/
 ├── Info.plist                          # 扩展配置文件
 ├── VPNPacketTunnel.entitlements        # 扩展权限配置
-├── VPNPacketTunnel-Bridging-Header.h   # 桥接头文件（导入 Xray C API）
-├── PacketTunnelProvider.swift          # 数据包隧道提供者（核心类）
-├── Xray.xcframework/                   # Xray 核心框架（Go 静态库）
+├── PacketTunnelProvider.swift          # 数据包隧道提供者（核心类，导入 XrayKit）
+├── SignalHandler.c                     # C 级信号处理器（崩溃日志捕获）
+├── Xray.xcframework/                   # Xray 核心框架（Go 静态库，不纳入版本控制）
 │   ├── ios-arm64/                      # 真机版本
 │   │   ├── libxray.a                   # 静态库（约64MB）
 │   │   └── Headers/libxray.h           # C API 头文件
 │   ├── ios-arm64-simulator/            # 模拟器版本
 │   └── Info.plist                      # 框架配置
+├── XrayKit/                            # Xray 动态框架 Target 源码
+│   ├── XrayKit-Bridging-Header.h       # 桥接头文件（导入 Xray C API）
+│   └── XrayCore.swift                  # Xray C API 的 Swift 封装（公开类）
 └── README.md                           # 本说明文档
 ```
 
@@ -29,32 +38,31 @@ VPNPacketTunnel/
 |--------|------|----------|
 | `Info.plist` | 扩展配置 | 声明扩展类型为 `com.apple.networkextension.packet-tunnel`，指定主类为 `PacketTunnelProvider` |
 | `VPNPacketTunnel.entitlements` | 权限配置 | 声明 NetworkExtension 权限（packet-tunnel-provider）和 App Group 权限 |
-| `VPNPacketTunnel-Bridging-Header.h` | 桥接头文件 | 导入 `libxray.h`，使 Swift 能够调用 Xray C API |
-| `PacketTunnelProvider.swift` | 核心类 | 继承 `NEPacketTunnelProvider`，管理 VPN 隧道生命周期，获取 TUN fd，启动 Xray 核心 |
-| `Xray.xcframework` | Xray 核心 | Go 语言编译的静态库，提供 VLESS/VMess/Trojan/Shadowsocks 等协议支持 |
+| `PacketTunnelProvider.swift` | 核心类 | 继承 `NEPacketTunnelProvider`，管理 VPN 隧道生命周期，通过 `XrayKit` 动态框架启动 Xray 核心 |
+| `SignalHandler.c` | 崩溃捕获 | C 级信号处理器，使用 `__attribute__((constructor))` 在库加载时注册信号，崩溃日志写入 /tmp |
+| `Xray.xcframework` | Xray 核心 | Go 语言编译的静态库，提供 VLESS/VMess/Trojan/Shadowsocks 等协议支持（CI 构建时自动下载） |
+| `XrayKit/XrayKit-Bridging-Header.h` | 桥接头文件 | 导入 `libxray.h`，使 Swift 能够调用 Xray C API（属于动态框架 Target） |
+| `XrayKit/XrayCore.swift` | Swift 封装 | 将 Xray C API 封装为 `XrayCore` 公开类，供扩展调用 |
 
-## Xray 核心 API
+## XrayKit 动态框架 API
 
-```c
+```swift
+import XrayKit
+
 // 启动 Xray 核心
-// configStr: Xray JSON 配置字符串
+// configJSON: Xray JSON 配置字符串
 // tunFd: TUN 设备文件描述符
 // 返回: 0 表示成功，非 0 表示失败
-int StartXray(char* configStr, int tunFd);
+let result = XrayCore.shared.start(configJSON: config, tunFd: tunFd)
 
 // 停止 Xray 核心
-int StopXray(void);
+let result = XrayCore.shared.stop()
 
 // 获取 Xray 版本
-char* GetVersion(void);
-
-// 释放 Go 分配的字符串（必须调用，防止内存泄漏）
-void FreeString(char* s);
+let version = XrayCore.shared.getVersion()
 
 // 查询出站流量统计
-// outboundTag: 出站标签（如 "proxy"）
-// 返回: JSON 格式的统计数据
-char* QueryStats(char* outboundTag);
+let stats = XrayCore.shared.queryStats(tag: "proxy")
 ```
 
 ## PacketTunnelProvider 核心方法
@@ -69,7 +77,7 @@ char* QueryStats(char* outboundTag);
 3. 配置 IPv4/IPv6 地址、路由规则、DNS 服务器
 4. 调用 `setTunnelNetworkSettings` 应用配置
 5. 获取 TUN 设备文件描述符（扫描所有 fd 找最高编号 utun）
-6. 调用 `StartXray(configJSON, tunFd)` 启动 Xray 核心
+6. 调用 `XrayCore.shared.start(configJSON:tunFd:)` 启动 Xray 核心（通过动态框架）
 7. 调用 completionHandler(nil) 表示启动成功
 
 ### 2. stopTunnel(with:completionHandler:)
@@ -77,7 +85,7 @@ char* QueryStats(char* outboundTag);
 **用途**：停止 VPN 隧道，系统在用户点击断开或 VPN 异常时调用
 
 **执行流程**：
-1. 调用 `StopXray()` 停止 Xray 核心
+1. 调用 `XrayCore.shared.stop()` 停止 Xray 核心（通过动态框架）
 2. 调用 completionHandler() 表示停止完成
 
 ### 3. handleAppMessage(_:completionHandler:)
@@ -86,8 +94,8 @@ char* QueryStats(char* outboundTag);
 
 **支持的消息**：
 - `"getStatus"`: 返回 VPN 运行状态（running/stopped）
-- `"getVersion"`: 返回 Xray 核心版本
-- `"getStats"`: 返回流量统计（JSON 格式）
+- `"getVersion"`: 返回 Xray 核心版本（通过 XrayKit）
+- `"getStats"`: 返回流量统计（JSON 格式，通过 XrayKit）
 
 ### 4. getTunnelFileDescriptor()
 
@@ -155,6 +163,8 @@ char* QueryStats(char* outboundTag);
 - WebSocket（支持 Host 头和 Path）
 - gRPC
 - HTTP/2
+- mKCP
+- QUIC
 
 **支持的安全层**：
 - TLS（支持 serverName、fingerprint）
@@ -164,40 +174,65 @@ char* QueryStats(char* outboundTag);
 
 ### XcodeGen 配置
 
-在 `project.yml` 中，VPNPacketTunnel target 需要配置：
+在 `project.yml` 中，有两个相关 Target：
 
+**XrayKit（动态框架 Target）：**
 ```yaml
-settings:
-  base:
-    # 桥接头文件
-    SWIFT_OBJC_BRIDGING_HEADER: VPNPacketTunnel/VPNPacketTunnel-Bridging-Header.h
-    # 头文件搜索路径
-    HEADER_SEARCH_PATHS: "$(SRCROOT)/VPNPacketTunnel/Xray.xcframework/ios-arm64/Headers"
-    # 链接 resolv 库（Go 静态库 DNS 解析需要）
-    OTHER_LDFLAGS: "-lresolv"
-    # 禁用 bitcode（Go 静态库不支持）
-    ENABLE_BITCODE: NO
-    # 不剥离调试符号（Go 静态库需要）
-    STRIP_INSTALLED_PRODUCT: NO
-    # 不执行 dead code stripping（Go 运行时需要）
-    DEAD_CODE_STRIPPING: NO
-dependencies:
-  - framework: VPNPacketTunnel/Xray.xcframework
-    embed: false
+XrayKit:
+  type: framework
+  settings:
+    base:
+      # 桥接头文件（属于动态框架）
+      SWIFT_OBJC_BRIDGING_HEADER: VPNPacketTunnel/XrayKit/XrayKit-Bridging-Header.h
+      # 头文件搜索路径
+      HEADER_SEARCH_PATHS: "$(SRCROOT)/VPNPacketTunnel/Xray.xcframework/ios-arm64/Headers"
+      # 链接 resolv 库（Go 静态库 DNS 解析需要）
+      OTHER_LDFLAGS: "-lresolv"
+      # 动态框架不剥离符号（运行时需要）
+      STRIP_INSTALLED_PRODUCT: NO
+      DEAD_CODE_STRIPPING: NO
+  dependencies:
+    - framework: VPNPacketTunnel/Xray.xcframework
+      embed: false  # 静态库链接到动态框架中，不嵌入
+```
+
+**VPNPacketTunnel（扩展 Target）：**
+```yaml
+VPNPacketTunnel:
+  type: app-extension
+  settings:
+    base:
+      # 扩展二进制很小，不需要特殊链接参数
+      # 运行路径搜索：让扩展能找到嵌入的动态框架
+      LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
+  dependencies:
+    - target: XrayKit
+      embed: true  # 动态框架嵌入到扩展的 Frameworks 目录
 ```
 
 ### CI 构建
 
-- Xray.xcframework 已包含在仓库中，无需额外下载
-- 构建时会自动链接静态库
-- 导出 IPA 时需要确保扩展被正确嵌入到 .app 包的 PlugIns 目录
+- Xray.xcframework 不纳入版本控制（.gitignore），CI 构建时通过 `scripts/download_xray_framework.sh` 自动下载
+- 构建时 XcodeGen 会自动生成 XrayKit 动态框架 Target 和 VPNPacketTunnel 扩展 Target
+- 导出 IPA 时需要确保：
+  1. 扩展被正确嵌入到 .app 包的 PlugIns 目录
+  2. XrayKit.framework 被正确嵌入到扩展的 Frameworks 目录
+  3. ldid 注入 entitlements 到主应用和扩展二进制
 
-## 内存限制
+## 内存限制解决方案
 
-NetworkExtension 扩展有内存限制（约 50MB），Xray 核心运行时需要注意：
-- 日志级别设置为 warning，减少内存占用
-- 不开启不必要的功能（如统计、API 等）
-- 及时释放不再使用的资源
+**问题**：NetworkExtension 扩展有内存限制（约 50MB），Xray 静态库直接链接会导致扩展二进制 54MB，系统在 dyld 加载阶段直接杀死进程。
+
+**解决方案**：动态框架架构
+1. 将 Xray 静态库链接到 `XrayKit.framework` 动态框架中
+2. 扩展只链接动态框架，二进制体积 < 1MB
+3. 运行时系统动态加载 XrayKit.framework，Go 运行时在框架中初始化
+4. 参考官方 sing-box-for-apple：扩展二进制 127KB，动态框架 91MB
+
+**验证方法**：
+- 构建后检查扩展二进制大小：应 < 1MB
+- 检查扩展包内 Frameworks 目录：应包含 XrayKit.framework
+- VPN 连接时扩展应能正常启动，不会立即断开
 
 ## TrollStore 安装注意事项
 
@@ -205,8 +240,16 @@ NetworkExtension 需要完整 entitlements：
 - 必须通过 TrollStore 安装才能正常使用
 - 普通重签名（如全能签）可能导致 entitlements 失效
 - CI 流水线已添加 ldid 注入 entitlements 步骤，确保 IPA 包含完整权限
+- 动态框架也需要正确签名，ldid 会自动处理
 
 ## 故障排查
+
+### VPN 连接后立即断开（扩展启动失败）
+
+1. **检查扩展二进制大小**：应 < 1MB，如果 > 50MB 说明动态框架方案未生效
+2. **检查 XrayKit.framework 是否嵌入**：扩展包内 Frameworks 目录应包含 XrayKit.framework
+3. **检查 entitlements**：使用 `ldid -e` 查看扩展二进制是否包含 packet-tunnel-provider 权限
+4. **查看扩展日志**：主 APP 调试日志中会自动读取扩展日志（App Group 共享）
 
 ### VPN 连接成功但节点不通
 
@@ -225,4 +268,5 @@ NetworkExtension 需要完整 entitlements：
 
 1. 检查 Xray JSON 配置格式是否正确
 2. 检查配置中的协议、传输方式、安全层是否匹配
-3. 查看错误码（StartXray 返回值），对照 Xray 文档排查
+3. 查看错误码（XrayCore.start 返回值），对照 Xray 文档排查
+4. 检查 XrayKit.framework 是否被正确加载（动态框架路径问题）
