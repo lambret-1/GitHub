@@ -95,6 +95,12 @@ targets:
         BUILD_LIBRARY_FOR_DISTRIBUTION: NO
         # 禁用模块验证器
         ENABLE_MODULE_VERIFIER: NO
+        # 禁用 Swift 库进化（会导致生成模块接口）
+        SWIFT_ENABLE_LIBRARY_EVOLUTION: NO
+        # 不生成 Swift 模块接口文件
+        SWIFT_EMIT_MODULE_INTERFACE: NO
+        # 不生成私有模块接口
+        SWIFT_EMIT_PRIVATE_MODULE_INTERFACE: NO
     dependencies:
       # 链接 Xray 核心框架
       - framework: VPNPacketTunnel/Xray.xcframework
