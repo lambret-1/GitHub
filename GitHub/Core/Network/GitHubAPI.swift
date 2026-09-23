@@ -655,6 +655,23 @@ class GitHubAPI {
         }
     }
 
+    /// 获取仓库标签列表
+    func getTags(owner: String, repo: String, completion: @escaping (Result<[GitTag], Error>) -> Void) {
+        performRequest(url: APIEndpoints.repoTags(owner: owner, repo: repo).url) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let tags = try JSONDecoder().decode([GitTag].self, from: data)
+                    completion(.success(tags))
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     /// 创建新分支（基于指定分支）
     func createBranch(owner: String, repo: String, newBranchName: String, fromBranch: String, completion: @escaping (Result<Bool, Error>) -> Void) {
         // 先获取源分支的最新commit SHA

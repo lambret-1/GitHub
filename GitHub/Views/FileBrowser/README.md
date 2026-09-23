@@ -9,7 +9,8 @@
 |--------|----------|
 | `FileBrowserView.swift` | 文件浏览器主视图，展示仓库文件列表，支持文件浏览、上传、下载、编辑、删除、分支切换、提交记录、Actions、星标/Fork等功能 |
 | `RepoHeaderView.swift` | 仓库头部组件，复刻GitHub网页仓库页顶部布局，展示仓库信息、Watch/Fork/Star按钮（带动画效果）、描述、Topics、元信息等 |
-| `BranchBarView.swift` | 分支栏组件，展示当前分支、分支切换、创建分支、重命名分支、删除分支等功能 |
+| `BranchBarView.swift` | 分支栏组件，展示当前分支、分支切换、创建分支、重命名分支、删除分支、标签切换等功能 |
+| `TagListView.swift` | 标签列表选择页，展示仓库所有Git标签，支持搜索、选中切换到该标签版本、空态/错误态/加载态 |
 | `CreateFileView.swift` | 新建文件视图，支持输入文件名、创建文件、创建成功后自动跳转到编辑状态 |
 | `CreateFolderView.swift` | 创建文件夹视图，支持输入文件夹名、创建文件夹 |
 | `DocumentPickerView.swift` | 文件选择器视图，基于UIDocumentPickerViewController封装，支持多选或单选文件、统一确认上传 |
@@ -74,16 +75,33 @@
 
 ### BranchBarView 分支栏
 - `branches: Binding<[Branch]>` - 分支列表绑定
-- `selectedBranch: Binding<String>` - 当前选中分支绑定
+- `selectedBranch: Binding<String>` - 当前选中分支绑定（选中标签时也存标签名）
 - `onBranchChange: (String) -> Void` - 分支切换回调
 - `owner: String` - 仓库所有者
 - `repo: String` - 仓库名称
 - `onBranchesChanged: () -> Void` - 分支列表变化回调
+- `tags: [GitTag]` - 标签列表（用于判断当前是否标签视图）
+- `onTagSelected: (String) -> Void` - 标签选中回调
 - `menuContent: () -> MenuContent` - 代码操作菜单内容（泛型）
+- 布局：左侧分支选择按钮 + 标签选择按钮，右侧代码操作下拉按钮
+- 标签视图时标签按钮蓝色高亮，显示当前标签名
 - 代码操作按钮（修复P0）：
   - 文字为「代码操作」，箭头在右侧
   - 绿色背景，对齐GitHub官方品牌色
   - 点击弹出下拉菜单，包含：复制HTTPS链接、复制SSH链接、提交记录、Actions、下载仓库ZIP、在GitHub打开
+
+### TagListView 标签列表选择页
+- `owner: String` - 仓库所有者
+- `repo: String` - 仓库名称
+- `当前选中Ref: Binding<String>` - 当前选中的ref（分支名或标签名）
+- `onTagSelected: (String) -> Void` - 标签选中回调
+- 独立全屏页（fullScreenCover），自带NavigationView，左上角返回按钮
+- 顶部搜索框，实时过滤标签名
+- 列表每行：标签图标 + 标签名 + commit短码（7位）+ 选中标记
+- 空态："该仓库暂无标签"
+- 加载态：ProgressView
+- 错误态：错误信息 + 重试按钮
+- 选中标签后自动关闭页面并回调
 
 ### CreateFileView 新建文件
 - 内部状态：`newFileName: String` - 新文件名
@@ -116,6 +134,7 @@
 2. **文件浏览**：点击文件打开（代码编辑器或HTML预览），点击文件夹进入文件夹
 3. **路径导航**：面包屑路径导航，支持点击返回上级目录
 4. **分支管理**：切换分支、创建分支、重命名分支、删除分支
+5. **标签管理**：查看仓库所有Git标签，支持搜索筛选，选中标签后切换文件浏览到该标签版本；标签视图下所有写操作（新建/编辑/删除/上传/重命名）自动置灰只读，提示"标签为只读快照"
 5. **文件上传**：支持多选或单选文件上传，统一确认上传
 6. **文件下载**：支持下载单个文件、下载仓库ZIP
 7. **文件编辑**：支持代码编辑、语法高亮、行号显示、保存提交
@@ -144,6 +163,7 @@
 - `GitHub/Models/Repository.swift` - 仓库数据模型
 - `GitHub/Models/FileItem.swift` - 文件项数据模型
 - `GitHub/Models/Branch.swift` - 分支数据模型（在Workflow.swift中）
+- `GitHub/Models/GitTag.swift` - Git标签数据模型
 - `GitHub/Core/Network/GitHubAPI.swift` - GitHub API网络请求
 - `GitHub/Core/Utils/AppState.swift` - 应用全局状态
 - `GitHub/Core/Utils/FileDownloadManager.swift` - 文件下载管理

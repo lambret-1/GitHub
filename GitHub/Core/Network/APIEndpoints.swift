@@ -16,6 +16,7 @@ enum APIEndpoints {
     case createBranch(owner: String, repo: String) // 创建分支
     case renameBranch(owner: String, repo: String, branch: String) // 重命名分支
     case deleteBranch(owner: String, repo: String, branch: String) // 删除分支
+    case repoTags(owner: String, repo: String) // 获取标签列表
     case commits(owner: String, repo: String, path: String?, branch: String?, perPage: Int?)
     case searchRepos(query: String, page: Int)
     case searchUsers(query: String, page: Int)
@@ -115,6 +116,8 @@ enum APIEndpoints {
         case .deleteBranch(let owner, let repo, let branch):
             let encodedBranch = branch.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? branch
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/git/refs/heads/\(encodedBranch)"
+        case .repoTags(let owner, let repo):
+            return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/tags?per_page=100"
         case .commits(let owner, let repo, let path, let branch, let perPage):
             let page = perPage ?? 30
             var url = "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/commits?per_page=\(page)"

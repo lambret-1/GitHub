@@ -66,6 +66,7 @@ struct FileBrowserView: View {
     @State var errorMessage: String?
     @State var branches: [Branch] = []
     @State var selectedBranch: String = ""
+    @State var tags: [GitTag] = []
     @State var showBranchPicker: Bool = false
     @State var showCommits: Bool = false
     @State var showActions: Bool = false
@@ -309,6 +310,7 @@ struct FileBrowserView: View {
                 selectedBranch = repository.defaultBranch ?? "main"
             }
             loadBranches()
+            loadTags()
             loadFiles() // loadFiles内部会自动加载最新提交信息和README（所有文件夹都显示）
             // 检查星标状态（仅别人的仓库，自己仓库不需要检查）
             if !isOwnRepository {
@@ -561,6 +563,10 @@ struct FileBrowserView: View {
             repo: repository.name,
             onBranchesChanged: {
                 loadBranches()
+            },
+            tags: tags,
+            onTagSelected: { _ in
+                loadFiles()
             }
         ) {
             moreMenuContent
@@ -665,6 +671,10 @@ struct FileBrowserView: View {
             repo: repository.name,
             onBranchesChanged: {
                 loadBranches()
+            },
+            tags: tags,
+            onTagSelected: { _ in
+                loadFiles()
             }
         ) {
             moreMenuContent
@@ -1145,7 +1155,7 @@ struct FileBrowserView: View {
             }) {
                 Label("上传文件", systemImage: "square.and.arrow.up")
             }
-            .disabled(isUploading || isDownloading || isDeleteMode)
+            .disabled(isUploading || isDownloading || isDeleteMode || 当前是标签视图)
 
             Button(action: {
                 showCreateFileDialog = true
@@ -1153,7 +1163,7 @@ struct FileBrowserView: View {
             }) {
                 Label("新建文件", systemImage: "doc.badge.plus")
             }
-            .disabled(isCreatingFile || isDeleteMode)
+            .disabled(isCreatingFile || isDeleteMode || 当前是标签视图)
 
             Button(action: {
                 showCreateFolderDialog = true
@@ -1161,7 +1171,7 @@ struct FileBrowserView: View {
             }) {
                 Label("创建文件夹", systemImage: "folder.badge.plus")
             }
-            .disabled(isCreatingFolder || isDeleteMode)
+            .disabled(isCreatingFolder || isDeleteMode || 当前是标签视图)
 
             Divider()
 
@@ -1171,8 +1181,16 @@ struct FileBrowserView: View {
             }) {
                 Label(isDeleteMode ? "取消删除" : "删除文件", systemImage: isDeleteMode ? "xmark.circle" : "trash")
             }
+            .disabled(当前是标签视图)
 
             Divider()
+
+            // 标签视图只读提示
+            if 当前是标签视图 {
+                Label("标签为只读快照", systemImage: "lock.fill")
+                    .foregroundColor(.orange)
+                Divider()
+            }
         } else {
             // 别人的仓库：显示仓库交互相关功能
             Button(action: {
@@ -2239,7 +2257,26 @@ struct FileBrowserView: View {
             }
         }
     }
-    
+
+    /// 加载仓库标签列表
+    func loadTags() {
+        GitHubAPI.shared.getTags(owner: repository.ownerName, repo: repository.name) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let apiTags):
+                    self.tags = apiTags
+                case .failure:
+                    self.tags = []
+                }
+            }
+        }
+    }
+
+    /// 当前是否处于标签视图（selectedBranch 匹配某个标签名）
+    var 当前是标签视图: Bool {
+        tags.contains { $0.name == selectedBranch }
+    }
+
     func navigateToDirectory(_ path: String) {
         pathStack.append(currentPath)
         currentPath = path
@@ -2318,6 +2355,7 @@ struct FileBrowserView: View {
             }) {
                 Label("重命名文件夹", systemImage: "pencil.line")
             }
+            .disabled(当前是标签视图)
 
             // 在 GitHub 打开
             Button(action: {
@@ -2337,6 +2375,7 @@ struct FileBrowserView: View {
                 Label("删除文件夹", systemImage: "trash")
             }
             .foregroundColor(.red)
+            .disabled(当前是标签视图)
         } else {
             // 文件菜单
             // 编辑文件选项
@@ -2347,6 +2386,7 @@ struct FileBrowserView: View {
             }) {
                 Label("编辑文件", systemImage: "pencil")
             }
+            .disabled(当前是标签视图)
 
             // 重命名选项
             Button(action: {
@@ -2356,6 +2396,7 @@ struct FileBrowserView: View {
             }) {
                 Label("重命名", systemImage: "pencil.line")
             }
+            .disabled(当前是标签视图)
 
             // HTML文件显示网页预览选项
             if file.name.lowercased().hasSuffix(".html") || file.name.lowercased().hasSuffix(".htm") {
@@ -2398,6 +2439,7 @@ struct FileBrowserView: View {
                 Label("删除", systemImage: "trash")
             }
             .foregroundColor(.red)
+            .disabled(当前是标签视图)
         }
     }
 
