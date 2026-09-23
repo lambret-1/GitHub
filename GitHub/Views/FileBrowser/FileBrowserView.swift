@@ -636,6 +636,10 @@ struct FileBrowserView: View {
                 }
             }
         }
+        // 下拉刷新：并行刷新文件列表、分支、标签、星标状态
+        .refreshable {
+            await 下拉刷新全部数据()
+        }
         // 监听搜索框内容变化，内容为空时清除搜索结果
         .onChange(of: codeSearchQuery) { newValue in
             if newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -653,7 +657,7 @@ struct FileBrowserView: View {
             codeTabContent
         }
         // 移除固定高度，让内容自适应外层ScrollView
-        // 取消下拉刷新，避免与外层ScrollView滚动冲突
+        // 下拉刷新已在外层ScrollView上统一实现（.refreshable）
     }
 
     // MARK: - 代码Tab内容
@@ -1007,6 +1011,47 @@ struct FileBrowserView: View {
                 // 最小延迟确保刷新动画流畅
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     continuation.resume()
+                }
+            }
+        }
+    }
+
+    /// 下拉刷新：并行刷新全部数据（文件列表、分支、标签、星标状态）
+    func 下拉刷新全部数据() async {
+        // 并行刷新多个数据源，使用 withTaskGroup 等待全部完成
+        await withTaskGroup(of: Void.self) { 任务组 in
+            // 刷新文件列表（含README、最新提交）
+            任务组.addTask {
+                await self.loadFilesAsync()
+            }
+            // 刷新分支列表
+            任务组.addTask {
+                await withCheckedContinuation { continuation in
+                    self.loadBranches()
+                    // 分支加载是异步的，给一点时间确保完成
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        continuation.resume()
+                    }
+                }
+            }
+            // 刷新标签列表
+            任务组.addTask {
+                await withCheckedContinuation { continuation in
+                    self.loadTags()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        continuation.resume()
+                    }
+                }
+            }
+            // 刷新星标状态（仅别人的仓库）
+            if !isOwnRepository {
+                任务组.addTask {
+                    await withCheckedContinuation { continuation in
+                        self.checkStarredStatus()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            continuation.resume()
+                        }
+                    }
                 }
             }
         }
