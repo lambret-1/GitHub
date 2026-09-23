@@ -88,17 +88,11 @@ struct TagListView: View {
     /// 当前正在下载的标签名
     @State private var 当前下载标签名: String = ""
 
-    /// 是否显示下载结果弹窗
+    /// 是否显示下载结果弹窗（仅用于下载失败提示）
     @State private var 显示下载结果弹窗: Bool = false
 
     /// 下载结果弹窗消息
     @State private var 下载结果消息: String = ""
-
-    /// 下载结果是否成功
-    @State private var 下载成功: Bool = false
-
-    /// 下载完成后的文件URL（用于分享）
-    @State private var 下载完成文件URL: URL?
 
     // MARK: - 过滤后的标签列表
 
@@ -156,13 +150,9 @@ struct TagListView: View {
             }
             .alert(isPresented: $显示下载结果弹窗) {
                 Alert(
-                    title: Text(下载成功 ? "下载完成" : "下载失败"),
+                    title: Text("下载失败"),
                     message: Text(下载结果消息),
-                    dismissButton: .default(Text(下载成功 ? "好的" : "知道了")) {
-                        if 下载成功, let 文件URL = 下载完成文件URL {
-                            打开分享面板(文件URL: 文件URL)
-                        }
-                    }
+                    dismissButton: .default(Text("知道了"))
                 )
             }
         }
@@ -385,7 +375,6 @@ struct TagListView: View {
         下载进度 = 0
         下载消息 = "正在准备下载..."
         当前下载标签名 = 标签名
-        下载完成文件URL = nil
 
         // 使用GitHub官方zipball API
         let 编码标签名 = 标签名.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? 标签名
@@ -426,53 +415,54 @@ struct TagListView: View {
     }
 
     /// 处理下载完成
+    /// 注意：URLSessionDownloadTask的临时文件在delegate回调返回后会被系统自动删除，
+    /// 因此必须在此方法中同步复制文件到自管理的tmp目录，再异步唤起分享面板
     private func 处理下载完成(临时文件URL: URL, 响应: URLResponse?, 标签名: String) {
-        DispatchQueue.main.async {
-            // 检查HTTP状态码
-            if let http响应 = 响应 as? HTTPURLResponse, !(200...299).contains(http响应.statusCode) {
+        // 检查HTTP状态码
+        if let http响应 = 响应 as? HTTPURLResponse, !(200...299).contains(http响应.statusCode) {
+            DispatchQueue.main.async {
                 self.下载失败处理(错误消息: "下载失败：服务器返回错误 \(http响应.statusCode)")
-                return
             }
+            return
+        }
 
-            // 检查临时文件是否存在
-            guard FileManager.default.fileExists(atPath: 临时文件URL.path) else {
+        // 检查临时文件是否存在
+        guard FileManager.default.fileExists(atPath: 临时文件URL.path) else {
+            DispatchQueue.main.async {
                 self.下载失败处理(错误消息: "下载失败：临时文件不存在，请重试")
-                return
             }
+            return
+        }
 
-            // 生成文件名：仓库名-标签名.zip
-            let 文件名 = "\(self.repo)-\(标签名).zip"
+        // 同步复制临时文件到自管理tmp目录（必须在delegate回调返回前完成）
+        let 文件名 = "\(self.repo)-\(标签名).zip"
+        let 目标URL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(文件名)
 
-            // 保存到"下载"文件夹
-            let 下载目录 = FileDownloadManager.shared.downloadDirectoryURL()
-            let 目标URL = 下载目录.appendingPathComponent(文件名)
-
-            do {
-                // 如果目标文件已存在，先删除
-                if FileManager.default.fileExists(atPath: 目标URL.path) {
-                    try FileManager.default.removeItem(at: 目标URL)
-                }
-
-                // 移动文件到目标位置
-                try FileManager.default.moveItem(at: 临时文件URL, to: 目标URL)
-
-                self.下载中 = false
-                self.下载成功 = true
-                self.下载结果消息 = "已保存到下载文件夹：\(文件名)"
-                self.下载完成文件URL = 目标URL
-                self.显示下载结果弹窗 = true
-            } catch {
-                self.下载失败处理(错误消息: "保存文件失败：\(error.localizedDescription)")
+        do {
+            // 如果目标文件已存在，先删除
+            if FileManager.default.fileExists(atPath: 目标URL.path) {
+                try FileManager.default.removeItem(at: 目标URL)
             }
+            // 复制文件（不移动原临时文件，由系统管理其生命周期）
+            try FileManager.default.copyItem(at: 临时文件URL, to: 目标URL)
+        } catch {
+            DispatchQueue.main.async {
+                self.下载失败处理(错误消息: "处理下载文件失败：\(error.localizedDescription)")
+            }
+            return
+        }
+
+        // 在主线程关闭下载浮层并直接唤起系统分享面板（不弹下载完成Alert，用户自行选择）
+        DispatchQueue.main.async {
+            self.下载中 = false
+            self.打开分享面板(文件URL: 目标URL)
         }
     }
 
     /// 下载失败统一处理
     private func 下载失败处理(错误消息: String) {
         下载中 = false
-        下载成功 = false
         下载结果消息 = 错误消息
-        下载完成文件URL = nil
         显示下载结果弹窗 = true
     }
 
@@ -480,7 +470,8 @@ struct TagListView: View {
     private func 打开分享面板(文件URL: URL) {
         let 活动控制器 = UIActivityViewController(activityItems: [文件URL], applicationActivities: nil)
         活动控制器.completionWithItemsHandler = { _, _, _, _ in
-            // 分享完成后不删除文件，保存在下载文件夹中
+            // 分享面板关闭后删除自管理的临时文件，释放磁盘空间
+            try? FileManager.default.removeItem(at: 文件URL)
         }
 
         // 找到当前窗口的根视图控制器
