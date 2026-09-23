@@ -67,8 +67,34 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     /// 系统在实例化 PacketTunnelProvider 时调用
     override init() {
         super.init()
+
+        // 读取 C 信号处理器记录的崩溃日志（如果有）
+        if let crashLog = Self.readCrashLog() {
+            logToAppGroup(crashLog)
+            Self.clearCrashLog()
+        }
+
         logToAppGroup("=== PacketTunnelProvider init 被调用 ===")
         logger.info("PacketTunnelProvider 初始化完成")
+    }
+
+    /// 读取 C 信号处理器记录的崩溃日志
+    /// - Returns: 崩溃日志内容，没有则返回 nil
+    private static func readCrashLog() -> String? {
+        let crashLogPath = "/tmp/vpn_extension_crash.log"
+        guard FileManager.default.fileExists(atPath: crashLogPath),
+              let data = FileManager.default.contents(atPath: crashLogPath),
+              let content = String(data: data, encoding: .utf8),
+              !content.isEmpty else {
+            return nil
+        }
+        return content
+    }
+
+    /// 清除崩溃日志文件
+    private static func clearCrashLog() {
+        let crashLogPath = "/tmp/vpn_extension_crash.log"
+        try? FileManager.default.removeItem(atPath: crashLogPath)
     }
 
     // MARK: - startTunnel（启动 VPN 隧道）
