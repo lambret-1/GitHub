@@ -72,14 +72,19 @@ targets:
       - path: VPNPacketTunnel/XrayKit
         excludes:
           - "**/README.md"
+        # 将 libxray.h 设置为公开头文件，导出到框架的 Headers 目录
+        # 这样其他 Target 导入 XrayKit 时也能找到 libxray.h
+        headers:
+          public:
+            - libxray.h
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.github.client.xraykit
         PRODUCT_NAME: XrayKit
         # 桥接头文件配置：导入 Xray 核心 C API
         SWIFT_OBJC_BRIDGING_HEADER: VPNPacketTunnel/XrayKit/XrayKit-Bridging-Header.h
-        # 头文件搜索路径：让编译器能找到 libxray.h
-        HEADER_SEARCH_PATHS: "$(SRCROOT)/VPNPacketTunnel/Xray.xcframework/ios-arm64/Headers"
+        # 头文件搜索路径：让编译器能找到 libxray.h（在 XrayKit 目录和 Xray.xcframework 中）
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/VPNPacketTunnel/XrayKit $(SRCROOT)/VPNPacketTunnel/Xray.xcframework/ios-arm64/Headers"
         # Go 静态库需要链接 resolv 库（DNS 解析）
         OTHER_LDFLAGS: "-lresolv"
         # 禁用 bitcode（Go 静态库不支持）
