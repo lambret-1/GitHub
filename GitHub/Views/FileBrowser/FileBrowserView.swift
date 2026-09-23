@@ -1016,51 +1016,18 @@ struct FileBrowserView: View {
         }
     }
 
-    /// 下拉刷新：并行刷新全部数据（文件列表、分支、标签、星标状态）
+    /// 下拉刷新：刷新全部数据（文件列表、分支、标签、星标状态）
+    /// 注意：本函数在 @MainActor 上下文中执行（SwiftUI View 方法默认隔离），
+    /// 禁止使用 withTaskGroup.addTask 在后台线程调用 @MainActor 方法，
+    /// 否则 MainActor.assumeIsolated 会触发 SIGTRAP 断言崩溃。
     func 下拉刷新全部数据() async {
-        // 并行刷新多个数据源，使用 withTaskGroup 等待全部完成
-        await withTaskGroup(of: Void.self) { 任务组 in
-            // 刷新文件列表（含README、最新提交）
-            任务组.addTask {
-                await self.loadFilesAsync()
-            }
-            // 刷新分支列表
-            任务组.addTask {
-                await withCheckedContinuation { continuation in
-                    MainActor.assumeIsolated {
-                        self.loadBranches()
-                    }
-                    // 分支加载是异步的，给一点时间确保完成
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        continuation.resume()
-                    }
-                }
-            }
-            // 刷新标签列表
-            任务组.addTask {
-                await withCheckedContinuation { continuation in
-                    MainActor.assumeIsolated {
-                        self.loadTags()
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        continuation.resume()
-                    }
-                }
-            }
-            // 刷新星标状态（仅别人的仓库）
-            let 是否自己仓库 = isOwnRepository
-            if !是否自己仓库 {
-                任务组.addTask {
-                    await withCheckedContinuation { continuation in
-                        MainActor.assumeIsolated {
-                            self.checkStarredStatus()
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            continuation.resume()
-                        }
-                    }
-                }
-            }
+        // 先刷新文件列表（含README、最新提交），等待完成后再结束刷新动画
+        await loadFilesAsync()
+        // 以下方法内部均为异步网络请求，立即返回不阻塞主线程
+        loadBranches()
+        loadTags()
+        if !isOwnRepository {
+            checkStarredStatus()
         }
     }
 
