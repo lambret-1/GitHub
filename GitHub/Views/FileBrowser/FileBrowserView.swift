@@ -1027,7 +1027,9 @@ struct FileBrowserView: View {
             // 刷新分支列表
             任务组.addTask {
                 await withCheckedContinuation { continuation in
-                    self.loadBranches()
+                    MainActor.assumeIsolated {
+                        self.loadBranches()
+                    }
                     // 分支加载是异步的，给一点时间确保完成
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         continuation.resume()
@@ -1037,17 +1039,22 @@ struct FileBrowserView: View {
             // 刷新标签列表
             任务组.addTask {
                 await withCheckedContinuation { continuation in
-                    self.loadTags()
+                    MainActor.assumeIsolated {
+                        self.loadTags()
+                    }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         continuation.resume()
                     }
                 }
             }
             // 刷新星标状态（仅别人的仓库）
-            if !isOwnRepository {
+            let 是否自己仓库 = isOwnRepository
+            if !是否自己仓库 {
                 任务组.addTask {
                     await withCheckedContinuation { continuation in
-                        self.checkStarredStatus()
+                        MainActor.assumeIsolated {
+                            self.checkStarredStatus()
+                        }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             continuation.resume()
                         }
