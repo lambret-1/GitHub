@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-23 00:02:36 UTC
+**生成时间**: 2026-09-23 00:28:56 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -11,7 +11,7 @@
 | 类型 | 数量 | 状态 |
 |------|------|------|
 | 🔴 错误 | **00** 个 | 无错误 |
-| 🟡 警告 | **36** 个 | 建议清理 |
+| 🟡 警告 | **37** 个 | 建议清理 |
 
 ---
 
@@ -20,7 +20,7 @@
 | 警告类型 | 数量 | 占比 |
 |----------|------|------|
 | ⚠️ 弃用API警告 | 00 个 | 0% |
-| 📦 未使用变量警告 | 26 个 | 72% |
+| 📦 未使用变量警告 | 27 个 | 72% |
 | 🔄 类型转换警告 | 00 个 | 0% |
 | 🔍 可空性警告 | 00 个 | 0% |
 | 📝 其他警告 | 10 个 | 27% |
@@ -41,25 +41,26 @@
 | 8 | `FileDownloadManager.swift` | 2 个 | 🟢 低 |
 | 9 | `FileBrowserView.swift` | 2 个 | 🟢 低 |
 | 10 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 11 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 12 | `SubscriptionListView.swift` | 1 个 | 🟢 低 |
-| 13 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
-| 14 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
-| 15 | `ReadmeView.swift` | 1 个 | 🟢 低 |
-| 16 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
-| 17 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
-| 18 | `JobLogView.swift` | 1 个 | 🟢 低 |
-| 19 | `INITokenizer.swift` | 1 个 | 🟢 低 |
-| 20 | `HighlightEngine.swift` | 1 个 | 🟢 低 |
+| 11 | `VLESSClient.swift` | 1 个 | 🟢 低 |
+| 12 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 13 | `SubscriptionListView.swift` | 1 个 | 🟢 低 |
+| 14 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
+| 15 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
+| 16 | `ReadmeView.swift` | 1 个 | 🟢 低 |
+| 17 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
+| 18 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
+| 19 | `JobLogView.swift` | 1 个 | 🟢 低 |
+| 20 | `INITokenizer.swift` | 1 个 | 🟢 低 |
 
 ---
 
 ## 📝 警告详情列表
 
 
-### 📦 未使用变量警告 (26个)
+### 📦 未使用变量警告 (27个)
 
 ```
+/Users/runner/work/GitHub/GitHub/VPNPacketTunnel/VLESSClient.swift:342:13: warning: initialization of immutable value 'opcode' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/AppState.swift:37:44: warning: immutable value 'account' was never used; consider replacing with '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/CodeTextView.swift:459:31: warning: value 'self' was defined but never used; consider replacing with boolean test
 /Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3543:25: warning: initialization of immutable value 'createdName' was never used; consider replacing with assignment to '_' or removing it
@@ -79,14 +80,13 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:436:68: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/PythonTokenizer.swift:81:25: warning: initialization of immutable value 'quote' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/ReadmeView.swift:452:13: warning: initialization of immutable value 'theme' was never used; consider replacing with assignment to '_' or removing it
-/Users/runner/work/GitHub/GitHub/GitHub/Views/Settings/RepositorySettingsView.swift:325:20: warning: value 'size' was defined but never used; consider replacing with boolean test
 ```
 
 ### 📝 其他警告 (10个)
 
 ```
-/Users/runner/work/GitHub/GitHub/VPNPacketTunnel/PacketTunnelProvider.swift:171:35: warning: no calls to throwing functions occur within 'try' expression
-/Users/runner/work/GitHub/GitHub/VPNPacketTunnel/PacketTunnelProvider.swift:180:19: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+/Users/runner/work/GitHub/GitHub/VPNPacketTunnel/PacketTunnelProvider.swift:246:35: warning: no calls to throwing functions occur within 'try' expression
+/Users/runner/work/GitHub/GitHub/VPNPacketTunnel/PacketTunnelProvider.swift:254:19: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: instance will be immediately deallocated because property 'delegate' is 'weak'
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Network/GitHubAPI.swift:1006:13: warning: variable 'body' was never mutated; consider changing to 'let' constant
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:494:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
@@ -94,7 +94,7 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: weak reference will always be nil because the referenced object is deallocated here
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'GitHub' from project 'GitHub')
-warning: The CFBundleVersion of an app extension ('1') must match that of its containing parent app ('1790121478').
+warning: The CFBundleVersion of an app extension ('1') must match that of its containing parent app ('1790123088').
 ```
 
 ---
@@ -110,7 +110,7 @@ warning: The CFBundleVersion of an app extension ('1') must match that of its co
 ### 💡 修复建议
 
 
-#### 2. 未使用变量警告 (26个)
+#### 2. 未使用变量警告 (27个)
 - 删除未使用的变量和函数
 - 检查是否是调试代码遗留
 - 使用Xcode的静态分析工具辅助清理
