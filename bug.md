@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-09-23 15:59:49 UTC
+**生成时间**: 2026-09-23 16:59:15 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -102,7 +102,7 @@ warning: The application supports opening files, but doesn't declare whether it 
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: weak reference will always be nil because the referenced object is deallocated here
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'GitHub' from project 'GitHub')
-warning: The CFBundleVersion of an app extension ('1790153654') must match that of its containing parent app ('1790178906').
+warning: The CFBundleVersion of an app extension ('1790153654') must match that of its containing parent app ('1790182524').
 ```
 
 ---
@@ -113,7 +113,7 @@ warning: The CFBundleVersion of an app extension ('1790153654') must match that 
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 46117 行
+- **代码总行数**: 46108 行
 
 ### 💡 修复建议
 
