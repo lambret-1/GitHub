@@ -362,6 +362,25 @@ jobs:
           fi
 
           # ======================================================================
+          # 关键步骤：剥离 VPN 扩展二进制文件的调试符号
+          # 原因：Xray 静态库(64MB)链接后扩展二进制达54MB
+          #       NetworkExtension 内存限制约50MB，超限时系统直接杀死扩展进程
+          # 解决：使用 strip 剥离调试符号和未使用代码，将体积压缩到限制内
+          # ======================================================================
+          echo "剥离 VPN 扩展二进制调试符号（减小体积，避免NE内存限制）..."
+          VPN_EXTENSION_PATH="Payload/${{ env.PROJECT_NAME }}.app/PlugIns/VPNPacketTunnel.appex"
+          if [ -f "${VPN_EXTENSION_PATH}/VPNPacketTunnel" ]; then
+            echo "剥离前大小: $(du -h ${VPN_EXTENSION_PATH}/VPNPacketTunnel | cut -f1)"
+            # 剥离所有符号（包括调试符号和局部符号）
+            strip -rST "${VPN_EXTENSION_PATH}/VPNPacketTunnel" 2>/dev/null || \
+              strip -S "${VPN_EXTENSION_PATH}/VPNPacketTunnel" 2>/dev/null || \
+              echo "::warning::strip命令执行失败，跳过符号剥离"
+            echo "剥离后大小: $(du -h ${VPN_EXTENSION_PATH}/VPNPacketTunnel | cut -f1)"
+          else
+            echo "ℹ️ 未找到VPN扩展二进制文件，跳过符号剥离"
+          fi
+
+          # ======================================================================
           # 关键步骤：使用 ldid 注入 entitlements 到二进制文件
           # 原因：未签名IPA用TrollStore/全能签重签时，entitlements可能丢失
           #       导致VPN等需要特殊权限的功能出现 permission denied 错误

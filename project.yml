@@ -87,10 +87,13 @@ targets:
         OTHER_LDFLAGS: "-lresolv"
         # 禁用 bitcode（Go 静态库不支持）
         ENABLE_BITCODE: NO
-        # 不剥离调试符号（Go 静态库需要）
-        STRIP_INSTALLED_PRODUCT: NO
-        # 不执行 dead code stripping（Go 运行时需要）
-        DEAD_CODE_STRIPPING: NO
+        # 剥离调试符号（减小二进制体积，NetworkExtension 内存限制约50MB）
+        STRIP_INSTALLED_PRODUCT: YES
+        STRIP_STYLE: all
+        # 执行 dead code stripping（移除未使用代码，减小体积）
+        DEAD_CODE_STRIPPING: YES
+        # 剥离 Swift 反射元数据（减小体积）
+        SWIFT_REFLECTION_METADATA_LEVEL: none
         # 禁用模块接口生成（桥接头文件不支持与模块接口一起使用）
         BUILD_LIBRARY_FOR_DISTRIBUTION: NO
         # 禁用模块验证器
