@@ -942,6 +942,36 @@ final class VPNManager: NSObject {
         let oldStatus = connectionStatus
         connectionStatus = newStatus
         DebugLogger.vpnInfo("VPN状态变化：\(oldStatus.displayText) → \(newStatus.displayText)")
+
+        // 当从连接中变为断开时，读取扩展日志用于排查问题
+        if oldStatus == .connecting && (newStatus == .disconnecting || newStatus == .disconnected) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.loadExtensionLogs()
+            }
+        }
+    }
+
+    /// 读取 VPN 扩展日志并写入调试日志
+    private func loadExtensionLogs() {
+        guard let defaults = UserDefaults(suiteName: appGroupIdentifier),
+              let logs = defaults.string(forKey: "vpn_extension_logs"),
+              !logs.isEmpty else {
+            DebugLogger.vpn("扩展日志为空")
+            return
+        }
+
+        // 逐行读取扩展日志
+        let lines = logs.components(separatedBy: "\n")
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                DebugLogger.vpn(trimmed)
+            }
+        }
+
+        // 读取后清空扩展日志，避免重复
+        defaults.removeObject(forKey: "vpn_extension_logs")
+        defaults.synchronize()
     }
 
     // MARK: - 与 VPN 扩展通信
