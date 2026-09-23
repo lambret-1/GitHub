@@ -270,3 +270,25 @@ NetworkExtension 需要完整 entitlements：
 2. 检查配置中的协议、传输方式、安全层是否匹配
 3. 查看错误码（XrayCore.start 返回值），对照 Xray 文档排查
 4. 检查 XrayKit.framework 是否被正确加载（动态框架路径问题）
+
+---
+
+## 第一期重构说明（v0.1.0 底层基座）
+
+### 重构日期
+2026-09-23
+
+### 本次重构解决的问题
+1. 修复“连接中秒断、扩展日志为空”：废弃 UserDefaults 拼接日志，改为 App Group 文件日志
+   - 日志路径：`<AppGroup容器>/vpn扩展日志/隧道启动日志.log`
+2. 启动链路严格分段校验并输出日志：
+   - 进程 init → 读取配置 → JSON 语法校验 → setTunnelNetworkSettings → 获取 utun fd → StartXray
+3. 任意阶段失败均回调具体错误码，不再静默失败
+4. C 层信号处理器改用 `sigaction` 注册，移除无用宏定义，崩溃记录在 init 阶段自动转存
+5. 扩展 Info.plist 版本号改用 `$(MARKETING_VERSION)` / `$(CURRENT_PROJECT_VERSION)`，与主 App 版本对齐，消除 CFBundleVersion 不一致警告
+6. `project.yml` 中扩展显式关闭 `BUILD_LIBRARY_FOR_DISTRIBUTION`，消除 XrayKit 库演化警告
+
+### 一期验收标准
+- App Group 内必然生成 `vpn扩展日志/隧道启动日志.log`
+- 隧道状态流转：已断开 → 连接中 → 已连接
+- StartXray 返回非 0 时可在日志中直接看到错误码与失败阶段

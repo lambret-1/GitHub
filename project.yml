@@ -125,17 +125,18 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.github.client.vpn
         PRODUCT_NAME: VPNPacketTunnel
+        MARKETING_VERSION: "6.5.4"
+        CURRENT_PROJECT_VERSION: "1790153654"
         INFOPLIST_FILE: VPNPacketTunnel/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: VPNPacketTunnel/VPNPacketTunnel.entitlements
-        # 扩展二进制很小，不需要特殊链接参数
-        # 禁用 bitcode
-        ENABLE_BITCODE: NO
         # 剥离调试符号（减小体积）
         STRIP_INSTALLED_PRODUCT: YES
         STRIP_STYLE: all
         DEAD_CODE_STRIPPING: YES
         SWIFT_REFLECTION_METADATA_LEVEL: none
+        # 扩展与 XrayKit 同仓同构编译，关闭库演化，消除模块演化警告
+        BUILD_LIBRARY_FOR_DISTRIBUTION: NO
         # 运行路径搜索：让扩展能找到嵌入的动态框架
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
     dependencies:

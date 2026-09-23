@@ -160,3 +160,12 @@ vless://uuid@server:port?type=tcp&security=tls&sni=example.com#备注名称
 2. **扩展内存限制**：VPN 扩展运行在独立进程，有内存限制（约 50MB），协议实现需要注意内存优化
 3. **第一期限制**：第一期仅实现基础框架和节点管理，VPN 隧道启动后数据包直接转发（不做代理），后续期将集成 VLESS/VMess 协议实现真正的代理
 4. **TrollStore 安装**：NetworkExtension 需要完整 entitlements，必须通过 TrollStore 安装才能正常使用
+
+---
+
+## 第一期重构配套变更（2026-09-23）
+
+- `VPNManager` 读取扩展日志方式由 UserDefaults 键 `vpn_extension_logs` 改为读取 App Group 文件：
+  `vpn扩展日志/隧道启动日志.log`
+- 隧道从连接中转断开时，延迟 0.5 秒读取并输出完整扩展启动链路日志
+- 修正 `generateXrayConfig` 中 `var config` 未变异警告，改为 `let config`

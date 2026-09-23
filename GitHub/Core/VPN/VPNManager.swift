@@ -684,7 +684,7 @@ final class VPNManager: NSObject {
         // 完整配置
         // 注意：使用 StartXray(config, tunFd) 时，Xray 核心会自动处理 TUN 设备
         // 不需要手动配置 inbound，Xray 会自动创建 tun inbound
-        var config: [String: Any] = [
+        let config: [String: Any] = [
             // 日志配置（仅设置级别，不设置文件路径，避免文件写入失败）
             "log": [
                 "loglevel": "warning"
@@ -943,35 +943,41 @@ final class VPNManager: NSObject {
         connectionStatus = newStatus
         DebugLogger.vpnInfo("VPN状态变化：\(oldStatus.displayText) → \(newStatus.displayText)")
 
-        // 当从连接中变为断开时，读取扩展日志用于排查问题
+        // 当从连接中变为断开时，延迟读取 App Group 文件日志（第一期重构：文件日志替代 UserDefaults 字符串日志）
         if oldStatus == .connecting && (newStatus == .disconnecting || newStatus == .disconnected) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.loadExtensionLogs()
+                self?.读取扩展文件日志()
             }
         }
     }
 
-    /// 读取 VPN 扩展日志并写入调试日志
-    private func loadExtensionLogs() {
-        guard let defaults = UserDefaults(suiteName: appGroupIdentifier),
-              let logs = defaults.string(forKey: "vpn_extension_logs"),
-              !logs.isEmpty else {
-            DebugLogger.vpn("扩展日志为空")
+    /// 读取扩展写入 App Group 的启动链路日志
+    /// 日志位置：<AppGroup容器>/vpn扩展日志/隧道启动日志.log
+    private func 读取扩展文件日志() {
+        guard let 容器目录 = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: appGroupIdentifier
+        ) else {
+            DebugLogger.vpnError("无法访问 App Group 容器，无法读取扩展日志")
             return
         }
 
-        // 逐行读取扩展日志
-        let lines = logs.components(separatedBy: "\n")
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
-                DebugLogger.vpn(trimmed)
-            }
+        let 日志文件 = 容器目录
+            .appendingPathComponent("vpn扩展日志", isDirectory: true)
+            .appendingPathComponent("隧道启动日志.log")
+
+        guard FileManager.default.fileExists(atPath: 日志文件.path),
+              let 日志内容 = try? String(contentsOf: 日志文件, encoding: .utf8),
+              !日志内容.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            DebugLogger.vpn("扩展文件日志为空")
+            return
         }
 
-        // 读取后清空扩展日志，避免重复
-        defaults.removeObject(forKey: "vpn_extension_logs")
-        defaults.synchronize()
+        DebugLogger.vpn("========== 扩展启动日志开始 ==========")
+        日志内容
+            .components(separatedBy: .newlines)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+            .forEach { DebugLogger.vpn($0) }
+        DebugLogger.vpn("========== 扩展启动日志结束 ==========")
     }
 
     // MARK: - 与 VPN 扩展通信
