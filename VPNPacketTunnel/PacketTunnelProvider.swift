@@ -100,6 +100,10 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     private let 回调锁 = NSLock()
     private var 已回调 = false
 
+    /// 流量统计定时器（诊断用，定期输出Xray出站流量统计）
+    private var 统计定时器: Timer?
+    private let 统计输出间隔: TimeInterval = 5.0
+
     // MARK: - 初始化
 
     override init() {
@@ -224,6 +228,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                     self.状态锁.unlock()
 
                     扩展文件日志器.shared.关键记录("✅ Xray 核心启动成功，隧道建立完成")
+                    self.启动统计定时器()
                     self.安全回调(nil, completionHandler: completionHandler)
                 }
             }
@@ -249,12 +254,40 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             扩展文件日志器.shared.关键记录("Xray 未启动，无需停止")
         }
 
+        停止统计定时器()
+
         // 注意：不在此处调用 setTunnelNetworkSettings(nil)
         // 原因：系统在 stopTunnel 完成后会自动清理网络设置，
         //       手动调用会与系统清理流程冲突，导致 NEAgentErrorDomain 错误，
         //       进而可能使系统认为隧道未完全断开，出现"开关关闭不了"的问题。
         扩展文件日志器.shared.关键记录("stopTunnel 处理完成，等待系统自动清理网络设置")
         completionHandler()
+    }
+
+    // MARK: - 流量统计定时器（诊断用）
+
+    private func 启动统计定时器() {
+        停止统计定时器()
+        扩展文件日志器.shared.关键记录("📊 流量统计定时器已启动（每\(统计输出间隔)秒输出一次）")
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.统计定时器 = Timer.scheduledTimer(withTimeInterval: self.统计输出间隔, repeats: true) { [weak self] _ in
+                self?.输出流量统计()
+            }
+        }
+    }
+
+    private func 停止统计定时器() {
+        DispatchQueue.main.async { [weak self] in
+            self?.统计定时器?.invalidate()
+            self?.统计定时器 = nil
+        }
+    }
+
+    private func 输出流量统计() {
+        let proxy统计 = XrayCore.shared.queryStats(tag: "proxy")
+        let direct统计 = XrayCore.shared.queryStats(tag: "direct")
+        扩展文件日志器.shared.记录("📊 流量统计 | proxy: \(proxy统计) | direct: \(direct统计)")
     }
 
     // MARK: - 主 App 消息通道

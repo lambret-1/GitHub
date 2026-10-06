@@ -919,8 +919,20 @@ final class VPNManager: NSObject, ObservableObject {
         let 出站 = 生成出站(节点)
         let 直连: [String: Any] = ["tag": "direct", "protocol": "freedom"]
 
+        // TUN 入站配置：接收来自系统 TUN 接口的 IP 流量
+        // 说明：libxray 核心接收外部传入的 tunFd，内部会将该 fd 绑定到此入站
+        let tun入站: [String: Any] = [
+            "tag": "tun-in",
+            "protocol": "tun",
+            "settings": [
+                "mtu": 1500,
+                "networks": ["tcp", "udp"]
+            ]
+        ]
+
         return [
-            "log": ["loglevel": "warning"],
+            "log": ["loglevel": "debug"],
+            "inbounds": [tun入站],
             "outbounds": [出站, 直连],
             "routing": [
                 "domainStrategy": "IPIfNonMatch",
