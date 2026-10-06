@@ -7,6 +7,7 @@ import Foundation
 import NetworkExtension
 import XrayKit
 import Darwin
+import UIKit
 
 // MARK: - 常量定义
 
