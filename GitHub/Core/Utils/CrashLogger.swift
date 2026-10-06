@@ -29,6 +29,8 @@ final class CrashLogger {
     // MARK: - 私有属性
     /// 崩溃日志存储目录
     private let crashLogDirectory: URL
+    /// App Group 标识（用于读取VPN扩展崩溃日志）
+    private let appGroup标识 = "group.com.github.client"
     /// 最大保留崩溃日志数量
     private let maxCrashLogs = 20
     /// 崩溃日志文件前缀
@@ -305,35 +307,48 @@ final class CrashLogger {
 
     // MARK: - 公开方法（Swift层，用于正常运行时访问）
 
-    /// 获取所有崩溃日志列表（按时间从新到旧排序）
+    /// 获取所有崩溃日志列表（按时间从新到旧排序，包含主App和VPN扩展崩溃日志）
     func getAllCrashLogs() -> [CrashLogFile] {
-        let fileManager = FileManager.default
+        var 所有日志: [CrashLogFile] = []
 
-        // 获取所有崩溃日志文件
-        guard let files = try? fileManager.contentsOfDirectory(
-            at: crashLogDirectory,
+        // 1. 读取主App崩溃日志
+        所有日志.append(contentsOf: 读取目录崩溃日志(目录: crashLogDirectory, 文件前缀: crashLogFilePrefix, 来源: .主App))
+
+        // 2. 读取VPN扩展崩溃日志（App Group共享目录）
+        if let 容器 = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup标识) {
+            let vpn崩溃目录 = 容器.appendingPathComponent("vpn扩展崩溃日志", isDirectory: true)
+            所有日志.append(contentsOf: 读取目录崩溃日志(目录: vpn崩溃目录, 文件前缀: "vpn_crash_", 来源: .VPN扩展))
+        }
+
+        // 按创建时间从新到旧排序
+        return 所有日志.sorted { $0.creationDate > $1.creationDate }
+    }
+
+    /// 读取指定目录下的崩溃日志文件
+    private func 读取目录崩溃日志(目录: URL, 文件前缀: String, 来源: CrashLogSource) -> [CrashLogFile] {
+        let 文件管理器 = FileManager.default
+
+        guard let 文件列表 = try? 文件管理器.contentsOfDirectory(
+            at: 目录,
             includingPropertiesForKeys: [.creationDateKey, .fileSizeKey],
             options: [.skipsHiddenFiles]
         ) else { return [] }
 
-        // 过滤崩溃日志文件并按创建时间排序（从新到旧）
-        let crashLogFiles = files
-            .filter { $0.lastPathComponent.hasPrefix(crashLogFilePrefix) && $0.pathExtension == crashLogFileExtension }
+        return 文件列表
+            .filter { $0.lastPathComponent.hasPrefix(文件前缀) && $0.pathExtension == crashLogFileExtension }
             .compactMap { url -> CrashLogFile? in
-                guard let creationDate = try? url.resourceValues(forKeys: [.creationDateKey]).creationDate,
-                      let fileSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize else {
+                guard let 创建日期 = try? url.resourceValues(forKeys: [.creationDateKey]).creationDate,
+                      let 文件大小 = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize else {
                     return nil
                 }
                 return CrashLogFile(
                     fileName: url.lastPathComponent,
                     fileURL: url,
-                    creationDate: creationDate,
-                    fileSize: fileSize
+                    creationDate: 创建日期,
+                    fileSize: 文件大小,
+                    source: 来源
                 )
             }
-            .sorted { $0.creationDate > $1.creationDate }
-
-        return crashLogFiles
     }
 
     /// 读取崩溃日志内容
@@ -346,7 +361,7 @@ final class CrashLogger {
         try? FileManager.default.removeItem(at: crashLogFile.fileURL)
     }
 
-    /// 删除所有崩溃日志
+    /// 删除所有崩溃日志（包含主App和VPN扩展）
     func deleteAllCrashLogs() {
         let crashLogs = getAllCrashLogs()
         for crashLog in crashLogs {
@@ -366,6 +381,31 @@ final class CrashLogger {
     }
 }
 
+// MARK: - 崩溃日志来源枚举
+/// 崩溃日志来源
+enum CrashLogSource {
+    /// 主App进程
+    case 主App
+    /// VPN扩展进程
+    case VPN扩展
+
+    /// 显示名称
+    var 显示名称: String {
+        switch self {
+        case .主App: return "主App"
+        case .VPN扩展: return "VPN扩展"
+        }
+    }
+
+    /// 对应颜色
+    var 颜色: Color {
+        switch self {
+        case .主App: return .blue
+        case .VPN扩展: return .orange
+        }
+    }
+}
+
 // MARK: - 崩溃日志文件结构体
 /// 崩溃日志文件信息
 struct CrashLogFile: Identifiable {
@@ -379,6 +419,17 @@ struct CrashLogFile: Identifiable {
     let creationDate: Date
     /// 文件大小（字节）
     let fileSize: Int
+    /// 崩溃来源（主App/VPN扩展）
+    let source: CrashLogSource
+
+    /// 便捷初始化（默认主App来源，向后兼容）
+    init(fileName: String, fileURL: URL, creationDate: Date, fileSize: Int, source: CrashLogSource = .主App) {
+        self.fileName = fileName
+        self.fileURL = fileURL
+        self.creationDate = creationDate
+        self.fileSize = fileSize
+        self.source = source
+    }
 
     /// 格式化的创建时间
     var formattedCreationDate: String {

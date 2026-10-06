@@ -120,8 +120,121 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
               let 数据 = try? Data(contentsOf: URL(fileURLWithPath: 崩溃日志路径)),
               let 内容 = String(data: 数据, encoding: .utf8),
               !内容.isEmpty else { return }
+
         扩展文件日志器.shared.关键记录("⚠️ 检测到上一次进程崩溃记录：\n\(内容)")
+
+        // 将崩溃日志写入 App Group 共享目录，供主App崩溃日志列表读取
+        写入崩溃日志到AppGroup(崩溃内容: 内容)
+
         try? FileManager.default.removeItem(atPath: 崩溃日志路径)
+    }
+
+    /// 将VPN扩展崩溃日志写入 App Group 共享目录（主App可读取）
+    private func 写入崩溃日志到AppGroup(崩溃内容: String) {
+        guard let 容器 = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: kAppGroup标识
+        ) else { return }
+
+        // VPN扩展崩溃日志目录
+        let 崩溃目录 = 容器.appendingPathComponent("vpn扩展崩溃日志", isDirectory: true)
+        try? FileManager.default.createDirectory(at: 崩溃目录, withIntermediateDirectories: true)
+
+        // 生成文件名：vpn_crash_YYYYMMDD_HHMMSS.log
+        let 日期Formatter = DateFormatter()
+        日期Formatter.dateFormat = "yyyyMMdd_HHmmss"
+        let 文件名 = "vpn_crash_\(日期Formatter.string(from: Date())).log"
+        let 文件URL = 崩溃目录.appendingPathComponent(文件名)
+
+        // 设备信息
+        let 设备 = UIDevice.current
+        let 设备信息 = """
+        设备型号: \(设备.model)
+        系统版本: \(设备.systemName) \(设备.systemVersion)
+        设备名称: \(设备.name)
+        屏幕尺寸: \(UIScreen.main.bounds.size.width) x \(UIScreen.main.bounds.size.height)
+        屏幕缩放: \(UIScreen.main.scale)
+        """
+
+        // 应用信息
+        let 应用信息 = """
+        应用名称: \(Bundle.main.infoDictionary?["CFBundleDisplayName"] as? String ?? "GitHub VPN")
+        应用版本: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "未知")
+        构建版本: \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "未知")
+        Bundle ID: \(Bundle.main.bundleIdentifier ?? "未知")
+        进程类型: VPN Network Extension
+        """
+
+        // 崩溃时间
+        let 时间Formatter = DateFormatter()
+        时间Formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let 崩溃时间 = 时间Formatter.string(from: Date())
+
+        // 组装崩溃日志（与主App格式一致，标注来源为VPN扩展）
+        let 日志内容 = """
+        ========================================
+        崩溃日志（VPN扩展）
+        ========================================
+        崩溃时间: \(崩溃时间)
+        崩溃类型: Signal
+        崩溃原因: VPN扩展进程异常终止
+        崩溃来源: PacketTunnelProvider (VPN Network Extension)
+
+        ----------------------------------------
+        设备信息
+        ----------------------------------------
+        \(设备信息)
+
+        ----------------------------------------
+        应用信息
+        ----------------------------------------
+        \(应用信息)
+
+        ----------------------------------------
+        C层崩溃信号记录
+        ----------------------------------------
+        \(崩溃内容)
+
+        ----------------------------------------
+        说明
+        ----------------------------------------
+        此日志由VPN扩展进程在崩溃后首次启动时生成，
+        原始信号记录来自SignalHandler.c的/tmp/vpn_extension_crash.log。
+
+        ========================================
+        崩溃日志结束
+        ========================================
+        """
+
+        // 写入文件
+        try? 日志内容.write(to: 文件URL, atomically: true, encoding: .utf8)
+
+        // 只保留最近20条，删除旧的
+        清理旧崩溃日志(目录: 崩溃目录)
+    }
+
+    /// 清理旧的VPN扩展崩溃日志（只保留最近20条）
+    private func 清理旧崩溃日志(目录: URL) {
+        let 文件管理器 = FileManager.default
+        guard let 文件列表 = try? 文件管理器.contentsOfDirectory(
+            at: 目录,
+            includingPropertiesForKeys: [.creationDateKey],
+            options: [.skipsHiddenFiles]
+        ) else { return }
+
+        let 崩溃文件 = 文件列表
+            .filter { $0.lastPathComponent.hasPrefix("vpn_crash_") && $0.pathExtension == "log" }
+            .sorted { (url1, url2) -> Bool in
+                let 日期1 = (try? url1.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
+                let 日期2 = (try? url2.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
+                return 日期1 < 日期2
+            }
+
+        if 崩溃文件.count > 20 {
+            let 待删除 = 崩溃文件.prefix(崩溃文件.count - 20)
+            for 文件URL in 待删除 {
+                try? 文件管理器.removeItem(at: 文件URL)
+            }
+        }
     }
 
     private func 安全回调(_ 错误: Error?, completionHandler: @escaping (Error?) -> Void) {

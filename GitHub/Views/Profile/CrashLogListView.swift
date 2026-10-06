@@ -59,10 +59,21 @@ struct CrashLogListView: View {
                                 .cornerRadius(8)  // 这是圆角半径尺寸，控制图标容器四个角的圆润程度，单位是pt；改大圆角更圆润柔和，改小圆角更方正锐利；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制
 
                             VStack(alignment: .leading, spacing: 4) {
-                                // 崩溃时间
-                                Text(crashLog.formattedCreationDate)
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
+                                // 崩溃时间 + 来源标签
+                                HStack(spacing: 8) {
+                                    Text(crashLog.formattedCreationDate)
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+
+                                    // 崩溃来源标签（主App/VPN扩展）
+                                    Text(crashLog.source.显示名称)
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(crashLog.source.颜色)
+                                        .cornerRadius(4)
+                                }
 
                                 // 文件名和大小
                                 HStack {
