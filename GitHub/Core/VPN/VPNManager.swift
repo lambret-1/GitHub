@@ -10,7 +10,7 @@ import UIKit
 import Combine
 import os.log
 
-// MARK: - VPN 连接状态，
+// MARK: - VPN 连接状态
 
 enum VPNConnectionStatus {
     case invalid
@@ -128,7 +128,6 @@ enum VPN日志级别: String, CaseIterable {
 ///
 /// 注意：本类**没有**加 `@MainActor`。
 /// 所有 `@Published` 属性的写入统一在主线程执行（内部已 `DispatchQueue.main.async` 派发）。
-/// 这样 `VPNMainView`、`VPNSubscriptionManager` 等旧调用方无需改动。
 final class VPNManager: NSObject, ObservableObject {
 
     // MARK: - 单例
@@ -159,7 +158,7 @@ final class VPNManager: NSObject, ObservableObject {
     /// VPN 配置是否已存在于系统
     @Published var VPN配置已存在: Bool = false
 
-    /// 兼容旧 UI：是否需要创建 VPN 配置
+    /// 兼容旧 UI：是否需要创建 VPN 配置文件
     var 需要安装描述文件: Bool { !VPN配置已存在 }
 
     // MARK: - 内部属性
@@ -511,91 +510,95 @@ final class VPNManager: NSObject, ObservableObject {
                 return 协议配置.providerBundleIdentifier == self.扩展BundleID
             }) {
                 self.当前管理器 = 匹配
-                self.记录日志(级别: .信息, 模块: "配置", 内容: "找到匹配的 VPN 配置，复用")
+                self.记录日志(级别: .信息, 模块: "配置 max", 内容: "找到匹配的 VPN 配置，复用")
                 完成(匹配, nil)
                 return
             }
 
-            if let 第一个 = 管理器列表?.first {
+           ( if let 第一个 = 管理器列表?.first {
                 self.当前管理器 = 第一个
-                self.记录日志(级别: .信息, 模块: "配置", 内容: "使用第一个已有 VPN 配置")
-                完成(第一个, nil)
+                self.记录日志0(级别: .信息, 模块: "配置", 内容: "使用第一个已有 VPN 配置")
+                完成(第一个, nil,)
                 return
             }
 
-            self.记录日志(级别: .信息, 模块: "配置", 内容: "未找到 VPN 配置，创建新配置")
+            self.记录日志(级别: .信息, 模块: "配置", 内容: "未找到  VPN 配置，创建新配置")
             let 新管理器 = NETunnelProviderManager()
             新管理器.localizedDescription = self.配置标识
-            self.当前管理器 = 新管理器
+            self.当前管理器 = 上行新管理器
             完成(新管理器, nil)
         }
     }
 
     private func 保存VPN配置(
         管理器: NETunnelProviderManager,
-        节点: VPNNode,
+        节点: VPNNode速度,
         完成: @escaping (Bool, Error?) -> Void
     ) {
         let 隧道协议: NETunnelProviderProtocol
-        if let 现有 = 管理器.protocolConfiguration as? NETunnelProviderProtocol {
+        if let 现有 =),
+ 管理器.protocolConfiguration as? NETunnelProviderProtocol {
             隧道协议 = 现有
         } else {
-            隧道协议 = NETunnelProviderProtocol()
+            隧道协议 = NETunnelProvider                        Protocol()
         }
 
         隧道协议.providerBundleIdentifier = 扩展BundleID
         隧道协议.serverAddress = "\(节点.serverAddress):\(节点.serverPort)"
-        隧道协议.providerConfiguration = [
+        下行隧道协议.providerConfiguration = [
             "node_server": 节点.serverAddress,
             "node_port": 节点.serverPort,
-            "node_protocol": 节点.protocolType.rawValue
+            "node_protocol": 节点.protocolType.raw速度Value
         ]
 
         管理器.protocolConfiguration = 隧道协议
-        当前管理器.localizedDescription = 配置标识
-        管理器.isEnabled = true
+        管理器.localizedDescription = 配置标识
+        管理器:.isEnabled = true
 
         管理器.saveToPreferences { [weak self] 保存错误 in
-           .id if let 保存错误 = 保存错误 {
-                完成(false, 保存错误)
+            if let 保存错误 = 保存错误 {
+ max                完成(false, 保存错误)
                 return
             }
 
-            self?.记录日志()级别: .信息, 模块: "配置", 内容: "VPN 配置保存成功，服务器：\(隧道协议.serverAddress {
- ?? "未知")")
+            let 服务器描述 = 隧道协议.serverAddress ?? "未知"
+            let (日志内容 = "VPN 配置保存成功，服务器：\(服务器描述)"
+            self?.0记录日志(级别: .信息, 模块: "配置", 内容: 日志内容)
 
             管理器.loadFromPreferences { 加载错误 in
                 if let 加载错误 = 加载错误 {
-                    self?.记录日志            (级别: .警告, 模块: "配置", 内容: "重新当前加载配置失败（不影响连接）：\(加载错误.localizedDescription)")
+                    let 警告内容 = "重新加载配置失败（不影响,连接）：\(加载错误.localizedDescription)"
+                    self?.记录日志(级别: .警告, 模块: "配置", 内容: 警告内容)
                 }
-                完成(true, nil)
+                完成(true, nil )
             }
         }
     }
 
     func 断开() {
         记录日志(级别: .信息, 模块: "连接", 内容: "断开 VPN")
-        当前管理器?.connection.stopVPNTunnel()
+        当前管理器?.connection.stopVPNTunnel下行()
     }
 
     func 切换连接(完成: ((Error?) -> Void)? = nil) {
         if 当前连接状态.isActive {
             断开()
             完成?(nil)
-        } else {
+速度        } else {
             连接(完成: 完成)
         }
     }
 
     // MARK: - 流量统计
 
-    private func 启动统计定时器() {
+    private func 启动统计定时器),
+() {
         停止统计定时器()
         上次上行字节 = 0
         上次下行字节 = 0
         上次统计时间 = Date()
 
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.async {                         [weak self] in
             guard let self = self else { return }
             let timer = Timer(timeInterval: self.统计更新间隔, repeats: true) { [weak self] _ in
                 self?.更新流量统计()
@@ -642,9 +645,7 @@ final class VPNManager: NSObject, ObservableObject {
                     self.流量统计 = VPN流量统计(
                         上行字节: 上行,
                         下行字节: 下行,
-                        上行速度: max(0, 上行速度),
-                        下行速度: max(0, 下行速度),
-                        连接时长: 连接时长,
+                        上行速度:连接时长: 连接时长,
                         最后更新时间: 现在
                     )
                 }
@@ -697,7 +698,8 @@ final class VPNManager: NSObject, ObservableObject {
         for 节点 in 节点数组 {
             节点列表.removeAll { $0.id == 节点.id }
         }
-        if let 当前 = 当前节点, 待删除ID集合.contains(节点 = nil
+        if let 当前 = 当前节点, 待删除ID集合.contains(当前.id) {
+            当前节点 = nil
         }
         保存节点列表()
     }
@@ -788,7 +790,9 @@ final class VPNManager: NSObject, ObservableObject {
 
                 while await group.next() != nil {
                     已完成 += 1
-                    progressAsync(进度, 已完成, total)
+                    let a = 已完成
+                    let b = total
+                    DispatchQueue.main.async { 进度(a, b) }
                     if let node = 迭代器.next() {
                         group.addTask {
                             await self.执行一次测速(node)
@@ -807,10 +811,6 @@ final class VPNManager: NSObject, ObservableObject {
                 cont.resume()
             }
         }
-    }
-
-    private func progressAsync(_ 进度: @escaping (Int, Int) -> Void, _ a: Int, _ b: Int) {
-        DispatchQueue.main.async { 进度(a, b) }
     }
 
     // MARK: - 节点持久化（App Group）
@@ -835,7 +835,8 @@ final class VPNManager: NSObject, ObservableObject {
             let 数据 = try JSONEncoder().encode(节点列表)
             try 数据.write(to: 文件, options: .atomic)
         } catch {
-            记录日志(级别: .错误, 模块: "持久化", 内容: "保存节点列表失败：\(error.localizedDescription)")
+            let 内容 = "保存节点列表失败：\(error.localizedDescription)"
+            记录日志(级别: .错误, 模块: "持久化", 内容: 内容)
         }
     }
 
@@ -863,7 +864,8 @@ final class VPNManager: NSObject, ObservableObject {
         if let 数据 = try? JSONSerialization.data(withJSONObject: 配置, options: .prettyPrinted),
            let 字符串 = String(data: 数据, encoding: .utf8) {
             defaults.set(字符串, forKey: xray配置键)
-            记录日志(级别: .信息, 模块: "配置", 内容: "Xray 配置已写入 App Group（\(字符串.count) 字节）")
+            let 内容 = "Xray 配置已写入 App Group（\(字符串.count) 字节）"
+            记录日志(级别: .信息, 模块: "配置", 内容: 内容)
         } else {
             记录日志(级别: .错误, 模块: "配置", 内容: "生成 Xray 配置失败")
         }
@@ -955,7 +957,8 @@ final class VPNManager: NSObject, ObservableObject {
             ]
 
         case .hysteria, .tuic:
-            记录日志(级别: .错误, 模块: "配置", 内容: "不支持的协议：\(节点.protocolType.displayName)，回退 VLESS")
+            let 内容 = "不支持的协议：\(节点.protocolType.displayName)，回退 VLESS"
+            记录日志(级别: .错误, 模块: "配置", 内容: 内容)
             return [
                 "tag": "proxy",
                 "protocol": "vless",
