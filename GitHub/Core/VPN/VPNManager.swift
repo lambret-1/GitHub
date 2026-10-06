@@ -52,6 +52,52 @@ enum VPNConnectionStatus {
     }
 }
 
+// MARK: - VPN 路由模式
+
+/// VPN 路由模式
+enum VPN路由模式: String, CaseIterable, Identifiable {
+    /// 全局代理：所有流量均走代理
+    case 全局代理 = "global"
+    /// 绕过局域网：局域网地址直连，其余走代理
+    case 绕过局域网 = "bypass_lan"
+    /// 绕过中国大陆：中国大陆 IP/域名直连，其余走代理
+    case 绕过中国大陆 = "bypass_cn"
+    /// 规则模式：根据自定义规则路由
+    case 规则模式 = "rule"
+
+    var id: String { rawValue }
+
+    /// 显示名称
+    var 显示名称: String {
+        switch self {
+        case .全局代理: return "全局代理"
+        case .绕过局域网: return "绕过局域网"
+        case .绕过中国大陆: return "绕过中国大陆"
+        case .规则模式: return "规则模式"
+        }
+    }
+
+    /// 详细描述
+    var 描述: String {
+        switch self {
+        case .全局代理: return "所有网络流量均通过代理服务器"
+        case .绕过局域网: return "局域网地址（192.168.x.x、10.x.x.x等）直连，其余走代理"
+        case .绕过中国大陆: return "中国大陆 IP 和域名直连，其余走代理"
+        case .规则模式: return "根据自定义路由规则决定流量走向"
+        }
+    }
+
+    /// 系统图标名称
+    var 图标名: String {
+        switch self {
+        case .全局代理: return "globe"
+        case .绕过局域网: return "network"
+        case .绕过中国大陆: return "flag.fill"
+        case .规则模式: return "list.bullet"
+        }
+    }
+}
+
 // MARK: - VPN 流量统计
 
 struct VPN流量统计 {
@@ -141,6 +187,7 @@ final class VPNManager: NSObject, ObservableObject {
     private let 配置标识 = "GitHub中文VPN"
     private let xray配置键 = "xray_config_json"
     private let 当前节点键 = "vpn_current_node"
+    private let 路由模式键 = "vpn_routing_mode"
     private let 节点文件名 = "vpn_nodes.json"
     private let 统计更新间隔: TimeInterval = 1.0
     private let 日志最大条数 = 500
@@ -157,6 +204,9 @@ final class VPNManager: NSObject, ObservableObject {
 
     /// VPN 配置是否已存在于系统
     @Published var VPN配置已存在: Bool = false
+
+    /// 当前路由模式（持久化到 App Group UserDefaults）
+    @Published private(set) var 当前路由模式: VPN路由模式 = .绕过局域网
 
     /// 兼容旧 UI：是否需要创建 VPN 配置
     var 需要安装描述文件: Bool { !VPN配置已存在 }
@@ -183,6 +233,7 @@ final class VPNManager: NSObject, ObservableObject {
         super.init()
         加载节点列表()
         加载当前节点()
+        加载路由模式()
         注册状态监听()
         首次启动写入默认节点()
 
@@ -821,6 +872,127 @@ final class VPNManager: NSObject, ObservableObject {
         }
     }
 
+    // MARK: - 路由模式管理
+
+    /// 加载路由模式（从 App Group UserDefaults）
+    private func 加载路由模式() {
+        guard let defaults = UserDefaults(suiteName: appGroup标识),
+              let 原始值 = defaults.string(forKey: 路由模式键),
+              let 模式 = VPN路由模式(rawValue: 原始值) else {
+            当前路由模式 = .绕过局域网
+            return
+        }
+        当前路由模式 = 模式
+        记录日志(级别: .信息, 模块: "路由", 内容: "已加载路由模式：\(模式.显示名称)")
+    }
+
+    /// 设置路由模式（持久化到 App Group UserDefaults）
+    func 设置路由模式(_ 模式: VPN路由模式) {
+        当前路由模式 = 模式
+        if let defaults = UserDefaults(suiteName: appGroup标识) {
+            defaults.set(模式.rawValue, forKey: 路由模式键)
+            defaults.synchronize()
+        }
+        记录日志(级别: .信息, 模块: "路由", 内容: "路由模式已切换为：\(模式.显示名称)")
+    }
+
+    /// 根据当前路由模式生成 Xray 路由规则
+    /// - Returns: 路由规则数组（Xray 配置中 routing.rules 字段）
+    private func 生成路由规则() -> [[String: Any]] {
+        var 规则列表: [[String: Any]] = []
+
+        switch 当前路由模式 {
+        case .全局代理:
+            // 全局代理：无额外规则，所有流量默认走 proxy 出站
+            break
+
+        case .绕过局域网:
+            // 绕过局域网：私有 IP 段直连
+            规则列表.append([
+                "type": "field",
+                "ip": [
+                    "10.0.0.0/8",
+                    "172.16.0.0/12",
+                    "192.168.0.0/16",
+                    "127.0.0.0/8",
+                    "169.254.0.0/16",
+                    "224.0.0.0/4",
+                    "255.255.255.255/32",
+                    "fc00::/7",
+                    "fe80::/10",
+                    "::1/128"
+                ],
+                "outboundTag": "direct"
+            ])
+
+        case .绕过中国大陆:
+            // 绕过中国大陆：局域网 + 中国大陆 IP/域名直连
+            // 局域网规则
+            规则列表.append([
+                "type": "field",
+                "ip": [
+                    "10.0.0.0/8",
+                    "172.16.0.0/12",
+                    "192.168.0.0/16",
+                    "127.0.0.0/8",
+                    "169.254.0.0/16",
+                    "fc00::/7",
+                    "fe80::/10",
+                    "::1/128"
+                ],
+                "outboundTag": "direct"
+            ])
+            // 中国大陆域名直连（常用国内域名后缀）
+            规则列表.append([
+                "type": "field",
+                "domain": [
+                    "geosite:cn",
+                    "baidu.com",
+                    "qq.com",
+                    "taobao.com",
+                    "tmall.com",
+                    "jd.com",
+                    "alipay.com",
+                    "weixin.qq.com",
+                    "bilibili.com",
+                    "douyin.com",
+                    "zhihu.com",
+                    "weibo.com",
+                    "ximalaya.com",
+                    "xunlei.com",
+                    "163.com",
+                    "126.com",
+                    "sina.com.cn",
+                    "sohu.com",
+                    "ifeng.com",
+                    "thepaper.cn"
+                ],
+                "outboundTag": "direct"
+            ])
+            // 中国大陆 IP 直连（使用 geoip:cn）
+            规则列表.append([
+                "type": "field",
+                "ip": ["geoip:cn"],
+                "outboundTag": "direct"
+            ])
+
+        case .规则模式:
+            // 规则模式：预留自定义规则入口，当前默认绕过局域网
+            规则列表.append([
+                "type": "field",
+                "ip": [
+                    "10.0.0.0/8",
+                    "172.16.0.0/12",
+                    "192.168.0.0/16",
+                    "127.0.0.0/8"
+                ],
+                "outboundTag": "direct"
+            ])
+        }
+
+        return 规则列表
+    }
+
     // MARK: - 节点持久化（App Group）
 
     private var 节点文件URL: URL? {
@@ -930,13 +1102,15 @@ final class VPNManager: NSObject, ObservableObject {
             ]
         ]
 
+        let 路由规则 = 生成路由规则()
+
         return [
             "log": ["loglevel": "debug"],
             "inbounds": [tun入站],
             "outbounds": [出站, 直连],
             "routing": [
                 "domainStrategy": "IPIfNonMatch",
-                "rules": []
+                "rules": 路由规则
             ],
             "dns": [
                 "servers": ["1.1.1.1", "8.8.8.8"]

@@ -347,8 +347,10 @@ struct ProfileView: View {
             .navigationDestination(isPresented: $showDebugLogs) {
                 DebugLogView()
             }
-            .fullScreenCover(isPresented: $showVPN) {
+            .sheet(isPresented: $showVPN) {
                 VPNMainView()
+                    .presentationDetents([.fraction(0.95)])
+                    .presentationDragIndicator(.visible)
             }
         }
         .alert(isPresented: $showLogoutAlert) {

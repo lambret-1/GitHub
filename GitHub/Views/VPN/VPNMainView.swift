@@ -66,6 +66,12 @@ struct VPNMainView: View {
     /// 连通性测试结果
     @State private var connectivityResult: String?
 
+    /// 连通性测试延迟（毫秒）
+    @State private var connectivityLatency: Int?
+
+    /// 是否显示路由模式选择视图
+    @State private var showRoutingModeView = false
+
     /// 本地节点分组名称常量
     private let localGroupName = "本地节点"
 
@@ -151,6 +157,12 @@ struct VPNMainView: View {
             .onAppear {
                 // 页面出现时刷新节点列表和连接状态
                 vpnManagerObservable.refresh()
+            }
+            .onChange(of: showRoutingModeView) { 显示 in
+                // 路由模式选择视图关闭后刷新
+                if !显示 {
+                    vpnManagerObservable.refresh()
+                }
             }
             .alert("提示", isPresented: $showAlert) {
                 Button("确定", role: .cancel) { }
@@ -239,7 +251,7 @@ struct VPNMainView: View {
 
             // 2. 全局路由行
             Button(action: {
-                displayAlert(message: "全局路由配置功能（后续实现）")
+                showRoutingModeView = true
             }) {
                 HStack(spacing: 12) {
                     // 设置图标
@@ -254,7 +266,7 @@ struct VPNMainView: View {
 
                     Spacer()
 
-                    Text("配置")
+                    Text(vpnManagerObservable.routingMode.显示名称)
                         .font(.body)
                         .foregroundColor(.secondary)
 
@@ -267,6 +279,11 @@ struct VPNMainView: View {
                 .background(Color(.systemBackground))
             }
             .buttonStyle(.plain)
+            .sheet(isPresented: $showRoutingModeView) {
+                路由模式选择视图()
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
 
             Divider()
                 .padding(.leading, 58)
@@ -289,12 +306,17 @@ struct VPNMainView: View {
                     Spacer()
 
                     if isTestingConnectivity {
-                        ProgressView()
-                            .scaleEffect(0.8)
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("测试中")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     } else if let result = connectivityResult {
                         Text(result)
                             .font(.caption)
-                            .foregroundColor(result.contains("成功") ? .green : .red)
+                            .foregroundColor(连通性结果颜色(result))
                     }
 
                     Image(systemName: "arrow.clockwise.circle")
@@ -667,17 +689,37 @@ struct VPNMainView: View {
     private func testConnectivity() {
         isTestingConnectivity = true
         connectivityResult = nil
+        connectivityLatency = nil
 
-        // 简单的网络连通性测试（访问百度）
-        let url = URL(string: "https://www.baidu.com")!
-        let task = URLSession.shared.dataTask(with: url) { _, response, error in
+        let 开始时间 = Date()
+        let 配置 = URLSessionConfiguration.ephemeral
+        配置.timeoutIntervalForRequest = 8
+        配置.timeoutIntervalForResource = 8
+        let 会话 = URLSession(configuration: 配置)
+
+        // 访问百度测试连通性和延迟
+        guard let url = URL(string: "https://www.baidu.com") else {
+            isTestingConnectivity = false
+            connectivityResult = "失败"
+            return
+        }
+
+        let task = 会话.dataTask(with: url) { _, response, error in
+            let 延迟毫秒 = Int(Date().timeIntervalSince(开始时间) * 1000)
+
             DispatchQueue.main.async {
                 self.isTestingConnectivity = false
+                self.connectivityLatency = 延迟毫秒
+
                 if let error = error {
                     self.connectivityResult = "失败"
                     self.displayAlert(message: "连通性测试失败：\(error.localizedDescription)")
                 } else if let httpResponse = response as? HTTPURLResponse {
-                    self.connectivityResult = httpResponse.statusCode == 200 ? "成功" : "失败(\(httpResponse.statusCode))"
+                    if httpResponse.statusCode == 200 {
+                        self.connectivityResult = "\(延迟毫秒)ms"
+                    } else {
+                        self.connectivityResult = "失败(\(httpResponse.statusCode))"
+                    }
                 }
             }
         }
@@ -828,6 +870,15 @@ struct VPNMainView: View {
         if latency < 100 { return .green }
         if latency < 300 { return .yellow }
         return .red
+    }
+
+    /// 获取连通性测试结果对应的颜色
+    private func 连通性结果颜色(_ 结果: String) -> Color {
+        if 结果.contains("失败") { return .red }
+        if let 延迟 = Int(结果.replacingOccurrences(of: "ms", with: "")) {
+            return latencyColor(延迟)
+        }
+        return .green
     }
 }
 
@@ -1221,6 +1272,9 @@ final class VPNManagerObservable: ObservableObject {
     /// 连接状态
     @Published var connectionStatus: VPNConnectionStatus = .disconnected
 
+    /// 当前路由模式
+    @Published var routingMode: VPN路由模式 = .绕过局域网
+
     /// 初始化
     init() {
         refresh()
@@ -1236,6 +1290,7 @@ final class VPNManagerObservable: ObservableObject {
         nodes = VPNManager.shared.nodes
         currentNode = VPNManager.shared.currentNode
         connectionStatus = VPNManager.shared.connectionStatus
+        routingMode = VPNManager.shared.当前路由模式
     }
 }
 
