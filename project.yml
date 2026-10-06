@@ -139,6 +139,11 @@ targets:
         SWIFT_REFLECTION_METADATA_LEVEL: none
         # 扩展与 XrayKit 同仓同构编译，关闭库演化，消除模块演化警告
         BUILD_LIBRARY_FOR_DISTRIBUTION: NO
+        # 桥接头与模块接口不兼容，必须禁用模块接口生成
+        SWIFT_ENABLE_LIBRARY_EVOLUTION: NO
+        SWIFT_EMIT_MODULE_INTERFACE: NO
+        SWIFT_EMIT_PRIVATE_MODULE_INTERFACE: NO
+        ENABLE_MODULE_VERIFIER: NO
         # 运行路径搜索：让扩展能找到嵌入的动态框架
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks"
     dependencies:
