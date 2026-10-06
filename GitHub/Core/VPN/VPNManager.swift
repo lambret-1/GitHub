@@ -1298,6 +1298,10 @@ final class VPNManager: NSObject, ObservableObject {
     private func 生成出站(_ 节点: VPNNode) -> [String: Any] {
         let 流设置 = 生成流设置(节点)
 
+        // 仅启用 VLESS / VMess。其他协议（trojan/shadowsocks/hysteria/tuic）
+        // 本版本不再生成对应 outbound，避免预编译 libxray.a 加载这些协议的
+        // factory 代码路径而增加扩展常驻内存；遇到旧节点数据时回退到 VLESS
+        // 并记录错误，保证进程不崩。
         switch 节点.protocolType {
         case .vless:
             var 用户: [String: Any] = [
@@ -1334,37 +1338,8 @@ final class VPNManager: NSObject, ObservableObject {
                 "streamSettings": 流设置
             ]
 
-        case .trojan:
-            return [
-                "tag": "proxy",
-                "protocol": "trojan",
-                "settings": [
-                    "servers": [[
-                        "address": 节点.serverAddress,
-                        "port": 节点.serverPort,
-                        "password": 节点.uuid
-                    ]]
-                ],
-                "streamSettings": 流设置
-            ]
-
-        case .shadowsocks:
-            return [
-                "tag": "proxy",
-                "protocol": "shadowsocks",
-                "settings": [
-                    "servers": [[
-                        "address": 节点.serverAddress,
-                        "port": 节点.serverPort,
-                        "password": 节点.uuid,
-                        "method": "aes-256-gcm"
-                    ]]
-                ],
-                "streamSettings": 流设置
-            ]
-
-        case .hysteria, .tuic:
-            let 内容 = "不支持的协议：\(节点.protocolType.displayName)，回退 VLESS"
+        case .trojan, .shadowsocks, .hysteria, .tuic:
+            let 内容 = "当前版本未启用协议 \(节点.protocolType.displayName)（出于内存优化已裁剪），回退为 VLESS"
             记录日志(级别: .错误, 模块: "配置", 内容: 内容)
             return [
                 "tag": "proxy",

@@ -11,7 +11,13 @@ import Foundation
 // MARK: - VPN 协议类型枚举
 
 /// VPN 协议类型
-/// 定义支持的所有代理协议，第一期实现 VMess 和 VLESS
+/// 定义支持的所有代理协议。
+///
+/// 注意：枚举 case 必须保留全部历史值（trojan/ss/hysteria/tuic），
+/// 否则旧版本持久化的 `vpn_nodes.json` 反序列化会崩溃。
+/// 当前版本仅启用 VLESS 与 VMess，其他 case 通过 `isSupported = false` 隐藏，
+/// 同时也不再生成对应的 Xray outbound，避免加载未裁剪协议包的代码路径、
+/// 降低扩展进程常驻内存。
 enum VPNProtocolType: String, Codable, CaseIterable, Identifiable {
     case vmess = "vmess"       // VMess 协议（V2Ray 经典协议）
     case vless = "vless"       // VLESS 协议（V2Ray 新一代轻量协议）
@@ -30,6 +36,23 @@ enum VPNProtocolType: String, Codable, CaseIterable, Identifiable {
         case .hysteria: return "Hysteria"
         case .tuic: return "TUIC"
         }
+    }
+
+    /// 当前版本是否启用该协议
+    ///
+    /// 出于内存优化（预编译 libxray.a 未按 build tag 裁剪，加载未用协议会
+    /// 增加常驻堆），本版本仅暴露 VLESS/VMess。UI 层与配置生成层都应先
+    /// 判断此属性。
+    var isSupported: Bool {
+        switch self {
+        case .vmess, .vless: return true
+        default: return false
+        }
+    }
+
+    /// 当前版本可选的协议列表（UI Picker 用）
+    static var supportedCases: [VPNProtocolType] {
+        allCases.filter { $0.isSupported }
     }
 
     /// 协议唯一标识（用于 Identifiable）

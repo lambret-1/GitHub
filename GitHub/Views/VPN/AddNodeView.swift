@@ -109,7 +109,7 @@ struct AddNodeView: View {
             }
 
             Picker(selection: $protocolType) {
-                ForEach(VPNProtocolType.allCases) { type in
+                ForEach(VPNProtocolType.supportedCases) { type in
                     Text(type.displayName).tag(type)
                 }
             } label: {
