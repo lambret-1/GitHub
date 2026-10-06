@@ -79,16 +79,24 @@ struct VPNMainView: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // 连接控制区（小火箭风格）
-                connectionControlSection
+            ScrollView {
+                VStack(spacing: 12) {
+                    // 连接控制区（小火箭风格）
+                    connectionControlSection
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
 
-                // 工具栏（模块、全部更新、更多）
-                toolbarSection
+                    // 工具栏（模块、全部更新、更多）
+                    toolbarSection
+                        .padding(.horizontal, 16)
 
-                // 分组列表
-                groupList
+                    // 分组列表（白底卡片）
+                    groupList
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 20)
+                }
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("VPN 代理")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -340,6 +348,8 @@ struct VPNMainView: View {
             .disabled(isTestingConnectivity)
         }
         .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
     }
 
     // MARK: - 工具栏
@@ -401,78 +411,39 @@ struct VPNMainView: View {
         }
         .padding(.trailing, 8)
         .padding(.vertical, 4)
-        .background(Color(.systemGroupedBackground))
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
     }
 
-    // MARK: - 分组列表
+    // MARK: - 分组列表（白底卡片）
 
-    /// 分组列表（折叠/展开模式）
+    /// 分组列表（白底卡片 + 全屏滚动）
     private var groupList: some View {
-        List {
+        LazyVStack(spacing: 12) {
             if vpnManagerObservable.nodes.isEmpty {
                 // 空状态
                 emptyStateView
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color(.systemGroupedBackground))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 60)
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
             } else {
-                // 按分组展示
+                // 按分组展示（每个分组一个白底卡片）
                 ForEach(sortedGroupNames, id: \.self) { groupName in
-                    groupSection(groupName: groupName, nodes: groupedNodes[groupName] ?? [])
+                    groupCard(groupName: groupName, nodes: groupedNodes[groupName] ?? [])
                 }
             }
         }
-        .listStyle(.plain)
-        .environment(\.editMode, $editMode)
-        .background(Color(.systemGroupedBackground))
     }
 
-    /// 单个分组区域（可折叠/展开）
-    private func groupSection(groupName: String, nodes: [VPNNode]) -> some View {
+    /// 单个分组卡片（白底圆角，可折叠/展开）
+    private func groupCard(groupName: String, nodes: [VPNNode]) -> some View {
         let isExpanded = expandedGroups.contains(groupName)
         let isLocal = groupName == localGroupName
 
-        return Section {
-            // 展开状态：显示该分组下的所有节点
-            if isExpanded {
-                ForEach(nodes) { node in
-                    nodeRowInGroup(node)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 58, bottom: 6, trailing: 16))
-                        // 这是一个什么东西：节点行左内边距
-                        // 控制哪里：展开后节点行左侧的缩进距离
-                        // 单位是什么：pt（点）
-                        // 改大有什么效果：节点缩进更多，层级更明显
-                        // 改小有什么效果：节点缩进更少，更紧凑
-                        // 还能怎么改：可以与分组名称左对齐
-                        .listRowBackground(Color(.systemBackground))
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectNode(node)
-                        }
-                        .contextMenu {
-                            Button(action: {
-                                selectNode(node)
-                            }) {
-                                Label("使用此节点", systemImage: "checkmark.circle")
-                            }
-                            Button(action: {
-                                testNodeLatency(node)
-                            }) {
-                                Label("测速", systemImage: "gauge")
-                            }
-                            Button(role: .destructive, action: {
-                                nodeToDelete = node
-                            }) {
-                                Label("删除节点", systemImage: "trash")
-                            }
-                        }
-                }
-                .onDelete { indexSet in
-                    let nodesToDelete = indexSet.map { nodes[$0] }
-                    VPNManager.shared.removeNodes(nodesToDelete)
-                    vpnManagerObservable.refresh()
-                }
-            }
-        } header: {
+        return VStack(spacing: 0) {
             // 分组标题行（点击折叠/展开）
             Button(action: {
                 toggleGroup(groupName)
@@ -483,24 +454,12 @@ struct VPNMainView: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.secondary)
                         .frame(width: 16)
-                    // 这是一个什么东西：折叠箭头图标宽度
-                    // 控制哪里：分组标题左侧箭头图标的宽度
-                    // 单位是什么：pt（点）
-                    // 改大有什么效果：箭头区域变宽
-                    // 改小有什么效果：箭头区域变窄
-                    // 还能怎么改：可以根据图标大小动态调整
 
                     // 分组图标
                     Image(systemName: isLocal ? "folder.fill" : "dot.radiowaves.left.and.right")
                         .font(.system(size: 16))
                         .foregroundColor(isLocal ? .orange : .blue)
                         .frame(width: 24)
-                    // 这是一个什么东西：分组图标宽度
-                    // 控制哪里：分组标题中图标的宽度
-                    // 单位是什么：pt（点）
-                    // 改大有什么效果：图标区域变宽
-                    // 改小有什么效果：图标区域变窄
-                    // 还能怎么改：可以根据图标大小动态调整
 
                     // 分组名称
                     Text(groupName)
@@ -538,23 +497,128 @@ struct VPNMainView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.vertical, 8)
-                // 这是一个什么东西：分组标题垂直内边距
-                // 控制哪里：分组标题栏的高度
-                // 单位是什么：pt（点）
-                // 改大有什么效果：标题栏变高，点击区域更大
-                // 改小有什么效果：标题栏变矮，更紧凑
-                // 还能怎么改：可以使用固定高度
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-            .listRowBackground(Color(.systemGroupedBackground))
+
+            // 展开状态：显示该分组下的所有节点
+            if isExpanded {
+                Divider()
+                    .padding(.leading, 56)
+
+                ForEach(Array(nodes.enumerated()), id: \.element.id) { index, node in
+                    nodeRowInCard(node, isEditing: editMode == .active) {
+                        // 删除回调
+                        VPNManager.shared.removeNode(node)
+                        vpnManagerObservable.refresh()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if editMode != .active {
+                            selectNode(node)
+                        }
+                    }
+                    .contextMenu {
+                        Button(action: {
+                            selectNode(node)
+                        }) {
+                            Label("使用此节点", systemImage: "checkmark.circle")
+                        }
+                        Button(action: {
+                            testNodeLatency(node)
+                        }) {
+                            Label("测速", systemImage: "gauge")
+                        }
+                        Button(role: .destructive, action: {
+                            nodeToDelete = node
+                        }) {
+                            Label("删除节点", systemImage: "trash")
+                        }
+                    }
+
+                    // 节点间分隔线（最后一个不显示）
+                    if index < nodes.count - 1 {
+                        Divider()
+                            .padding(.leading, 56)
+                    }
+                }
+                .padding(.bottom, 4)
+            }
         }
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
     }
 
-    /// 分组内的节点行（简化版）
-    private func nodeRowInGroup(_ node: VPNNode) -> some View {
+    /// 卡片内的节点行（支持编辑模式删除按钮）
+    private func nodeRowInCard(_ node: VPNNode, isEditing: Bool, onDelete: @escaping () -> Void) -> some View {
+        HStack(spacing: 10) {
+            // 编辑模式：删除按钮
+            if isEditing {
+                Button(action: {
+                    onDelete()
+                }) {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+                .frame(width: 24)
+            }
+
+            // 协议图标
+            ZStack {
+                Circle()
+                    .fill(protocolColor(node.protocolType).opacity(0.15))
+                    .frame(width: 32, height: 32)
+
+                Image(systemName: protocolIconName(node.protocolType))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(protocolColor(node.protocolType))
+            }
+
+            // 节点信息
+            VStack(alignment: .leading, spacing: 3) {
+                // 节点名称
+                Text(node.remark)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+
+                // 服务器地址
+                Text("\(node.serverAddress):\(node.serverPort)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            // 延迟显示
+            if let latency = node.latency {
+                Text("\(latency)ms")
+                    .font(.caption)
+                    .foregroundColor(latencyColor(latency))
+                    .frame(width: 50, alignment: .trailing)
+            } else {
+                Text("--")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(width: 50, alignment: .trailing)
+            }
+
+            // 当前选中标记
+            if vpnManagerObservable.currentNode?.id == node.id {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.blue)
+                    .font(.system(size: 18))
+            }
+        }
+    }
         HStack(spacing: 10) {
             // 协议图标
             ZStack {
@@ -896,6 +960,18 @@ struct VPNMainView: View {
             return latencyColor(延迟)
         }
         return .green
+    }
+
+    /// 获取协议对应的 SF Symbols 图标名称
+    private func protocolIconName(_ type: VPNProtocolType) -> String {
+        switch type {
+        case .vmess: return "bolt.fill"
+        case .vless: return "bolt.shield.fill"
+        case .trojan: return "shield.fill"
+        case .shadowsocks: return "shadow"
+        case .hysteria: return "hurricane"
+        case .tuic: return "tornado"
+        }
     }
 }
 
