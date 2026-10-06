@@ -18,6 +18,8 @@ private let k最大文件描述符: Int32 = 1024
 private let kSYSPROTO_CONTROL: Int32 = 2
 private let kUTUN_OPT_IFNAME: Int32 = 2
 private let k接口名缓冲区大小 = 16
+/// 心跳标记文件名（存在表示上次异常退出，正常停止时会删除）
+private let k心跳文件名 = "vpn_heartbeat.plist"
 
 // MARK: - 扩展文件日志器
 
@@ -113,6 +115,48 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         扩展文件日志器.shared.关键记录("=== PacketTunnelProvider 进程初始化 init ===")
         扩展文件日志器.shared.关键记录("扩展进程标识：\(ProcessInfo.processInfo.processIdentifier)")
         转存C层崩溃日志()
+        检测上次异常退出()
+    }
+
+    /// 检测上次是否异常退出（jetsam内存压力杀进程/SIGKILL/崩溃等无法捕获信号的情况）
+    /// 原理：startTunnel成功后创建心跳文件，stopTunnel正常停止时删除；
+    ///       下次启动时心跳文件仍存在则说明上次异常退出
+    private func 检测上次异常退出() {
+        guard let 容器 = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: kAppGroup标识
+        ) else { return }
+
+        let 心跳文件 = 容器.appendingPathComponent(k心跳文件名)
+
+        guard FileManager.default.fileExists(atPath: 心跳文件.path) else { return }
+
+        // 读取心跳文件中的启动时间
+        let 上次启动时间: String
+        if let 数据 = try? Data(contentsOf: 心跳文件),
+           let 字典 = try? PropertyListSerialization.propertyList(from: 数据, format: nil) as? [String: Any],
+           let 时间 = 字典["启动时间"] as? String {
+            上次启动时间 = 时间
+        } else {
+            上次启动时间 = "未知"
+        }
+
+        扩展文件日志器.shared.关键记录("⚠️ 检测到上次进程异常退出（启动时间：\(上次启动时间)），可能原因：内存压力(jetsam)/系统杀进程/SIGKILL/Xray内部崩溃")
+
+        // 写入崩溃日志到App Group
+        let 崩溃内容 = """
+        检测到VPN扩展进程异常退出（无信号捕获记录）
+        上次启动时间: \(上次启动时间)
+        可能原因:
+        1. 内存压力(jetsam) - speedtest大流量时内存占用过高被系统杀死
+        2. 系统主动杀进程 - 设备低内存/省电策略
+        3. SIGKILL - 系统强制终止，无法捕获信号
+        4. Xray核心内部崩溃 - Go运行时panic未传递到扩展信号处理器
+        说明: 此日志由心跳标记机制检测生成，非信号处理器捕获。
+        """
+        写入崩溃日志到AppGroup(崩溃内容: 崩溃内容, 类型: "异常退出(无信号)", 原因: "VPN扩展进程意外终止，可能为内存压力(jetsam)或系统杀进程")
+
+        // 删除心跳文件，避免重复记录
+        try? FileManager.default.removeItem(at: 心跳文件)
     }
 
     private func 转存C层崩溃日志() {
@@ -131,7 +175,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     /// 将VPN扩展崩溃日志写入 App Group 共享目录（主App可读取）
-    private func 写入崩溃日志到AppGroup(崩溃内容: String) {
+    private func 写入崩溃日志到AppGroup(崩溃内容: String, 类型: String = "Signal", 原因: String = "VPN扩展进程异常终止") {
         guard let 容器 = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: kAppGroup标识
         ) else { return }
@@ -176,8 +220,8 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         崩溃日志（VPN扩展）
         ========================================
         崩溃时间: \(崩溃时间)
-        崩溃类型: Signal
-        崩溃原因: VPN扩展进程异常终止
+        崩溃类型: \(类型)
+        崩溃原因: \(原因)
         崩溃来源: PacketTunnelProvider (VPN Network Extension)
 
         ----------------------------------------
@@ -342,6 +386,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                     self.状态锁.unlock()
 
                     扩展文件日志器.shared.关键记录("✅ Xray 核心启动成功，隧道建立完成")
+                    self.创建心跳文件()
                     self.启动统计定时器()
                     self.安全回调(nil, completionHandler: completionHandler)
                 }
@@ -352,7 +397,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - 停止隧道
 
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
-        扩展文件日志器.shared.关键记录("=== stopTunnel 被调用，原因码：\(reason.rawValue) ===")
+        扩展文件日志器.shared.关键记录("=== stopTunnel 被调用，原因码：\(reason.rawValue)（\(Self.停止原因名称(reason)）） ===")
 
         状态锁.lock()
         let 需要停止 = xray已启动
@@ -369,6 +414,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         停止统计定时器()
+        删除心跳文件()
 
         // 注意：不在此处调用 setTunnelNetworkSettings(nil)
         // 原因：系统在 stopTunnel 完成后会自动清理网络设置，
@@ -376,6 +422,31 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         //       进而可能使系统认为隧道未完全断开，出现"开关关闭不了"的问题。
         扩展文件日志器.shared.关键记录("stopTunnel 处理完成，等待系统自动清理网络设置")
         completionHandler()
+    }
+
+    /// 获取停止原因的可读名称
+    private static func 停止原因名称(_ 原因: NEProviderStopReason) -> String {
+        switch 原因 {
+        case .none: return "无"
+        case .userInitiated: return "用户主动断开"
+        case .providerFailed: return "扩展失败"
+        case .noNetworkAvailable: return "无可用网络"
+        case .unrecoverableNetworkChange: return "不可恢复的网络变化"
+        case .providerDisabled: return "扩展被禁用"
+        case .authenticationCanceled: return "认证取消"
+        case .configurationFailed: return "配置失败"
+        case .idleTimeout: return "空闲超时"
+        case .configurationDisabled: return "配置被禁用"
+        case .configurationRemoved: return "配置被删除"
+        case .superceded: return "被新配置取代"
+        case .logout: return "用户登出"
+        case .userSwitch: return "用户切换"
+        case .connectionFailed: return "连接失败"
+        case .sleep: return "设备睡眠"
+        case .appUpdate: return "应用更新"
+        case .internalError: return "内部错误"
+        @unknown default: return "未知(\(原因.rawValue))"
+        }
     }
 
     // MARK: - 流量统计定时器（诊断用）
@@ -401,7 +472,66 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     private func 输出流量统计() {
         let proxy统计 = XrayCore.shared.queryStats(tag: "proxy")
         let direct统计 = XrayCore.shared.queryStats(tag: "direct")
-        扩展文件日志器.shared.记录("📊 流量统计 | proxy: \(proxy统计) | direct: \(direct统计)")
+        let 内存信息 = 获取当前内存使用()
+        扩展文件日志器.shared.记录("📊 流量统计 | proxy: \(proxy统计) | direct: \(direct统计) | 内存: \(内存信息)")
+    }
+
+    // MARK: - 心跳文件管理（异常退出检测）
+
+    /// 创建心跳文件（隧道启动成功后调用，包含启动时间）
+    private func 创建心跳文件() {
+        guard let 容器 = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: kAppGroup标识
+        ) else { return }
+
+        let 心跳文件 = 容器.appendingPathComponent(k心跳文件名)
+        let 时间Formatter = DateFormatter()
+        时间Formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let 启动时间 = 时间Formatter.string(from: Date())
+
+        let 字典: [String: Any] = [
+            "启动时间": 启动时间,
+            "进程标识": ProcessInfo.processInfo.processIdentifier,
+            "版本": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "未知"
+        ]
+
+        if let 数据 = try? PropertyListSerialization.data(fromPropertyList: 字典, format: .xml, options: 0) {
+            try? 数据.write(to: 心跳文件, options: .atomic)
+            扩展文件日志器.shared.记录("💓 心跳文件已创建（启动时间：\(启动时间)）")
+        }
+    }
+
+    /// 删除心跳文件（隧道正常停止时调用）
+    private func 删除心跳文件() {
+        guard let 容器 = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: kAppGroup标识
+        ) else { return }
+
+        let 心跳文件 = 容器.appendingPathComponent(k心跳文件名)
+        if FileManager.default.fileExists(atPath: 心跳文件.path) {
+            try? FileManager.default.removeItem(at: 心跳文件)
+            扩展文件日志器.shared.记录("💓 心跳文件已删除（正常停止）")
+        }
+    }
+
+    // MARK: - 内存监控
+
+    /// 获取当前进程内存使用情况（用于诊断jetsam内存压力）
+    private func 获取当前内存使用() -> String {
+        var 任务信息 = mach_task_basic_info()
+        var 计数 = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / MemoryLayout<natural_t>.size)
+
+        let 结果: kern_return_t = withUnsafeMutablePointer(to: &任务信息) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(计数)) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &计数)
+            }
+        }
+
+        guard 结果 == KERN_SUCCESS else { return "未知" }
+
+        let 已用字节 = 任务信息.resident_size
+        let 已用MB = Double(已用字节) / 1024.0 / 1024.0
+        return String(format: "%.1f MB", 已用MB)
     }
 
     // MARK: - 主 App 消息通道
