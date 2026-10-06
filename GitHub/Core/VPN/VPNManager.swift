@@ -635,6 +635,12 @@ final class VPNManager: NSObject, ObservableObject {
 
     func 断开() {
         记录日志(级别: .信息, 模块: "连接", 内容: "断开 VPN")
+        // 立即更新 UI 状态为断开中，避免开关视觉回弹卡住
+        // 实际 NEVPNStatus 变化由通知异步更新
+        DispatchQueue.main.async { [weak self] in
+            self?.当前连接状态 = .disconnecting
+            self?.onStatusChange?(.disconnecting)
+        }
         当前管理器?.connection.stopVPNTunnel()
     }
 

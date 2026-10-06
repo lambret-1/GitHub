@@ -223,6 +223,15 @@ struct VPNMainView: View {
                 ))
                 .labelsHidden()
                 .frame(width: 51)
+                // 过渡状态（连接中/断开中/重连中/准备中）禁用开关，防止重复点击导致卡住
+                .disabled(vpnManagerObservable.connectionStatus == .connecting
+                         || vpnManagerObservable.connectionStatus == .disconnecting
+                         || vpnManagerObservable.connectionStatus == .reasserting
+                         || vpnManagerObservable.connectionStatus == .preparing)
+                .opacity((vpnManagerObservable.connectionStatus == .connecting
+                         || vpnManagerObservable.connectionStatus == .disconnecting
+                         || vpnManagerObservable.connectionStatus == .reasserting
+                         || vpnManagerObservable.connectionStatus == .preparing) ? 0.5 : 1.0)
                 // 这是一个什么东西：连接开关宽度
                 // 控制哪里：连接状态行右侧开关的宽度
                 // 单位是什么：pt（点）
@@ -676,8 +685,17 @@ struct VPNMainView: View {
 
     // MARK: - 方法
 
-    /// 切换连接状态
+    /// 切换连接状态（防重复点击保护）
     private func toggleConnection() {
+        let 当前状态 = vpnManagerObservable.connectionStatus
+        // 过渡状态直接忽略，防止重复点击
+        guard 当前状态 != .connecting,
+              当前状态 != .disconnecting,
+              当前状态 != .reasserting,
+              当前状态 != .preparing else {
+            记录日志(级别: .信息, 模块: "UI", 内容: "过渡状态中忽略切换请求：\(当前状态.displayText)")
+            return
+        }
         VPNManager.shared.toggleConnection { error in
             if let error = error {
                 displayAlert(message: "连接失败: \(error.localizedDescription)")

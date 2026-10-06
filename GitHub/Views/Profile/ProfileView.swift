@@ -15,6 +15,9 @@ struct ProfileView: View {
     // 用于导航栏显示 VPN 连接状态图标
     @State private var vpnConnectionStatus: VPNConnectionStatus = .disconnected
 
+    /// VPN 状态刷新定时器（每秒刷新一次，确保导航栏图标实时更新）
+    @State private var vpn状态定时器: Timer?
+
     // 检查更新相关状态
     @State private var isCheckingUpdate = false
     @State private var showUpdateResult = false
@@ -273,9 +276,14 @@ struct ProfileView: View {
                     }
                 }
             }
-            // 页面出现时刷新 VPN 连接状态
+            // 页面出现时刷新 VPN 连接状态并启动定时刷新
             .onAppear {
                 refreshVPNStatus()
+                启动VPN状态定时器()
+            }
+            // 页面消失时停止定时器，避免内存泄漏
+            .onDisappear {
+                停止VPN状态定时器()
             }
             // 检查更新结果alert
             .alert(isPresented: $showUpdateResult) {
@@ -347,7 +355,10 @@ struct ProfileView: View {
             .navigationDestination(isPresented: $showDebugLogs) {
                 DebugLogView()
             }
-            .sheet(isPresented: $showVPN) {
+            .sheet(isPresented: $showVPN, onDismiss: {
+                // VPN 页面关闭后立即刷新导航栏状态图标
+                refreshVPNStatus()
+            }) {
                 VPNMainView()
                     .presentationDetents([.fraction(0.95)])
                     .presentationDragIndicator(.visible)
@@ -401,6 +412,22 @@ struct ProfileView: View {
     /// 从 VPNManager 获取当前连接状态并更新 UI
     private func refreshVPNStatus() {
         vpnConnectionStatus = VPNManager.shared.connectionStatus
+    }
+
+    /// 启动 VPN 状态定时刷新器（每秒刷新一次导航栏图标）
+    private func 启动VPN状态定时器() {
+        停止VPN状态定时器()
+        let 定时器 = Timer(timeInterval: 1.0, repeats: true) { _ in
+            refreshVPNStatus()
+        }
+        RunLoop.main.add(定时器, forMode: .common)
+        vpn状态定时器 = 定时器
+    }
+
+    /// 停止 VPN 状态定时刷新器
+    private func 停止VPN状态定时器() {
+        vpn状态定时器?.invalidate()
+        vpn状态定时器 = nil
     }
 
     // MARK: - 检查更新
