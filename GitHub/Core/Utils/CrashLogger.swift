@@ -9,6 +9,7 @@
 
 import Foundation
 import UIKit
+import SwiftUI
 
 /// 崩溃日志记录器（单例模式）
 final class CrashLogger {
