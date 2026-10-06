@@ -795,12 +795,16 @@ final class VPNManager: NSObject, ObservableObject {
 
             connection.cancel()
 
-            if case .success(let 延迟) = 结果,
-               let idx = self.节点列表.firstIndex(where: { $0.id == 节点ID }) {
-                self.节点列表[idx].latency = 延迟
-                self.保存节点列表()
+            // 节点列表修改必须在主线程执行，避免与UI线程并发访问导致堆内存损坏
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                if case .success(let 延迟) = 结果,
+                   let idx = self.节点列表.firstIndex(where: { $0.id == 节点ID }) {
+                    self.节点列表[idx].latency = 延迟
+                    self.保存节点列表()
+                }
+                完成(结果)
             }
-            完成(结果)
         }
 
         let 超时工作项 = DispatchWorkItem {
