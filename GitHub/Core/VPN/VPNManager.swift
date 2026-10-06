@@ -942,39 +942,183 @@ final class VPNManager: NSObject, ObservableObject {
                 ],
                 "outboundTag": "direct"
             ])
-            // 中国大陆域名直连（常用国内域名后缀）
+            // 中国大陆域名直连（显式列出常用国内域名，避免依赖 geosite.dat）
             规则列表.append([
                 "type": "field",
                 "domain": [
-                    "geosite:cn",
-                    "baidu.com",
-                    "qq.com",
-                    "taobao.com",
-                    "tmall.com",
-                    "jd.com",
-                    "alipay.com",
-                    "weixin.qq.com",
-                    "bilibili.com",
-                    "douyin.com",
-                    "zhihu.com",
-                    "weibo.com",
-                    "ximalaya.com",
-                    "xunlei.com",
-                    "163.com",
-                    "126.com",
-                    "sina.com.cn",
-                    "sohu.com",
-                    "ifeng.com",
-                    "thepaper.cn"
+                    // 搜索引擎
+                    "baidu.com", "bdstatic.com", "baidubce.com",
+                    "sogou.com", "so.com", "360.cn", "360.com",
+                    "bing.com", "cn.bing.com",
+                    // 腾讯系
+                    "qq.com", "tencent.com", "weixin.qq.com",
+                    "wechat.com", "gtimg.com", "qpic.cn",
+                    "tenpay.com", "tencent-cloud.com", "qcloud.com",
+                    "cdn.dnsv1.com", "myqcloud.com",
+                    // 阿里系
+                    "taobao.com", "tmall.com", "alibaba.com",
+                    "alipay.com", "alipayobjects.com", "aliyun.com",
+                    "aliyuncs.com", "alicdn.com", "mmstat.com",
+                    "tbcdn.cn", "taobaocdn.com", "tbcache.com",
+                    "xiami.com", "dingtalk.com",
+                    // 京东系
+                    "jd.com", "jd.hk", "3.cn", "jdcloud.com",
+                    "jcloudcs.com", "jdpay.com",
+                    // 字节系
+                    "douyin.com", "toutiao.com", "bytedance.com",
+                    "bytecdn.cn", "byteimg.com", "ixigua.com",
+                    "feiliao.com", "huoshan.com", "snssdk.com",
+                    "pstatp.com", "bytegoofy.com",
+                    // B站
+                    "bilibili.com", "bilibili.cn", "hdslb.com",
+                    "acgvideo.com", "bilivideo.com", "bilivideo.cn",
+                    // 网易系
+                    "163.com", "126.com", "163yun.com", "netease.com",
+                    "126.net", "yeah.net", "nease.net",
+                    "music.163.com", "study.163.com", "open.163.com",
+                    "mail.163.com", "daxue.163.com",
+                    // 新浪系
+                    "sina.com.cn", "sina.cn", "sina.com",
+                    "weibo.com", "weibo.cn", "sinaimg.cn",
+                    "sinaimg.com", "sinajs.cn", "miaopai.com",
+                    // 搜狐
+                    "sohu.com", "sohu.cn", "sohucs.com",
+                    "sohucdn.com", "56.com", "focus.cn",
+                    // 凤凰网
+                    "ifeng.com", "ifeng.cn", "ifengimg.com",
+                    // 知乎
+                    "zhihu.com", "zhimg.com", "zhihu.io",
+                    // 美团
+                    "meituan.com", "meituan.net", "dianping.com",
+                    "meituan.net.cn", "mtcdn.com",
+                    // 滴滴
+                    "xiaojukeji.com", "didi.cn", "didi.global",
+                    // 拼多多
+                    "pinduoduo.com", "pdd.net", "yangkeduo.com",
+                    // 小米
+                    "mi.com", "xiaomi.com", "miui.com",
+                    "mi-fitness.com", "xiaomiyoupin.com",
+                    // 华为
+                    "huawei.com", "huaweicloud.com", "vmall.com",
+                    "hicloud.com", "hwcdn.cn",
+                    // OPPO/vivo
+                    "oppo.com", "vivo.com.cn", "heytap.com",
+                    "vivo.com",
+                    // 百度网盘/文库
+                    "pan.baidu.com", "wenku.baidu.com",
+                    "yun.baidu.com", "baidupcs.com",
+                    // 携程/去哪儿
+                    "ctrip.com", "qunar.com", "trip.com",
+                    "ctripcdn.com",
+                    // 58同城/赶集
+                    "58.com", "ganji.com", "58cdn.com.cn",
+                    // 汽车之家/易车
+                    "autohome.com.cn", "yiche.com", "autohome.com",
+                    // 贝壳/链家
+                    "ke.com", "lianjia.com", "kecdn.com",
+                    // 斗鱼/虎牙
+                    "douyu.com", "huya.com", "douyucdn.cn",
+                    "huyacdn.com",
+                    // 喜马拉雅/蜻蜓
+                    "ximalaya.com", "ximalaya.so", "qingting.fm",
+                    // 迅雷/网盘
+                    "xunlei.com", "xunlei.cn", "kanimg.com",
+                    // 豆瓣
+                    "douban.com", "doubanio.com",
+                    // 果壳/36氪
+                    "guokr.com", "36kr.com", "36kr.net",
+                    // 虎扑
+                    "hupu.com", "hupucdn.com",
+                    // 中关村在线/太平洋
+                    "zol.com.cn", "pconline.com.cn",
+                    // 天气
+                    "weather.com.cn", "nmc.cn",
+                    // 铁路/航空
+                    "12306.cn", "95306.cn", "caac.gov.cn",
+                    // 政府/教育
+                    "gov.cn", "edu.cn", "org.cn", "ac.cn",
+                    // 银行
+                    "icbc.com.cn", "ccb.com", "boc.cn",
+                    "abchina.com", "bankcomm.com", "cmbchina.com",
+                    "spdb.com.cn", "citicbank.com", "cebbank.com",
+                    "cmbc.com.cn", "cib.com.cn", "psbc.com",
+                    // 运营商
+                    "chinamobile.com", "10086.cn", "chinaunicom.cn",
+                    "10010.cn", "chinatelecom.cn", "189.cn",
+                    // 快递
+                    "sf-express.com", "yto.net.cn", "zto.com",
+                    "yd-express.com", "sto.cn", "qexpress.com",
+                    // 其他常用
+                    "csdn.net", "jianshu.com", "cnblogs.com",
+                    "oschina.net", "segmentfault.com", "juejin.cn",
+                    "nowcoder.com", "leetcode.cn", "luogu.com.cn",
+                    "mafengwo.cn", "qyer.com", "ly.com",
+                    "111.com.cn", "dxy.cn", "haodf.com",
+                    "guahao.com", "91160.com",
+                    "10086.cn", "10010.com", "10000.cn",
+                    "2345.com", "hao123.com", "114la.com",
+                    "cnki.net", "wanfangdata.com.cn", "cqvip.com",
+                    "douban.fm", "music.douban.com",
+                    "pptv.com", "iqiyi.com", "qiyi.com",
+                    "youku.com", "tudou.com", "mgtv.com",
+                    "le.com", "letv.com",
+                    "acfun.cn", "acfun.com",
+                    "maoyan.com", "gewara.com", "nuomi.com",
+                    "ele.me", "ele.me", "taopiaopiao.com",
+                    "flgy.com", "damai.cn", "228.com",
+                    "kugou.com", "kuwo.cn", "qianqian.com",
+                    "5sing.com", "changba.com", "fenbei.com",
+                    "91.com", "18183.com", "4399.com",
+                    "7k7k.com", "17173.com", "duowan.com",
+                    "yy.com", "huanju.cn", "bigo.tv",
+                    "inke.cn", "huajiao.com", "yizhibo.com",
+                    "xiaohongshu.com", "xhslink.com",
+                    "dewu.com", "poizon.com", "shizhuang.com",
+                    "babytree.com", "qinbei.com", "yaolan.com",
+                    "51job.com", "zhaopin.com", "liepin.com",
+                    "lagou.com", "kanzhun.com", "zhiwei.com",
+                    "anjuke.com", "fang.com", "soufun.com",
+                    "fangdd.com", "woolike.com",
+                    "1mpi.com", "ditu.baidu.com", "amap.com",
+                    "gaode.com", "soso.com", "tencentmap.com",
+                    "weather.com", "accuweather.com",
+                    "wps.cn", "wps.com", "kdocs.cn",
+                    "yuque.com", "feishu.cn", "larkoffice.com",
+                    "dingtalk.com", "alibabausercontent.com",
+                    "qy.net", "weixinbridge.com",
+                    "wx.qq.com", "wxapp.tc.qq.com",
+                    "servicewechat.com", "qlogo.cn",
+                    "mmbiz.qpic.cn", "mmbiz.qlogo.cn",
+                    "res.wx.qq.com", "shp.qpic.cn",
+                    "findbiz.nosdn.127.net",
+                    "music.126.net", "mail.126.com",
+                    "you.163.com", "yanxuan.com",
+                    "haohuo.163.com", "read.163.com",
+                    "open.163.com", "m.163.com",
+                    "3g.163.com", "mobile.163.com",
+                    "163yun.com", "qiyukf.com",
+                    "netease.im", "yunxin.163.com",
+                    "hubble.netease.com", "daojia.netease.com",
+                    "lofter.com", "163.fm",
+                    "blog.163.com", "bbs.netease.com",
+                    "comment.news.163.com", "c.m.163.com",
+                    "th.bing.com", "cn.bing.com",
+                    "ssl.bing.com", "www.bing.com",
+                    "bing.com", "msn.cn", "msn.com",
+                    "outlook.com", "live.com", "hotmail.com",
+                    "microsoft.com", "office.com",
+                    "office365.com", "microsoftonline.com",
+                    "windows.com", "windowsupdate.com",
+                    "msecnd.net", "visualstudio.com",
+                    "nuget.org", "dotnet.microsoft.com",
+                    "azure.cn", "microsoftazure.cn",
+                    "chinacloudapi.cn", "microsoftsupport.com",
+                    "answers.microsoft.com", "support.microsoft.com"
                 ],
                 "outboundTag": "direct"
             ])
-            // 中国大陆 IP 直连（使用 geoip:cn）
-            规则列表.append([
-                "type": "field",
-                "ip": ["geoip:cn"],
-                "outboundTag": "direct"
-            ])
+            // 注意：不使用 geoip:cn（依赖 geoip.dat，当前框架未内置）
+            // 国内 IP 直连通过域名规则覆盖大部分场景
 
         case .规则模式:
             // 规则模式：预留自定义规则入口，当前默认绕过局域网
