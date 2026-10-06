@@ -185,7 +185,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                 self.安全回调(设置错误, completionHandler: completionHandler)
                 return
             }
-            扩展文件日志器.shared.关键记录("✅ TUN 网络设置成功已生效")
+            扩展文件日志器.shared.关键记录("✅ TUN 网络设置已生效")
 
             // 4. 获取 TUN 文件描述符
             guard let tun描述符 = self.获取TUN文件描述符() else {
