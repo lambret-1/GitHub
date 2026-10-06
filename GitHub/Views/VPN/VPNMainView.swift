@@ -693,7 +693,6 @@ struct VPNMainView: View {
               当前状态 != .disconnecting,
               当前状态 != .reasserting,
               当前状态 != .preparing else {
-            记录日志(级别: .信息, 模块: "UI", 内容: "过渡状态中忽略切换请求：\(当前状态.displayText)")
             return
         }
         VPNManager.shared.toggleConnection { error in
