@@ -249,14 +249,12 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             扩展文件日志器.shared.关键记录("Xray 未启动，无需停止")
         }
 
-        setTunnelNetworkSettings(nil) { 清空错误 in
-            if let 清空错误 = 清空错误 {
-                扩展文件日志器.shared.记录("⚠️ 清空网络设置失败：\(清空错误.localizedDescription)")
-            } else {
-                扩展文件日志器.shared.记录("✅ 网络设置已清空")
-            }
-            completionHandler()
-        }
+        // 注意：不在此处调用 setTunnelNetworkSettings(nil)
+        // 原因：系统在 stopTunnel 完成后会自动清理网络设置，
+        //       手动调用会与系统清理流程冲突，导致 NEAgentErrorDomain 错误，
+        //       进而可能使系统认为隧道未完全断开，出现"开关关闭不了"的问题。
+        扩展文件日志器.shared.关键记录("stopTunnel 处理完成，等待系统自动清理网络设置")
+        completionHandler()
     }
 
     // MARK: - 主 App 消息通道
