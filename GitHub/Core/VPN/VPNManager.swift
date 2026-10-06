@@ -864,18 +864,54 @@ final class VPNManager: NSObject, ObservableObject {
 
     // MARK: - Xray 配置生成
 
+    /// 写入 Xray 配置到 App Group（双写机制：UserDefaults + 共享文件）
+    ///
+    /// 为什么需要双写：
+    /// - UserDefaults 跨进程同步存在时序窗口，主 App 写入后扩展进程可能立即启动，
+    ///   此时 UserDefaults 的磁盘 plist 可能尚未刷新，扩展读不到
+    /// - 共享文件写入使用 .atomic 选项，保证扩展读取时文件一定完整
+    /// - 扩展端读取逻辑优先读 UserDefaults，失败后回退到共享文件，双写确保至少一条通道可用
     private func 写入Xray配置到AppGroup(_ 节点: VPNNode) {
-        guard let defaults = UserDefaults(suiteName: appGroup标识) else { return }
-
         let 配置 = 生成Xray配置(节点)
 
-        if let 数据 = try? JSONSerialization.data(withJSONObject: 配置, options: .prettyPrinted),
-           let 字符串 = String(data: 数据, encoding: .utf8) {
+        guard let 数据 = try? JSONSerialization.data(withJSONObject: 配置, options: .prettyPrinted),
+              let 字符串 = String(data: 数据, encoding: .utf8),
+              !字符串.isEmpty else {
+            记录日志(级别: .错误, 模块: "配置", 内容: "生成 Xray 配置失败或配置为空")
+            return
+        }
+
+        var 写入成功计数 = 0
+
+        // 通道一：写入 UserDefaults（App Group 共享）
+        if let defaults = UserDefaults(suiteName: appGroup标识) {
             defaults.set(字符串, forKey: xray配置键)
-            let 内容 = "Xray 配置已写入 App Group（\(字符串.count) 字节）"
-            记录日志(级别: .信息, 模块: "配置", 内容: 内容)
+            // 强制立即刷盘，缩短跨进程同步窗口
+            defaults.synchronize()
+            写入成功计数 += 1
+            记录日志(级别: .信息, 模块: "配置", 内容: "UserDefaults 写入成功（键：\(xray配置键)，\(字符串.utf8.count) 字节）")
         } else {
-            记录日志(级别: .错误, 模块: "配置", 内容: "生成 Xray 配置失败")
+            记录日志(级别: .错误, 模块: "配置", 内容: "无法访问 App Group UserDefaults（suiteName：\(appGroup标识)）")
+        }
+
+        // 通道二：写入共享文件（App Group 容器内）
+        if let 容器 = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup标识) {
+            let 文件URL = 容器.appendingPathComponent("xray_config.json")
+            do {
+                try 字符串.write(to: 文件URL, atomically: true, encoding: .utf8)
+                写入成功计数 += 1
+                记录日志(级别: .信息, 模块: "配置", 内容: "共享文件写入成功（路径：\(文件URL.path)，\(字符串.utf8.count) 字节）")
+            } catch {
+                记录日志(级别: .错误, 模块: "配置", 内容: "共享文件写入失败：\(error.localizedDescription)")
+            }
+        } else {
+            记录日志(级别: .错误, 模块: "配置", 内容: "无法访问 App Group 容器（identifier：\(appGroup标识)）")
+        }
+
+        if 写入成功计数 > 0 {
+            记录日志(级别: .信息, 模块: "配置", 内容: "Xray 配置双写完成（成功通道：\(写入成功计数)/2），\(字符串.utf8.count) 字节")
+        } else {
+            记录日志(级别: .错误, 模块: "配置", 内容: "Xray 配置双写全部失败，VPN 扩展将无法读取配置")
         }
     }
 

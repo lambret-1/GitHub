@@ -290,17 +290,35 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - 配置读取
 
     private static func 读取Xray配置() -> String? {
-        if let defaults = UserDefaults(suiteName: kAppGroup标识),
-           let 配置 = defaults.string(forKey: kXray配置键),
-           !配置.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return 配置
+        // 前置诊断：检查 App Group 容器是否可用
+        if let 容器 = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: kAppGroup标识) {
+            扩展文件日志器.shared.关键记录("App Group 容器可用：\(容器.path)")
+        } else {
+            扩展文件日志器.shared.关键记录("❌ App Group 容器不可用！entitlements 或 Provisioning Profile 可能未配置 App Groups：\(kAppGroup标识)")
         }
 
+        // 通道一：从 UserDefaults（App Group 共享）读取
+        if let defaults = UserDefaults(suiteName: kAppGroup标识) {
+            if let 配置 = defaults.string(forKey: kXray配置键),
+               !配置.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                扩展文件日志器.shared.关键记录("从 UserDefaults 读取到 Xray 配置（\(配置.utf8.count) 字节）")
+                return 配置
+            } else {
+                // 诊断：UserDefaults 中所有键，帮助排查是否写入了其他键名
+                let 所有键 = defaults.dictionaryRepresentation().keys.filter { !$0.hasPrefix("NS") && !$0.hasPrefix("Apple") }
+                扩展文件日志器.shared.关键记录("UserDefaults 中未找到键 \(kXray配置键)，现有自定义键：\(所有键.joined(separator: ", "))")
+            }
+        } else {
+            扩展文件日志器.shared.关键记录("❌ 无法创建 UserDefaults(suiteName: \(kAppGroup标识))")
+        }
+
+        // 通道二：从共享文件读取（UserDefaults 为空时的回退）
         if let 容器 = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: kAppGroup标识) {
             let 文件 = 容器.appendingPathComponent("xray_config.json")
+            扩展文件日志器.shared.关键记录("尝试从共享文件读取：\(文件.path)（存在：\(FileManager.default.fileExists(atPath: 文件.path))）")
             if let 内容 = try? String(contentsOf: 文件, encoding: .utf8),
                !内容.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                扩展文件日志器.shared.关键记录("从文件读取到 Xray 配置（UserDefaults 为空）")
+                扩展文件日志器.shared.关键记录("从共享文件读取到 Xray 配置（UserDefaults 为空，\(内容.utf8.count) 字节）")
                 return 内容
             }
         }
