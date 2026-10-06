@@ -355,33 +355,85 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - TUN 文件描述符
 
     private func 获取TUN文件描述符() -> Int32? {
-        // 使用安全 KVC 调用（Objective-C @try/@catch 包裹），
-        // 防止键路径不存在时抛出 NSUnknownKeyException 导致扩展进程崩溃
-        if let num = safe_valueForKeyPath("packetFlow.socket.fileDescriptor", self) as? NSNumber {
-            let fd = num.int32Value
-            if fd > 0 {
-                扩展文件日志器.shared.关键记录("KVC(self) 获取到 TUN fd=\(fd)")
-                return fd
+        // 已知路径尝试（按优先级排序）
+        let 已知路径列表: [(描述: String, 键路径: String, 对象: Any)] = [
+            ("self.packetFlow.socket.fileDescriptor", "packetFlow.socket.fileDescriptor", self),
+            ("packetFlow.socket.fileDescriptor", "socket.fileDescriptor", packetFlow),
+            ("packetFlow._socket.fileDescriptor", "_socket.fileDescriptor", packetFlow),
+            ("packetFlow.interface.fileDescriptor", "interface.fileDescriptor", packetFlow),
+            ("packetFlow._interface.fileDescriptor", "_interface.fileDescriptor", packetFlow),
+            ("packetFlow.tunInterface.fileDescriptor", "tunInterface.fileDescriptor", packetFlow),
+            ("packetFlow._tunInterface.fileDescriptor", "_tunInterface.fileDescriptor", packetFlow),
+            ("packetFlow.fileDescriptor", "fileDescriptor", packetFlow),
+            ("packetFlow._fileDescriptor", "_fileDescriptor", packetFlow),
+        ]
+
+        for (描述, 键路径, 对象) in 已知路径列表 {
+            if let num = safe_valueForKeyPath(键路径, 对象 as AnyObject) as? NSNumber {
+                let fd = num.int32Value
+                if fd > 0 {
+                    扩展文件日志器.shared.关键记录("✅ KVC 路径 [\(描述)] 获取到 TUN fd=\(fd)")
+                    return fd
+                }
             }
         }
 
-        if let num = safe_valueForKeyPath("socket.fileDescriptor", packetFlow) as? NSNumber {
-            let fd = num.int32Value
-            if fd > 0 {
-                扩展文件日志器.shared.关键记录("KVC(packetFlow) 获取到 TUN fd=\(fd)")
-                return fd
+        // 单键尝试：先获取 socket/interface 对象，再从对象获取 fileDescriptor
+        let 单键列表 = ["socket", "_socket", "interface", "_interface", "tunInterface", "_tunInterface", "tun", "_tun"]
+        for 键 in 单键列表 {
+            if let 对象 = safe_valueForKey(键, packetFlow) {
+                扩展文件日志器.shared.关键记录("发现 packetFlow 属性 [\(键)]，类型：\(type(of: 对象))")
+                if let num = safe_valueForKeyPath("fileDescriptor", 对象 as AnyObject) as? NSNumber {
+                    let fd = num.int32Value
+                    if fd > 0 {
+                        扩展文件日志器.shared.关键记录("✅ 从属性 [\(键)].fileDescriptor 获取到 TUN fd=\(fd)")
+                        return fd
+                    }
+                }
+                // 尝试 _fileDescriptor
+                if let num = safe_valueForKeyPath("_fileDescriptor", 对象 as AnyObject) as? NSNumber {
+                    let fd = num.int32Value
+                    if fd > 0 {
+                        扩展文件日志器.shared.关键记录("✅ 从属性 [\(键)]._fileDescriptor 获取到 TUN fd=\(fd)")
+                        return fd
+                    }
+                }
             }
         }
 
-        if let num = safe_valueForKeyPath("fileDescriptor", packetFlow) as? NSNumber {
-            let fd = num.int32Value
-            if fd > 0 {
-                扩展文件日志器.shared.关键记录("KVC(packetFlow.fileDescriptor) 获取到 TUN fd=\(fd)")
-                return fd
+        // 运行时诊断：枚举 packetFlow 所有属性名，帮助定位正确的私有属性
+        let 属性列表 = enumerate_property_names(packetFlow)
+        扩展文件日志器.shared.关键记录("📋 packetFlow 运行时属性列表（\(属性列表.count)个）：\(属性列表.joined(separator: ", "))")
+
+        // 对包含关键词的属性尝试获取 fileDescriptor
+        let 关键词列表 = ["socket", "interface", "tun", "fd", "file", "descriptor", "flow", "pipe"]
+        for 属性名 in 属性列表 {
+            let 小写名 = 属性名.lowercased()
+            guard 关键词列表.contains(where: { 小写名.contains($0) }) else { continue }
+            guard !单键列表.contains(属性名) else { continue } // 已尝试过的跳过
+
+            if let 对象 = safe_valueForKey(属性名, packetFlow) {
+                扩展文件日志器.shared.关键记录("发现候选属性 [\(属性名)]，类型：\(type(of: 对象))")
+                if let num = safe_valueForKeyPath("fileDescriptor", 对象 as AnyObject) as? NSNumber {
+                    let fd = num.int32Value
+                    if fd > 0 {
+                        扩展文件日志器.shared.关键记录("✅ 从候选属性 [\(属性名)].fileDescriptor 获取到 TUN fd=\(fd)")
+                        return fd
+                    }
+                }
             }
         }
 
-        扩展文件日志器.shared.关键记录("KVC 未能获取 TUN fd（所有私有路径均不可用）")
+        // 诊断：枚举 packetFlow 所有方法名（筛选可能相关的）
+        let 方法列表 = enumerate_method_names(packetFlow)
+        let 相关方法 = 方法列表.filter { 方法名 in
+            let 小写 = 方法名.lowercased()
+            return 小写.contains("socket") || 小写.contains("interface") || 小写.contains("tun")
+                || 小写.contains("filedescriptor") || 小写.contains("fd") || 小写.contains("flow")
+        }
+        扩展文件日志器.shared.关键记录("📋 packetFlow 相关方法列表（\(相关方法.count)个）：\(相关方法.joined(separator: ", "))")
+
+        扩展文件日志器.shared.关键记录("❌ KVC 未能获取 TUN fd（所有路径均不可用，已输出运行时诊断）")
         return nil
     }
 }
