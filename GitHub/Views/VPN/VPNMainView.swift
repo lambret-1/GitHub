@@ -619,56 +619,6 @@ struct VPNMainView: View {
             }
         }
     }
-        HStack(spacing: 10) {
-            // 协议图标
-            ZStack {
-                Circle()
-                    .fill(protocolColor(node.protocolType).opacity(0.15))
-                    .frame(width: 32, height: 32)
-                // 这是一个什么东西：协议图标圆形背景大小
-                // 控制哪里：节点行左侧协议图标的背景大小
-                // 单位是什么：pt（点）
-                // 改大有什么效果：图标背景变大
-                // 改小有什么效果：图标背景变小
-                // 还能怎么改：可以改成圆角矩形
-
-                Text(node.protocolType.displayName.prefix(2))
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(protocolColor(node.protocolType))
-            }
-
-            // 节点信息
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(node.remark)
-                        .font(.subheadline)
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-
-                    if vpnManagerObservable.currentNode?.id == node.id {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.system(size: 11))
-                    }
-                }
-
-                Text("\(node.protocolType.displayName)/\(node.transportType.displayName.uppercased())")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            // 延迟
-            if let latency = node.latency {
-                Text("\(latency)ms")
-                    .font(.subheadline)
-                    .foregroundColor(latencyColor(latency))
-            }
-        }
-        .padding(.vertical, 4)
-    }
 
     /// 切换分组展开/折叠状态
     private func toggleGroup(_ groupName: String) {
