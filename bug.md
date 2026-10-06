@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-10-06 19:33:17 UTC
+**生成时间**: 2026-10-06 19:57:49 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -11,7 +11,7 @@
 | 类型 | 数量 | 状态 |
 |------|------|------|
 | 🔴 错误 | **00** 个 | 无错误 |
-| 🟡 警告 | **36** 个 | 建议清理 |
+| 🟡 警告 | **37** 个 | 建议清理 |
 
 ---
 
@@ -19,11 +19,11 @@
 
 | 警告类型 | 数量 | 占比 |
 |----------|------|------|
-| ⚠️ 弃用API警告 | 4 个 | 11% |
-| 📦 未使用变量警告 | 29 个 | 80% |
+| ⚠️ 弃用API警告 | 4 个 | 10% |
+| 📦 未使用变量警告 | 29 个 | 78% |
 | 🔄 类型转换警告 | 00 个 | 0% |
 | 🔍 可空性警告 | 00 个 | 0% |
-| 📝 其他警告 | 3 个 | 8% |
+| 📝 其他警告 | 4 个 | 10% |
 
 ---
 
@@ -35,18 +35,18 @@
 | 2 | `SearchView.swift` | 3 个 | 🟢 低 |
 | 3 | `PullRequestDetailView.swift` | 3 个 | 🟢 低 |
 | 4 | `XMLTokenizer.swift` | 2 个 | 🟢 低 |
-| 5 | `IssueDetailView.swift` | 2 个 | 🟢 低 |
-| 6 | `HTMLTokenizer.swift` | 2 个 | 🟢 低 |
-| 7 | `FileDownloadManager.swift` | 2 个 | 🟢 低 |
-| 8 | `FileBrowserView.swift` | 2 个 | 🟢 低 |
-| 9 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 10 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 11 | `SubscriptionListView.swift` | 1 个 | 🟢 低 |
-| 12 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
-| 13 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
-| 14 | `ReadmeView.swift` | 1 个 | 🟢 低 |
-| 15 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
-| 16 | `PacketTunnelProvider.swift` | 1 个 | 🟢 低 |
+| 5 | `PacketTunnelProvider.swift` | 2 个 | 🟢 低 |
+| 6 | `IssueDetailView.swift` | 2 个 | 🟢 低 |
+| 7 | `HTMLTokenizer.swift` | 2 个 | 🟢 低 |
+| 8 | `FileDownloadManager.swift` | 2 个 | 🟢 低 |
+| 9 | `FileBrowserView.swift` | 2 个 | 🟢 低 |
+| 10 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 11 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 12 | `SubscriptionListView.swift` | 1 个 | 🟢 低 |
+| 13 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
+| 14 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
+| 15 | `ReadmeView.swift` | 1 个 | 🟢 低 |
+| 16 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
 | 17 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
 | 18 | `JobLogView.swift` | 1 个 | 🟢 低 |
 | 19 | `INITokenizer.swift` | 1 个 | 🟢 低 |
@@ -91,10 +91,11 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:436:68: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
 ```
 
-### 📝 其他警告 (3个)
+### 📝 其他警告 (4个)
 
 ```
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'XrayKit' from project 'GitHub')
+/Users/runner/work/GitHub/GitHub/VPNPacketTunnel/PacketTunnelProvider.swift:430:9: warning: switch must be exhaustive
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: instance will be immediately deallocated because property 'delegate' is 'weak'
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Network/GitHubAPI.swift:1040:13: warning: variable 'body' was never mutated; consider changing to 'let' constant
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:494:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
@@ -102,7 +103,7 @@ warning: The application supports opening files, but doesn't declare whether it 
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: weak reference will always be nil because the referenced object is deallocated here
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'GitHub' from project 'GitHub')
-warning: The CFBundleVersion of an app extension ('1790153654') must match that of its containing parent app ('1791314934').
+warning: The CFBundleVersion of an app extension ('1790153654') must match that of its containing parent app ('1791316426').
 ```
 
 ---
