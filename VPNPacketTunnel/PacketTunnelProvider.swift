@@ -196,8 +196,11 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             扩展文件日志器.shared.关键记录("✅ 获取到 TUN 文件描述符：\(tun描述符)")
 
             // 5. 后台启动 Xray
+            扩展文件日志器.shared.关键记录("即将调用 XrayCore.start（config=\(配置字符串.utf8.count)字节, tunFd=\(tun描述符)）")
             DispatchQueue.global(qos: .userInitiated).async {
+                扩展文件日志器.shared.关键记录("后台线程已启动，正在调用 StartXray C 函数...")
                 let 启动结果 = XrayCore.shared.start(configJSON: 配置字符串, tunFd: tun描述符)
+                扩展文件日志器.shared.关键记录("StartXray C 函数已返回，错误码：\(启动结果)")
 
                 DispatchQueue.main.async {
                     guard 启动结果 == 0 else {
@@ -352,7 +355,9 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - TUN 文件描述符
 
     private func 获取TUN文件描述符() -> Int32? {
-        if let num = value(forKeyPath: "packetFlow.socket.fileDescriptor") as? NSNumber {
+        // 使用安全 KVC 调用（Objective-C @try/@catch 包裹），
+        // 防止键路径不存在时抛出 NSUnknownKeyException 导致扩展进程崩溃
+        if let num = safe_valueForKeyPath("packetFlow.socket.fileDescriptor", self) as? NSNumber {
             let fd = num.int32Value
             if fd > 0 {
                 扩展文件日志器.shared.关键记录("KVC(self) 获取到 TUN fd=\(fd)")
@@ -360,7 +365,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        if let num = packetFlow.value(forKeyPath: "socket.fileDescriptor") as? NSNumber {
+        if let num = safe_valueForKeyPath("socket.fileDescriptor", packetFlow) as? NSNumber {
             let fd = num.int32Value
             if fd > 0 {
                 扩展文件日志器.shared.关键记录("KVC(packetFlow) 获取到 TUN fd=\(fd)")
@@ -368,7 +373,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        if let num = packetFlow.value(forKeyPath: "fileDescriptor") as? NSNumber {
+        if let num = safe_valueForKeyPath("fileDescriptor", packetFlow) as? NSNumber {
             let fd = num.int32Value
             if fd > 0 {
                 扩展文件日志器.shared.关键记录("KVC(packetFlow.fileDescriptor) 获取到 TUN fd=\(fd)")
@@ -376,7 +381,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        扩展文件日志器.shared.关键记录("KVC 未能获取 TUN fd")
+        扩展文件日志器.shared.关键记录("KVC 未能获取 TUN fd（所有私有路径均不可用）")
         return nil
     }
 }

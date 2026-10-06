@@ -130,6 +130,8 @@ targets:
         INFOPLIST_FILE: VPNPacketTunnel/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: VPNPacketTunnel/VPNPacketTunnel.entitlements
+        # Objective-C 桥接头文件：暴露 SafeKVC 等 C/ObjC 函数给 Swift 调用
+        SWIFT_OBJC_BRIDGING_HEADER: VPNPacketTunnel/VPNPacketTunnel-Bridging-Header.h
         # 剥离调试符号（减小体积）
         STRIP_INSTALLED_PRODUCT: YES
         STRIP_STYLE: all
