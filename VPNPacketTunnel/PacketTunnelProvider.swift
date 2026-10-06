@@ -397,7 +397,8 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - 停止隧道
 
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
-        扩展文件日志器.shared.关键记录("=== stopTunnel 被调用，原因码：\(reason.rawValue)（\(Self.停止原因名称(reason)）） ===")
+        let 原因名称 = Self.停止原因名称(reason)
+        扩展文件日志器.shared.关键记录("=== stopTunnel 被调用，原因码：\(reason.rawValue)，原因：\(原因名称) ===")
 
         状态锁.lock()
         let 需要停止 = xray已启动
@@ -439,12 +440,10 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         case .configurationDisabled: return "配置被禁用"
         case .configurationRemoved: return "配置被删除"
         case .superceded: return "被新配置取代"
-        case .logout: return "用户登出"
         case .userSwitch: return "用户切换"
         case .connectionFailed: return "连接失败"
         case .sleep: return "设备睡眠"
         case .appUpdate: return "应用更新"
-        case .internalError: return "内部错误"
         @unknown default: return "未知(\(原因.rawValue))"
         }
     }
