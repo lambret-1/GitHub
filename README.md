@@ -314,6 +314,11 @@ GitHub/
 ## 更新日志
 
 <!-- CHANGELOG_START -->
+### v6.7.8 (2026-10-06 14:37:08)
+
+- **构建Commit**: `86e4a01`
+- **IPA SHA256**: `2e1c76bfe83e46ffaffa209019cb00afcf3f7ae37cbdd5baedd1cbb16e986faa`
+- **更新内容**: 生产构建版本，包含完整代码管理功能
 ### v6.7.4 (2026-10-06 13:00:55)
 
 - **构建Commit**: `e57bad8`
