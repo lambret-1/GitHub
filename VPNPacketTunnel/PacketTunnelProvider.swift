@@ -32,7 +32,7 @@ final class 扩展文件日志器 {
 
     private init() {}
 
-    /// 普通日志（异步写入，性能好）
+    /// 普通日志（异步写入）
     func 记录(_ 消息: String) {
         let 行内容 = "[\(日期格式化器.string(from: Date()))] \(消息)\n"
         队列.async {
@@ -48,18 +48,17 @@ final class 扩展文件日志器 {
         }
     }
 
-    /// 内部真正写文件
+    /// 内部写文件
     private func 写入(_ 行内容: String) {
-        guard let 目录 = self.容器目录?.appendingPathComponent(k日志目录名, isDirectory: trueTo) else { return }
+        guard let 目录 = self.容器目录?.appendingPathComponent(k日志目录名, isDirectory: true) else { return }
         do {
-            try FileManager.default.createDirectory(at: 目录, withIntermediateEndDirectories: true)
+            try FileManager.default.createDirectory(at: 目录, withIntermediateDirectories: true)
             let 文件 = 目录.appendingPathComponent("隧道启动日志.log")
             if FileManager.default.fileExists(atPath: 文件.path) {
-               ()
- let 文件句柄 = try FileHandle(forWritingTo: 文件)
-                _ = try? 文件句柄.seek                try? 文件句柄.write(contentsOf: Data(行内容.utf8))
+                let 文件句柄 = try FileHandle(forWritingTo: 文件)
+                _ = try? 文件句柄.seekToEnd()
+                try? 文件句柄.write(contentsOf: Data(行内容.utf8))
                 try? 文件句柄.close()
-                // 超过 200KB 时截断保留后 100KB
                 if let 属性 = try? FileManager.default.attributesOfItem(atPath: 文件.path),
                    let 大小 = 属性[.size] as? Int, 大小 > 200 * 1024,
                    let 旧内容 = try? String(contentsOf: 文件, encoding: .utf8) {
@@ -70,11 +69,10 @@ final class 扩展文件日志器 {
                 try 行内容.write(to: 文件, atomically: true, encoding: .utf8)
             }
         } catch {
-            // 静默处理
         }
     }
 
-    /// 重置日志文件（同步，避免竞态）
+    /// 重置日志文件（同步）
     func 重置() {
         队列.sync {
             guard let 文件 = self.容器目录?.appendingPathComponent(k日志目录名, isDirectory: true)
@@ -197,7 +195,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             }
             扩展文件日志器.shared.关键记录("✅ 获取到 TUN 文件描述符：\(tun描述符)")
 
-            // 5. 后台启动 Xray，避免阻塞 NetworkExtension 队列
+            // 5. 后台启动 Xray
             DispatchQueue.global(qos: .userInitiated).async {
                 let 启动结果 = XrayCore.shared.start(configJSON: 配置字符串, tunFd: tun描述符)
 
@@ -292,14 +290,12 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - 配置读取
 
     private static func 读取Xray配置() -> String? {
-        // 主路径：UserDefaults
         if let defaults = UserDefaults(suiteName: kAppGroup标识),
            let 配置 = defaults.string(forKey: kXray配置键),
            !配置.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return 配置
         }
 
-        // 兜底：文件
         if let 容器 = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: kAppGroup标识) {
             let 文件 = 容器.appendingPathComponent("xray_config.json")
             if let 内容 = try? String(contentsOf: 文件, encoding: .utf8),
