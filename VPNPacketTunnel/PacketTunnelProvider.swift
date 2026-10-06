@@ -104,8 +104,9 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     private var 已回调 = false
 
     /// 流量统计定时器（诊断用，定期输出Xray出站流量统计）
+    /// 间隔从 5s 调整为 15s：降低扩展进程常驻内存与日志 IO，避免 Go 堆/文件句柄周期性累积
     private var 统计定时器: Timer?
-    private let 统计输出间隔: TimeInterval = 5.0
+    private let 统计输出间隔: TimeInterval = 15.0
 
     // MARK: - 初始化
 

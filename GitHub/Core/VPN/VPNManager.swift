@@ -720,13 +720,26 @@ final class VPNManager: NSObject, ObservableObject {
         }
     }
 
+    /// 解析扩展返回的 Xray 统计字符串
+    ///
+    /// 扩展 `handleAppMessage("getStats")` 返回的是 `QueryStats(tag:)` 的 JSON 结果，
+    /// 形如 `{"uplink":1234,"downlink":5678}`。
+    /// 这里必须用 JSON 反序列化，不能再用空格+冒号切分（旧实现对 JSON 完全解析失败，
+    /// 导致主 App 永远拿不到流量数字）。
     private static func 解析Xray统计(_ 字符串: String) -> [String: UInt64] {
+        guard let 数据 = 字符串.data(using: .utf8),
+              let 对象 = try? JSONSerialization.jsonObject(with: 数据) as? [String: Any] else {
+            return [:]
+        }
         var 结果: [String: UInt64] = [:]
-        let 键值对 = 字符串.components(separatedBy: .whitespaces)
-        for 对 in 键值对 {
-            let 部分 = 对.components(separatedBy: ":")
-            guard 部分.count == 2, let 值 = UInt64(部分[1]) else { continue }
-            结果[部分[0]] = 值
+        for (键, 值) in 对象 {
+            if let 整数 = 值 as? Int64 {
+                结果[键] = UInt64(整数)
+            } else if let 双精度 = 值 as? Double {
+                结果[键] = UInt64(双精度)
+            } else if let 数字 = 值 as? NSNumber {
+                结果[键] = 数字.uint64Value
+            }
         }
         return 结果
     }
@@ -1258,8 +1271,22 @@ final class VPNManager: NSObject, ObservableObject {
 
         let 路由规则 = 生成路由规则()
 
+        // 关键：必须显式开启 stats + policy.system.statsOutbound，
+        // 否则 Xray 核心不会注册出站计数器，扩展侧 QueryStats(tag:) 永远返回 0。
+        // 同时把 loglevel 从 debug 降到 warning，避免 Go 运行时产生大量调试日志
+        // 与内部缓冲区导致扩展进程常驻内存持续上涨（jetsam 被杀风险）。
+        // connIdle 让空闲连接在 300 秒后被回收，归还 Go 堆内存。
         return [
-            "log": ["loglevel": "debug"],
+            "log": ["loglevel": "warning"],
+            "stats": [:],
+            "policy": [
+                "system": [
+                    "statsOutbound": true,
+                    "statsUserUplink": false,
+                    "statsUserDownlink": false,
+                    "connIdle": 300
+                ] as [String : Any]
+            ],
             "inbounds": [tun入站],
             "outbounds": [出站, 直连],
             "routing": [
