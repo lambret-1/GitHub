@@ -1062,8 +1062,19 @@ final class VPNManager: NSObject, ObservableObject {
                 "serverName": 节点.tlsServerName ?? 节点.serverAddress,
                 "allowInsecure": 节点.allowInsecure
             ]
-            if let alpn = 节点.alpn {
-                tls["alpn"] = alpn
+            if let alpn数组 = 节点.alpn {
+                // 修复 ALPN URL 编码问题：订阅链接中的 alpn 可能是 "h2%2Chttp%2F1.1" 形式，
+                // 需要先 URL 解码再按逗号拆分为 ["h2", "http/1.1"]
+                let 解码后数组 = alpn数组.flatMap { 原始值 -> [String] in
+                    let 解码值 = 原始值.removingPercentEncoding ?? 原始值
+                    return 解码值.components(separatedBy: ",")
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .filter { !$0.isEmpty }
+                }
+                if !解码后数组.isEmpty {
+                    tls["alpn"] = 解码后数组
+                    记录日志(级别: .信息, 模块: "配置", 内容: "ALPN 已解码：\(解码后数组.joined(separator: ", "))")
+                }
             }
             设置["tlsSettings"] = tls
         } else {

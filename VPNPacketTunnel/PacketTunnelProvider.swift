@@ -6,12 +6,17 @@
 import Foundation
 import NetworkExtension
 import XrayKit
+import Darwin
 
 // MARK: - 常量定义
 
 private let kAppGroup标识 = "group.com.github.client"
 private let kXray配置键 = "xray_config_json"
 private let k日志目录名 = "vpn扩展日志"
+private let k最大文件描述符: Int32 = 1024
+private let kSYSPROTO_CONTROL: Int32 = 2
+private let kUTUN_OPT_IFNAME: Int32 = 2
+private let k接口名缓冲区大小 = 16
 
 // MARK: - 扩展文件日志器
 
@@ -354,8 +359,56 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - TUN 文件描述符
 
+    /// 遍历进程文件描述符表，查找 utun 接口对应的 fd
+    ///
+    /// 原理：iOS NetworkExtension 未提供公开 API 获取 TUN fd，
+    ///       KVC 私有路径在 iOS 16+ 已失效；
+    ///       业界通用方案是遍历 fd 0~1024，通过 getsockopt(SYSPROTO_CONTROL, UTUN_OPT_IFNAME)
+    ///       获取每个 socket 对应的接口名，匹配 utun 前缀。
+    /// - Parameter 指定接口名: 可选，指定要匹配的接口名（如 "utun0"），不指定则匹配第一个 utun*
+    /// - Returns: 匹配到的文件描述符，未找到返回 nil
+    private func 遍历查找UTUN文件描述符(指定接口名: String? = nil) -> Int32? {
+        var 缓冲区 = [CChar](repeating: 0, count: k接口名缓冲区大小)
+        var 找到的fd: Int32? = nil
+
+        for fd: Int32 in 0...k最大文件描述符 {
+            var 长度 = socklen_t(缓冲区.count)
+            let 结果 = getsockopt(fd, kSYSPROTO_CONTROL, kUTUN_OPT_IFNAME, &缓冲区, &长度)
+            guard 结果 == 0 else { continue }
+
+            let 接口名 = String(cString: 缓冲区)
+            guard !接口名.isEmpty else { continue }
+
+            if let 目标名 = 指定接口名 {
+                if 接口名 == 目标名 {
+                    扩展文件日志器.shared.关键记录("fd遍历：找到指定接口 [\(接口名)]，fd=\(fd)")
+                    找到的fd = fd
+                    break
+                }
+            } else if 接口名.hasPrefix("utun") {
+                扩展文件日志器.shared.关键记录("fd遍历：找到 utun 接口 [\(接口名)]，fd=\(fd)")
+                找到的fd = fd
+                break
+            }
+        }
+
+        if 找到的fd == nil {
+            扩展文件日志器.shared.关键记录("fd遍历：遍历 0~\(k最大文件描述符) 未找到 utun 接口")
+        }
+        return 找到的fd
+    }
+
     private func 获取TUN文件描述符() -> Int32? {
-        // 已知路径尝试（按优先级排序）
+        // 方案一（优先）：遍历进程文件描述符表，查找 utun 接口
+        // 这是 iOS 16+ 上最可靠的方案，KVC 私有路径已被 Apple 封堵
+        扩展文件日志器.shared.关键记录("方案一：遍历 fd 表查找 utun 接口...")
+        if let fd = 遍历查找UTUN文件描述符() {
+            扩展文件日志器.shared.关键记录("✅ fd遍历方案获取到 TUN fd=\(fd)")
+            return fd
+        }
+
+        // 方案二（回退）：KVC 私有路径尝试
+        扩展文件日志器.shared.关键记录("方案二：KVC 私有路径尝试（回退方案）...")
         let 已知路径列表: [(描述: String, 键路径: String, 对象: Any)] = [
             ("self.packetFlow.socket.fileDescriptor", "packetFlow.socket.fileDescriptor", self),
             ("packetFlow.socket.fileDescriptor", "socket.fileDescriptor", packetFlow),
@@ -382,7 +435,6 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         let 单键列表 = ["socket", "_socket", "interface", "_interface", "tunInterface", "_tunInterface", "tun", "_tun"]
         for 键 in 单键列表 {
             if let 对象 = safe_valueForKey(键, packetFlow) {
-                扩展文件日志器.shared.关键记录("发现 packetFlow 属性 [\(键)]，类型：\(type(of: 对象))")
                 if let num = safe_valueForKeyPath("fileDescriptor", 对象 as AnyObject) as? NSNumber {
                     let fd = num.int32Value
                     if fd > 0 {
@@ -390,7 +442,6 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                         return fd
                     }
                 }
-                // 尝试 _fileDescriptor
                 if let num = safe_valueForKeyPath("_fileDescriptor", 对象 as AnyObject) as? NSNumber {
                     let fd = num.int32Value
                     if fd > 0 {
@@ -401,39 +452,11 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        // 运行时诊断：枚举 packetFlow 所有属性名，帮助定位正确的私有属性
+        // 运行时诊断：枚举 packetFlow 所有属性名
         let 属性列表 = enumerate_property_names(packetFlow)
         扩展文件日志器.shared.关键记录("📋 packetFlow 运行时属性列表（\(属性列表.count)个）：\(属性列表.joined(separator: ", "))")
 
-        // 对包含关键词的属性尝试获取 fileDescriptor
-        let 关键词列表 = ["socket", "interface", "tun", "fd", "file", "descriptor", "flow", "pipe"]
-        for 属性名 in 属性列表 {
-            let 小写名 = 属性名.lowercased()
-            guard 关键词列表.contains(where: { 小写名.contains($0) }) else { continue }
-            guard !单键列表.contains(属性名) else { continue } // 已尝试过的跳过
-
-            if let 对象 = safe_valueForKey(属性名, packetFlow) {
-                扩展文件日志器.shared.关键记录("发现候选属性 [\(属性名)]，类型：\(type(of: 对象))")
-                if let num = safe_valueForKeyPath("fileDescriptor", 对象 as AnyObject) as? NSNumber {
-                    let fd = num.int32Value
-                    if fd > 0 {
-                        扩展文件日志器.shared.关键记录("✅ 从候选属性 [\(属性名)].fileDescriptor 获取到 TUN fd=\(fd)")
-                        return fd
-                    }
-                }
-            }
-        }
-
-        // 诊断：枚举 packetFlow 所有方法名（筛选可能相关的）
-        let 方法列表 = enumerate_method_names(packetFlow)
-        let 相关方法 = 方法列表.filter { 方法名 in
-            let 小写 = 方法名.lowercased()
-            return 小写.contains("socket") || 小写.contains("interface") || 小写.contains("tun")
-                || 小写.contains("filedescriptor") || 小写.contains("fd") || 小写.contains("flow")
-        }
-        扩展文件日志器.shared.关键记录("📋 packetFlow 相关方法列表（\(相关方法.count)个）：\(相关方法.joined(separator: ", "))")
-
-        扩展文件日志器.shared.关键记录("❌ KVC 未能获取 TUN fd（所有路径均不可用，已输出运行时诊断）")
+        扩展文件日志器.shared.关键记录("❌ 所有方案均未能获取 TUN fd（fd遍历 + KVC均失败）")
         return nil
     }
 }
