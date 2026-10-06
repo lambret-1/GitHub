@@ -2,15 +2,10 @@
 //  PacketTunnelProvider.swift
 //  VPNPacketTunnel
 //
-//  用途：VPN 数据包隧道提供者（Xray-core 重构版·第一期底层基座）
+//  用途：VPN 数据包隧道提供者（ 重构版·第一期底层基座）
 //  职责：建立 TUN 虚拟网卡、将系统网络栈接入 Xray 核心、管理隧道生命周期
 //  架构：主 App 生成 Xray JSON 配置 → App Group 共享 → 扩展读取配置
 //       → 应用网络设置 → 获取 TUN 文件描述符 → StartXray(config, tunFd)
-//  重构要点（第一期）：
-//    1. 移除基于 UserDefaults 字符串拼接的不可靠日志，改为 App Group 文件日志
-//    2. 启动链路改为严格分段校验：配置 → 网络设置 → TUN 描述符 → Xray 核心
-//    3. 失败必须回调具体错误，杜绝“连接中秒断且扩展日志为空”
-//    4. 适配 iOS16+ NetworkExtension 看门狗，所有阻塞操作均放在异步回调内
 //
 
 import Foundation
@@ -31,8 +26,6 @@ private let k日志目录名 = "vpn扩展日志"
 // MARK: - 扩展文件日志器
 
 /// 扩展文件日志器（线程安全）
-/// 说明：扩展是独立进程，os_log 在主 App 端不可见；
-///       第一期将所有关键节点写入 App Group 文件，保证“启动失败必有日志”。
 final class 扩展文件日志器 {
     static let shared = 扩展文件日志器()
 
@@ -51,20 +44,19 @@ final class 扩展文件日志器 {
     private init() {}
 
     /// 写入一条启动链路日志
-    /// - Parameter 消息: 日志内容
     func 记录(_ 消息: String) {
         let 行内容 = "[\(日期格式化器.string(from: Date()))] \(消息)\n"
         队列.async {
-            guard let 目录 = self.容器目录?.appendingPathComponent(k日志目录名, isDirectory: true) else { return }
+            guard let 目录 = self.容器目录?.appendingPathComponent(kLog目录名, isDirectory: true) else { return }
             do {
                 try FileManager.default.createDirectory(at: 目录, withIntermediateDirectories: true)
                 let 文件 = 目录.appendingPathComponent("隧道启动日志.log")
                 if FileManager.default.fileExists(atPath: 文件.path) {
                     let 文件句柄 = try FileHandle(forWritingTo: 文件)
-                    try? 文件句柄.seekToEnd()
+                    _ = try? 文件句柄.seekToEnd()
                     try? 文件句柄.write(contentsOf: Data(行内容.utf8))
                     try? 文件句柄.close()
-                    // 限制日志文件最大 200KB，超出后截断保留后 100KB
+                    // 限制日志文件最大 200KB
                     if let 属性 = try? FileManager.default.attributesOfItem(atPath: 文件.path),
                        let 大小 = 属性[.size] as? Int, 大小 > 200 * 1024,
                        let 旧内容 = try? String(contentsOf: 文件, encoding: .utf8) {
@@ -80,9 +72,9 @@ final class 扩展文件日志器 {
         }
     }
 
-    /// 重置本次启动的日志文件
+    /// 重置本次启动的日志文件（同步执行，避免和首次 记录 竞态）
     func 重置() {
-        队列.async {
+        队列.sync {
             guard let 文件 = self.容器目录?.appendingPathComponent(k日志目录名, isDirectory: true)
                 .appendingPathComponent("隧道启动日志.log") else { return }
             try? FileManager.default.removeItem(at: 文件)
@@ -90,10 +82,11 @@ final class 扩展文件日志器 {
     }
 }
 
+// 兼容：原代码里用 目录名 变量名，这里保证编译通过
+private let kLog目录名 = k日志目录名
+
 // MARK: - PacketTunnelProvider 主类
 
-/// VPN 数据包隧道提供者
-/// 由系统在 VPN 连接时实例化，运行于独立的网络扩展进程
 final class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - 属性
@@ -103,6 +96,10 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
 
     /// 生命周期锁，防止重复启动/停止
     private let 状态锁 = NSLock()
+
+    /// startTunnel 的 completionHandler 是否已被调用过
+    private let 回调锁 = NSLock()
+    private var 已回调 = false
 
     // MARK: - 初始化
 
@@ -125,6 +122,22 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         try? FileManager.default.removeItem(atPath: 崩溃日志路径)
     }
 
+    /// 保证 startTunnel 的 completionHandler 只被调用一次
+    private func 安全回调(_ 错误: Error?, completionHandler: @escaping (Error?) -> Void) {
+        回调锁.lock()
+        if 已回调 {
+            回调锁.unlock()
+            return
+        }
+        已回调 = true
+        回调锁.unlock()
+
+        // 回主队列，稳妥起见
+        DispatchQueue.main.async {
+            completionHandler(错误)
+        }
+    }
+
     // MARK: - 启动隧道
 
     override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
@@ -138,12 +151,12 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                 userInfo: [NSLocalizedDescriptionKey: "未读取到有效的 Xray 配置"]
             )
             扩展文件日志器.shared.记录("❌ 启动终止：未读取到 Xray 配置")
-            completionHandler(错误)
+            安全回调(错误, completionHandler: completionHandler)
             return
         }
         扩展文件日志器.shared.记录("✅ Xray 配置读取成功，字节数：\(配置字符串.utf8.count)")
 
-        // 2. JSON 语法预检（不校验业务字段，业务字段交给 Xray 内核返回错误码）
+        // 2. JSON 语法预检
         guard let 配置数据 = 配置字符串.data(using: .utf8),
               let 配置对象 = try? JSONSerialization.jsonObject(with: 配置数据),
               let 配置字典 = 配置对象 as? [String: Any] else {
@@ -153,25 +166,26 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                 userInfo: [NSLocalizedDescriptionKey: "Xray 配置不是合法 JSON"]
             )
             扩展文件日志器.shared.记录("❌ 启动终止：Xray 配置 JSON 解析失败")
-            completionHandler(错误)
+            安全回调(错误, completionHandler: completionHandler)
             return
         }
 
         let 出站数组 = 配置字典["outbounds"] as? [[String: Any]]
         扩展文件日志器.shared.记录("✅ JSON 语法校验通过，出站数量：\(出站数组?.count ?? 0)")
 
-        // 3. 应用 TUN 网络设置（必须先 setTunnelNetworkSettings，系统才会创建 utun）
+        // 3. 应用 TUN 网络设置
         let 网络设置 = Self.构造隧道网络设置()
         setTunnelNetworkSettings(网络设置) { [weak self] 设置错误 in
             guard let self = self else {
-                completionHandler(NSError(domain: "VPNPacketTunnel", code: -999,
-                                          userInfo: [NSLocalizedDescriptionKey: "扩展实例已释放"]))
+                安全回调(NSError(domain: "VPNPacketTunnel", code: -999,
+                                 userInfo: [NSLocalizedDescriptionKey: "扩展实例已释放"]),
+                        completionHandler: completionHandler)
                 return
             }
 
             if let 设置错误 = 设置错误 {
                 扩展文件日志器.shared.记录("❌ setTunnelNetworkSettings 失败：\(设置错误.localizedDescription)")
-                completionHandler(设置错误)
+                安全回调(设置错误, completionHandler: completionHandler)
                 return
             }
             扩展文件日志器.shared.记录("✅ TUN 网络设置已生效")
@@ -181,30 +195,36 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                 let 错误 = NSError(domain: "VPNPacketTunnel", code: -1003,
                                    userInfo: [NSLocalizedDescriptionKey: "获取 TUN 文件描述符失败"])
                 扩展文件日志器.shared.记录("❌ 未找到可用的 utun 文件描述符")
-                completionHandler(错误)
+                安全回调(错误, completionHandler: completionHandler)
                 return
             }
             扩展文件日志器.shared.记录("✅ 获取到 TUN 文件描述符：\(tun描述符)")
 
-            // 5. 启动 Xray 内核（Go 核心内部创建 tun inbound 并接管流量）
-            let 启动结果 = XrayCore.shared.start(configJSON: 配置字符串, tunFd: tun描述符)
-            guard 启动结果 == 0 else {
-                let 错误 = NSError(
-                    domain: "VPNPacketTunnel",
-                    code: Int(启动结果),
-                    userInfo: [NSLocalizedDescriptionKey: "Xray 核心启动失败，错误码：\(启动结果)"]
-                )
-                扩展文件日志器.shared.记录("❌ StartXray 返回错误码：\(启动结果)")
-                completionHandler(错误)
-                return
+            // 5. 在后台队列启动 Xray，避免阻塞 NetworkExtension 队列（看门狗会杀进程）
+            DispatchQueue.global(qos: .userInitiated).async {
+                let 启动结果 = XrayCore.shared.start(configJSON: 配置字符串, tunFd: tun描述符)
+
+                // 回主队列处理状态
+                DispatchQueue.main.async {
+                    guard 启动结果 == 0 else {
+                        let 错误 = NSError(
+                            domain: "VPNPacketTunnel",
+                            code: Int(启动结果),
+                            userInfo: [NSLocalizedDescriptionKey: "Xray 核心启动失败，错误码：\(启动结果)"]
+                        )
+                        扩展文件日志器.shared.记录("❌ StartXray 返回错误码：\(启动结果)")
+                        安全回调(错误, completionHandler: completionHandler)
+                        return
+                    }
+
+                    self.状态锁.lock()
+                    self.xray已启动 = true
+                    self.状态锁.unlock()
+
+                    扩展文件日志器.shared.记录("✅ Xray 核心启动成功，隧道建立完成")
+                    安全回调(nil, completionHandler: completionHandler)
+                }
             }
-
-            self.状态锁.lock()
-            self.xray已启动 = true
-            self.状态锁.unlock()
-
-            扩展文件日志器.shared.记录("✅ Xray 核心启动成功，隧道建立完成")
-            completionHandler(nil)
         }
     }
 
@@ -226,7 +246,16 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         } else {
             扩展文件日志器.shared.记录("Xray 未启动，无需停止")
         }
-        completionHandler()
+
+        // 清空网络设置，避免残留
+        setTunnelNetworkSettings(nil) { 清空错误 in
+            if let 清空错误 = 清空错误 {
+                扩展文件日志器.shared.记录("⚠️ 清空网络设置失败：\(清空错误.localizedDescription)")
+            } else {
+                扩展文件日志器.shared.记录("✅ 网络设置已清空")
+            }
+            completionHandler()
+        }
     }
 
     // MARK: - 主 App 消息通道
@@ -267,16 +296,27 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - 配置读取
 
-    /// 从启动选项或 App Group UserDefaults 读取 Xray 配置
-    /// - Returns: 非空且合法的 JSON 字符串；读取失败返回 nil
+    /// 从 App Group UserDefaults 读取 Xray 配置
     private static func 读取Xray配置() -> String? {
-        guard let defaults = UserDefaults(suiteName: kAppGroup标识),
-              let 配置 = defaults.string(forKey: kXray配置键),
-              !配置.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            扩展文件日志器.shared.记录("App Group 中不存在键为 \(kXray配置键) 的配置或配置为空")
-            return nil
+        // 主路径：UserDefaults
+        if let defaults = UserDefaults(suiteName: kAppGroup标识),
+           let 配置 = defaults.string(forKey: kXray配置键),
+           !配置.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return 配置
         }
-        return 配置
+
+        // 兜底：文件（跨进程更稳，主 App 若同时写了文件就能读到）
+        if let 容器 = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: kAppGroup标识) {
+            let 文件 = 容器.appendingPathComponent("xray_config.json")
+            if let 内容 = try? String(contentsOf: 文件, encoding: .utf8),
+               !内容.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                扩展文件日志器.shared.记录("从文件读取到 Xray 配置（UserDefaults 为空）")
+                return 内容
+            }
+        }
+
+        扩展文件日志器.shared.记录("App Group 中不存在键为 \(kXray配置键) 的配置或配置为空")
+        return nil
     }
 
     // MARK: - 网络设置
@@ -285,18 +325,15 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     private static func 构造隧道网络设置() -> NEPacketTunnelNetworkSettings {
         let 设置 = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: "240.0.0.1")
 
-        // 虚拟 IPv4 地址段（198.18.0.0/15 为基准测试保留段，TUN 方案通用）
         let ipv4 = NEIPv4Settings(addresses: ["198.18.0.1"], subnetMasks: ["255.254.0.0"])
         ipv4.includedRoutes = [NEIPv4Route.default()]
         ipv4.excludedRoutes = []
         设置.ipv4Settings = ipv4
 
-        // 虚拟 IPv6，默认全流量接管；设备无 IPv6 网络时系统会自动忽略
         let ipv6 = NEIPv6Settings(addresses: ["fd6e:a81b:704f:1211::1"], networkPrefixLengths: [64])
         ipv6.includedRoutes = [NEIPv6Route.default()]
         设置.ipv6Settings = ipv6
 
-        // 系统层 DNS，真实解析由 Xray 内核 DNS 配置接管
         let dns设置 = NEDNSSettings(servers: ["1.1.1.1", "8.8.8.8"])
         dns设置.matchDomains = [""]
         设置.dnsSettings = dns设置
@@ -305,41 +342,45 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         return 设置
     }
 
-    // MARK: - TUN 文件描述符
+    // MARK: - TUN 文件描述符（关键修复点）
 
     /// 获取当前 PacketTunnel 创建的 utun 文件描述符
     ///
-    /// 原理：setTunnelNetworkSettings 成功后，系统在本扩展进程内新建 utun；
-    ///       扫描文件描述符，通过 getsockopt 的 UTUN_OPT_IFNAME 找到接口名以 utun 开头的 fd。
-    ///       该实现与 sing-box、WireGuardKitGo 等 TUN 方案一致。
-    /// - Returns: TUN 文件描述符；扫描与 KVC 兜底均失败时返回 nil
+    /// iOS 扩展进程中，真正的 utun fd 由 NetworkExtension framework 持有，
+    /// **不在扩展进程的 fd 表里**，所以早期那种「遍历 0..1024 用 getsockopt 找 utun」
+    /// 的方式在真机上拿不到系统 utun，会误取到别的 fd 或直接失败。
+    ///
+    /// 正确做法：通过 `packetFlow` 的私有 KVC 路径读取底层 socket fd。
+    /// 注意：KVC 返回的是 NSNumber，**不能直接 `as? Int32`**，那样会失败。
     private func 获取TUN文件描述符() -> Int32? {
-        var 最新描述符: Int32?
-        var 名称缓冲 = [CChar](repeating: 0, count: Int(IFNAMSIZ))
-
-        for 描述符: Int32 in 0..<1024 {
-            var 长度 = socklen_t(名称缓冲.count)
-            // SYSPROTO_CONTROL = 2，UTUN_OPT_IFNAME = 2
-            let 结果 = getsockopt(描述符, 2, 2, &名称缓冲, &长度)
-            if 结果 == 0 {
-                let 接口名 = String(cString: 名称缓冲)
-                if 接口名.hasPrefix("utun") {
-                    最新描述符 = 描述符
-                    扩展文件日志器.shared.记录("扫描到 utun 接口：\(接口名)，fd=\(描述符)")
-                }
+        // 主路径：self 上取 packetFlow 底层的 socket fd
+        if let num = value(forKeyPath: "packetFlow.socket.fileDescriptor") as? NSNumber {
+            let fd = num.int32Value
+            if fd > 0 {
+                扩展文件日志器.shared.记录("KVC(self) 获取到 TUN fd=\(fd)")
+                return fd
             }
         }
 
-        if let 描述符 = 最新描述符 {
-            return 描述符
+        // 兼容路径：直接对 packetFlow 对象做 KVC
+        if let num = packetFlow.value(forKeyPath: "socket.fileDescriptor") as? NSNumber {
+            let fd = num.int32Value
+            if fd > 0 {
+                扩展文件日志器.shared.记录("KVC(packetFlow) 获取到 TUN fd=\(fd)")
+                return fd
+            }
         }
 
-        // 兜底：通过私有 KVC 路径读取 packetFlow 的 socket fd
-        if let kvc描述符 = value(forKeyPath: "packetFlow.socket.fileDescriptor") as? Int32 {
-            扩展文件日志器.shared.记录("扫描失败，使用 KVC 兜底获取 fd=\(kvc描述符)")
-            return kvc描述符
+        // 再兜底：有些 iOS 版本 packetFlow 本身就有 fileDescriptor
+        if let num = packetFlow.value(forKeyPath: "fileDescriptor") as? NSNumber {
+            let fd = num.int32Value
+            if fd > 0 {
+                扩展文件日志器.shared.记录("KVC(packetFlow.fileDescriptor) 获取到 TUN fd=\(fd)")
+                return fd
+            }
         }
 
+        扩展文件日志器.shared.记录("KVC 未能获取 TUN fd")
         return nil
     }
 }
