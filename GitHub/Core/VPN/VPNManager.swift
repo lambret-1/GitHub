@@ -1278,12 +1278,8 @@ final class VPNManager: NSObject, ObservableObject {
         // connIdle 让空闲连接在 300 秒后被回收，归还 Go 堆内存。
         return [
             "log": ["loglevel": "warning"],
-            "stats": [:],
             "policy": [
                 "system": [
-                    "statsOutbound": true,
-                    "statsUserUplink": false,
-                    "statsUserDownlink": false,
                     "connIdle": 300
                 ] as [String : Any]
             ],

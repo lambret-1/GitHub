@@ -103,10 +103,9 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
     private let 回调锁 = NSLock()
     private var 已回调 = false
 
-    /// 流量统计定时器（诊断用，定期输出Xray出站流量统计）
-    /// 间隔从 5s 调整为 15s：降低扩展进程常驻内存与日志 IO，避免 Go 堆/文件句柄周期性累积
-    private var 统计定时器: Timer?
-    private let 统计输出间隔: TimeInterval = 15.0
+    /// 内存监控定时器（定期输出内存使用，诊断jetsam）
+    private var 内存监控定时器: Timer?
+    private let 内存监控间隔: TimeInterval = 10.0
 
     // MARK: - 初始化
 
@@ -388,7 +387,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
 
                     扩展文件日志器.shared.关键记录("✅ Xray 核心启动成功，隧道建立完成")
                     self.创建心跳文件()
-                    self.启动统计定时器()
+                    self.启动内存监控定时器()
                     self.安全回调(nil, completionHandler: completionHandler)
                 }
             }
@@ -415,7 +414,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             扩展文件日志器.shared.关键记录("Xray 未启动，无需停止")
         }
 
-        停止统计定时器()
+        停止内存监控定时器()
         删除心跳文件()
 
         // 注意：不在此处调用 setTunnelNetworkSettings(nil)
@@ -449,31 +448,30 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    // MARK: - 流量统计定时器（诊断用）
+    // MARK: - 内存监控定时器（诊断jetsam）
 
-    private func 启动统计定时器() {
-        停止统计定时器()
-        扩展文件日志器.shared.关键记录("📊 流量统计定时器已启动（每\(统计输出间隔)秒输出一次）")
+    private func 启动内存监控定时器() {
+        停止内存监控定时器()
+        let 初始内存 = 获取当前内存使用()
+        扩展文件日志器.shared.关键记录("💾 内存监控已启动（每\(内存监控间隔)秒输出一次），启动内存：\(初始内存)")
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.统计定时器 = Timer.scheduledTimer(withTimeInterval: self.统计输出间隔, repeats: true) { [weak self] _ in
-                self?.输出流量统计()
+            self.内存监控定时器 = Timer.scheduledTimer(withTimeInterval: self.内存监控间隔, repeats: true) { [weak self] _ in
+                self?.输出内存使用()
             }
         }
     }
 
-    private func 停止统计定时器() {
+    private func 停止内存监控定时器() {
         DispatchQueue.main.async { [weak self] in
-            self?.统计定时器?.invalidate()
-            self?.统计定时器 = nil
+            self?.内存监控定时器?.invalidate()
+            self?.内存监控定时器 = nil
         }
     }
 
-    private func 输出流量统计() {
-        let proxy统计 = XrayCore.shared.queryStats(tag: "proxy")
-        let direct统计 = XrayCore.shared.queryStats(tag: "direct")
+    private func 输出内存使用() {
         let 内存信息 = 获取当前内存使用()
-        扩展文件日志器.shared.记录("📊 流量统计 | proxy: \(proxy统计) | direct: \(direct统计) | 内存: \(内存信息)")
+        扩展文件日志器.shared.记录("💾 内存使用：\(内存信息)")
     }
 
     // MARK: - 心跳文件管理（异常退出检测）
