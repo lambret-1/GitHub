@@ -302,7 +302,7 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         扩展文件日志器.shared.关键记录("=== startTunnel 开始 ===")
 
         // 1. 读取 Xray JSON 配置
-        guard let 配置字符串 = Self.读取Xray配置() else {
+        guard var 配置字符串 = Self.读取Xray配置() else {
             let 错误 = NSError(
                 domain: "VPNPacketTunnel",
                 code: -1001,
@@ -361,6 +361,26 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                 return
             }
             扩展文件日志器.shared.关键记录("✅ 获取到 TUN 文件描述符：\(tun描述符)")
+
+            // 将 TUN fd 注入到配置的入站 settings 中（裁剪版Xray核心需要显式fd）
+            if let 配置数据 = 配置字符串.data(using: .utf8),
+               let 配置对象 = try? JSONSerialization.jsonObject(with: 配置数据),
+               var 配置字典 = 配置对象 as? [String: Any],
+               var 入站数组 = 配置字典["inbounds"] as? [[String: Any]],
+               let 索引 = 入站数组.firstIndex(where: { ($0["protocol"] as? String) == "tun" }) {
+                var tun入站 = 入站数组[索引]
+                if var settings = tun入站["settings"] as? [String: Any] {
+                    settings["fd"] = Int(tun描述符)
+                    tun入站["settings"] = settings
+                    入站数组[索引] = tun入站
+                    配置字典["inbounds"] = 入站数组
+                    if let 注入后数据 = try? JSONSerialization.data(withJSONObject: 配置字典, options: []),
+                       let 注入后字符串 = String(data: 注入后数据, encoding: .utf8) {
+                        配置字符串 = 注入后字符串
+                        扩展文件日志器.shared.关键记录("✅ TUN fd 已注入配置，fd=\(tun描述符)，配置大小：\(注入后字符串.utf8.count)字节")
+                    }
+                }
+            }
 
             // 5. 后台启动 Xray
             扩展文件日志器.shared.关键记录("即将调用 XrayCore.start（config=\(配置字符串.utf8.count)字节, tunFd=\(tun描述符)）")
