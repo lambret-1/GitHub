@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-10-07 12:04:52 UTC
+**生成时间**: 2026-10-07 12:38:11 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -95,7 +95,7 @@
 
 ```
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'XrayKit' from project 'GitHub')
-/Users/runner/work/GitHub/GitHub/VPNPacketTunnel/PacketTunnelProvider.swift:430:9: warning: switch must be exhaustive
+/Users/runner/work/GitHub/GitHub/VPNPacketTunnel/PacketTunnelProvider.swift:450:9: warning: switch must be exhaustive
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: instance will be immediately deallocated because property 'delegate' is 'weak'
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Network/GitHubAPI.swift:1040:13: warning: variable 'body' was never mutated; consider changing to 'let' constant
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:494:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
@@ -103,7 +103,7 @@ warning: The application supports opening files, but doesn't declare whether it 
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: weak reference will always be nil because the referenced object is deallocated here
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'GitHub' from project 'GitHub')
-warning: The CFBundleVersion of an app extension ('1790153654') must match that of its containing parent app ('1791374359').
+warning: The CFBundleVersion of an app extension ('1790153654') must match that of its containing parent app ('1791376402').
 ```
 
 ---
