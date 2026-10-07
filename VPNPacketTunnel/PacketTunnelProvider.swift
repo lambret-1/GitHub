@@ -362,23 +362,37 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
             }
             扩展文件日志器.shared.关键记录("✅ 获取到 TUN 文件描述符：\(tun描述符)")
 
-            // 将 TUN fd 注入到配置的入站 settings 中（裁剪版Xray核心需要显式fd）
+            // 将 TUN fd 和 Xray 日志路径注入到配置中
             if let 配置数据 = 配置字符串.data(using: .utf8),
                let 配置对象 = try? JSONSerialization.jsonObject(with: 配置数据),
-               var 配置字典 = 配置对象 as? [String: Any],
-               var 入站数组 = 配置字典["inbounds"] as? [[String: Any]],
-               let 索引 = 入站数组.firstIndex(where: { ($0["protocol"] as? String) == "tun" }) {
-                var tun入站 = 入站数组[索引]
-                if var settings = tun入站["settings"] as? [String: Any] {
-                    settings["fd"] = Int(tun描述符)
-                    tun入站["settings"] = settings
-                    入站数组[索引] = tun入站
-                    配置字典["inbounds"] = 入站数组
-                    if let 注入后数据 = try? JSONSerialization.data(withJSONObject: 配置字典, options: []),
-                       let 注入后字符串 = String(data: 注入后数据, encoding: .utf8) {
-                        配置字符串 = 注入后字符串
-                        扩展文件日志器.shared.关键记录("✅ TUN fd 已注入配置，fd=\(tun描述符)，配置大小：\(注入后字符串.utf8.count)字节")
+               var 配置字典 = 配置对象 as? [String: Any] {
+
+                // 注入 TUN fd
+                if var 入站数组 = 配置字典["inbounds"] as? [[String: Any]],
+                   let 索引 = 入站数组.firstIndex(where: { ($0["protocol"] as? String) == "tun" }) {
+                    var tun入站 = 入站数组[索引]
+                    if var settings = tun入站["settings"] as? [String: Any] {
+                        settings["fd"] = Int(tun描述符)
+                        tun入站["settings"] = settings
+                        入站数组[索引] = tun入站
+                        配置字典["inbounds"] = 入站数组
                     }
+                }
+
+                // 注入 Xray error 日志输出路径到 App Group（方便主App读取调试）
+                if let 容器 = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: kAppGroup标识) {
+                    let 日志路径 = 容器.appendingPathComponent("xray_error.log").path
+                    if var log配置 = 配置字典["log"] as? [String: Any] {
+                        log配置["error"] = 日志路径
+                        配置字典["log"] = log配置
+                    }
+                }
+
+                // 重新序列化
+                if let 注入后数据 = try? JSONSerialization.data(withJSONObject: 配置字典, options: []),
+                   let 注入后字符串 = String(data: 注入后数据, encoding: .utf8) {
+                    配置字符串 = 注入后字符串
+                    扩展文件日志器.shared.关键记录("✅ 配置注入完成（fd=\(tun描述符)，日志路径已设置），配置大小：\(注入后字符串.utf8.count)字节")
                 }
             }
 

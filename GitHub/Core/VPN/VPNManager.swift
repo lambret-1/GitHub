@@ -1290,7 +1290,18 @@ final class VPNManager: NSObject, ObservableObject {
                 "rules": 路由规则
             ],
             "dns": [
-                "servers": ["1.1.1.1", "8.8.8.8"]
+                "servers": [
+                    [
+                        "address": "1.1.1.1",
+                        "port": 53,
+                        "proxyTag": "proxy"
+                    ] as [String : Any],
+                    [
+                        "address": "8.8.8.8",
+                        "port": 53,
+                        "proxyTag": "proxy"
+                    ] as [String : Any]
+                ]
             ]
         ]
     }
