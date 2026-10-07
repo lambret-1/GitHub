@@ -66,19 +66,26 @@ echo "复制框架到项目目录..."
 mkdir -p "$(dirname "$FRAMEWORK_DIR")"
 cp -R "Xray.xcframework" "$FRAMEWORK_DIR"
 
-# 自动检测真机和模拟器目录名
-DEVICE_DIR=$(find "$FRAMEWORK_DIR" -maxdepth 1 -type d -name "ios-arm64" | head -1)
+# 验证
+DEVICE_DIR="$FRAMEWORK_DIR/ios-arm64"
 SIM_DIR=$(find "$FRAMEWORK_DIR" -maxdepth 1 -type d -name "*simulator*" | head -1)
 
-# 验证
-if [ -n "$DEVICE_DIR" ] && [ -f "$DEVICE_DIR/libxray.a" ] && [ -n "$SIM_DIR" ] && [ -f "$SIM_DIR/libxray.a" ]; then
+if [ -z "$SIM_DIR" ]; then
+    SIM_DIR="$FRAMEWORK_DIR/ios-arm64_x86_64-simulator"
+fi
+
+if [ -f "$DEVICE_DIR/libxray.a" ] && [ -f "$SIM_DIR/libxray.a" ]; then
     echo -e "${GREEN}=== 裁剪版 Xray.xcframework 下载成功 ===${NC}"
-    echo "真机版本: $(du -sh $DEVICE_DIR/libxray.a | cut -f1)"
-    echo "模拟器版本: $(du -sh $SIM_DIR/libxray.a | cut -f1)"
-    echo "头文件: $(ls $DEVICE_DIR/Headers/)"
+    echo "真机版本: $(du -sh "$DEVICE_DIR/libxray.a" | cut -f1)"
+    echo "模拟器版本: $(du -sh "$SIM_DIR/libxray.a" | cut -f1)"
+    echo "头文件: $(ls "$DEVICE_DIR/Headers/")"
 else
     echo -e "${RED}错误：框架文件不完整${NC}"
     echo "目录结构:"
     ls -la "$FRAMEWORK_DIR/"
+    echo "真机目录内容:"
+    ls -la "$DEVICE_DIR/" 2>/dev/null || echo "真机目录不存在"
+    echo "模拟器目录内容:"
+    ls -la "$SIM_DIR/" 2>/dev/null || echo "模拟器目录不存在"
     exit 1
 fi
