@@ -66,6 +66,14 @@ echo "复制框架到项目目录..."
 mkdir -p "$(dirname "$FRAMEWORK_DIR")"
 cp -R "Xray.xcframework" "$FRAMEWORK_DIR"
 
+# 重命名静态库为统一的 libxray.a（XCFramework 中可能保留了编译时的原始文件名）
+echo "规范化静态库文件名..."
+find "$FRAMEWORK_DIR" -name "libxray-*.a" -type f | while read -r libfile; do
+    libdir=$(dirname "$libfile")
+    echo "  重命名: $(basename "$libfile") -> libxray.a"
+    mv "$libfile" "$libdir/libxray.a"
+done
+
 # 验证
 DEVICE_DIR="$FRAMEWORK_DIR/ios-arm64"
 SIM_DIR=$(find "$FRAMEWORK_DIR" -maxdepth 1 -type d -name "*simulator*" | head -1)
