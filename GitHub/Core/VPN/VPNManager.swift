@@ -1277,7 +1277,7 @@ final class VPNManager: NSObject, ObservableObject {
         // 与内部缓冲区导致扩展进程常驻内存持续上涨（jetsam 被杀风险）。
         // connIdle 让空闲连接在 300 秒后被回收，归还 Go 堆内存。
         return [
-            "log": ["loglevel": "warning"],
+            "log": ["loglevel": "debug"],
             "policy": [
                 "system": [
                     "connIdle": 300
