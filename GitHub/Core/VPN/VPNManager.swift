@@ -924,17 +924,6 @@ final class VPNManager: NSObject, ObservableObject {
     private func 生成路由规则() -> [[String: Any]] {
         var 规则列表: [[String: Any]] = []
 
-        // 所有模式通用：DNS 查询（UDP/TCP 53端口）走直连
-        // 使用国内 DNS 服务器（223.5.5.5/119.29.29.29），直连响应几十毫秒
-        // 避免 DNS 查询走代理需 TLS+WS 握手导致 iOS captive 检测超时（WiFi 图标变灰）
-        // VLESS 代理传递目标域名由代理服务器重新解析，本地 DNS 结果不影响实际连接
-        规则列表.append([
-            "type": "field",
-            "port": "53",
-            "network": "tcp,udp",
-            "outboundTag": "direct"
-        ])
-
         switch 当前路由模式 {
         case .全局代理:
             // 全局代理：无额外规则，所有流量默认走 proxy 出站
@@ -1304,12 +1293,14 @@ final class VPNManager: NSObject, ObservableObject {
             "dns": [
                 "servers": [
                     [
-                        "address": "223.5.5.5",
-                        "port": 53
+                        "address": "1.1.1.1",
+                        "port": 53,
+                        "proxyTag": "proxy"
                     ] as [String : Any],
                     [
-                        "address": "119.29.29.29",
-                        "port": 53
+                        "address": "8.8.8.8",
+                        "port": 53,
+                        "proxyTag": "proxy"
                     ] as [String : Any]
                 ]
             ]
