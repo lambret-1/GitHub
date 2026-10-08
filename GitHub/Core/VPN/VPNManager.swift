@@ -1277,7 +1277,7 @@ final class VPNManager: NSObject, ObservableObject {
         // 与内部缓冲区导致扩展进程常驻内存持续上涨（jetsam 被杀风险）。
         // connIdle 让空闲连接在 300 秒后被回收，归还 Go 堆内存。
         return [
-            "log": ["loglevel": "debug"],
+            "log": ["loglevel": "warning"],
             "policy": [
                 "system": [
                     "connIdle": 300
@@ -1414,11 +1414,20 @@ final class VPNManager: NSObject, ObservableObject {
             if let alpn数组 = 节点.alpn {
                 // 修复 ALPN URL 编码问题：订阅链接中的 alpn 可能是 "h2%2Chttp%2F1.1" 形式，
                 // 需要先 URL 解码再按逗号拆分为 ["h2", "http/1.1"]
-                let 解码后数组 = alpn数组.flatMap { 原始值 -> [String] in
+                var 解码后数组 = alpn数组.flatMap { 原始值 -> [String] in
                     let 解码值 = 原始值.removingPercentEncoding ?? 原始值
                     return 解码值.components(separatedBy: ",")
                         .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                         .filter { !$0.isEmpty }
+                }
+                // WebSocket over TLS 仅支持 HTTP/1.1，不支持 HTTP/2 (h2)
+                // 若 ALPN 协商出 h2，Xray 的 WebSocket 客户端会收到 HTTP/2 二进制帧，
+                // 报 "malformed HTTP response" 错误导致连接失败
+                if 节点.transportType == .websocket {
+                    解码后数组 = 解码后数组.filter { $0.lowercased() != "h2" }
+                    if 解码后数组.isEmpty {
+                        解码后数组 = ["http/1.1"]
+                    }
                 }
                 if !解码后数组.isEmpty {
                     tls["alpn"] = 解码后数组
