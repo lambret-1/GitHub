@@ -656,7 +656,11 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         ipv6.includedRoutes = [NEIPv6Route.default()]
         设置.ipv6Settings = ipv6
 
-        let dns设置 = NEDNSSettings(servers: ["1.1.1.1", "8.8.8.8"])
+        // 使用国内公共 DNS，避免 DNS 查询走代理导致 captive 检测超时
+        // 原 1.1.1.1/8.8.8.8 需经代理 TLS+WS 握手（1-3秒），iOS 互联网连接检测易超时
+        // 国内 DNS 直连响应几十毫秒，captive.apple.com 检测可快速通过
+        // 注意：VLESS 代理传递目标域名由代理服务器重新解析，本地 DNS 污染不影响实际使用
+        let dns设置 = NEDNSSettings(servers: ["223.5.5.5", "119.29.29.29"])
         dns设置.matchDomains = [""]
         设置.dnsSettings = dns设置
 
