@@ -1275,12 +1275,13 @@ final class VPNManager: NSObject, ObservableObject {
         // 否则 Xray 核心不会注册出站计数器，扩展侧 QueryStats(tag:) 永远返回 0。
         // 同时把 loglevel 从 debug 降到 warning，避免 Go 运行时产生大量调试日志
         // 与内部缓冲区导致扩展进程常驻内存持续上涨（jetsam 被杀风险）。
-        // connIdle 让空闲连接在 300 秒后被回收，归还 Go 堆内存。
+        // connIdle 让空闲连接在 120 秒后被回收，归还 Go 堆内存。
+        // 原 300 秒过长，测速后大量空闲连接占用 buffer 导致内存不回收。
         return [
             "log": ["loglevel": "warning"],
             "policy": [
                 "system": [
-                    "connIdle": 300
+                    "connIdle": 120
                 ] as [String : Any]
             ],
             "inbounds": [tun入站],
