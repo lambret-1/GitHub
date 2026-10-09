@@ -15,6 +15,9 @@ struct ProfileView: View {
     // 用于导航栏显示 VPN 连接状态图标
     @State private var vpnConnectionStatus: VPNConnectionStatus = .disconnected
 
+    /// 上一次检测到的 VPN 连接状态（用于检测状态变化，触发 LiveActivity）
+    @State private var 上次VPN状态: VPNConnectionStatus = .disconnected
+
     /// VPN 状态刷新定时器（每秒刷新一次，确保导航栏图标实时更新）
     @State private var vpn状态定时器: Timer?
 
@@ -410,8 +413,23 @@ struct ProfileView: View {
 
     /// 刷新 VPN 连接状态
     /// 从 VPNManager 获取当前连接状态并更新 UI
+    /// 同时检测状态变化，触发 LiveActivity 启动/结束（替代状态栏 WiFi 图标）
     private func refreshVPNStatus() {
-        vpnConnectionStatus = VPNManager.shared.connectionStatus
+        let 新状态 = VPNManager.shared.connectionStatus
+        vpnConnectionStatus = 新状态
+
+        // 检测状态变化，触发 LiveActivity
+        if 新状态 != 上次VPN状态 {
+            if 新状态 == .connected {
+                // VPN 连接成功，启动 LiveActivity（锁屏+灵动岛显示绿色 VPN 状态）
+                let 节点名称 = VPNManager.shared.currentNode?.remark ?? "未知节点"
+                VPNLiveActivityManager.shared.连接成功(节点名称: 节点名称)
+            } else if 上次VPN状态 == .connected && !新状态.isActive {
+                // VPN 从连接状态变为非活跃状态，结束 LiveActivity
+                VPNLiveActivityManager.shared.断开连接()
+            }
+            上次VPN状态 = 新状态
+        }
     }
 
     /// 启动 VPN 状态定时刷新器（每秒刷新一次导航栏图标）

@@ -57,6 +57,8 @@ targets:
     dependencies:
       - target: VPNPacketTunnel
         embed: true
+      - target: VPNWidget
+        embed: true
 
   # ============================================================================
   # Xray 动态框架 Target
@@ -151,4 +153,33 @@ targets:
       - target: XrayKit
         embed: true
     # 扩展不需要依赖主应用，它是独立运行的进程
+    # 主应用通过 dependencies 嵌入此扩展
+
+  # ============================================================================
+  # VPN 状态 Widget 扩展 Target
+  # 用途：承载 LiveActivity 视图，在锁屏和灵动岛显示 VPN 连接状态
+  # 替代被越狱插件损坏的状态栏 WiFi 图标
+  # 注意：LiveActivity 需要 iOS 16.1+，此扩展最低部署版本为 16.1
+  # ============================================================================
+  VPNWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.1"
+    sources:
+      - path: VPNWidget
+        excludes:
+          - "**/README.md"
+      # 共享 ActivityAttributes 定义（主 App 与 Widget 必须使用同一份）
+      - path: GitHub/Core/VPN/VPNLiveActivityAttributes.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.github.client.vpnwidget
+        PRODUCT_NAME: VPNWidget
+        INFOPLIST_FILE: VPNWidget/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: VPNWidget/VPNWidget.entitlements
+        SWIFT_EMIT_LOC_STRINGS: YES
+        # Widget 扩展不需要剥离符号（影响 SwiftUI 预览）
+        STRIP_INSTALLED_PRODUCT: NO
+    # Widget 扩展独立运行，不需要依赖其他 target
     # 主应用通过 dependencies 嵌入此扩展
