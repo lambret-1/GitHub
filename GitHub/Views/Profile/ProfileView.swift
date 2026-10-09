@@ -418,15 +418,17 @@ struct ProfileView: View {
         let 新状态 = VPNManager.shared.connectionStatus
         vpnConnectionStatus = 新状态
 
-        // 检测状态变化，触发 LiveActivity
+        // 检测状态变化，触发 LiveActivity（iOS 16.1+ 才支持）
         if 新状态 != 上次VPN状态 {
-            if 新状态 == .connected {
-                // VPN 连接成功，启动 LiveActivity（锁屏+灵动岛显示绿色 VPN 状态）
-                let 节点名称 = VPNManager.shared.currentNode?.remark ?? "未知节点"
-                VPNLiveActivityManager.shared.连接成功(节点名称: 节点名称)
-            } else if 上次VPN状态 == .connected && !新状态.isActive {
-                // VPN 从连接状态变为非活跃状态，结束 LiveActivity
-                VPNLiveActivityManager.shared.断开连接()
+            if #available(iOS 16.1, *) {
+                if 新状态 == .connected {
+                    // VPN 连接成功，启动 LiveActivity（锁屏+灵动岛显示绿色 VPN 状态）
+                    let 节点名称 = VPNManager.shared.currentNode?.remark ?? "未知节点"
+                    VPNLiveActivityManager.shared.连接成功(节点名称: 节点名称)
+                } else if 上次VPN状态 == .connected && !新状态.isActive {
+                    // VPN 从连接状态变为非活跃状态，结束 LiveActivity
+                    VPNLiveActivityManager.shared.断开连接()
+                }
             }
             上次VPN状态 = 新状态
         }
