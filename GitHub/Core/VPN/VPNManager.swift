@@ -1136,7 +1136,38 @@ final class VPNManager: NSObject, ObservableObject {
                     "nuget.org", "dotnet.microsoft.com",
                     "azure.cn", "microsoftazure.cn",
                     "chinacloudapi.cn", "microsoftsupport.com",
-                    "answers.microsoft.com", "support.microsoft.com"
+                    "answers.microsoft.com", "support.microsoft.com",
+                    // AI 大模型与智能助手
+                    "doubao.com", "doubaocdn.com", "volces.com",
+                    "kimi.com", "moonshot.cn", "moonshot.ai",
+                    "zhipuai.cn", "bigmodel.cn", "chatglm.cn", "zhipuai.com",
+                    "xfyun.cn", "iflytek.com", "iflyrec.com",
+                    "minimaxi.com", "abab.ai",
+                    "baichuan-ai.com", "baichuan.com",
+                    "01.ai", "lingyiwanwu.com",
+                    "stepfun.com", "stepfun.ai",
+                    "modelbest.cn",
+                    "sensetime.com", "sensetime.cn",
+                    "mobvoi.com", "langboat.com", "datagrand.com",
+                    "unisound.com", "aispeech.com",
+                    "tiangong.cn", "kunlun.com", "wanzhi.com",
+                    "qianfan.cn", "qwen.ai", "tongyi.aliyun.com",
+                    "dashscope.aliyuncs.com", "hunyuan.tencent.com",
+                    "ai.360.cn", "quark.cn", "myquark.cn", "uc.cn",
+                    "youdao.com", "meitu.com", "meitudesign.com",
+                    "jianying.com", "capcut.com", "klingai.com",
+                    "xiaoai.com", "hiassistant.com", "heyuan.com",
+                    "hihonor.com", "honor.com", "megvii.com",
+                    "yitu-inc.com", "cloudwalk.cn", "deepglint.com",
+                    "horizon.ai", "horizonrobotics.com", "cambricon.com",
+                    // 视频/音乐/直播补充
+                    "kuaishou.com", "gifshow.com", "yximgs.com",
+                    "kuaishouzt.com", "kling.kuaishou.com",
+                    "miguvideo.com", "migu.cn", "music.migu.cn",
+                    "lizhi.fm", "lizhi.io",
+                    "douyinpic.com", "douyinstatic.com", "iesdouyin.com",
+                    // 腾讯游戏平台（国内游戏域名均已被 qq.com 覆盖）
+                    "wegame.com", "wegame.com.cn"
                 ],
                 "outboundTag": "direct"
             ])
