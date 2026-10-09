@@ -1,11 +1,11 @@
 // VPN LiveActivity 管理器
 // 监控 VPN 连接状态：隧道 up 时启动 LiveActivity，down 时结束
 // 替代被越狱插件损坏的状态栏 WiFi 图标，在锁屏和灵动岛显示绿色 VPN 状态
-// 注意：LiveActivity 需要 iOS 16.1+，iOS 16.0 上自动降级不启用
+// 注意：LiveActivity 需要 iOS 16.2+，iOS 16.0/16.1 上自动降级不启用
 import ActivityKit
 import Foundation
 
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 final class VPNLiveActivityManager {
     static let shared = VPNLiveActivityManager()
 

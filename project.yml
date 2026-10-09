@@ -159,12 +159,12 @@ targets:
   # VPN 状态 Widget 扩展 Target
   # 用途：承载 LiveActivity 视图，在锁屏和灵动岛显示 VPN 连接状态
   # 替代被越狱插件损坏的状态栏 WiFi 图标
-  # 注意：LiveActivity 需要 iOS 16.1+，此扩展最低部署版本为 16.1
+  # 注意：LiveActivity 需要 iOS 16.2+，此扩展最低部署版本为 16.2
   # ============================================================================
   VPNWidget:
     type: app-extension
     platform: iOS
-    deploymentTarget: "16.1"
+    deploymentTarget: "16.2"
     sources:
       - path: VPNWidget
         excludes:

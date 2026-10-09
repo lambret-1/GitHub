@@ -418,9 +418,9 @@ struct ProfileView: View {
         let 新状态 = VPNManager.shared.connectionStatus
         vpnConnectionStatus = 新状态
 
-        // 检测状态变化，触发 LiveActivity（iOS 16.1+ 才支持）
+        // 检测状态变化，触发 LiveActivity（iOS 16.2+ 才支持）
         if 新状态 != 上次VPN状态 {
-            if #available(iOS 16.1, *) {
+            if #available(iOS 16.2, *) {
                 if 新状态 == .connected {
                     // VPN 连接成功，启动 LiveActivity（锁屏+灵动岛显示绿色 VPN 状态）
                     let 节点名称 = VPNManager.shared.currentNode?.remark ?? "未知节点"
