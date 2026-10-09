@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-10-09 04:58:51 UTC
+**生成时间**: 2026-10-09 05:27:25 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -11,7 +11,7 @@
 | 类型 | 数量 | 状态 |
 |------|------|------|
 | 🔴 错误 | **00** 个 | 无错误 |
-| 🟡 警告 | **37** 个 | 建议清理 |
+| 🟡 警告 | **38** 个 | 建议清理 |
 
 ---
 
@@ -20,10 +20,10 @@
 | 警告类型 | 数量 | 占比 |
 |----------|------|------|
 | ⚠️ 弃用API警告 | 4 个 | 10% |
-| 📦 未使用变量警告 | 29 个 | 78% |
+| 📦 未使用变量警告 | 29 个 | 76% |
 | 🔄 类型转换警告 | 00 个 | 0% |
 | 🔍 可空性警告 | 00 个 | 0% |
-| 📝 其他警告 | 4 个 | 10% |
+| 📝 其他警告 | 5 个 | 13% |
 
 ---
 
@@ -31,7 +31,7 @@
 
 | 排名 | 文件名 | 警告数量 | 严重程度 |
 |------|--------|----------|----------|
-| 1 | `warning` | 3 个 | 🟢 低 |
+| 1 | `warning` | 4 个 | 🟢 低 |
 | 2 | `SearchView.swift` | 3 个 | 🟢 低 |
 | 3 | `PullRequestDetailView.swift` | 3 个 | 🟢 低 |
 | 4 | `XMLTokenizer.swift` | 2 个 | 🟢 低 |
@@ -91,7 +91,7 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:436:68: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
 ```
 
-### 📝 其他警告 (4个)
+### 📝 其他警告 (5个)
 
 ```
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'XrayKit' from project 'GitHub')
@@ -103,7 +103,8 @@ warning: The application supports opening files, but doesn't declare whether it 
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: weak reference will always be nil because the referenced object is deallocated here
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'GitHub' from project 'GitHub')
-warning: The CFBundleVersion of an app extension ('1790153654') must match that of its containing parent app ('1791521700').
+warning: The CFBundleVersion of an app extension ('1') must match that of its containing parent app ('1791523453').
+warning: The CFBundleVersion of an app extension ('1790153654') must match that of its containing parent app ('1791523453').
 ```
 
 ---
@@ -114,7 +115,7 @@ warning: The CFBundleVersion of an app extension ('1790153654') must match that 
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 47568 行
+- **代码总行数**: 47699 行
 
 ### 💡 修复建议
 
