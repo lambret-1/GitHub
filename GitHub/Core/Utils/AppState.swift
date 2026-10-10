@@ -49,7 +49,23 @@ class AppState: ObservableObject {
     func checkLoginStatus() {
         isLoggedIn = TokenKeychain.shared.hasToken
         if isLoggedIn {
-            loadUserInfo()
+            // 修复：Token 存在但 AccountManager 中账号信息丢失时，自动从网络恢复账号
+            if AccountManager.shared.currentAccount == nil {
+                loadUserInfo { [weak self] user in
+                    guard let self = self, let user = user else { return }
+                    let account = GitHubAccount(
+                        id: String(user.id),
+                        username: user.login,
+                        token: TokenKeychain.shared.getToken() ?? "",
+                        avatarUrl: user.avatarUrl,
+                        displayName: user.name
+                    )
+                    AccountManager.shared.addAccount(account)
+                    AccountManager.shared.switchTo(account)
+                }
+            } else {
+                loadUserInfo()
+            }
         }
     }
     
@@ -102,14 +118,15 @@ class AppState: ObservableObject {
         isLoggedIn = false
     }
     
-    func loadUserInfo() {
+    func loadUserInfo(completion: ((GitHubUser?) -> Void)? = nil) {
         GitHubAPI.shared.getUserInfo { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let user):
                     self?.currentUser = user
+                    completion?(user)
                 case .failure:
-                    break
+                    completion?(nil)
                 }
             }
         }

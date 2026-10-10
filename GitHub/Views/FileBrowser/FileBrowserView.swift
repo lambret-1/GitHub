@@ -58,6 +58,7 @@ class HTMLCache {
 struct FileBrowserView: View {
     let repository: Repository
     @EnvironmentObject var appState: AppState
+    @ObservedObject private var accountManager = AccountManager.shared
     @Environment(\.dismiss) private var dismiss
     @State var files: [FileItem] = []
     @State var currentPath: String = ""
@@ -1168,33 +1169,33 @@ struct FileBrowserView: View {
 
     @ViewBuilder
     var moreMenuContent: some View {
-        // 文件操作功能（始终显示入口，非自己仓库时禁用，避免因登录状态判断导致入口消失）
-        Button(action: {
-            showDocumentPicker = true
-        }) {
-            Label("上传文件", systemImage: "square.and.arrow.up")
-        }
-        .disabled(!isOwnRepository || isUploading || isDownloading || isDeleteMode || 当前是标签视图)
-
-        Button(action: {
-            showCreateFileDialog = true
-            newFileName = ""
-        }) {
-            Label("新建文件", systemImage: "doc.badge.plus")
-        }
-        .disabled(!isOwnRepository || isCreatingFile || isDeleteMode || 当前是标签视图)
-
-        Button(action: {
-            showCreateFolderDialog = true
-            newFolderName = ""
-        }) {
-            Label("创建文件夹", systemImage: "folder.badge.plus")
-        }
-        .disabled(!isOwnRepository || isCreatingFolder || isDeleteMode || 当前是标签视图)
-
-        Divider()
-
         if isOwnRepository {
+            // 自己的仓库：显示文件操作相关功能
+            Button(action: {
+                showDocumentPicker = true
+            }) {
+                Label("上传文件", systemImage: "square.and.arrow.up")
+            }
+            .disabled(isUploading || isDownloading || isDeleteMode || 当前是标签视图)
+
+            Button(action: {
+                showCreateFileDialog = true
+                newFileName = ""
+            }) {
+                Label("新建文件", systemImage: "doc.badge.plus")
+            }
+            .disabled(isCreatingFile || isDeleteMode || 当前是标签视图)
+
+            Button(action: {
+                showCreateFolderDialog = true
+                newFolderName = ""
+            }) {
+                Label("创建文件夹", systemImage: "folder.badge.plus")
+            }
+            .disabled(isCreatingFolder || isDeleteMode || 当前是标签视图)
+
+            Divider()
+
             Button(action: {
                 isDeleteMode.toggle()
                 selectedFilesForDelete.removeAll()
@@ -1204,16 +1205,14 @@ struct FileBrowserView: View {
             .disabled(当前是标签视图)
 
             Divider()
-        }
 
-        // 标签视图只读提示
-        if 当前是标签视图 {
-            Label("标签为只读快照", systemImage: "lock.fill")
-                .foregroundColor(.orange)
-            Divider()
-        }
-
-        if !isOwnRepository {
+            // 标签视图只读提示
+            if 当前是标签视图 {
+                Label("标签为只读快照", systemImage: "lock.fill")
+                    .foregroundColor(.orange)
+                Divider()
+            }
+        } else {
             // 别人的仓库：显示仓库交互相关功能
             Button(action: {
                 toggleStar()
@@ -1239,6 +1238,8 @@ struct FileBrowserView: View {
         }
 
         // 通用功能（自己和别人的仓库都显示）
+        
+
         Button(action: {
             copyRepositoryHTTPSURL()
         }) {
@@ -1256,18 +1257,18 @@ struct FileBrowserView: View {
         Divider()
 
         Button(action: {
-            downloadRepositoryZip()
-        }) {
-            Label("下载仓库 ZIP", systemImage: "square.and.arrow.down")
-        }
-        .disabled(isDeleteMode || isDownloadingZip)
-
-        Button(action: {
             showCommits = true
         }) {
             Label("提交记录", systemImage: "clock.arrow.circlepath")
         }
         .disabled(isDeleteMode)
+
+        /*Button(action: {
+            downloadRepositoryZip()
+        }) {
+            Label("下载仓库 ZIP", systemImage: "square.and.arrow.down")
+        }
+        .disabled(isDeleteMode || isDownloadingZip)*/
 
         Button(action: {
             if let url = URL(string: repository.htmlUrl) {
@@ -1605,11 +1606,20 @@ struct FileBrowserView: View {
     // MARK: - 仓库权限判断
 
     /// 判断当前仓库是否是用户自己的仓库
+    /// 优先使用 AccountManager.currentAccount，若为 nil（Token 存在但 UserDefaults 账号信息丢失）则回退到 appState.currentUser
     var isOwnRepository: Bool {
-        guard let currentUsername = AccountManager.shared.currentAccount?.username else {
+        let currentUsername: String?
+        if let accountUsername = accountManager.currentAccount?.username {
+            currentUsername = accountUsername
+        } else if let userLogin = appState.currentUser?.login {
+            currentUsername = userLogin
+        } else {
+            currentUsername = nil
+        }
+        guard let username = currentUsername else {
             return false
         }
-        return repository.ownerName.lowercased() == currentUsername.lowercased()
+        return repository.ownerName.lowercased() == username.lowercased()
     }
 
     // MARK: - 星标相关方法
