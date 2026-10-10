@@ -226,8 +226,6 @@ struct FileBrowserView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 16) {
-                    // 更多操作菜单：上传文件/新建文件/创建文件夹/删除等
-                    moreMenu
                     // 代码搜索图标按钮（点击弹出RepoCodeSearchView，使用GitHub官方搜索API）
                     Button(action: {
                         showCodeSearch = true
