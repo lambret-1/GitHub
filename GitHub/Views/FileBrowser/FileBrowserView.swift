@@ -226,12 +226,14 @@ struct FileBrowserView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 16) {
+                    // 更多操作菜单：上传文件/新建文件/创建文件夹/删除等
+                    moreMenu
                     // 代码搜索图标按钮（点击弹出RepoCodeSearchView，使用GitHub官方搜索API）
                     Button(action: {
                         showCodeSearch = true
                     }) {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: 18))  // 这是字体大小尺寸，控制图标显示的大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难辨认；还能配合.imageScale设大小或用.tint改图标颜色
+                            .font(.system(size: 18))
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
