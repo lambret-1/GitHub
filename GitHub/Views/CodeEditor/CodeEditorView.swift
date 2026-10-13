@@ -1,4 +1,14 @@
 import SwiftUI
+import WebKit
+
+// MARK: - 文件视图模式枚举
+/// 文件查看器的三种视图模式，与 GitHub 网页一致
+enum 文件视图模式: String, CaseIterable, Identifiable {
+    case preview = "Preview"
+    case code = "Code"
+    case blame = "Blame"
+    var id: String { rawValue }
+}
 
 struct CodeEditorView: View {
     let owner: String
@@ -115,6 +125,18 @@ struct CodeEditorView: View {
     // 大文件阈值常量
     private let largeFileThreshold: Int = 5 * 1024 * 1024 // 5MB
     private let ultraLargeFileThreshold: Int = 20 * 1024 * 1024 // 20MB
+
+    // MARK: - 视图模式相关状态（Preview/Code/Blame）
+    @State private var 当前视图模式: 文件视图模式 = .code
+    // Preview 预览相关状态
+    @State private var 预览渲染HTML: String?
+    @State private var 预览渲染中: Bool = false
+    @State private var 预览渲染错误: String?
+    @State private var 预览WebView高度: CGFloat = 400
+    // Blame 追溯相关状态
+    @State private var blame提交列表: [Commit] = []
+    @State private var blame加载中: Bool = false
+    @State private var blame错误: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -638,15 +660,312 @@ struct CodeEditorView: View {
             } else if let error = errorMessage {
                 errorView(error: error)
             } else if let content = fileContent {
-                if content.isImageFile {
-                    // 图片文件：显示图片预览
-                    imagePreviewView(content: content)
-                } else if !content.isTextFile {
-                    // 其他二进制文件：显示二进制文件提示
-                    binaryFileView(content: content)
-                } else {
-                    // 文本文件：显示代码编辑器
-                    codeEditorArea
+                VStack(spacing: 0) {
+                    // 视图模式切换器（Preview / Code / Blame），仅文本和图片文件显示
+                    if content.isTextFile || content.isImageFile {
+                        视图模式切换器
+                    }
+
+                    // 根据视图模式显示内容
+                    switch 当前视图模式 {
+                    case .preview:
+                        预览视图内容(content: content)
+                    case .code:
+                        代码视图内容(content: content)
+                    case .blame:
+                        Blame视图内容
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - 视图模式切换器
+
+    private var 视图模式切换器: some View {
+        HStack(spacing: 0) {
+            ForEach(文件视图模式.allCases) { mode in
+                Button(action: {
+                    当前视图模式 = mode
+                    // 切换到对应模式时按需加载数据
+                    if mode == .blame && blame提交列表.isEmpty && !blame加载中 {
+                        加载Blame数据()
+                    }
+                    if mode == .preview && 预览渲染HTML == nil && !预览渲染中 {
+                        渲染预览内容()
+                    }
+                }) {
+                    Text(mode.rawValue)
+                        .font(.system(size: 15, weight: 当前视图模式 == mode ? .semibold : .regular))
+                        .foregroundColor(当前视图模式 == mode ? .primary : .secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .overlay(alignment: .bottom) {
+                            if 当前视图模式 == mode {
+                                Rectangle()
+                                    .fill(Color.accentColor)
+                                    .frame(height: 2)
+                            }
+                        }
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .background(Color(.systemGray6))
+        .overlay(
+            Rectangle()
+                .fill(Color(.separator))
+                .frame(height: 0.5),
+            alignment: .bottom
+        )
+    }
+
+    // MARK: - Code 代码视图内容
+
+    private func 代码视图内容(content: FileContent) -> some View {
+        Group {
+            if content.isImageFile {
+                // 图片文件：显示图片预览
+                imagePreviewView(content: content)
+            } else if !content.isTextFile {
+                // 其他二进制文件：显示二进制文件提示
+                binaryFileView(content: content)
+            } else {
+                // 文本文件：显示代码编辑器
+                codeEditorArea
+            }
+        }
+    }
+
+    // MARK: - Preview 预览视图内容
+
+    private func 预览视图内容(content: FileContent) -> some View {
+        Group {
+            if content.isImageFile {
+                // 图片文件：直接显示图片预览
+                imagePreviewView(content: content)
+            } else if !content.isTextFile {
+                // 二进制文件：显示提示
+                binaryFileView(content: content)
+            } else if 预览渲染中 {
+                VStack {
+                    Spacer()
+                    ProgressView("渲染预览中...")
+                    Spacer()
+                }
+            } else if let error = 预览渲染错误 {
+                VStack(spacing: 16) {
+                    Spacer()
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.largeTitle)
+                        .foregroundColor(.orange)
+                    Text(error)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.secondary)
+                    Button("重试") {
+                        渲染预览内容()
+                    }
+                    .buttonStyle(.bordered)
+                    Spacer()
+                }
+                .padding()
+            } else if 文件是Markdown类型, let html = 预览渲染HTML {
+                // Markdown 文件：用 WebView 显示渲染后的 HTML
+                文件预览WebView(html内容: html, 高度: $预览WebView高度)
+                    .frame(height: 预览WebView高度)
+            } else {
+                // 其他文本文件：直接显示纯文本预览
+                ScrollView {
+                    Text(codeText)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
+                }
+            }
+        }
+    }
+
+    // MARK: - Blame 追溯视图内容
+
+    private var Blame视图内容: some View {
+        Group {
+            if blame加载中 {
+                VStack {
+                    Spacer()
+                    ProgressView("加载追溯信息中...")
+                    Spacer()
+                }
+            } else if let error = blame错误 {
+                VStack(spacing: 16) {
+                    Spacer()
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.largeTitle)
+                        .foregroundColor(.orange)
+                    Text(error)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.secondary)
+                    Button("重试") {
+                        加载Blame数据()
+                    }
+                    .buttonStyle(.bordered)
+                    Spacer()
+                }
+                .padding()
+            } else if blame提交列表.isEmpty {
+                VStack(spacing: 8) {
+                    Spacer()
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text("暂无提交记录")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+            } else {
+                List {
+                    ForEach(blame提交列表) { commit in
+                        Blame提交行(commit: commit)
+                    }
+                }
+                .listStyle(PlainListStyle())
+            }
+        }
+    }
+
+    // MARK: - Blame 提交行视图
+
+    private struct Blame提交行: View {
+        let commit: Commit
+
+        var body: some View {
+            HStack(alignment: .top, spacing: 12) {
+                // 作者头像
+                AsyncImage(url: URL(string: commit.author?.avatarUrl ?? "")) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .empty, .failure:
+                        Color.gray
+                    @unknown default:
+                        Color.gray
+                    }
+                }
+                .frame(width: 36, height: 36)
+                .clipShape(Circle())
+
+                // 提交信息
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(commit.message)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.primary)
+                        .lineLimit(2)
+
+                    HStack(spacing: 6) {
+                        Text(commit.authorName)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                        Text("·")
+                            .foregroundColor(.secondary)
+                        Text(commit.formattedDate)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                // 提交 SHA
+                Text(commit.shortSha)
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(4)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+        }
+    }
+
+    // MARK: - 文件预览 WebView
+
+    private struct 文件预览WebView: UIViewRepresentable {
+        let html内容: String
+        @Binding var 高度: CGFloat
+        @Environment(\.colorScheme) private var colorScheme
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(高度: $高度)
+        }
+
+        func makeUIView(context: Context) -> WKWebView {
+            let configuration = WKWebViewConfiguration()
+            let webView = WKWebView(frame: .zero, configuration: configuration)
+            webView.navigationDelegate = context.coordinator
+            webView.scrollView.isScrollEnabled = false
+            webView.isOpaque = false
+            return webView
+        }
+
+        func updateUIView(_ webView: WKWebView, context: Context) {
+            let 完整HTML = 构建完整HTML(内容: html内容, 深色模式: colorScheme == .dark)
+            webView.loadHTMLString(完整HTML, baseURL: nil)
+        }
+
+        private func 构建完整HTML(内容: String, 深色模式: Bool) -> String {
+            let 主题类名 = 深色模式 ? "markdown-body dark" : "markdown-body"
+            return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body { margin: 0; padding: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+                    .markdown-body { max-width: 100%; word-wrap: break-word; }
+                    .markdown-body.dark { background-color: #0d1117; color: #c9d1d9; }
+                    .markdown-body pre { background-color: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
+                    .markdown-body.dark pre { background-color: #161b22; }
+                    .markdown-body code { background-color: rgba(175,184,193,0.2); padding: 2px 6px; border-radius: 4px; font-size: 85%; }
+                    .markdown-body pre code { background-color: transparent; padding: 0; }
+                    .markdown-body img { max-width: 100%; height: auto; }
+                    .markdown-body table { border-collapse: collapse; width: 100%; }
+                    .markdown-body th, .markdown-body td { border: 1px solid #d0d7de; padding: 6px 13px; }
+                    .markdown-body.dark th, .markdown-body.dark td { border-color: #30363d; }
+                    .markdown-body blockquote { border-left: 4px solid #d0d7de; padding-left: 16px; color: #57606a; margin: 0; }
+                    .markdown-body.dark blockquote { border-color: #30363d; color: #8b949e; }
+                    .markdown-body a { color: #0969da; text-decoration: none; }
+                    .markdown-body.dark a { color: #58a6ff; }
+                    .markdown-body h1, .markdown-body h2 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; }
+                    .markdown-body.dark h1, .markdown-body.dark h2 { border-color: #21262d; }
+                </style>
+            </head>
+            <body class="\(主题类名)">
+                <div class="\(主题类名)">
+                    \(内容)
+                </div>
+            </body>
+            </html>
+            """
+        }
+
+        class Coordinator: NSObject, WKNavigationDelegate {
+            @Binding var 高度: CGFloat
+
+            init(高度: Binding<CGFloat>) {
+                _高度 = 高度
+            }
+
+            func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+                webView.evaluateJavaScript("document.documentElement.scrollHeight") { result, _ in
+                    if let height = result as? CGFloat {
+                        DispatchQueue.main.async {
+                            self.高度 = height
+                        }
+                    }
                 }
             }
         }
@@ -1241,6 +1560,69 @@ struct CodeEditorView: View {
                 self.isDownloading = false
                 if case .failure(let error) = result {
                     self.renameErrorMessage = "下载失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    // MARK: - 文件类型判断
+
+    /// 文件扩展名（小写，不含点号）
+    private var 文件扩展名: String {
+        let nsString = path as NSString
+        let ext = nsString.pathExtension.lowercased()
+        return ext
+    }
+
+    /// 是否为 Markdown 文件
+    private var 文件是Markdown类型: Bool {
+        let markdown扩展名集合: Set<String> = ["md", "markdown", "mkd", "mdown", "mdx"]
+        return markdown扩展名集合.contains(文件扩展名)
+    }
+
+    // MARK: - 渲染预览内容
+
+    private func 渲染预览内容() {
+        // 图片文件不需要渲染，直接显示
+        guard let content = fileContent, content.isTextFile else { return }
+
+        预览渲染中 = true
+        预览渲染错误 = nil
+
+        if 文件是Markdown类型 {
+            // Markdown 文件：调用 GitHub 官方 Markdown API 渲染
+            GitHubAPI.shared.renderMarkdown(markdown: codeText, context: "\(owner)/\(repo)") { result in
+                DispatchQueue.main.async {
+                    预览渲染中 = false
+                    switch result {
+                    case .success(let html):
+                        预览渲染HTML = html
+                    case .failure(let error):
+                        预览渲染错误 = "Markdown 渲染失败: \(error.localizedDescription)"
+                    }
+                }
+            }
+        } else {
+            // 其他文本文件：直接显示纯文本，无需渲染
+            预览渲染中 = false
+            预览渲染HTML = nil
+        }
+    }
+
+    // MARK: - 加载 Blame 数据
+
+    private func 加载Blame数据() {
+        blame加载中 = true
+        blame错误 = nil
+
+        GitHubAPI.shared.getCommits(owner: owner, repo: repo, path: path, branch: branch, perPage: 50) { result in
+            DispatchQueue.main.async {
+                blame加载中 = false
+                switch result {
+                case .success(let commits):
+                    blame提交列表 = commits
+                case .failure(let error):
+                    blame错误 = "加载追溯信息失败: \(error.localizedDescription)"
                 }
             }
         }
