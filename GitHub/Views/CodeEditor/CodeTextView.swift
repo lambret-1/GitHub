@@ -100,21 +100,44 @@ struct CodeTextView: UIViewRepresentable {
         layoutManager.containerInset = textView.textContainerInset
 
         // 设置初始文本
+        // 性能优化：先显示纯文本（立即响应），再异步执行语法高亮（避免大文件/长行文件卡死主线程）
         // 编辑模式下使用纯文本，避免语法高亮导致光标乱跳换行问题
-        // 查看模式下使用带语法高亮的属性字符串
-        // 大文件性能优化：超过1MB的文件自动禁用语法高亮，保证流畅浏览
-        // TXT文件特殊处理：纯文本文件无需语法高亮，直接打开
+        // 大文件（>1MB）或TXT文件：纯文本显示，保证性能
         let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         let fileSize = text.utf8.count
         let isLargeFile = fileSize > 1024 * 1024  // 1MB阈值，超过此大小自动禁用语法高亮
         let isTxtFile = fileName.lowercased().hasSuffix(".txt")  // TXT纯文本文件，无需语法高亮
-        if isEditable || isLargeFile || isTxtFile {
-            // 编辑模式、大文件或TXT文件：使用纯文本，保证性能和光标稳定性
-            textStorage.setAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.label]))
-        } else {
-            // 小文件查看模式：使用语法高亮
-            let highlightedText = SyntaxHighlighter.highlight(text, font: font, fileName: fileName)
-            textStorage.setAttributedString(highlightedText)
+        let 需要语法高亮 = !isEditable && !isLargeFile && !isTxtFile
+
+        // 第一步：立即设置纯文本，保证界面秒开不卡死
+        textStorage.setAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.label]))
+
+        // 第二步：异步执行语法高亮（后台线程计算，完成后主线程更新）
+        if 需要语法高亮 {
+            // 检测超长行（压缩JSON等单行超长文件），这类文件高亮耗时较长
+            var 含超长行 = false
+            text.enumerateLines { line, stop in
+                if line.count > 5000 {
+                    含超长行 = true
+                    stop = true
+                }
+            }
+            // 超长行文件使用更低优先级，避免阻塞其他操作
+            let 队列优先级: DispatchQoS.QoSClass = 含超长行 ? .utility : .userInitiated
+
+            DispatchQueue.global(qos: 队列优先级).async { [weak context] in
+                guard let context = context else { return }
+                // 执行语法高亮（带缓存）
+                let highlightedText = SyntaxHighlighter.highlight(text, font: font, fileName: fileName)
+                DispatchQueue.main.async {
+                    // 确保文本未被用户修改（编辑模式切换等场景）
+                    guard textStorage.string == text else { return }
+                    // 标记内部更新，避免触发textViewDidChange循环
+                    context.coordinator.isInternalUpdate = true
+                    textStorage.setAttributedString(highlightedText)
+                    context.coordinator.isInternalUpdate = false
+                }
+            }
         }
 
         // 预计算换行符位置（大文件性能优化，行号计算使用二分查找）

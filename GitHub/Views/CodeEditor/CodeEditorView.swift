@@ -1500,8 +1500,9 @@ struct CodeEditorView: View {
                     }
 
                     // 解析文件符号（第三期：高级编辑功能）
-                    // 大文件性能优化：超过1MB的文件跳过符号解析，保证流畅加载
-                    if file.size < 1024 * 1024 {
+                    // 性能优化：超过1MB的文件跳过符号解析；JSON/TXT/XML等数据文件无函数类符号，直接跳过
+                    let 无符号文件类型: Set<String> = ["json", "txt", "xml", "plist", "csv", "yaml", "yml", "toml", "ini", "cfg", "conf"]
+                    if file.size < 1024 * 1024 && !无符号文件类型.contains(file.fileExtension.lowercased()) {
                         symbolNavigator.parseSymbols(in: codeText, language: file.fileExtension)
                     }
                 case .failure(let error):
