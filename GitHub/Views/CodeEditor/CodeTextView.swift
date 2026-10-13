@@ -125,17 +125,17 @@ struct CodeTextView: UIViewRepresentable {
             // 超长行文件使用更低优先级，避免阻塞其他操作
             let 队列优先级: DispatchQoS.QoSClass = 含超长行 ? .utility : .userInitiated
 
-            DispatchQueue.global(qos: 队列优先级).async { [weak context] in
-                guard let context = context else { return }
+            DispatchQueue.global(qos: 队列优先级).async { [weak context.coordinator, weak textStorage] in
+                guard let coordinator = context.coordinator, let storage = textStorage else { return }
                 // 执行语法高亮（带缓存）
                 let highlightedText = SyntaxHighlighter.highlight(text, font: font, fileName: fileName)
                 DispatchQueue.main.async {
                     // 确保文本未被用户修改（编辑模式切换等场景）
-                    guard textStorage.string == text else { return }
+                    guard storage.string == text else { return }
                     // 标记内部更新，避免触发textViewDidChange循环
-                    context.coordinator.isInternalUpdate = true
-                    textStorage.setAttributedString(highlightedText)
-                    context.coordinator.isInternalUpdate = false
+                    coordinator.isInternalUpdate = true
+                    storage.setAttributedString(highlightedText)
+                    coordinator.isInternalUpdate = false
                 }
             }
         }
