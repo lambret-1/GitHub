@@ -127,7 +127,7 @@ struct CodeEditorView: View {
     private let ultraLargeFileThreshold: Int = 20 * 1024 * 1024 // 20MB
 
     // MARK: - 视图模式相关状态（Preview/Code/Blame）
-    @State private var 当前视图模式: 文件视图模式 = .preview
+    @State private var 当前视图模式: 文件视图模式
     // Preview 预览相关状态
     @State private var 预览渲染HTML: String?
     @State private var 预览渲染中: Bool = false
@@ -136,6 +136,25 @@ struct CodeEditorView: View {
     @State private var blame提交列表: [Commit] = []
     @State private var blame加载中: Bool = false
     @State private var blame错误: String?
+
+    // MARK: - 初始化
+    init(owner: String, repo: String, path: String, branch: String, fileName: String,
+         autoEnterEditMode: Bool = false, initialSearchText: String = "", initialLineNumber: Int? = nil) {
+        self.owner = owner
+        self.repo = repo
+        self.path = path
+        self.branch = branch
+        self.fileName = fileName
+        self.autoEnterEditMode = autoEnterEditMode
+        self.initialSearchText = initialSearchText
+        self.initialLineNumber = initialLineNumber
+
+        // 根据文件类型设置默认视图模式：Markdown文件默认Preview，其他文件默认Code
+        let ext = (path as NSString).pathExtension.lowercased()
+        let markdownExtensions: Set<String> = ["md", "markdown", "mkd", "mdown", "mdx"]
+        let 默认模式: 文件视图模式 = markdownExtensions.contains(ext) ? .preview : .code
+        _当前视图模式 = State(initialValue: 默认模式)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
