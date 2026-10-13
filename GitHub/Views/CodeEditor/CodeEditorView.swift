@@ -914,7 +914,11 @@ struct CodeEditorView: View {
 
         func updateUIView(_ webView: WKWebView, context: Context) {
             let 完整HTML = 构建完整HTML(内容: html内容, 深色模式: colorScheme == .dark)
-            webView.loadHTMLString(完整HTML, baseURL: nil)
+            // 内容缓存：只有HTML内容或主题变化时才重新加载，避免切换视图时重复加载导致卡顿
+            if context.coordinator.上次加载HTML != 完整HTML {
+                context.coordinator.上次加载HTML = 完整HTML
+                webView.loadHTMLString(完整HTML, baseURL: nil)
+            }
         }
 
         private func 构建完整HTML(内容: String, 深色模式: Bool) -> String {
@@ -1055,7 +1059,8 @@ struct CodeEditorView: View {
         }
 
         class Coordinator: NSObject, WKNavigationDelegate {
-            // 移除高度计算，WebView 内部滚动，占满可用空间
+            // 内容缓存：避免切换视图时WebView重复加载导致卡顿
+            var 上次加载HTML: String?
         }
     }
 
@@ -1472,6 +1477,11 @@ struct CodeEditorView: View {
 
                     // 获取文件最后编辑时间
                     loadLastCommit()
+
+                    // 默认Preview模式下，文件加载完成后自动触发渲染
+                    if 当前视图模式 == .preview && 文件是Markdown类型 && 预览渲染HTML == nil && !预览渲染中 {
+                        渲染预览内容()
+                    }
 
                     // 解析文件符号（第三期：高级编辑功能）
                     // 大文件性能优化：超过1MB的文件跳过符号解析，保证流畅加载
