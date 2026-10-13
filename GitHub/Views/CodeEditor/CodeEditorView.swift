@@ -127,7 +127,7 @@ struct CodeEditorView: View {
     private let ultraLargeFileThreshold: Int = 20 * 1024 * 1024 // 20MB
 
     // MARK: - 视图模式相关状态（Preview/Code/Blame）
-    @State private var 当前视图模式: 文件视图模式 = .code
+    @State private var 当前视图模式: 文件视图模式 = .preview
     // Preview 预览相关状态
     @State private var 预览渲染HTML: String?
     @State private var 预览渲染中: Bool = false
@@ -920,6 +920,9 @@ struct CodeEditorView: View {
         private func 构建完整HTML(内容: String, 深色模式: Bool) -> String {
             let 主题类名 = 深色模式 ? "markdown-body dark" : "markdown-body"
             let 背景色 = 深色模式 ? "#0d1117" : "#ffffff"
+            let 代码块背景 = 深色模式 ? "#161b22" : "#f6f8fa"
+            let 按钮文字色 = 深色模式 ? "#8b949e" : "#57606a"
+            let 按钮悬停色 = 深色模式 ? "#c9d1d9" : "#24292f"
             return """
             <!DOCTYPE html>
             <html>
@@ -931,10 +934,17 @@ struct CodeEditorView: View {
                     body { padding: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
                     .markdown-body { max-width: 100%; word-wrap: break-word; }
                     .markdown-body.dark { color: #c9d1d9; }
-                    .markdown-body pre { background-color: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
-                    .markdown-body.dark pre { background-color: #161b22; }
+                    .markdown-body pre {
+                        background-color: \(代码块背景);
+                        padding: 16px;
+                        padding-top: 36px;
+                        border-radius: 6px;
+                        overflow-x: auto;
+                        position: relative;
+                        margin: 16px 0;
+                    }
                     .markdown-body code { background-color: rgba(175,184,193,0.2); padding: 2px 6px; border-radius: 4px; font-size: 85%; }
-                    .markdown-body pre code { background-color: transparent; padding: 0; }
+                    .markdown-body pre code { background-color: transparent; padding: 0; font-size: 85%; }
                     .markdown-body img { max-width: 100%; height: auto; }
                     .markdown-body table { border-collapse: collapse; width: 100%; }
                     .markdown-body th, .markdown-body td { border: 1px solid #d0d7de; padding: 6px 13px; }
@@ -945,12 +955,100 @@ struct CodeEditorView: View {
                     .markdown-body.dark a { color: #58a6ff; }
                     .markdown-body h1, .markdown-body h2 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; }
                     .markdown-body.dark h1, .markdown-body.dark h2 { border-color: #21262d; }
+                    /* 代码块复制按钮样式 */
+                    .code-copy-btn {
+                        position: absolute;
+                        top: 8px;
+                        right: 8px;
+                        padding: 4px 10px;
+                        font-size: 12px;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                        color: \(按钮文字色);
+                        background-color: transparent;
+                        border: 1px solid rgba(127,127,127,0.3);
+                        border-radius: 6px;
+                        cursor: pointer;
+                        opacity: 0;
+                        transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+                        z-index: 10;
+                        -webkit-user-select: none;
+                        user-select: none;
+                    }
+                    .markdown-body pre:hover .code-copy-btn {
+                        opacity: 1;
+                    }
+                    .code-copy-btn:hover {
+                        color: \(按钮悬停色);
+                        border-color: rgba(127,127,127,0.6);
+                    }
+                    .code-copy-btn.copied {
+                        color: #238636;
+                        border-color: #238636;
+                        opacity: 1;
+                    }
                 </style>
             </head>
             <body class="\(主题类名)">
                 <div class="\(主题类名)">
                     \(内容)
                 </div>
+                <script>
+                    // 为所有代码块添加复制按钮
+                    (function() {
+                        var pres = document.querySelectorAll('.markdown-body pre');
+                        pres.forEach(function(pre) {
+                            // 避免重复添加
+                            if (pre.querySelector('.code-copy-btn')) return;
+
+                            var btn = document.createElement('button');
+                            btn.className = 'code-copy-btn';
+                            btn.textContent = '复制';
+                            btn.setAttribute('type', 'button');
+
+                            btn.addEventListener('click', function() {
+                                var code = pre.querySelector('code');
+                                var text = code ? code.innerText : pre.innerText;
+                                // 使用 Clipboard API
+                                if (navigator.clipboard && navigator.clipboard.writeText) {
+                                    navigator.clipboard.writeText(text).then(function() {
+                                        showCopied(btn);
+                                    }).catch(function() {
+                                        fallbackCopy(text, btn);
+                                    });
+                                } else {
+                                    fallbackCopy(text, btn);
+                                }
+                            });
+
+                            pre.style.position = 'relative';
+                            pre.appendChild(btn);
+                        });
+
+                        function showCopied(btn) {
+                            var originalText = btn.textContent;
+                            btn.textContent = '已复制';
+                            btn.classList.add('copied');
+                            setTimeout(function() {
+                                btn.textContent = originalText;
+                                btn.classList.remove('copied');
+                            }, 2000);
+                        }
+
+                        function fallbackCopy(text, btn) {
+                            var textarea = document.createElement('textarea');
+                            textarea.value = text;
+                            textarea.style.position = 'fixed';
+                            textarea.style.opacity = '0';
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            try {
+                                document.execCommand('copy');
+                                showCopied(btn);
+                            } catch (e) {}
+                            document.body.removeChild(textarea);
+                        }
+                    })();
+                </script>
             </body>
             </html>
             """
