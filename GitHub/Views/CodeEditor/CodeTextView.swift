@@ -125,8 +125,11 @@ struct CodeTextView: UIViewRepresentable {
             // 超长行文件使用更低优先级，避免阻塞其他操作
             let 队列优先级: DispatchQoS.QoSClass = 含超长行 ? .utility : .userInitiated
 
-            DispatchQueue.global(qos: 队列优先级).async { [weak context.coordinator, weak textStorage] in
-                guard let coordinator = context.coordinator, let storage = textStorage else { return }
+            // 异步高亮：先捕获弱引用，避免循环引用
+            let coordinator = context.coordinator
+            let storage = textStorage
+            DispatchQueue.global(qos: 队列优先级).async { [weak coordinator, weak storage] in
+                guard let coordinator = coordinator, let storage = storage else { return }
                 // 执行语法高亮（带缓存）
                 let highlightedText = SyntaxHighlighter.highlight(text, font: font, fileName: fileName)
                 DispatchQueue.main.async {
