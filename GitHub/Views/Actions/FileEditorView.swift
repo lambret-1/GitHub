@@ -1,18 +1,9 @@
 import SwiftUI
 import WebKit
 
-// MARK: - 文件视图模式枚举
-/// 文件查看器的三种视图模式，与 GitHub 网页一致
-enum 文件视图模式: String, CaseIterable, Identifiable {
-    case preview = "Preview"
-    case code = "Code"
-    case blame = "Blame"
-    var id: String { rawValue }
-}
-
 // MARK: - 通用文件编辑器视图
 // 功能：查看文件内容、编辑文件、搜索内容、保存提交到仓库
-// 支持 Preview（预览）/ Code（代码）/ Blame（追溯）三种视图模式
+// 注意：本视图未被实际使用，实际文件查看器为 CodeEditorView
 
 struct FileEditorView: View {
     let owner: String
