@@ -132,7 +132,6 @@ struct CodeEditorView: View {
     @State private var 预览渲染HTML: String?
     @State private var 预览渲染中: Bool = false
     @State private var 预览渲染错误: String?
-    @State private var 预览WebView高度: CGFloat = 400
     // Blame 追溯相关状态
     @State private var blame提交列表: [Commit] = []
     @State private var blame加载中: Bool = false
@@ -770,9 +769,9 @@ struct CodeEditorView: View {
                 }
                 .padding()
             } else if 文件是Markdown类型, let html = 预览渲染HTML {
-                // Markdown 文件：用 WebView 显示渲染后的 HTML
-                文件预览WebView(html内容: html, 高度: $预览WebView高度)
-                    .frame(height: 预览WebView高度)
+                // Markdown 文件：用 WebView 显示渲染后的 HTML，占满可用空间，内部可滚动
+                文件预览WebView(html内容: html)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 // 其他文本文件：直接显示纯文本预览
                 ScrollView {
@@ -894,19 +893,22 @@ struct CodeEditorView: View {
 
     private struct 文件预览WebView: UIViewRepresentable {
         let html内容: String
-        @Binding var 高度: CGFloat
         @Environment(\.colorScheme) private var colorScheme
 
         func makeCoordinator() -> Coordinator {
-            Coordinator(高度: $高度)
+            Coordinator()
         }
 
         func makeUIView(context: Context) -> WKWebView {
             let configuration = WKWebViewConfiguration()
             let webView = WKWebView(frame: .zero, configuration: configuration)
             webView.navigationDelegate = context.coordinator
-            webView.scrollView.isScrollEnabled = false
+            // 启用内部滚动，占满可用空间，避免高度计算导致撑爆屏幕
+            webView.scrollView.isScrollEnabled = true
             webView.isOpaque = false
+            // 禁止页面缩放，保持原生体验
+            webView.scrollView.maximumZoomScale = 1.0
+            webView.scrollView.minimumZoomScale = 1.0
             return webView
         }
 
@@ -917,6 +919,7 @@ struct CodeEditorView: View {
 
         private func 构建完整HTML(内容: String, 深色模式: Bool) -> String {
             let 主题类名 = 深色模式 ? "markdown-body dark" : "markdown-body"
+            let 背景色 = 深色模式 ? "#0d1117" : "#ffffff"
             return """
             <!DOCTYPE html>
             <html>
@@ -924,9 +927,10 @@ struct CodeEditorView: View {
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <style>
-                    body { margin: 0; padding: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+                    html, body { margin: 0; padding: 0; background-color: \(背景色); }
+                    body { padding: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
                     .markdown-body { max-width: 100%; word-wrap: break-word; }
-                    .markdown-body.dark { background-color: #0d1117; color: #c9d1d9; }
+                    .markdown-body.dark { color: #c9d1d9; }
                     .markdown-body pre { background-color: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
                     .markdown-body.dark pre { background-color: #161b22; }
                     .markdown-body code { background-color: rgba(175,184,193,0.2); padding: 2px 6px; border-radius: 4px; font-size: 85%; }
@@ -953,21 +957,7 @@ struct CodeEditorView: View {
         }
 
         class Coordinator: NSObject, WKNavigationDelegate {
-            @Binding var 高度: CGFloat
-
-            init(高度: Binding<CGFloat>) {
-                _高度 = 高度
-            }
-
-            func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-                webView.evaluateJavaScript("document.documentElement.scrollHeight") { result, _ in
-                    if let height = result as? CGFloat {
-                        DispatchQueue.main.async {
-                            self.高度 = height
-                        }
-                    }
-                }
-            }
+            // 移除高度计算，WebView 内部滚动，占满可用空间
         }
     }
 
