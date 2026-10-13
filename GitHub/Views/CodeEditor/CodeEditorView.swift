@@ -972,14 +972,11 @@ struct CodeEditorView: View {
                         border: 1px solid rgba(127,127,127,0.3);
                         border-radius: 6px;
                         cursor: pointer;
-                        opacity: 0;
-                        transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+                        opacity: 1;
+                        transition: color 0.2s, border-color 0.2s;
                         z-index: 10;
                         -webkit-user-select: none;
                         user-select: none;
-                    }
-                    .markdown-body pre:hover .code-copy-btn {
-                        opacity: 1;
                     }
                     .code-copy-btn:hover {
                         color: \(按钮悬停色);
