@@ -290,7 +290,7 @@ struct FileBrowserView: View {
             if let filePath = selectedFilePath, let fileName = selectedFileName {
                 switch 当前预览类型 {
                 case .image:
-                    ImagePreviewView(
+                    FileImagePreviewView(
                         owner: repository.ownerName,
                         repo: repository.name,
                         path: filePath,
@@ -298,7 +298,7 @@ struct FileBrowserView: View {
                         fileName: fileName
                     )
                 case .html:
-                    HTMLPreviewView(
+                    FileHTMLPreviewView(
                         owner: repository.ownerName,
                         repo: repository.name,
                         path: filePath,
