@@ -1216,10 +1216,20 @@ struct CodeEditorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// 从URL加载图片（支持私有仓库认证）
+    /// 从URL加载图片（支持私有仓库认证，支持downloadUrl为nil时自动构建raw URL）
     private func loadImage(from urlString: String?) {
-        guard let urlString = urlString, let url = URL(string: urlString) else {
-            imageLoadError = "无效的图片地址"
+        // 优先使用API返回的downloadUrl，为nil时手动构建raw.githubusercontent.com URL
+        let 最终URL: String?
+        if let urlString = urlString, !urlString.isEmpty {
+            最终URL = urlString
+        } else {
+            // 手动构建raw文件URL作为备选方案
+            let encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
+            最终URL = "https://raw.githubusercontent.com/\(owner)/\(repo)/\(branch)/\(encodedPath)"
+        }
+
+        guard let urlString = 最终URL, let url = URL(string: urlString) else {
+            imageLoadError = "无效的图片地址: \(最终URL ?? "nil")"
             return
         }
 
