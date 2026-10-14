@@ -159,9 +159,12 @@ struct WebView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        // 避免重复加载
-        guard !context.coordinator.hasLoaded else { return }
+        // 避免重复加载：只有内容变化时才重新加载
+        if context.coordinator.hasLoaded && context.coordinator.lastLoadedHTML == htmlContent {
+            return
+        }
         context.coordinator.hasLoaded = true
+        context.coordinator.lastLoadedHTML = htmlContent
 
         // 立即通知开始加载
         onLoadingChange?(true)
@@ -188,6 +191,7 @@ struct WebView: UIViewRepresentable {
     class Coordinator: NSObject, WKNavigationDelegate {
         var parent: WebView
         var hasLoaded: Bool = false
+        var lastLoadedHTML: String?
 
         init(_ parent: WebView) {
             self.parent = parent

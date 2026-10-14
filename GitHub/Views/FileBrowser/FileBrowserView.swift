@@ -143,6 +143,7 @@ struct FileBrowserView: View {
     @State var isLoadingHTML: Bool = false
     @State var htmlPreviewError: String?
     @State var htmlPreviewURL: String = "" // 保存当前预览的URL，用于刷新
+    @State var htmlPreviewBaseURL: URL? // 保存HTML文件所在目录，用于加载相对路径资源
 
     // 仓库交互相关状态（星标、Fork）
     @State var isStarred: Bool = false
@@ -1099,6 +1100,7 @@ struct FileBrowserView: View {
             HTMLPreviewView(
                 htmlContent: htmlPreviewContent,
                 title: htmlPreviewTitle,
+                baseURL: htmlPreviewBaseURL,
                 onRefresh: {
                     // 刷新网页：清除缓存，重新下载
                     let currentURL = htmlPreviewURL
@@ -2512,12 +2514,37 @@ struct FileBrowserView: View {
     // MARK: - HTML网页预览
 
     func previewHTMLFile(_ file: FileItem) {
-        // 优先使用download_url下载文件内容
+        // 确定分支名，空值回退到 main
+        let branch = selectedBranch.isEmpty ? "main" : selectedBranch
+
+        // 构建文件的 raw URL（对路径逐组件编码，支持中文和特殊字符）
+        let pathComponents = file.path.split(separator: "/").map { component -> String in
+            let allowed = CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))
+            return String(component).addingPercentEncoding(withAllowedCharacters: allowed) ?? String(component)
+        }
+        let encodedPath = pathComponents.joined(separator: "/")
+        let rawUrl = "https://raw.githubusercontent.com/\(repository.ownerName)/\(repository.name)/\(branch)/\(encodedPath)"
+
+        // 计算 baseURL：HTML 文件所在目录，用于加载相对路径的 CSS/JS/图片
+        // 例如文件路径为 docs/index.html，则 baseURL 为 .../docs/
+        let directoryPath = (file.path as NSString).deletingLastPathComponent
+        let baseURLString: String
+        if directoryPath.isEmpty {
+            baseURLString = "https://raw.githubusercontent.com/\(repository.ownerName)/\(repository.name)/\(branch)/"
+        } else {
+            let dirComponents = directoryPath.split(separator: "/").map { component -> String in
+                let allowed = CharacterSet.urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))
+                return String(component).addingPercentEncoding(withAllowedCharacters: allowed) ?? String(component)
+            }
+            let encodedDir = dirComponents.joined(separator: "/")
+            baseURLString = "https://raw.githubusercontent.com/\(repository.ownerName)/\(repository.name)/\(branch)/\(encodedDir)/"
+        }
+        htmlPreviewBaseURL = URL(string: baseURLString)
+
+        // 优先使用 download_url，否则使用手动构建的 raw URL
         if let downloadUrl = file.downloadUrl, !downloadUrl.isEmpty {
             downloadHTMLFromURL(downloadUrl, fileName: file.name)
         } else {
-            // 如果download_url为空，使用GitHub raw内容URL
-            let rawUrl = "https://raw.githubusercontent.com/\(repository.ownerName)/\(repository.name)/\(selectedBranch)/\(file.path)"
             downloadHTMLFromURL(rawUrl, fileName: file.name)
         }
     }
