@@ -1158,7 +1158,7 @@ struct CodeEditorView: View {
                         }
                         .buttonStyle(.bordered)
                         if let downloadUrl = content.downloadUrl {
-                            Button("下载文件") {
+                            Button("在浏览器中打开") {
                                 if let url = URL(string: downloadUrl) {
                                     UIApplication.shared.open(url)
                                 }
@@ -1189,18 +1189,34 @@ struct CodeEditorView: View {
                             imageScale = 1.0
                         }
                     }
+                } else {
+                    // 未加载状态（理论上不会出现，onAppear会触发加载）
+                    VStack(spacing: 16) {
+                        Image(systemName: "photo")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                        Text("准备加载图片...")
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onAppear {
+                        if previewImage == nil && !isLoadingImage {
+                            loadImage(from: content.downloadUrl)
+                        }
+                    }
                 }
             }
             .onAppear {
                 // 视图出现时加载图片
-                if previewImage == nil && !isLoadingImage {
+                if previewImage == nil && !isLoadingImage && imageLoadError == nil {
                     loadImage(from: content.downloadUrl)
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// 从URL加载图片
+    /// 从URL加载图片（支持私有仓库认证）
     private func loadImage(from urlString: String?) {
         guard let urlString = urlString, let url = URL(string: urlString) else {
             imageLoadError = "无效的图片地址"
@@ -1213,8 +1229,16 @@ struct CodeEditorView: View {
         isLoadingImage = true
         imageLoadError = nil
 
+        // 构建请求，添加GitHub认证头（支持私有仓库图片下载）
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        if let token = TokenKeychain.shared.getToken() {
+            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        }
+        request.setValue("application/vnd.github.v3.raw", forHTTPHeaderField: "Accept")
+
         // 使用URLSession加载图片数据
-        let task = URLSession.shared.dataTask(with: url) { data, _, error in
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isLoadingImage = false
                 self.imageLoadTask = nil
@@ -1228,8 +1252,26 @@ struct CodeEditorView: View {
                     return
                 }
 
-                guard let data = data, let image = UIImage(data: data) else {
-                    self.imageLoadError = "图片数据无效或格式不支持"
+                // 检查HTTP状态码
+                if let httpResponse = response as? HTTPURLResponse,
+                   !(200...299).contains(httpResponse.statusCode) {
+                    if httpResponse.statusCode == 404 {
+                        self.imageLoadError = "图片未找到（404），可能文件已被移动或删除"
+                    } else if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                        self.imageLoadError = "无权限访问该图片（\(httpResponse.statusCode)），请检查Token权限"
+                    } else {
+                        self.imageLoadError = "服务器错误（\(httpResponse.statusCode)）"
+                    }
+                    return
+                }
+
+                guard let data = data, !data.isEmpty else {
+                    self.imageLoadError = "图片数据为空"
+                    return
+                }
+
+                guard let image = UIImage(data: data) else {
+                    self.imageLoadError = "图片数据无效或格式不支持（\(data.count) 字节）"
                     return
                 }
 
