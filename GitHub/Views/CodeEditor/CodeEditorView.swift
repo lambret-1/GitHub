@@ -149,10 +149,10 @@ struct CodeEditorView: View {
         self.initialSearchText = initialSearchText
         self.initialLineNumber = initialLineNumber
 
-        // 根据文件类型设置默认视图模式：Markdown文件默认Preview，其他文件默认Code
+        // 根据文件类型设置默认视图模式：Markdown/HTML文件默认Preview，其他文件默认Code
         let ext = (path as NSString).pathExtension.lowercased()
-        let markdownExtensions: Set<String> = ["md", "markdown", "mkd", "mdown", "mdx"]
-        let 默认模式: 文件视图模式 = markdownExtensions.contains(ext) ? .preview : .code
+        let previewExtensions: Set<String> = ["md", "markdown", "mkd", "mdown", "mdx", "html", "htm", "xhtml"]
+        let 默认模式: 文件视图模式 = previewExtensions.contains(ext) ? .preview : .code
         _当前视图模式 = State(initialValue: 默认模式)
     }
 
@@ -787,9 +787,9 @@ struct CodeEditorView: View {
                     Spacer()
                 }
                 .padding()
-            } else if 文件是Markdown类型, let html = 预览渲染HTML {
-                // Markdown 文件：用 WebView 显示渲染后的 HTML，占满可用空间，内部可滚动
-                文件预览WebView(html内容: html)
+            } else if (文件是Markdown类型 || 文件是HTML类型), let html = 预览渲染HTML {
+                // Markdown/HTML 文件：用 WebView 显示渲染后的内容，占满可用空间，内部可滚动
+                文件预览WebView(html内容: html, 是原始HTML: 文件是HTML类型)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 // 其他文本文件：直接显示纯文本预览
@@ -912,7 +912,14 @@ struct CodeEditorView: View {
 
     private struct 文件预览WebView: UIViewRepresentable {
         let html内容: String
+        /// 是否为原始HTML文件（HTML文件直接渲染，不包裹markdown样式）
+        let 是原始HTML: Bool
         @Environment(\.colorScheme) private var colorScheme
+
+        init(html内容: String, 是原始HTML: Bool = false) {
+            self.html内容 = html内容
+            self.是原始HTML = 是原始HTML
+        }
 
         func makeCoordinator() -> Coordinator {
             Coordinator()
@@ -932,7 +939,14 @@ struct CodeEditorView: View {
         }
 
         func updateUIView(_ webView: WKWebView, context: Context) {
-            let 完整HTML = 构建完整HTML(内容: html内容, 深色模式: colorScheme == .dark)
+            let 完整HTML: String
+            if 是原始HTML {
+                // 原始HTML文件：直接加载，不包裹markdown样式
+                完整HTML = html内容
+            } else {
+                // Markdown渲染结果：包裹markdown样式和复制按钮功能
+                完整HTML = 构建完整HTML(内容: html内容, 深色模式: colorScheme == .dark)
+            }
             // 内容缓存：只有HTML内容或主题变化时才重新加载，避免切换视图时重复加载导致卡顿
             if context.coordinator.上次加载HTML != 完整HTML {
                 context.coordinator.上次加载HTML = 完整HTML
@@ -1747,6 +1761,12 @@ struct CodeEditorView: View {
         return markdown扩展名集合.contains(文件扩展名)
     }
 
+    /// 是否为 HTML 文件（可直接用 WebView 渲染）
+    private var 文件是HTML类型: Bool {
+        let html扩展名集合: Set<String> = ["html", "htm", "xhtml"]
+        return html扩展名集合.contains(文件扩展名)
+    }
+
     // MARK: - 渲染预览内容
 
     private func 渲染预览内容() {
@@ -1756,7 +1776,11 @@ struct CodeEditorView: View {
         预览渲染中 = true
         预览渲染错误 = nil
 
-        if 文件是Markdown类型 {
+        if 文件是HTML类型 {
+            // HTML 文件：直接用文件内容渲染，无需调用API
+            预览渲染中 = false
+            预览渲染HTML = codeText
+        } else if 文件是Markdown类型 {
             // Markdown 文件：调用 GitHub 官方 Markdown API 渲染
             GitHubAPI.shared.renderMarkdown(markdown: codeText, context: "\(owner)/\(repo)") { result in
                 DispatchQueue.main.async {
