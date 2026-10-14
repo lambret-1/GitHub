@@ -194,6 +194,15 @@ struct FileBrowserView: View {
     @State var navigateToFileEditor: Bool = false
     // 从代码搜索结果跳转到编辑页面时的目标行号
     @State var jumpToLineNumber: Int?
+    // 文件预览类型：代码编辑器/图片预览/HTML预览
+    @State var 当前预览类型: 文件预览类型 = .code
+
+    /// 文件预览类型枚举
+    enum 文件预览类型 {
+        case code      // 代码编辑器（默认文本文件）
+        case image     // 图片全屏预览
+        case html      // HTML网页预览
+    }
 
     var body: some View {
         mainContent
@@ -279,16 +288,35 @@ struct FileBrowserView: View {
         }
         .navigationDestination(isPresented: $navigateToFileEditor) {
             if let filePath = selectedFilePath, let fileName = selectedFileName {
-                CodeEditorView(
-                    owner: repository.ownerName,
-                    repo: repository.name,
-                    path: filePath,
-                    branch: selectedBranch,
-                    fileName: fileName,
-                    // 不使用编辑器内部搜索功能，直接跳转到指定行
-                    initialSearchText: "",
-                    initialLineNumber: jumpToLineNumber
-                )
+                switch 当前预览类型 {
+                case .image:
+                    ImagePreviewView(
+                        owner: repository.ownerName,
+                        repo: repository.name,
+                        path: filePath,
+                        branch: selectedBranch,
+                        fileName: fileName
+                    )
+                case .html:
+                    HTMLPreviewView(
+                        owner: repository.ownerName,
+                        repo: repository.name,
+                        path: filePath,
+                        branch: selectedBranch,
+                        fileName: fileName
+                    )
+                case .code:
+                    CodeEditorView(
+                        owner: repository.ownerName,
+                        repo: repository.name,
+                        path: filePath,
+                        branch: selectedBranch,
+                        fileName: fileName,
+                        // 不使用编辑器内部搜索功能，直接跳转到指定行
+                        initialSearchText: "",
+                        initialLineNumber: jumpToLineNumber
+                    )
+                }
             }
         }
         .overlay {
@@ -2391,6 +2419,17 @@ struct FileBrowserView: View {
             Button(action: {
                 selectedFilePath = file.path
                 selectedFileName = file.name
+                // 根据文件扩展名判断预览类型
+                let ext = (file.path as NSString).pathExtension.lowercased()
+                let imageExts: Set<String> = ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico"]
+                let htmlExts: Set<String> = ["html", "htm"]
+                if imageExts.contains(ext) {
+                    当前预览类型 = .image
+                } else if htmlExts.contains(ext) {
+                    当前预览类型 = .html
+                } else {
+                    当前预览类型 = .code
+                }
                 navigateToFileEditor = true
             }) {
                 FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
@@ -3970,6 +4009,7 @@ private struct FileBrowserCreateFileSheetsModifier: ViewModifier {
                         view.selectedFilePath = filePath
                         view.selectedFileName = (filePath as NSString).lastPathComponent
                         view.jumpToLineNumber = lineNumber
+                        view.当前预览类型 = .code
                         view.navigateToFileEditor = true
                     }
                 )
