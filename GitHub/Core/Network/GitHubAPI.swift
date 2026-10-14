@@ -210,8 +210,36 @@ class GitHubAPI {
     }
 
     /// 获取仓库README内容（Markdown原文）
+    /// 注意：GitHub API 的 /repos/{owner}/{repo}/readme 端点仅支持根目录，
+    /// 子目录的README需要通过 contents 端点获取
     func getReadme(owner: String, repo: String, branch: String? = nil, path: String? = nil, completion: @escaping (Result<String, Error>) -> Void) {
-        performRequest(url: APIEndpoints.readme(owner: owner, repo: repo, branch: branch, path: path).url) { result in
+        // 子目录README：使用 contents 端点获取该目录下的 README.md
+        if let path = path, !path.isEmpty {
+            let readmePath = "\(path)/README.md"
+            getFileContent(owner: owner, repo: repo, path: readmePath, branch: branch ?? "main") { result in
+                switch result {
+                case .success(let fileContent):
+                    // 解码Base64内容
+                    if let content = fileContent.content,
+                       let encoding = fileContent.encoding,
+                       encoding == "base64",
+                       let decodedData = Data(base64Encoded: content.replacingOccurrences(of: "\n", with: ""), options: .ignoreUnknownCharacters),
+                       let decodedString = String(data: decodedData, encoding: .utf8) {
+                        completion(.success(decodedString))
+                    } else if let downloadUrl = fileContent.downloadUrl {
+                        self.downloadRawContent(url: downloadUrl, completion: completion)
+                    } else {
+                        completion(.failure(NSError(domain: "GitHubAPI", code: 404, userInfo: [NSLocalizedDescriptionKey: "子目录未找到README.md"])))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+            return
+        }
+
+        // 根目录README：使用官方 readme 端点
+        performRequest(url: APIEndpoints.readme(owner: owner, repo: repo, branch: branch, path: nil).url) { result in
             switch result {
             case .success(let data):
                 do {

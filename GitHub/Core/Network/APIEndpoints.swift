@@ -89,12 +89,10 @@ enum APIEndpoints {
             return "\(APIEndpoints.baseURL)/users/\(username)/repos?page=\(page)&per_page=\(perPage)&sort=updated"
         case .repository(let owner, let repo):
             return "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)"
-        case .readme(let owner, let repo, let branch, let path):
+        case .readme(let owner, let repo, let branch, _):
+            // 注意：GitHub API 的 readme 端点仅支持根目录，不支持 path 参数
+            // 子目录README由 getReadme 方法内部通过 contents 端点处理
             var url = "\(APIEndpoints.baseURL)/repos/\(owner)/\(repo)/readme"
-            if let path = path, !path.isEmpty {
-                let encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
-                url += "/\(encodedPath)"
-            }
             if let branch = branch {
                 url += "?ref=\(branch)"
             }
