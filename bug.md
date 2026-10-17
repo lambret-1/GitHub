@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-10-17 08:12:27 UTC
+**生成时间**: 2026-10-17 08:24:40 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -11,7 +11,7 @@
 | 类型 | 数量 | 状态 |
 |------|------|------|
 | 🔴 错误 | **00** 个 | 无错误 |
-| 🟡 警告 | **39** 个 | 建议清理 |
+| 🟡 警告 | **41** 个 | 建议清理 |
 
 ---
 
@@ -19,8 +19,8 @@
 
 | 警告类型 | 数量 | 占比 |
 |----------|------|------|
-| ⚠️ 弃用API警告 | 4 个 | 10% |
-| 📦 未使用变量警告 | 30 个 | 76% |
+| ⚠️ 弃用API警告 | 6 个 | 14% |
+| 📦 未使用变量警告 | 30 个 | 73% |
 | 🔄 类型转换警告 | 00 个 | 0% |
 | 🔍 可空性警告 | 00 个 | 0% |
 | 📝 其他警告 | 5 个 | 12% |
@@ -35,35 +35,37 @@
 | 2 | `SearchView.swift` | 3 个 | 🟢 低 |
 | 3 | `PullRequestDetailView.swift` | 3 个 | 🟢 低 |
 | 4 | `XMLTokenizer.swift` | 2 个 | 🟢 低 |
-| 5 | `PacketTunnelProvider.swift` | 2 个 | 🟢 低 |
-| 6 | `IssueDetailView.swift` | 2 个 | 🟢 低 |
-| 7 | `HTMLTokenizer.swift` | 2 个 | 🟢 低 |
-| 8 | `FileDownloadManager.swift` | 2 个 | 🟢 低 |
-| 9 | `FileBrowserView.swift` | 2 个 | 🟢 低 |
-| 10 | `AppState.swift` | 2 个 | 🟢 低 |
-| 11 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 12 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 13 | `SubscriptionListView.swift` | 1 个 | 🟢 低 |
-| 14 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
-| 15 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
-| 16 | `ReadmeView.swift` | 1 个 | 🟢 低 |
-| 17 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
-| 18 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
-| 19 | `JobLogView.swift` | 1 个 | 🟢 低 |
-| 20 | `INITokenizer.swift` | 1 个 | 🟢 低 |
+| 5 | `ShareUploadView.swift` | 2 个 | 🟢 低 |
+| 6 | `PacketTunnelProvider.swift` | 2 个 | 🟢 低 |
+| 7 | `IssueDetailView.swift` | 2 个 | 🟢 低 |
+| 8 | `HTMLTokenizer.swift` | 2 个 | 🟢 低 |
+| 9 | `FileDownloadManager.swift` | 2 个 | 🟢 低 |
+| 10 | `FileBrowserView.swift` | 2 个 | 🟢 低 |
+| 11 | `AppState.swift` | 2 个 | 🟢 低 |
+| 12 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 13 | `TOMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 14 | `SubscriptionListView.swift` | 1 个 | 🟢 低 |
+| 15 | `SQLTokenizer.swift` | 1 个 | 🟢 低 |
+| 16 | `RepositorySettingsView.swift` | 1 个 | 🟢 低 |
+| 17 | `ReadmeView.swift` | 1 个 | 🟢 低 |
+| 18 | `PythonTokenizer.swift` | 1 个 | 🟢 低 |
+| 19 | `KeyboardManager.swift` | 1 个 | 🟢 低 |
+| 20 | `JobLogView.swift` | 1 个 | 🟢 低 |
 
 ---
 
 ## 📝 警告详情列表
 
 
-### ⚠️ 弃用API警告 (4个)
+### ⚠️ 弃用API警告 (6个)
 
 ```
     /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -ivfsstatcache /Users/runner/work/GitHub/GitHub/build/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/runner/work/GitHub/GitHub/build/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Wquoted-include-in-framework-header -Werror\=deprecated-objc-isa-usage -Werror\=objc-root-class -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wpointer-sign -Wno-newline-eof -Wno-implicit-fallthrough -fstrict-aliasing -Wdeprecated-declarations -Wno-sign-conversion -Winfinite-recursion -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/XrayKit.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp -MMD -MT dependencies -MF /Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/XrayKit.build/Objects-normal/arm64/XrayKit_vers.d --serialize-diagnostics /Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/XrayKit.build/Objects-normal/arm64/XrayKit_vers.dia -c /Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/XrayKit.build/DerivedSources/XrayKit_vers.c -o /Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/XrayKit.build/Objects-normal/arm64/XrayKit_vers.o
 /Users/runner/work/GitHub/GitHub/VPNPacketTunnel/PacketTunnelProvider.swift:8:8: warning: implicit import of bridging header 'XrayKit-Bridging-Header.h' via module 'XrayKit' is deprecated and will be removed in a later version of Swift
     /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -ivfsstatcache /Users/runner/work/GitHub/GitHub/build/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/runner/work/GitHub/GitHub/build/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Wquoted-include-in-framework-header -Werror\=deprecated-objc-isa-usage -Werror\=objc-root-class -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wpointer-sign -Wno-newline-eof -Wno-implicit-fallthrough -fstrict-aliasing -Wdeprecated-declarations -Wno-sign-conversion -Winfinite-recursion -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/VPNPacketTunnel.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp -MMD -MT dependencies -MF /Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/VPNPacketTunnel.build/Objects-normal/arm64/SignalHandler.d --serialize-diagnostics /Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/VPNPacketTunnel.build/Objects-normal/arm64/SignalHandler.dia -c /Users/runner/work/GitHub/GitHub/VPNPacketTunnel/SignalHandler.c -o /Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/VPNPacketTunnel.build/Objects-normal/arm64/SignalHandler.o
     /Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x objective-c -ivfsstatcache /Users/runner/work/GitHub/GitHub/build/SDKStatCaches.noindex/iphoneos17.5-21F77-f0fa7969d082b13145125136a829df3a.sdkstatcache -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/runner/work/GitHub/GitHub/build/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Wquoted-include-in-framework-header -Wno-implicit-atomic-properties -Werror\=deprecated-objc-isa-usage -Wno-objc-interface-ivars -Werror\=objc-root-class -Wno-arc-repeated-use-of-weak -Wimplicit-retain-self -Wduplicate-method-match -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wpointer-sign -Wno-newline-eof -Wno-selector -Wno-strict-selector-match -Wundeclared-selector -Wdeprecated-implementations -Wno-implicit-fallthrough -fstrict-aliasing -Wprotocol -Wdeprecated-declarations -Wno-sign-conversion -Winfinite-recursion -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/VPNPacketTunnel.build/Objects-normal/arm64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp -MMD -MT dependencies -MF /Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/VPNPacketTunnel.build/Objects-normal/arm64/SafeKVC.d --serialize-diagnostics /Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/VPNPacketTunnel.build/Objects-normal/arm64/SafeKVC.dia -c /Users/runner/work/GitHub/GitHub/VPNPacketTunnel/SafeKVC.m -o /Users/runner/work/GitHub/GitHub/build/Build/Intermediates.noindex/GitHub.build/Release-iphoneos/VPNPacketTunnel.build/Objects-normal/arm64/SafeKVC.o
+/Users/runner/work/GitHub/GitHub/GitHub/Views/Share/ShareUploadView.swift:145:21: warning: 'init(isActive:destination:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
+/Users/runner/work/GitHub/GitHub/GitHub/Views/Share/ShareUploadView.swift:170:25: warning: 'init(isActive:destination:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
 ```
 
 ### 📦 未使用变量警告 (30个)
@@ -103,8 +105,8 @@ warning: The application supports opening files, but doesn't declare whether it 
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Search/SearchView.swift:500:29: warning: string interpolation produces a debug description for an optional value; did you mean to make this explicit?
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/FileDownloadManager.swift:137:33: warning: weak reference will always be nil because the referenced object is deallocated here
 warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'GitHub' from project 'GitHub')
-warning: The CFBundleVersion of an app extension ('1') must match that of its containing parent app ('1792224476').
-warning: The CFBundleVersion of an app extension ('1790153654') must match that of its containing parent app ('1792224476').
+warning: The CFBundleVersion of an app extension ('1') must match that of its containing parent app ('1792225242').
+warning: The CFBundleVersion of an app extension ('1790153654') must match that of its containing parent app ('1792225242').
 ```
 
 ---
@@ -115,12 +117,12 @@ warning: The CFBundleVersion of an app extension ('1790153654') must match that 
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 49035 行
+- **代码总行数**: 49043 行
 
 ### 💡 修复建议
 
 
-#### 1. 弃用API警告 (4个)
+#### 1. 弃用API警告 (6个)
 - 检查使用的API是否有替代方案
 - 逐步迁移到新API，避免使用已废弃接口
 - 参考Apple官方文档了解废弃原因和替代方案
