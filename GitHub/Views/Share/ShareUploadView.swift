@@ -307,6 +307,7 @@ struct ShareUploadView: View {
                         selectedRepo = repo
                         selectedBranch = "main"
                         loadBranches()
+                        dismiss()
                     }) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
@@ -347,6 +348,7 @@ struct ShareUploadView: View {
                 ForEach(branches) { branch in
                     Button(action: {
                         selectedBranch = branch.name
+                        dismiss()
                     }) {
                         HStack {
                             Image(systemName: "arrow.triangle.branch")
