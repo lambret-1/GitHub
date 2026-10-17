@@ -25,6 +25,10 @@ struct ShareUploadView: View {
     // 选中的仓库
     @State private var selectedRepo: Repository?
 
+    // 导航控制
+    @State private var showRepoPicker = false
+    @State private var showBranchPicker = false
+
     // 分支列表
     @State private var branches: [Branch] = []
     @State private var isLoadingBranches: Bool = false
@@ -138,7 +142,9 @@ struct ShareUploadView: View {
                 // 上传配置部分
                 Section {
                     // 选择仓库
-                    NavigationLink(destination: repoSelectionView) {
+                    NavigationLink(isActive: $showRepoPicker) {
+                        repoSelectionView
+                    } label: {
                         HStack {
                             Image(systemName: "folder.fill")
                                 .foregroundColor(.blue)
@@ -161,7 +167,9 @@ struct ShareUploadView: View {
 
                     // 选择分支
                     if selectedRepo != nil {
-                        NavigationLink(destination: branchSelectionView) {
+                        NavigationLink(isActive: $showBranchPicker) {
+                            branchSelectionView
+                        } label: {
                             HStack {
                                 Image(systemName: "arrow.triangle.branch")
                                     .foregroundColor(.purple)
@@ -307,7 +315,7 @@ struct ShareUploadView: View {
                         selectedRepo = repo
                         selectedBranch = "main"
                         loadBranches()
-                        dismiss()
+                        showRepoPicker = false
                     }) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
@@ -348,7 +356,7 @@ struct ShareUploadView: View {
                 ForEach(branches) { branch in
                     Button(action: {
                         selectedBranch = branch.name
-                        dismiss()
+                        showBranchPicker = false
                     }) {
                         HStack {
                             Image(systemName: "arrow.triangle.branch")
