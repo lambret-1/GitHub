@@ -285,7 +285,7 @@ struct ShareUploadView: View {
     // MARK: - 快捷路径选项
 
     private var quickPaths: [String] {
-        ["src/", "docs/", "assets/", "images/", "scripts/", "tests/"]
+        ["crash_logs/", "src/", "docs/", "assets/", "images/", "scripts/", "tests/"]
     }
 
     // MARK: - 仓库选择视图
