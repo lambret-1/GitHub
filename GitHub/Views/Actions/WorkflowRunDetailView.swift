@@ -809,6 +809,15 @@ struct JobRow: View {
                             .lineLimit(1)
                     }
                 }
+
+                // 失败时显示具体失败步骤名
+                if job.conclusion == "failure",
+                   let failedStep = job.steps?.first(where: { $0.conclusion == "failure" }) {
+                    Text("失败步骤：\(failedStep.name)")
+                        .font(.caption2)
+                        .foregroundColor(.red)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()
