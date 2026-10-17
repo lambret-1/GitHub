@@ -1415,9 +1415,14 @@ class GitHubAPI {
                 return
             }
 
-            // 移动到tmp目录，重命名为artifact_<id>.zip
+            // 移动到 Documents/Downloads 目录，重命名为artifact_<id>.zip
             let fileManager = FileManager.default
-            let destinationURL = fileManager.temporaryDirectory.appendingPathComponent("artifact_\(artifactId).zip")
+            let downloadsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Downloads", isDirectory: true)
+            if !fileManager.fileExists(atPath: downloadsDir.path) {
+                try? fileManager.createDirectory(at: downloadsDir, withIntermediateDirectories: true)
+            }
+            let destinationURL = downloadsDir.appendingPathComponent("artifact_\(artifactId).zip")
             do {
                 if fileManager.fileExists(atPath: destinationURL.path) {
                     try fileManager.removeItem(at: destinationURL)
