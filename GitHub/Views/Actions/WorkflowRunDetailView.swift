@@ -358,7 +358,7 @@ struct WorkflowRunDetailView: View {
                 } else {
                     ForEach(jobs) { job in
                         NavigationLink(destination: JobLogView(owner: owner, repo: repo, job: job)) {
-                            JobRow(job: job)
+                            JobRow(job: job, owner: owner, repo: repo)
                         }
                     }
                 }
@@ -755,7 +755,10 @@ struct WorkflowRunDetailView: View {
 
 struct JobRow: View {
     let job: WorkflowJob
+    let owner: String
+    let repo: String
     @State private var rotationAngle: Double = 0
+    @State private var firstErrorLine: String?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -818,6 +821,14 @@ struct JobRow: View {
                         .foregroundColor(.red)
                         .lineLimit(1)
                 }
+
+                // 失败时显示具体错误文件:行号
+                if job.conclusion == "failure", let err = firstErrorLine {
+                    Text(err)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundColor(.red.opacity(0.8))
+                        .lineLimit(2)
+                }
             }
 
             Spacer()
@@ -836,7 +847,24 @@ struct JobRow: View {
                 }
             }
         }
-        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.vertical, 4)
+        .onAppear {
+            guard job.conclusion == "failure", firstErrorLine == nil else { return }
+            GitHubAPI.shared.getJobLogs(owner: owner, repo: repo, jobId: job.id) { result in
+                guard case .success(let logs) = result else { return }
+                let pattern = #"([^\s]+\.swift:\d+:\d*:.*error:.*)"#
+                if let regex = try? NSRegularExpression(pattern: pattern),
+                   let match = regex.firstMatch(in: logs, range: NSRange(logs.startIndex..., in: logs)) {
+                    let nsRange = match.range(at: 1)
+                    if let r = Range(nsRange, in: logs) {
+                        let line = String(logs[r])
+                        DispatchQueue.main.async {
+                            self.firstErrorLine = line.count > 120 ? String(line.prefix(120)) + "…" : line
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
