@@ -58,7 +58,7 @@ struct ActionsListView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding(.horizontal)
-            .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+            .padding(.vertical, 8)
 
             // 内容区域
             if selectedTab == 0 {
@@ -121,7 +121,7 @@ struct ActionsListView: View {
             )
 
             Divider()
-                .frame(height: 40)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+                .frame(height: 40)
 
             // 成功率
             statItem(
@@ -132,7 +132,7 @@ struct ActionsListView: View {
             )
 
             Divider()
-                .frame(height: 40)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+                .frame(height: 40)
 
             // 平均耗时
             statItem(
@@ -142,8 +142,8 @@ struct ActionsListView: View {
                 label: "平均耗时"
             )
         }
-        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-        .padding(.vertical, 12)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(Color(.systemGray6))
     }
 
@@ -222,9 +222,9 @@ struct ActionsListView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(6)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
+                .padding(6)
                 .background(Color.blue.opacity(0.1))
-                .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .cornerRadius(6)
 
                 Text("VS")
                     .font(.caption)
@@ -247,9 +247,9 @@ struct ActionsListView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(6)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
+                .padding(6)
                 .background(Color.orange.opacity(0.1))
-                .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .cornerRadius(6)
             }
 
             // 开始对比按钮
@@ -264,9 +264,9 @@ struct ActionsListView: View {
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                    .padding(.vertical, 8)
                     .background(Color.blue)
-                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                    .cornerRadius(8)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -317,13 +317,13 @@ struct ActionsListView: View {
                     Text(statusFilterDisplay)
                         .font(.caption)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 8))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 8))
                 }
                 .foregroundColor(.blue)
-                .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
                 .background(Color.blue.opacity(0.1))
-                .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .cornerRadius(6)
             }
 
             // 排序
@@ -337,10 +337,10 @@ struct ActionsListView: View {
                         .font(.caption)
                 }
                 .foregroundColor(.blue)
-                .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
                 .background(Color.blue.opacity(0.1))
-                .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .cornerRadius(6)
             }
 
             // 对比按钮（原顶部工具栏移到这里，放在最新右边）
@@ -354,7 +354,7 @@ struct ActionsListView: View {
                 Image(systemName: isComparisonMode ? "xmark.circle.fill" : "arrow.left.arrow.right")
                     .font(.caption)
                     .foregroundColor(isComparisonMode ? .red : .blue)
-                    .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制按钮显示的宽度和高度，单位是pt（点）；改大按钮点击区域更大更易点击，改小按钮更紧凑节省空间；还能改成.maxWidth/.infinity自适应
+                    .frame(width: 28, height: 28)
             }
 
             // 统计按钮（原顶部工具栏移到这里）
@@ -362,7 +362,7 @@ struct ActionsListView: View {
                 Image(systemName: "chart.bar.xaxis")
                     .font(.caption)
                     .foregroundColor(.blue)
-                    .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制按钮显示的宽度和高度，单位是pt（点）；改大按钮点击区域更大更易点击，改小按钮更紧凑节省空间；还能改成.maxWidth/.infinity自适应
+                    .frame(width: 28, height: 28)
             }
 
             // 设置按钮（原顶部工具栏移到这里）
@@ -370,7 +370,7 @@ struct ActionsListView: View {
                 Image(systemName: "gearshape")
                     .font(.caption)
                     .foregroundColor(.blue)
-                    .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制按钮显示的宽度和高度，单位是pt（点）；改大按钮点击区域更大更易点击，改小按钮更紧凑节省空间；还能改成.maxWidth/.infinity自适应
+                    .frame(width: 28, height: 28)
             }
 
             Spacer()
@@ -392,8 +392,8 @@ struct ActionsListView: View {
                 }
             }
         }
-        .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
         .listRowSeparator(.hidden)
     }
 
@@ -490,14 +490,14 @@ struct ActionsListView: View {
                             HStack {
                                 Spacer()
                                 Text(isRunsExpanded ? "收起" : "显示更多（还有 \(filteredRuns.count - defaultDisplayCount) 条）")
-                                    .font(.system(size: 14))  // 这是字体大小尺寸，控制按钮文字的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格
+                                    .font(.system(size: 14))
                                     .foregroundColor(.blue)
                                 Image(systemName: isRunsExpanded ? "chevron.up" : "chevron.down")
-                                    .font(.system(size: 12))  // 这是字体大小尺寸，控制箭头图标的大小，单位是pt；改大图标更醒目易读但占空间，改小图标更精致节省空间但可能难辨认；还能配合.imageScale设大小或用.tint改图标颜色
+                                    .font(.system(size: 12))
                                     .foregroundColor(.blue)
                                 Spacer()
                             }
-                            .padding(.vertical, 12)  // 这是垂直内边距，控制按钮上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽按钮更大更好点击，改小上下留白更窄按钮更紧凑；还能改成.top/.bottom单独控制某一侧
+                            .padding(.vertical, 12)
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
@@ -745,7 +745,7 @@ struct WorkflowRunRow: View {
                         .foregroundColor(Color(run.statusColor))
                 }
             }
-            .frame(width: 30)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
+            .frame(width: 30)
 
             VStack(alignment: .leading, spacing: 4) {
                 // 工作流名称和运行编号
@@ -780,10 +780,10 @@ struct WorkflowRunRow: View {
                 HStack(spacing: 8) {
                     Text(run.eventDisplay)
                         .font(.caption2)
-                        .padding(.horizontal, 6)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                        .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
                         .background(Color.gray.opacity(0.2))
-                        .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                        .cornerRadius(4)
 
                     Text(run.formattedCreatedAt)
                         .font(.caption2)
@@ -797,12 +797,12 @@ struct WorkflowRunRow: View {
             Text(run.statusDisplay)
                 .font(.caption)
                 .foregroundColor(Color(run.statusColor))
-                .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
                 .background(Color(run.statusColor).opacity(0.1))
-                .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .cornerRadius(6)
         }
-        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.vertical, 4)
     }
 }
 
@@ -839,7 +839,7 @@ struct WorkflowCard: View {
                 HStack(spacing: 4) {
                     Circle()
                         .fill(workflow.state == "active" ? Color.green : Color.gray)
-                        .frame(width: 6, height: 6)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                        .frame(width: 6, height: 6)
                     Text(workflow.stateDisplay)
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -855,12 +855,12 @@ struct WorkflowCard: View {
                     showFileView = true
                 }) {
                     Image(systemName: "doc.text")
-                        .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 14))
                         .foregroundColor(.blue)
-                        .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                        .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
                         .background(Color.blue.opacity(0.1))
-                        .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                        .cornerRadius(6)
                 }
                 .buttonStyle(PlainButtonStyle())
 
@@ -869,17 +869,17 @@ struct WorkflowCard: View {
                     showTriggerView = true
                 }) {
                     Image(systemName: "play.fill")
-                        .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 14))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 12)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                        .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
                         .background(Color.green)
-                        .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                        .cornerRadius(6)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.vertical, 4)
         .sheet(isPresented: $showFileView) {
             NavigationView {
                 WorkflowFileView(owner: owner, repo: repo, workflow: workflow)

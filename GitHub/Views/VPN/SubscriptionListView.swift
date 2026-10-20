@@ -184,7 +184,6 @@ struct SubscriptionListView: View {
                     Circle()
                         .fill(subscription.isEnabled ? Color.blue.opacity(0.15) : Color.gray.opacity(0.15))
                         .frame(width: 36, height: 36)
-                    // 这是一个什么东西：订阅图标圆形背景大小
                     // 控制哪里：订阅行左侧图标的背景大小
                     // 单位是什么：pt（点）
                     // 改大有什么效果：图标背景变大，更醒目
@@ -217,7 +216,6 @@ struct SubscriptionListView: View {
                 ))
                 .labelsHidden()
                 .frame(width: 51)
-                // 这是一个什么东西：启用开关宽度
                 // 控制哪里：订阅行右侧开关的宽度
                 // 单位是什么：pt（点）
                 // 改大有什么效果：开关变宽，点击区域更大
@@ -250,7 +248,6 @@ struct SubscriptionListView: View {
             }
         }
         .padding(.vertical, 4)
-        // 这是一个什么东西：订阅行垂直内边距
         // 控制哪里：每个订阅行内容上下的间距
         // 单位是什么：pt（点）
         // 改大有什么效果：行变高，更宽松
@@ -258,7 +255,6 @@ struct SubscriptionListView: View {
         // 还能怎么改：可以根据内容动态调整
         .background(subscription.isEnabled ? Color(.systemBackground) : Color(.secondarySystemBackground).opacity(0.5))
         .cornerRadius(10)
-        // 这是一个什么东西：订阅行圆角半径
         // 控制哪里：订阅行四个角的圆润程度
         // 单位是什么：pt（点）
         // 改大有什么效果：行角更圆，更柔和
@@ -276,7 +272,6 @@ struct SubscriptionListView: View {
                 .font(.system(size: 48))
                 .foregroundColor(.gray)
                 .padding(.top, 80)
-            // 这是一个什么东西：空状态图标大小
             // 控制哪里：空状态页面图标的大小
             // 单位是什么：pt（点）
             // 改大有什么效果：图标变大，更醒目
@@ -292,7 +287,6 @@ struct SubscriptionListView: View {
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
-            // 这是一个什么东西：空状态描述文字水平内边距
             // 控制哪里：描述文字左右的边距
             // 单位是什么：pt（点）
             // 改大有什么效果：文字更窄，换行更多

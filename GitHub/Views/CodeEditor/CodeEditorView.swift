@@ -186,7 +186,7 @@ struct CodeEditorView: View {
                         }) {
                             Image(systemName: "arrow.uturn.backward")
                                 .foregroundColor(canUndo ? .blue : .gray)
-                                .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+                                .frame(width: 32, height: 32)
                         }
                         .disabled(!canUndo)
 
@@ -197,7 +197,7 @@ struct CodeEditorView: View {
                         }) {
                             Image(systemName: "arrow.uturn.forward")
                                 .foregroundColor(canRedo ? .blue : .gray)
-                                .frame(width: 32, height: 32)  // 这是视图宽高尺寸，控制按钮水平和垂直方向显示大小，单位是pt；改大按钮更大更易点击，改小按钮更小更紧凑；还能改成.maxWidth/.maxHeight占满父视图
+                                .frame(width: 32, height: 32)
                         }
                         .disabled(!canRedo)
                     }
@@ -539,11 +539,11 @@ struct CodeEditorView: View {
 
             VStack(spacing: 20) {
                 Image(systemName: "square.and.arrow.down")
-                    .font(.system(size: 40))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 40))
                     .foregroundColor(.blue)
-                    .frame(width: 70, height: 70)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                    .frame(width: 70, height: 70)
                     .background(Color.white)
-                    .cornerRadius(35)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                    .cornerRadius(35)
 
                 Text("正在下载文件")
                     .font(.headline)
@@ -557,15 +557,15 @@ struct CodeEditorView: View {
 
                 ProgressView(value: downloadProgress)
                     .progressViewStyle(LinearProgressViewStyle())
-                    .frame(width: 250)  // 这是视图宽度尺寸，控制组件水平方向显示宽度，单位是pt；改大组件横向更宽，改小组件横向更窄；还能改成.maxWidth: .infinity占满父视图或用.minWidth设最小宽度
+                    .frame(width: 250)
 
                 Text(String(format: "%.0f%%", downloadProgress * 100))
                     .font(.subheadline)
                     .foregroundColor(.black)
             }
-            .padding(32)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
+            .padding(32)
             .background(Color.white)
-            .cornerRadius(20)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+            .cornerRadius(20)
             .shadow(radius: 20)
         }
     }
@@ -664,8 +664,8 @@ struct CodeEditorView: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-        .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
         .background(Color(.systemGray6))
     }
 
@@ -1330,9 +1330,9 @@ struct CodeEditorView: View {
                             .foregroundColor(.orange)
                     }
                 }
-                .padding(.horizontal, 16)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+                .padding(.horizontal, 16)
                 // 编辑模式提示条行高减少一半
-                .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .padding(.vertical, 4)
                 .background(Color.blue.opacity(0.1))
             }
 
@@ -1440,7 +1440,7 @@ struct CodeEditorView: View {
                 }) {
                     Text("完成")
                         .foregroundColor(.blue)
-                        .frame(height: 36)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+                        .frame(height: 36)
                 }
 
                 Spacer()
@@ -1457,9 +1457,9 @@ struct CodeEditorView: View {
                         Image(systemName: "chevron.up")
                     }
                     .foregroundColor(.white)
-                    .frame(width: 90, height: 36)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                    .frame(width: 90, height: 36)
                     .background(totalMatches > 0 ? Color(red: 0.35, green: 0.6, blue: 1.0) : Color.gray.opacity(0.5))
-                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                    .cornerRadius(8)
                 }
                 .disabled(totalMatches == 0)
 
@@ -1475,15 +1475,15 @@ struct CodeEditorView: View {
                         Image(systemName: "chevron.down")
                     }
                     .foregroundColor(.white)
-                    .frame(width: 90, height: 36)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                    .frame(width: 90, height: 36)
                     .background(totalMatches > 0 ? Color(red: 0.35, green: 0.6, blue: 1.0) : Color.gray.opacity(0.5))
-                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                    .cornerRadius(8)
                 }
                 .disabled(totalMatches == 0)
             }
         }
-        .padding(.horizontal, 12)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-        .padding(.vertical, 8)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .background(Color(.systemGray6))
     }
 

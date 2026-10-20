@@ -52,24 +52,24 @@ struct UserReposView: View {
                     .aspectRatio(contentMode: .fill)
             } placeholder: {
                 Image(systemName: "person.circle.fill")
-                    .font(.system(size: 60))  // 这是字体大小尺寸，控制占位图标显示的字号大小，单位是pt；改大图标更大更醒目，改小图标更小更精致；还能配合.weight设粗体/设字重
+                    .font(.system(size: 60))
                     .foregroundColor(.gray)
             }
-            .frame(width: 80, height: 80)  // 这是视图宽高尺寸，控制用户头像显示的宽度和高度，单位是pt（点）；改大头像显示更大更醒目，改小头像显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+            .frame(width: 80, height: 80)
             .clipShape(Circle())
-            .overlay(Circle().stroke(Color.gray.opacity(0.3), lineWidth: 1))  // 这是边框线宽尺寸，控制头像边框的粗细程度，单位是pt；改大边框更粗更明显，改小边框更细更细腻；还能改成.stroke的lineWidth参数调整
+            .overlay(Circle().stroke(Color.gray.opacity(0.3), lineWidth: 1))
 
             // 用户名
             Text(username)
-                .font(.system(size: 20, weight: .bold))  // 这是字体大小尺寸，控制用户名显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.primary)
 
             // 仓库数量
             Text("\(repositories.count) 个仓库")
-                .font(.system(size: 14))  // 这是字体大小尺寸，控制仓库数量文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .font(.system(size: 14))
                 .foregroundColor(.secondary)
         }
-        .padding(.vertical, 24)  // 这是垂直内边距，控制用户信息头部上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽更透气，改小上下留白更窄更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.vertical, 24)
         .frame(maxWidth: .infinity)
         .background(appState.isDarkMode ? Color.white.opacity(0.03) : Color(.systemGray6))
     }
@@ -79,7 +79,7 @@ struct UserReposView: View {
     private var loadingView: some View {
         VStack(spacing: 12) {
             ProgressView("加载中...")
-                .padding(.vertical, 40)  // 这是垂直内边距，控制加载指示器上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽更透气，改小上下留白更窄更紧凑；还能改成.top/.bottom单独控制某一侧
+                .padding(.vertical, 40)
         }
         .frame(maxWidth: .infinity)
     }
@@ -106,7 +106,7 @@ struct UserReposView: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)  // 这是垂直内边距，控制错误视图上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽更透气，改小上下留白更窄更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.vertical, 40)
     }
 
     // MARK: - 空视图
@@ -122,7 +122,7 @@ struct UserReposView: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)  // 这是垂直内边距，控制空视图上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽更透气，改小上下留白更窄更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.vertical, 40)
     }
 
     // MARK: - 仓库列表视图
@@ -147,7 +147,7 @@ struct UserReposView: View {
                     ProgressView()
                     Spacer()
                 }
-                .padding(.vertical, 16)  // 这是垂直内边距，控制加载更多指示器上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽更透气，改小上下留白更窄更紧凑；还能改成.top/.bottom单独控制某一侧
+                .padding(.vertical, 16)
             }
         }
     }
@@ -159,10 +159,10 @@ struct UserReposView: View {
             // 仓库名称
             HStack {
                 Image(systemName: repo.isPrivate ? "lock.fill" : "folder")
-                    .font(.system(size: 14))  // 这是字体大小尺寸，控制仓库图标显示的字号大小，单位是pt；改大图标更大更醒目，改小图标更小更精致；还能配合.weight设粗体/设字重
+                    .font(.system(size: 14))
                     .foregroundColor(.blue)
                 Text(repo.name)
-                    .font(.system(size: 16, weight: .semibold))  // 这是字体大小尺寸，控制仓库名称显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.blue)
                 Spacer()
             }
@@ -170,7 +170,7 @@ struct UserReposView: View {
             // 仓库描述
             if let description = repo.description, !description.isEmpty {
                 Text(description)
-                    .font(.system(size: 14))  // 这是字体大小尺寸，控制仓库描述显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
                     .lineLimit(2)
             }
@@ -181,28 +181,28 @@ struct UserReposView: View {
                     HStack(spacing: 4) {
                         Circle()
                             .fill(colorForLanguage(language))
-                            .frame(width: 12, height: 12)  // 这是视图宽高尺寸，控制语言颜色圆点显示的宽度和高度，单位是pt（点）；改大圆点更大更醒目，改小圆点更小更精致；还能改成.maxWidth/.infinity自适应
+                            .frame(width: 12, height: 12)
                         Text(language)
-                            .font(.system(size: 12))  // 这是字体大小尺寸，控制语言名称显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
 
                 HStack(spacing: 4) {
                     Image(systemName: "star.fill")
-                        .font(.system(size: 12))  // 这是字体大小尺寸，控制星标图标显示的字号大小，单位是pt；改大图标更大更醒目，改小图标更小更精致；还能配合.weight设粗体/设字重
+                        .font(.system(size: 12))
                         .foregroundColor(.yellow)
                     Text("\(repo.stargazersCount ?? 0)")
-                        .font(.system(size: 12))  // 这是字体大小尺寸，控制星标数量显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
 
                 HStack(spacing: 4) {
                     Image(systemName: "tuningfork")
-                        .font(.system(size: 12))  // 这是字体大小尺寸，控制Fork图标显示的字号大小，单位是pt；改大图标更大更醒目，改小图标更小更精致；还能配合.weight设粗体/设字重
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                     Text("\(repo.forksCount ?? 0)")
-                        .font(.system(size: 12))  // 这是字体大小尺寸，控制Fork数量显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
 
@@ -210,17 +210,17 @@ struct UserReposView: View {
 
                 // 更新时间
                 Text(repo.formattedUpdateTime)
-                    .font(.system(size: 12))  // 这是字体大小尺寸，控制更新时间显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
         }
-        .padding(.horizontal, 16)  // 这是水平内边距，控制仓库行内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-        .padding(.vertical, 12)  // 这是垂直内边距，控制仓库行内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽更透气，改小上下留白更窄更紧凑；还能改成.top/.bottom单独控制某一侧
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(appState.isDarkMode ? Color.white.opacity(0.02) : Color(.systemBackground))
         .overlay(
             Rectangle()
                 .fill(Color.gray.opacity(0.1))
-                .frame(height: 1),  // 这是视图高度尺寸，控制分隔线显示的高度，单位是pt；改大分隔线更粗更明显，改小分隔线更细更细腻；还能改成.frame(height:)参数调整
+                .frame(height: 1),
             alignment: .bottom
         )
     }

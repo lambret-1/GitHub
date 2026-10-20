@@ -103,7 +103,7 @@ struct PullRequestDetailView: View {
                 ProgressView("处理中...")
                     .padding()
                     .background(.ultraThinMaterial)
-                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                    .cornerRadius(8)
             }
         }
     }
@@ -113,7 +113,7 @@ struct PullRequestDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             // 标题
             Text(pullRequest.title)
-                .font(.system(size: 20, weight: .bold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .font(.system(size: 20, weight: .bold))
                 .foregroundColor(appState.isDarkMode ? .white : .primary)
 
             // 状态和元信息
@@ -123,19 +123,19 @@ struct PullRequestDetailView: View {
                     Image(systemName: pullRequest.state.图标名称)
                     Text(pullRequest.state.显示文本)
                 }
-                .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                .padding(.horizontal, 10)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                .font(.system(size: 13, weight: .medium))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
                 .background(pullRequest.state.颜色.opacity(0.15))
                 .foregroundColor(pullRequest.state.颜色)
-                .cornerRadius(12)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .cornerRadius(12)
 
                 Text("#\(pullRequest.number)")
-                    .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
 
                 Text("由 \(pullRequest.user.login) 创建于 \(pullRequest.创建时间显示)")
-                    .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }
 
@@ -144,12 +144,12 @@ struct PullRequestDetailView: View {
                 HStack(spacing: 6) {
                     ForEach(labels) { label in
                         Text(label.name)
-                            .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                            .padding(.horizontal, 8)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                            .padding(.vertical, 3)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                            .font(.system(size: 12))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
                             .background(label.背景颜色)
                             .foregroundColor(label.文字颜色)
-                            .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                            .cornerRadius(4)
                     }
                 }
             }
@@ -158,9 +158,9 @@ struct PullRequestDetailView: View {
             if let milestone = pullRequest.milestone {
                 HStack(spacing: 4) {
                     Image(systemName: "milestone")
-                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 12))
                     Text(milestone.title)
-                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 12))
                 }
                 .foregroundColor(.secondary)
             }
@@ -173,15 +173,15 @@ struct PullRequestDetailView: View {
             // 分支信息
             HStack(spacing: 8) {
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("源分支")
-                        .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     Text(pullRequest.head.完整标签)
-                        .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.blue)
                 }
 
@@ -189,25 +189,25 @@ struct PullRequestDetailView: View {
 
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("目标分支")
-                        .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     Text(pullRequest.base.完整标签)
-                        .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.blue)
                 }
             }
-            .padding(12)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
+            .padding(12)
             .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
-            .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+            .cornerRadius(8)
 
             // 变更统计
             HStack(spacing: 16) {
                 if let commits = pullRequest.commits {
                     VStack(spacing: 2) {
                         Text("\(commits)")
-                            .font(.system(size: 16, weight: .bold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 16, weight: .bold))
                         Text("提交")
-                            .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 11))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -215,9 +215,9 @@ struct PullRequestDetailView: View {
                 if let changedFiles = pullRequest.changedFiles {
                     VStack(spacing: 2) {
                         Text("\(changedFiles)")
-                            .font(.system(size: 16, weight: .bold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 16, weight: .bold))
                         Text("文件变更")
-                            .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 11))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -225,10 +225,10 @@ struct PullRequestDetailView: View {
                 if let additions = pullRequest.additions {
                     VStack(spacing: 2) {
                         Text("+\(additions)")
-                            .font(.system(size: 16, weight: .bold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.green)
                         Text("新增")
-                            .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 11))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -236,10 +236,10 @@ struct PullRequestDetailView: View {
                 if let deletions = pullRequest.deletions {
                     VStack(spacing: 2) {
                         Text("-\(deletions)")
-                            .font(.system(size: 16, weight: .bold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.red)
                         Text("删除")
-                            .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 11))
                             .foregroundColor(.secondary)
                     }
                 }
@@ -253,13 +253,13 @@ struct PullRequestDetailView: View {
                             Image(systemName: mergeableState == .clean ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                                 .foregroundColor(mergeableState == .clean ? .green : .orange)
                             Text(mergeableState.显示文本)
-                                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                         }
                     }
                 }
             }
-            .padding(.horizontal, 4)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
+            .padding(.horizontal, 4)
         }
     }
 
@@ -277,7 +277,7 @@ struct PullRequestDetailView: View {
 
                         Rectangle()
                             .fill(selectedTab == tab ? Color.blue : Color.clear)
-                            .frame(height: 2)  // 这是视图高度尺寸，控制组件垂直方向显示高度，单位是pt；改大组件纵向更高，改小组件纵向更矮；还能改成.maxHeight: .infinity占满父视图或用.minHeight设最小高度
+                            .frame(height: 2)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -324,25 +324,25 @@ struct PullRequestDetailView: View {
                     Image(systemName: "person.circle.fill")
                         .foregroundColor(.gray)
                 }
-                .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                .frame(width: 28, height: 28)
                 .clipShape(Circle())
 
                 Text(pullRequest.user.login)
-                    .font(.system(size: 14, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 14, weight: .semibold))
 
                 Text(pullRequest.创建时间显示)
-                    .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
 
             // 描述内容
             Text(body)
-                .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .font(.system(size: 14))
                 .foregroundColor(appState.isDarkMode ? .white.opacity(0.9) : .primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
+                .padding(12)
                 .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
-                .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .cornerRadius(8)
                 .textSelection(.enabled)  // 启用文本选择，长按可选择文字并弹出拷贝/分享/查找菜单
         }
     }
@@ -351,7 +351,7 @@ struct PullRequestDetailView: View {
     private var reviewsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("审查 (\(reviews.count))")
-                .font(.system(size: 16, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .font(.system(size: 16, weight: .semibold))
 
             ForEach(reviews) { review in
                 HStack(spacing: 8) {
@@ -361,22 +361,22 @@ struct PullRequestDetailView: View {
                         Image(systemName: "person.circle.fill")
                             .foregroundColor(.gray)
                     }
-                    .frame(width: 24, height: 24)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                    .frame(width: 24, height: 24)
                     .clipShape(Circle())
 
                     Text(review.user.login)
-                        .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 13, weight: .medium))
 
                     Text(review.状态显示)
-                        .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                        .padding(.horizontal, 6)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                        .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                        .font(.system(size: 12))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
                         .background(review.状态颜色.opacity(0.15))
                         .foregroundColor(review.状态颜色)
-                        .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                        .cornerRadius(4)
 
                     Text(review.提交时间显示)
-                        .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
 
                     Spacer()
@@ -384,13 +384,13 @@ struct PullRequestDetailView: View {
 
                 if let body = review.body, !body.isEmpty {
                     Text(body)
-                        .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 13))
                         .foregroundColor(appState.isDarkMode ? .white.opacity(0.8) : .primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(10)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
+                        .padding(10)
                         .background(appState.isDarkMode ? Color.white.opacity(0.03) : Color(.systemGray6))
-                        .cornerRadius(6)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
-                        .padding(.leading, 32)  // 这是左侧内边距，控制内容左方与边缘的空白距离，单位是pt；改大左方留白更宽，改小左方留白更窄；还能改成.horizontal同时控制左右或用EdgeInsets精确控制四边
+                        .cornerRadius(6)
+                        .padding(.leading, 32)
                         .textSelection(.enabled)  // 启用文本选择，长按可选择文字并弹出拷贝/分享/查找菜单
                 }
             }
@@ -406,7 +406,7 @@ struct PullRequestDetailView: View {
                 Divider()
 
                 Text("评论 (\(comments.count))")
-                    .font(.system(size: 16, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 16, weight: .semibold))
 
                 if isLoadingComments {
                     HStack {
@@ -417,7 +417,7 @@ struct PullRequestDetailView: View {
                     .padding()
                 } else if let error = commentsError {
                     Text(error)
-                        .font(.system(size: 13))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 13))
                         .foregroundColor(.red)
                 } else {
                     ForEach(comments) { comment in
@@ -439,26 +439,26 @@ struct PullRequestDetailView: View {
                     Image(systemName: "person.circle.fill")
                         .foregroundColor(.gray)
                 }
-                .frame(width: 28, height: 28)  // 这是视图宽高尺寸，控制组件显示的宽度和高度，单位是pt（点）；改大组件显示更大更占空间，改小组件显示更小更紧凑；还能改成.maxWidth/.infinity自适应或用GeometryReader动态计算
+                .frame(width: 28, height: 28)
                 .clipShape(Circle())
 
                 Text(comment.user.login)
-                    .font(.system(size: 14, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 14, weight: .semibold))
 
                 Text(comment.创建时间显示)
-                    .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
 
             // 评论内容
             if let body = comment.body, !body.isEmpty {
                 Text(body)
-                    .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                    .font(.system(size: 14))
                     .foregroundColor(appState.isDarkMode ? .white.opacity(0.9) : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
+                    .padding(12)
                     .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
-                    .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                    .cornerRadius(8)
                     .textSelection(.enabled)  // 启用文本选择，长按可选择文字并弹出拷贝/分享/查找菜单
             }
         }
@@ -470,14 +470,14 @@ struct PullRequestDetailView: View {
             Divider()
 
             Text("添加评论")
-                .font(.system(size: 16, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .font(.system(size: 16, weight: .semibold))
 
             TextEditor(text: $newComment)
-                .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                .font(.system(size: 14))
                 .frame(minHeight: 80)
-                .padding(8)  // 这是四向统一内边距，控制内容上下左右四边与边缘的空白距离，单位是pt；改大四边留白更宽内容更居中透气，改小四边留白更窄内容更紧凑靠边；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
+                .padding(8)
                 .background(appState.isDarkMode ? Color.white.opacity(0.05) : Color(.systemGray6))
-                .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .cornerRadius(8)
 
             HStack {
                 Spacer()
@@ -487,7 +487,7 @@ struct PullRequestDetailView: View {
                             .tint(.white)
                     } else {
                         Text("发表评论")
-                            .font(.system(size: 14, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 14, weight: .medium))
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -507,13 +507,13 @@ struct PullRequestDetailView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.merge")
                     Text("合并 Pull Request")
-                        .font(.system(size: 15, weight: .semibold))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                        .font(.system(size: 15, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(Color.green.opacity(0.15))
                 .foregroundColor(.green)
-                .cornerRadius(8)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                .cornerRadius(8)
             }
             .disabled(pullRequest.mergeableState != .clean)
         }
@@ -539,32 +539,32 @@ struct PullRequestDetailView: View {
                     HStack(alignment: .top, spacing: 10) {
                         // 提交图标
                         Image(systemName: "commit")
-                            .font(.system(size: 16))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                            .font(.system(size: 16))
                             .foregroundColor(.secondary)
-                            .padding(.top, 2)  // 这是顶部内边距，控制内容上方与边缘的空白距离，单位是pt；改大上方留白更宽，改小上方留白更窄；还能改成.vertical同时控制上下或用EdgeInsets精确控制四边
+                            .padding(.top, 2)
 
                         VStack(alignment: .leading, spacing: 4) {
                             // 提交信息
                             Text(commit.commit.message)
-                                .font(.system(size: 14, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(appState.isDarkMode ? .white : .primary)
                                 .lineLimit(2)
 
                             // 作者和哈希
                             HStack(spacing: 8) {
                                 Text(commit.commit.author.name)
-                                    .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                    .font(.system(size: 12))
                                     .foregroundColor(.secondary)
 
                                 Text(commit.短哈希)
-                                    .font(.system(size: 12, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.blue)
                             }
                         }
 
                         Spacer()
                     }
-                    .padding(.vertical, 4)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                    .padding(.vertical, 4)
 
                     if commit.id != commits.last?.id {
                         Divider()
@@ -595,43 +595,43 @@ struct PullRequestDetailView: View {
                         // 文件名和状态
                         HStack(spacing: 8) {
                             Image(systemName: file.status == "removed" ? "trash" : "doc")
-                                .font(.system(size: 14))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .font(.system(size: 14))
                                 .foregroundColor(file.状态颜色)
 
                             Text(file.filename)
-                                .font(.system(size: 13, weight: .medium))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(appState.isDarkMode ? .white : .primary)
                                 .lineLimit(1)
 
                             Spacer()
 
                             Text(file.状态显示)
-                                .font(.system(size: 11))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
-                                .padding(.horizontal, 6)  // 这是水平内边距，控制内容左右两侧与边缘的空白距离，单位是pt；改大左右留白更宽内容更居中，改小左右留白更窄内容更靠边；还能改成.leading/.trailing单独控制某一侧
-                                .padding(.vertical, 2)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                                .font(.system(size: 11))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
                                 .background(file.状态颜色.opacity(0.15))
                                 .foregroundColor(file.状态颜色)
-                                .cornerRadius(4)  // 这是圆角半径尺寸，控制视图四个角的圆润弯曲程度，单位是pt；改大圆角更圆润柔和更现代，改小圆角更方正锐利更硬朗；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制或用continuous圆角更丝滑
+                                .cornerRadius(4)
                         }
 
                         // 变更统计
                         HStack(spacing: 12) {
                             Text("+\(file.additions)")
-                                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .font(.system(size: 12))
                                 .foregroundColor(.green)
 
                             Text("-\(file.deletions)")
-                                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .font(.system(size: 12))
                                 .foregroundColor(.red)
 
                             Text("\(file.changes) 处变更")
-                                .font(.system(size: 12))  // 这是字体大小尺寸，控制文字显示的字号大小，单位是pt；改大文字更醒目易读但占空间，改小文字更精致节省空间但可能难读；还能配合.weight设粗体/设字重或用.design设字体风格（等宽/圆角/衬线）
+                                .font(.system(size: 12))
                                 .foregroundColor(.secondary)
 
                             Spacer()
                         }
                     }
-                    .padding(.vertical, 6)  // 这是垂直内边距，控制内容上下两侧与边缘的空白距离，单位是pt；改大上下留白更宽内容更透气，改小上下留白更窄内容更紧凑；还能改成.top/.bottom单独控制某一侧
+                    .padding(.vertical, 6)
 
                     if file.id != files.last?.id {
                         Divider()

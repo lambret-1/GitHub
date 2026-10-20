@@ -41,7 +41,7 @@ struct CrashLogListView: View {
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)  // 这是垂直方向内边距，控制内容上下与边缘的空白距离，单位是pt；改大上下留白更宽内容更居中，改小上下留白更窄内容更紧凑；还能改成.padding(.top)/.bottom分别控制
+                    .padding(.vertical, 40)
                 }
             } else {
                 // 崩溃日志列表
@@ -54,9 +54,9 @@ struct CrashLogListView: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 24))
                                 .foregroundColor(.red)
-                                .frame(width: 40, height: 40)  // 这是图标容器宽高尺寸，控制图标的显示区域大小，单位是pt；改大图标区域更大更醒目，改小图标区域更小更紧凑；还能配合.cornerRadius做圆角或.background做背景色
+                                .frame(width: 40, height: 40)
                                 .background(Color.red.opacity(0.1))
-                                .cornerRadius(8)  // 这是圆角半径尺寸，控制图标容器四个角的圆润程度，单位是pt；改大圆角更圆润柔和，改小圆角更方正锐利；还能改成.clipShape(RoundedRectangle(cornerRadius:))单独控制
+                                .cornerRadius(8)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 // 崩溃时间 + 来源标签
@@ -97,7 +97,7 @@ struct CrashLogListView: View {
                                 .font(.system(size: 14))
                                 .foregroundColor(.secondary)
                         }
-                        .padding(.vertical, 8)  // 这是行内容垂直内边距，控制每行内容上下的空白距离，单位是pt；改大行间距更宽更透气，改小行间距更窄更紧凑；还能改成.padding(.horizontal)控制左右边距
+                        .padding(.vertical, 8)
                     }
                     .buttonStyle(PlainButtonStyle())
                     // 滑动删除
@@ -208,14 +208,14 @@ struct CrashLogDetailView: View {
                 if logContent.isEmpty {
                     // 加载中
                     ProgressView("加载中...")
-                        .padding(.vertical, 40)  // 这是垂直方向内边距，控制加载指示器上下的空白距离，单位是pt；改大上下留白更宽，改小上下留白更窄；还能改成.padding(.horizontal)控制左右边距
+                        .padding(.vertical, 40)
                 } else {
                     // 崩溃日志内容
                     Text(logContent)
-                        .font(.system(size: 12, design: .monospaced))  // 这是字体大小尺寸，控制日志文本的显示大小，单位是pt；改大字体更大更易读，改小字体更小更紧凑；还能配合.weight设置粗体或.design设置字体风格
+                        .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(.primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)  // 这是四向统一内边距，控制日志内容与边缘的空白距离，单位是pt；改大四边留白更宽内容更透气，改小四边留白更窄内容更紧凑；还能改成.horizontal/.vertical分别控制或用EdgeInsets精确设置不同边距
+                        .padding(16)
                 }
             }
             .navigationTitle("崩溃详情")

@@ -210,7 +210,6 @@ struct VPNMainView: View {
                     .font(.system(size: 22))
                     .foregroundColor(vpnManagerObservable.connectionStatus.isActive ? .green : .gray)
                     .frame(width: 30)
-                // 这是一个什么东西：火箭图标宽度
                 // 控制哪里：连接状态行左侧火箭图标的宽度
                 // 单位是什么：pt（点）
                 // 改大有什么效果：图标区域变宽
@@ -240,7 +239,6 @@ struct VPNMainView: View {
                          || vpnManagerObservable.connectionStatus == .disconnecting
                          || vpnManagerObservable.connectionStatus == .reasserting
                          || vpnManagerObservable.connectionStatus == .preparing) ? 0.5 : 1.0)
-                // 这是一个什么东西：连接开关宽度
                 // 控制哪里：连接状态行右侧开关的宽度
                 // 单位是什么：pt（点）
                 // 改大有什么效果：开关变宽，点击区域更大
@@ -249,7 +247,6 @@ struct VPNMainView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            // 这是一个什么东西：连接状态行内边距
             // 控制哪里：连接状态行内容与边缘的距离
             // 单位是什么：pt（点）
             // 改大有什么效果：行变高，更宽松
@@ -259,7 +256,6 @@ struct VPNMainView: View {
 
             Divider()
                 .padding(.leading, 58)
-            // 这是一个什么东西：分隔线左内边距
             // 控制哪里：分隔线左侧的缩进距离
             // 单位是什么：pt（点）
             // 改大有什么效果：分隔线更短，缩进更多
@@ -367,7 +363,6 @@ struct VPNMainView: View {
                     .font(.system(size: 18))
                     .foregroundColor(.gray)
                     .frame(width: 44, height: 44)
-                    // 这是一个什么东西：工具栏按钮尺寸
                     // 控制哪里：工具栏每个按钮的点击区域大小
                     // 单位是什么：pt（点）
                     // 改大有什么效果：按钮变大，点击区域更大
@@ -1079,7 +1074,6 @@ struct GroupDetailView: View {
                 }
             }
             .frame(height: 36)
-            // 这是一个什么东西：标签栏高度
             // 控制哪里：测试/更新标签栏的高度
             // 单位是什么：pt（点）
             // 改大有什么效果：标签栏变高，点击区域更大
@@ -1170,7 +1164,6 @@ struct GroupDetailView: View {
                     Circle()
                         .fill(protocolColor(node.protocolType).opacity(0.15))
                         .frame(width: 36, height: 36)
-                    // 这是一个什么东西：协议图标圆形背景大小
                     // 控制哪里：节点行左侧协议图标的背景大小
                     // 单位是什么：pt（点）
                     // 改大有什么效果：图标背景变大
@@ -1220,7 +1213,6 @@ struct GroupDetailView: View {
                 }
             }
             .padding(.vertical, 4)
-            // 这是一个什么东西：节点行垂直内边距
             // 控制哪里：每个节点行内容上下的间距
             // 单位是什么：pt（点）
             // 改大有什么效果：行变高，更宽松

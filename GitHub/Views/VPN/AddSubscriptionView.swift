@@ -73,7 +73,6 @@ struct AddSubscriptionView: View {
                             .disableAutocorrection(true)
                             .textContentType(.URL)
                             .padding(.vertical, 8)
-                            // 这是一个什么东西：URL输入框垂直内边距
                             // 控制哪里：订阅链接输入框的高度
                             // 单位是什么：pt（点）
                             // 改大有什么效果：输入框变高，点击区域更大
@@ -133,7 +132,6 @@ struct AddSubscriptionView: View {
                             Spacer()
                         }
                         .padding(.vertical, 12)
-                        // 这是一个什么东西：添加按钮垂直内边距
                         // 控制哪里：添加按钮的高度
                         // 单位是什么：pt（点）
                         // 改大有什么效果：按钮变高，点击区域更大
@@ -183,7 +181,6 @@ struct AddSubscriptionView: View {
                 .font(.system(size: 16))
                 .foregroundColor(.blue)
                 .frame(width: 24)
-            // 这是一个什么东西：格式说明图标宽度
             // 控制哪里：格式说明行左侧图标的宽度
             // 单位是什么：pt（点）
             // 改大有什么效果：图标区域变宽
