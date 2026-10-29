@@ -21,7 +21,6 @@ class XMLTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
 
         while index < text.endIndex {
             let char = text[index]
-            let start = index
 
             // 注释 <!-- -->
             if char == "<" && text[index...].hasPrefix("<!--") {
@@ -54,7 +53,6 @@ class XMLTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
 
             // 开始标签 <tag ...>
             if char == "<" {
-                let tagStart = index
                 index = text.index(after: index)
 
                 // 标签名
