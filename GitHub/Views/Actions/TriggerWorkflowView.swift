@@ -178,7 +178,6 @@ struct TriggerWorkflowView: View {
             )
             .onAppear {
                 loadBranches()
-                parseWorkflowInputs(branch: selectedBranch)
             }
             .onChange(of: selectedBranch) { newBranch in
                 parseWorkflowInputs(branch: newBranch)
@@ -198,13 +197,18 @@ struct TriggerWorkflowView: View {
                 switch result {
                 case .success(let branches):
                     self.branches = branches
-                    // 默认选择main分支，如果不存在则选择第一个
-                    if !branches.contains(where: { $0.name == "main" }) {
-                        self.selectedBranch = branches.first?.name ?? "main"
+                    // 默认选择 main；不存在时使用首个分支，确保参数与当前触发分支一致。
+                    let preferredBranch = branches.contains(where: { $0.name == "main" })
+                        ? "main"
+                        : (branches.first?.name ?? "main")
+                    if self.selectedBranch != preferredBranch {
+                        self.selectedBranch = preferredBranch
+                    } else {
+                        self.parseWorkflowInputs(branch: preferredBranch)
                     }
-                    self.parseWorkflowInputs(branch: self.selectedBranch)
                 case .failure(let error):
                     self.branchError = "加载分支失败: \(error.localizedDescription)"
+                    self.parseWorkflowInputs(branch: self.selectedBranch)
                 }
             }
         }
