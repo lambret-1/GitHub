@@ -1977,7 +1977,15 @@ struct FileBrowserView: View {
                 return String(component).addingPercentEncoding(withAllowedCharacters: allowed) ?? String(component)
             }
             let encodedPath = pathComponents.joined(separator: "/")
-            let contentURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/contents/\(encodedPath)?ref=\(selectedBranch)"
+            // 公开仓库的原始文件使用 raw.githubusercontent.com，避免每个文件都消耗 GitHub REST API 配额。
+            // 私有仓库仍走认证后的 Contents API。
+            let contentURL: String
+            if repository.isPrivate {
+                contentURL = "https://api.github.com/repos/\(repository.ownerName)/\(repository.name)/contents/\(encodedPath)?ref=\(selectedBranch)"
+            } else {
+                let encodedBranch = selectedBranch.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? selectedBranch
+                contentURL = "https://raw.githubusercontent.com/\(repository.ownerName)/\(repository.name)/\(encodedBranch)/\(encodedPath)"
+            }
 
             guard let fileURL = URL(string: contentURL) else {
                 lock.lock()
