@@ -16,29 +16,32 @@ struct UpstreamRepositoryView: View {
     @State private var comparison: UpstreamComparison?
     @State private var showComparison = false
     @State private var showManualAssociation = false
+    @State private var refreshedRepository: Repository?
+
+    /// 仓库列表传入的模型可能缺少 parent/fork 字段，进入页面后重新请求完整仓库详情。
+    private var effectiveRepository: Repository { refreshedRepository ?? repository }
 
     private var storageKey: String { "upstream.repository.\(repository.fullName.lowercased())" }
     private var hasUpstream: Bool { !upstreamOwner.isEmpty && !upstreamName.isEmpty }
     private var canSyncFork: Bool {
-        guard repository.是Fork, let parent = repository.parent else { return false }
+        guard effectiveRepository.是Fork, let parent = effectiveRepository.parent else { return false }
         return parent.ownerName.caseInsensitiveCompare(upstreamOwner) == .orderedSame && parent.name.caseInsensitiveCompare(upstreamName) == .orderedSame
     }
     private var upstreamFullName: String { "\(upstreamOwner)/\(upstreamName)" }
-    private var isAutomaticForkAssociation: Bool { repository.是Fork && repository.parent != nil }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("当前仓库") {
-                    LabeledContent("仓库", value: repository.fullName)
-                    LabeledContent("类型", value: repository.是Fork ? "Fork" : "普通仓库")
-                    LabeledContent("默认分支", value: repository.defaultBranch ?? "main")
+                    LabeledContent("仓库", value: effectiveRepository.fullName)
+                    LabeledContent("类型", value: effectiveRepository.是Fork ? "Fork" : "普通仓库")
+                    LabeledContent("默认分支", value: effectiveRepository.defaultBranch ?? "main")
                 }
 
                 Section("上游仓库") {
-                    if let parent = repository.parent, repository.是Fork {
+                    if let parent = effectiveRepository.parent, effectiveRepository.是Fork {
                         LabeledContent("自动识别", value: "\(parent.ownerName)/\(parent.name)")
-                        LabeledContent("上游默认分支", value: parent.defaultBranch ?? repository.defaultBranch ?? "main")
+                        LabeledContent("上游默认分支", value: parent.defaultBranch ?? effectiveRepository.defaultBranch ?? "main")
                         Link("在 GitHub 打开上游", destination: URL(string: "https://github.com/\(parent.fullName)")!)
                     } else {
                         Text("此仓库不是 GitHub Fork，没有可自动识别的上游仓库。")
@@ -101,7 +104,7 @@ struct UpstreamRepositoryView: View {
                     Button("关闭") { dismiss() }
                 }
             }
-            .onAppear(perform: loadAssociation)
+            .onAppear(perform: refreshRepositoryMetadata)
             .confirmationDialog("确认同步上游代码？", isPresented: $showSyncConfirmation, titleVisibility: .visible) {
                 Button("同步到 \(targetBranch)", role: .destructive) { syncUpstream() }
                 Button("取消", role: .cancel) {}
@@ -131,11 +134,24 @@ struct UpstreamRepositoryView: View {
         }
     }
 
+    private func refreshRepositoryMetadata() {
+        GitHubAPI.shared.getRepository(owner: repository.ownerName, repo: repository.name) { result in
+            switch result {
+            case .success(let latest):
+                refreshedRepository = latest
+                loadAssociation()
+            case .failure(let error):
+                loadAssociation()
+                statusMessage = "刷新仓库信息失败：\(error.localizedDescription)"
+            }
+        }
+    }
+
     private func loadAssociation() {
-        if repository.是Fork, let parent = repository.parent {
+        if effectiveRepository.是Fork, let parent = effectiveRepository.parent {
             upstreamOwner = parent.ownerName
             upstreamName = parent.name
-            upstreamBranch = parent.defaultBranch ?? repository.defaultBranch ?? "main"
+            upstreamBranch = parent.defaultBranch ?? effectiveRepository.defaultBranch ?? "main"
         } else if let saved = UserDefaults.standard.string(forKey: storageKey),
            let data = saved.data(using: .utf8),
            let value = try? JSONDecoder().decode(SavedUpstream.self, from: data) {
@@ -143,8 +159,8 @@ struct UpstreamRepositoryView: View {
             upstreamName = value.name
             upstreamBranch = value.branch
         }
-        targetBranch = repository.defaultBranch ?? "main"
-        if !repository.是Fork { showManualAssociation = false }
+        targetBranch = effectiveRepository.defaultBranch ?? "main"
+        if !effectiveRepository.是Fork { showManualAssociation = false }
     }
 
     private func saveAssociation() {
@@ -168,7 +184,7 @@ struct UpstreamRepositoryView: View {
               let upstreamNameEncoded = upstreamName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
               let upstreamBranchEncoded = upstreamBranch.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let targetBranchEncoded = targetBranch.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://api.github.com/repos/\(upstreamOwnerEncoded)/\(upstreamNameEncoded)/compare/\(upstreamBranchEncoded)...\(repository.ownerName):\(targetBranchEncoded)") else {
+              let url = URL(string: "https://api.github.com/repos/\(upstreamOwnerEncoded)/\(upstreamNameEncoded)/compare/\(upstreamBranchEncoded)...\(effectiveRepository.ownerName):\(targetBranchEncoded)") else {
             statusMessage = "分支名称或仓库地址无效"
             return
         }
@@ -194,8 +210,8 @@ struct UpstreamRepositoryView: View {
             statusMessage = "GitHub 原生 Fork 同步要求上游分支与当前仓库目标分支同名。请将两个分支都设为同一个名称后再同步。"
             return
         }
-        guard let owner = repository.ownerName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
-              let repo = repository.name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+        guard let owner = effectiveRepository.ownerName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let repo = effectiveRepository.name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
               let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/merge-upstream"),
               let body = try? JSONSerialization.data(withJSONObject: ["branch": upstreamBranch]) else {
             statusMessage = "仓库地址或目标分支无效"
