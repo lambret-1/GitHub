@@ -78,7 +78,6 @@ class PythonTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
             if char == "\"" || char == "'" {
                 // 检查是否是三引号字符串
                 if text[index...].hasPrefix("\"\"\"") || text[index...].hasPrefix("'''") {
-                    let quote = String(text[index...index]).padding(toLength: 3, withPad: String(char), startingAt: 0)
                     let _ = readTripleQuotedString(text, index: &index, quote: String(char))
                     tokens.append(makeToken(type: .string, text: text, start: start, end: index))
                     continue
