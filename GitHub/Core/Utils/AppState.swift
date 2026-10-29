@@ -51,8 +51,8 @@ class AppState: ObservableObject {
         if isLoggedIn {
             // 修复：Token 存在但 AccountManager 中账号信息丢失时，自动从网络恢复账号
             if AccountManager.shared.currentAccount == nil {
-                loadUserInfo { [weak self] user in
-                    guard let self = self, let user = user else { return }
+                loadUserInfo { user in
+                    guard let user = user else { return }
                     let account = GitHubAccount(
                         id: String(user.id),
                         username: user.login,
