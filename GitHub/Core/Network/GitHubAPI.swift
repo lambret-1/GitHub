@@ -36,6 +36,20 @@ class GitHubAPI {
             return
         }
 
+        // 所有写操作都必须使用有效的本地凭据，避免无认证请求最终被误报为 404/403。
+        if method.uppercased() != "GET",
+           let token = TokenKeychain.shared.getToken(),
+           !token.isEmpty {
+            // 已登录，继续执行写操作。
+        } else if method.uppercased() != "GET" {
+            completion(.failure(NSError(
+                domain: "GitHubAPI",
+                code: 401,
+                userInfo: [NSLocalizedDescriptionKey: "上传或修改仓库内容需要登录 GitHub，请先登录并确认 Token 权限。"]
+            )))
+            return
+        }
+
         var request = URLRequest(url: urlObj)
         request.httpMethod = method
         request.allHTTPHeaderFields = getHeaders()
