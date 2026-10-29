@@ -69,10 +69,12 @@ struct RepositoryParent: Codable {
     let name: String
     let fullName: String
     let owner: RepositoryOwner
+    let defaultBranch: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name, owner
         case fullName = "full_name"
+        case defaultBranch = "default_branch"
     }
 
     var ownerName: String {
