@@ -1758,34 +1758,3 @@ struct CodeEditorView_Previews: PreviewProvider {
         )
     }
 }
-
-// MARK: - 禁用手势返回的UIViewRepresentable
-
-/// 用于控制导航控制器的侧滑返回手势
-struct SwipeBackControlView: UIViewRepresentable {
-    let enabled: Bool
-
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        return view
-    }
-
-    func updateUIView(_ uiView: UIView, context: Context) {
-        // 立即更新手势状态，不使用async延迟
-        // 递归查找当前视图控制器的navigationController
-        var responder: UIResponder? = uiView
-        while let next = responder?.next {
-            if let viewController = next as? UIViewController,
-               let navigationController = viewController.navigationController {
-                navigationController.interactivePopGestureRecognizer?.isEnabled = enabled
-                // 如果是启用手势，同时重置delegate确保手势生效
-                if enabled {
-                    navigationController.interactivePopGestureRecognizer?.delegate = nil
-                }
-                return
-            }
-            responder = next
-        }
-    }
-}
-
