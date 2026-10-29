@@ -4,6 +4,20 @@ final class CodeSearchService {
     static let shared = CodeSearchService()
     private init() {}
 
+    private static func makeAPIError(statusCode: Int, data: Data, response: HTTPURLResponse) -> NSError {
+        let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String
+        let remaining = response.value(forHTTPHeaderField: "X-RateLimit-Remaining")
+        let retryAfter = response.value(forHTTPHeaderField: "Retry-After")
+        let limited = statusCode == 429 || remaining == "0" || (statusCode == 403 && ((message ?? "").localizedCaseInsensitiveContains("rate limit") || retryAfter != nil))
+        let detail: String
+        if statusCode == 401 { detail = "登录已失效，请重新登录。" }
+        else if limited { detail = "GitHub API 请求频率已达上限，请稍后重试。\(message.map { " GitHub：\($0)" } ?? "")" }
+        else if statusCode == 403 { detail = "GitHub 拒绝访问（403），请检查 Token 权限或组织 SSO 授权。\(message.map { " GitHub：\($0)" } ?? "")" }
+        else if statusCode == 404 { detail = "文件不存在或当前账号无权访问（404）。\(message.map { " GitHub：\($0)" } ?? "")" }
+        else { detail = "GitHub API 请求失败（HTTP \(statusCode)）。\(message ?? "")" }
+        return NSError(domain: "CodeSearch", code: statusCode, userInfo: [NSLocalizedDescriptionKey: detail])
+    }
+
     // MARK: - 文件内容缓存（1分钟过期）
 
     private var fileContentCache: [String: FileContentCacheItem] = [:]
@@ -49,7 +63,9 @@ final class CodeSearchService {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw NSError(domain: "CodeSearch", code: -3, userInfo: [NSLocalizedDescriptionKey: "GitHub 返回了无效响应"]) }
+        guard (200...299).contains(http.statusCode) else { throw Self.makeAPIError(statusCode: http.statusCode, data: data, response: http) }
         let file = try JSONDecoder().decode(FileContent.self, from: data)
 
         // 存入缓存
@@ -316,7 +332,9 @@ final class CodeSearchService {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw NSError(domain: "CodeSearch", code: -3, userInfo: [NSLocalizedDescriptionKey: "GitHub 返回了无效响应"]) }
+        guard (200...299).contains(http.statusCode) else { throw Self.makeAPIError(statusCode: http.statusCode, data: data, response: http) }
         let commits = try JSONDecoder().decode([GitCommit].self, from: data)
         guard let firstCommit = commits.first else {
             return nil

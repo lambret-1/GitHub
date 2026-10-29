@@ -87,10 +87,35 @@ class GitHubAPI {
                 if (200...299).contains(httpResponse.statusCode) {
                     completion(.success(true))
                 } else {
-                    completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "\(failureMessage)，状态码: \(httpResponse.statusCode)"])))
+                    let message = self.apiErrorMessage(statusCode: httpResponse.statusCode, data: nil, response: httpResponse, fallback: failureMessage)
+                    completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: message])))
                 }
             }
         }.resume()
+    }
+
+    private func apiErrorMessage(statusCode: Int, data: Data?, response: HTTPURLResponse, fallback: String) -> String {
+        let message = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["message"] as? String
+        let remaining = response.value(forHTTPHeaderField: "X-RateLimit-Remaining")
+        let reset = response.value(forHTTPHeaderField: "X-RateLimit-Reset")
+        let retryAfter = response.value(forHTTPHeaderField: "Retry-After")
+        let limited = statusCode == 429 || remaining == "0" || (statusCode == 403 && ((message ?? "").localizedCaseInsensitiveContains("rate limit") || retryAfter != nil))
+        if limited {
+            var result = "GitHub API 请求频率已达上限。"
+            if let seconds = retryAfter.flatMap(Int.init) { result += " 请在约 \(seconds) 秒后重试。" }
+            else if let timestamp = reset.flatMap(TimeInterval.init) {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "zh_CN")
+                formatter.timeZone = .current
+                formatter.dateFormat = "HH:mm:ss"
+                result += " 预计在 \(formatter.string(from: Date(timeIntervalSince1970: timestamp))) 后恢复。"
+            }
+            if let message { result += " GitHub：\(message)" }
+            return result
+        }
+        if statusCode == 403 { return "GitHub 拒绝访问（403），请检查 Token 权限或组织 SSO 授权。\(message.map { " GitHub：\($0)" } ?? "")" }
+        if statusCode == 404 { return "资源不存在或当前 Token 无权访问（404）。\(message.map { " GitHub：\($0)" } ?? "")" }
+        return "\(fallback)（HTTP \(statusCode)）\(message.map { "：\($0)" } ?? "")"
     }
 
     private func getHeaders() -> [String: String] {
@@ -161,12 +186,8 @@ class GitHubAPI {
                         return
                     }
 
-                    var errorMessage = "请求失败 (HTTP \(httpResponse.statusCode))"
-                    if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let message = json["message"] as? String {
-                        errorMessage = message
-                    }
+                    let errorMessage = self.apiErrorMessage(statusCode: httpResponse.statusCode, data: data, response: httpResponse, fallback: "GitHub API 请求失败")
                     DebugLogger.networkError("\(method) \(url) 失败 (HTTP \(httpResponse.statusCode)): \(errorMessage)")
-                    completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
                 }
             }
         }.resume()

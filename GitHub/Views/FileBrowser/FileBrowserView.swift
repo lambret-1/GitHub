@@ -1871,6 +1871,13 @@ struct FileBrowserView: View {
     // 本地代码搜索实现
     private func localSearchCode(query: String) {
         let lowercasedQuery = query.lowercased()
+        guard let token = TokenKeychain.shared.getToken(), !token.isEmpty else {
+            DispatchQueue.main.async {
+                self.isSearchingCode = false
+                self.codeSearchError = "仓库内搜索需要有效的 GitHub Token，请先登录。"
+            }
+            return
+        }
         var results: [CodeSearchItem] = []
         var searchError: String?
 
@@ -1886,8 +1893,9 @@ struct FileBrowserView: View {
         }
 
         var request = URLRequest(url: url)
-        request.setValue("token \(TokenKeychain.shared.getToken() ?? "")", forHTTPHeaderField: "Authorization")
-        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
 
         let semaphore = DispatchSemaphore(value: 0)
         var treeItems: [GitTreeItem] = []
@@ -1900,6 +1908,21 @@ struct FileBrowserView: View {
             }
             guard let data = data else {
                 searchError = "获取文件列表失败: 无数据"
+                return
+            }
+            guard let http = response as? HTTPURLResponse else {
+                searchError = "获取文件列表失败：GitHub 返回了无效响应"
+                return
+            }
+            guard (200...299).contains(http.statusCode) else {
+                let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["message"] as? String
+                let remaining = http.value(forHTTPHeaderField: "X-RateLimit-Remaining")
+                let retryAfter = http.value(forHTTPHeaderField: "Retry-After")
+                let limited = http.statusCode == 429 || remaining == "0" || (http.statusCode == 403 && ((message ?? "").localizedCaseInsensitiveContains("rate limit") || retryAfter != nil))
+                if limited { searchError = "GitHub API 请求频率已达上限，请稍后重试。\(message.map { " GitHub：\($0)" } ?? "")" }
+                else if http.statusCode == 401 { searchError = "GitHub Token 已失效，请重新登录。" }
+                else if http.statusCode == 403 { searchError = "GitHub 拒绝访问（403），请检查 Token 权限或组织 SSO 授权。\(message.map { " GitHub：\($0)" } ?? "")" }
+                else { searchError = "获取文件列表失败（HTTP \(http.statusCode)）：\(message ?? "未知错误")" }
                 return
             }
             do {
@@ -1986,8 +2009,8 @@ struct FileBrowserView: View {
                 switch result {
                 case .success(let data):
                     do {
-                        let fileContent = try JSONDecoder().decode(FileContent.self, from: data)
-                        let content = fileContent.decodedContent
+                        // 此请求使用 raw media type，响应体是原始文本而不是 Contents API JSON。
+                        let content = String(data: data, encoding: .utf8) ?? ""
 
                         if content.lowercased().contains(lowercasedQuery) {
                             // 构建CodeSearchItem
@@ -2062,9 +2085,13 @@ struct FileBrowserView: View {
     private func downloadFileContentWithRetry(fileURL: URL, maxRetries: Int, completion: @escaping (Result<Data, Error>) -> Void) {
         func attempt(currentRetry: Int) {
             var fileRequest = URLRequest(url: fileURL)
-            fileRequest.setValue("token \(TokenKeychain.shared.getToken() ?? "")", forHTTPHeaderField: "Authorization")
-            // 文件内容下载使用raw格式，返回文件原始内容而不是JSON
-            fileRequest.setValue("application/vnd.github.v3.raw", forHTTPHeaderField: "Accept")
+            guard let token = TokenKeychain.shared.getToken(), !token.isEmpty else {
+                completion(.failure(NSError(domain: "CodeSearch", code: 401, userInfo: [NSLocalizedDescriptionKey: "请先登录 GitHub 账号"])))
+                return
+            }
+            fileRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            fileRequest.setValue("application/vnd.github.raw+json", forHTTPHeaderField: "Accept")
+            fileRequest.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
             fileRequest.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
             fileRequest.timeoutInterval = 30
 
@@ -2081,6 +2108,23 @@ struct FileBrowserView: View {
                     return
                 }
 
+                guard let http = response as? HTTPURLResponse else {
+                    completion(.failure(NSError(domain: "CodeSearch", code: -2, userInfo: [NSLocalizedDescriptionKey: "GitHub 返回了无效响应"])))
+                    return
+                }
+                guard (200...299).contains(http.statusCode) else {
+                    let message = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["message"] as? String
+                    let remaining = http.value(forHTTPHeaderField: "X-RateLimit-Remaining")
+                    let retryAfter = http.value(forHTTPHeaderField: "Retry-After")
+                    let limited = http.statusCode == 429 || remaining == "0" || (http.statusCode == 403 && ((message ?? "").localizedCaseInsensitiveContains("rate limit") || retryAfter != nil))
+                    let detail: String
+                    if limited { detail = "GitHub API 请求频率已达上限，请稍后重试。\(message.map { " GitHub：\($0)" } ?? "")" }
+                    else if http.statusCode == 401 { detail = "GitHub Token 已失效，请重新登录。" }
+                    else if http.statusCode == 403 { detail = "GitHub 拒绝访问（403），请检查 Token 权限或组织 SSO 授权。\(message.map { " GitHub：\($0)" } ?? "")" }
+                    else { detail = "下载文件失败（HTTP \(http.statusCode)）：\(message ?? "未知错误")" }
+                    completion(.failure(NSError(domain: "CodeSearch", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: detail])))
+                    return
+                }
                 guard let data = data else {
                     if currentRetry < maxRetries {
                         DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
