@@ -15,6 +15,7 @@ struct UpstreamRepositoryView: View {
     @State private var showSyncConfirmation = false
     @State private var comparison: UpstreamComparison?
     @State private var showComparison = false
+    @State private var showManualAssociation = false
 
     private var storageKey: String { "upstream.repository.\(repository.fullName.lowercased())" }
     private var hasUpstream: Bool { !upstreamOwner.isEmpty && !upstreamName.isEmpty }
@@ -23,6 +24,7 @@ struct UpstreamRepositoryView: View {
         return parent.ownerName.caseInsensitiveCompare(upstreamOwner) == .orderedSame && parent.name.caseInsensitiveCompare(upstreamName) == .orderedSame
     }
     private var upstreamFullName: String { "\(upstreamOwner)/\(upstreamName)" }
+    private var isAutomaticForkAssociation: Bool { repository.是Fork && repository.parent != nil }
 
     var body: some View {
         NavigationStack {
@@ -34,25 +36,29 @@ struct UpstreamRepositoryView: View {
                 }
 
                 Section("上游仓库") {
-                    if repository.是Fork, let parent = repository.parent {
-                        LabeledContent("GitHub 自动识别", value: "\(parent.ownerName)/\(parent.name)")
-                    }
-                    TextField("上游所有者", text: $upstreamOwner)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("上游仓库名", text: $upstreamName)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("上游分支", text: $upstreamBranch)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("保存上游关联") { saveAssociation() }
-                        .disabled(!isValidRepositoryName(upstreamOwner) || !isValidRepositoryName(upstreamName) || upstreamBranch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    if hasUpstream {
-                        Link("在 GitHub 打开上游", destination: URL(string: "https://github.com/\(upstreamFullName)")!)
-                        Button("复制上游链接") {
-                            UIPasteboard.general.string = "https://github.com/\(upstreamFullName)"
-                            statusMessage = "已复制上游仓库链接"
+                    if let parent = repository.parent, repository.是Fork {
+                        LabeledContent("自动识别", value: "\(parent.ownerName)/\(parent.name)")
+                        LabeledContent("上游默认分支", value: parent.defaultBranch ?? repository.defaultBranch ?? "main")
+                        Link("在 GitHub 打开上游", destination: URL(string: "https://github.com/\(parent.fullName)")!)
+                    } else {
+                        Text("此仓库不是 GitHub Fork，没有可自动识别的上游仓库。")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        DisclosureGroup("手动关联（可选）", isExpanded: $showManualAssociation) {
+                            TextField("上游所有者", text: $upstreamOwner)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                            TextField("上游仓库名", text: $upstreamName)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                            TextField("上游分支", text: $upstreamBranch)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                            Button("保存手动关联") { saveAssociation() }
+                                .disabled(!isValidRepositoryName(upstreamOwner) || !isValidRepositoryName(upstreamName) || upstreamBranch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                        if hasUpstream {
+                            Link("在 GitHub 打开关联仓库", destination: URL(string: "https://github.com/\(upstreamFullName)")!)
                         }
                     }
                 }
@@ -129,8 +135,8 @@ struct UpstreamRepositoryView: View {
         if repository.是Fork, let parent = repository.parent {
             upstreamOwner = parent.ownerName
             upstreamName = parent.name
-        }
-        if let saved = UserDefaults.standard.string(forKey: storageKey),
+            upstreamBranch = parent.defaultBranch ?? repository.defaultBranch ?? "main"
+        } else if let saved = UserDefaults.standard.string(forKey: storageKey),
            let data = saved.data(using: .utf8),
            let value = try? JSONDecoder().decode(SavedUpstream.self, from: data) {
             upstreamOwner = value.owner
@@ -138,6 +144,7 @@ struct UpstreamRepositoryView: View {
             upstreamBranch = value.branch
         }
         targetBranch = repository.defaultBranch ?? "main"
+        if !repository.是Fork { showManualAssociation = false }
     }
 
     private func saveAssociation() {
