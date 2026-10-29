@@ -145,10 +145,8 @@ struct AddAccountView: View {
         isVerifying = true
         verifyError = nil
 
-        // 临时保存Token用于验证
-        TokenKeychain.shared.saveToken(trimmedToken)
-
-        GitHubAPI.shared.getUserInfo { result in
+        // 使用候选 Token 独立验证，不影响当前账号正在使用的 Token
+        GitHubAPI.shared.getUserInfo(token: trimmedToken) { result in
             DispatchQueue.main.async {
                 isVerifying = false
                 switch result {
@@ -165,23 +163,11 @@ struct AddAccountView: View {
                     // 检查是否已存在
                     if AccountManager.shared.hasAccount(withId: account.id) {
                         verifyError = "该账号已添加"
-                        // 恢复原来的Token
-                        if let current = AccountManager.shared.currentAccount {
-                            TokenKeychain.shared.saveToken(current.token)
-                        } else {
-                            TokenKeychain.shared.deleteToken()
-                        }
                     } else {
                         onSuccess(account)
                     }
                 case .failure(let error):
                     verifyError = "Token 验证失败: \(error.localizedDescription)"
-                    // 恢复原来的Token
-                    if let current = AccountManager.shared.currentAccount {
-                        TokenKeychain.shared.saveToken(current.token)
-                    } else {
-                        TokenKeychain.shared.deleteToken()
-                    }
                 }
             }
         }
