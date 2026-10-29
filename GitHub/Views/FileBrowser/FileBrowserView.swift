@@ -2248,62 +2248,68 @@ struct FileBrowserView: View {
 
     // ZIP下载完成处理
     func handleZipDownloadFinished(location: URL, response: URLResponse?) {
-        DispatchQueue.main.async {
-            isDownloadingZip = false
-
-            // 检查HTTP状态码
-            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-                zipDownloadMessage = "下载失败：服务器返回错误 \(httpResponse.statusCode)"
-                showZipDownloadAlert = true
-                return
+        // URLSession 的 location 只在 didFinishDownloadingTo 回调期间有效，
+        // 必须在回调返回前完成移动，不能先 DispatchQueue.main.async 再访问它。
+        if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+            DispatchQueue.main.async {
+                self.isDownloadingZip = false
+                self.zipDownloadMessage = "下载失败：服务器返回错误 \(httpResponse.statusCode)"
+                self.showZipDownloadAlert = true
             }
+            return
+        }
 
-            // 检查源文件是否存在
-            guard FileManager.default.fileExists(atPath: location.path) else {
-                zipDownloadMessage = "下载失败：临时文件不存在，请重试"
-                showZipDownloadAlert = true
-                return
+        guard FileManager.default.fileExists(atPath: location.path) else {
+            DispatchQueue.main.async {
+                self.isDownloadingZip = false
+                self.zipDownloadMessage = "下载失败：临时文件不存在，请重试"
+                self.showZipDownloadAlert = true
             }
+            return
+        }
 
-            // 生成文件名：仓库名-ref名.zip（ref可以是分支名或标签名）
-            let refName = zipDownloadRefName.isEmpty ? (selectedBranch.isEmpty ? "main" : selectedBranch) : zipDownloadRefName
-            let fileName = "\(repository.name)-\(refName).zip"
+        let refName = zipDownloadRefName.isEmpty ? (selectedBranch.isEmpty ? "main" : selectedBranch) : zipDownloadRefName
+        // 清理可能造成路径穿越或无效文件名的字符，同时保留常见分支名字符。
+        let safeRepoName = repository.name.replacingOccurrences(of: "/", with: "-")
+        let safeRefName = refName.replacingOccurrences(of: "/", with: "-")
+        let fileName = "\(safeRepoName)-\(safeRefName).zip"
+        let downloadDir = FileDownloadManager.shared.downloadDirectoryURL()
+        let destinationURL = downloadDir.appendingPathComponent(fileName)
 
-            // 保存到"下载"文件夹
-            let downloadDir = FileDownloadManager.shared.downloadDirectoryURL()
-            let destinationURL = downloadDir.appendingPathComponent(fileName)
+        do {
+            // 确保目标目录存在；系统临时目录可能被系统清理。
+            try FileManager.default.createDirectory(at: downloadDir, withIntermediateDirectories: true)
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+            // 必须在 URLSession 下载回调结束前移动临时文件。
+            try FileManager.default.moveItem(at: location, to: destinationURL)
 
-            do {
-                // 如果目标文件已存在，先删除
-                if FileManager.default.fileExists(atPath: destinationURL.path) {
-                    try FileManager.default.removeItem(at: destinationURL)
-                }
-
-                // 移动文件到目标位置
-                try FileManager.default.moveItem(at: location, to: destinationURL)
-
-                // 使用iOS原生分享功能
+            DispatchQueue.main.async {
+                self.isDownloadingZip = false
                 let activityVC = UIActivityViewController(activityItems: [destinationURL], applicationActivities: nil)
                 activityVC.completionWithItemsHandler = { _, _, _, _ in
-                    // 分享完成后不删除文件，保存在下载文件夹中
+                    // 分享完成后保留文件，直到系统清理临时目录。
                 }
 
-                // 找到当前窗口的根视图控制器
                 if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let rootVC = windowScene.windows.first?.rootViewController {
-                    // 找到最顶层的视图控制器
+                   let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
                     var topVC = rootVC
                     while let presentedVC = topVC.presentedViewController {
                         topVC = presentedVC
                     }
                     topVC.present(activityVC, animated: true)
+                    self.zipDownloadMessage = "下载完成，已打开分享面板"
+                } else {
+                    self.zipDownloadMessage = "下载完成，但无法打开分享面板。文件暂存于：\(destinationURL.lastPathComponent)"
                 }
-
-                zipDownloadMessage = "下载完成，已保存到下载文件夹，已打开分享面板"
-                showZipDownloadAlert = true
-            } catch {
-                zipDownloadMessage = "保存文件失败：\(error.localizedDescription)"
-                showZipDownloadAlert = true
+                self.showZipDownloadAlert = true
+            }
+        } catch {
+            DispatchQueue.main.async {
+                self.isDownloadingZip = false
+                self.zipDownloadMessage = "保存文件失败：\(error.localizedDescription)"
+                self.showZipDownloadAlert = true
             }
         }
     }
