@@ -22,30 +22,11 @@ class GitHubAPI {
     /// 防止多个请求同时返回401时重复处理的标志
     private var isHandling401: Bool = false
 
-    /// 处理401未授权错误：清除token并跳转到登录页面
+    /// 处理401响应时只记录诊断信息，不自动删除 Token 或账号。
+    /// 单个请求的401不应清空全局凭据：它可能来自临时验证、并发账号切换或特定端点，
+    /// 自动删除会造成其他正常请求突然失去认证。
     private func handleUnauthorizedError() {
-        // 防止重复处理
-        guard !isHandling401 else { return }
-        isHandling401 = true
-
-        DispatchQueue.main.async {
-            // 清除token
-            TokenKeychain.shared.deleteToken()
-
-            // 从AccountManager中删除当前账号
-            if let currentAccount = AccountManager.shared.currentAccount {
-                AccountManager.shared.deleteAccount(currentAccount)
-            }
-
-            // 更新AppState登录状态
-            AppState.shared.currentUser = nil
-            AppState.shared.isLoggedIn = false
-
-            // 延迟重置标志，允许后续重新登录
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.isHandling401 = false
-            }
-        }
+        DebugLogger.authError("GitHub API 返回 HTTP 401；保留本地 Token 和账号，等待具体请求向用户报告错误")
     }
 
     /// 通用简单请求方法：处理只返回成功/失败的API请求，自动处理401错误
@@ -226,6 +207,44 @@ class GitHubAPI {
                 completion(.failure(error))
             }
         }
+    }
+
+    /// 使用指定 Token 验证用户身份，不修改全局 Keychain。
+    /// 登录和添加账号时必须使用此方法，避免验证中的临时 Token 污染正在使用的账号。
+    func getUserInfo(token: String, completion: @escaping (Result<GitHubUser, Error>) -> Void) {
+        guard let url = URL(string: APIEndpoints.user.url) else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
+            return
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
+        request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error {
+                    completion(.failure(error))
+                    return
+                }
+                guard let http = response as? HTTPURLResponse else {
+                    completion(.failure(NSError(domain: "GitHubAPI", code: -2, userInfo: [NSLocalizedDescriptionKey: "无效响应"])))
+                    return
+                }
+                guard (200...299).contains(http.statusCode), let data else {
+                    let message = data.flatMap { String(data: $0, encoding: .utf8) } ?? "GitHub API 请求失败"
+                    completion(.failure(NSError(domain: "GitHubAPI", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: message])))
+                    return
+                }
+                do {
+                    completion(.success(try JSONDecoder().decode(GitHubUser.self, from: data)))
+                } catch {
+                    completion(.failure(error))
+                }
+            }
+        }.resume()
     }
     
     // MARK: - 仓库信息
