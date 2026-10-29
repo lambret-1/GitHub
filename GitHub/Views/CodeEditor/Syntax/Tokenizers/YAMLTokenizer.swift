@@ -28,7 +28,7 @@ class YAMLTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
         let lines = text.components(separatedBy: .newlines)
         var currentOffset = 0
 
-        for (lineIndex, line) in lines.enumerated() {
+        for (_, line) in lines.enumerated() {
             let lineStartOffset = currentOffset
             var index = line.startIndex
 
