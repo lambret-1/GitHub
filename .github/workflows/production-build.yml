@@ -131,7 +131,33 @@ jobs:
             git commit -m "chore(release): 版本号自动递增至 v${NEW_VERSION} [skip ci]" -m "触发Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME} | 触发方式: GitHub Actions 生产构建流水线"
             # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
             git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            git push origin main
+
+            # 构建期间 main 可能被开发者或其他自动化提交更新。
+            # 每次推送前同步远端并 rebase 当前版本提交，最多重试 3 次；
+            # 不使用 force push，避免覆盖 main 上的其他提交。
+            PUSH_SUCCEEDED=false
+            for ATTEMPT in 1 2 3; do
+              echo "推送版本提交，第 ${ATTEMPT}/3 次尝试..."
+              git fetch origin main
+              if ! git rebase origin/main; then
+                git rebase --abort || true
+                echo "::error::版本提交无法 rebase 到最新 main，可能存在 Info.plist 冲突；为保护远端提交，停止自动推送"
+                exit 1
+              fi
+
+              if git push origin HEAD:main; then
+                PUSH_SUCCEEDED=true
+                break
+              fi
+
+              echo "::warning::推送被拒绝，远端 main 可能再次更新，将重新同步后重试"
+              sleep "${ATTEMPT}"
+            done
+
+            if [ "${PUSH_SUCCEEDED}" != "true" ]; then
+              echo "::error::重试 3 次后仍无法推送版本提交"
+              exit 1
+            fi
             echo "::notice::版本变更已提交并推送到 main 分支"
           fi
 
