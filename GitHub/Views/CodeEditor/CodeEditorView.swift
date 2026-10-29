@@ -436,8 +436,6 @@ struct CodeEditorView: View {
                 draftManager.updateDraftContent(codeText)
             }
         }
-        // 编辑模式时禁用手势返回
-        .background(SwipeBackControlView(enabled: !isEditing))
         // 代码片段选择弹窗（第二期：编辑体验增强）
         .sheet(isPresented: $showSnippetPicker) {
             snippetPickerView
