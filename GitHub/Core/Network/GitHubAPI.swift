@@ -167,6 +167,17 @@ class GitHubAPI {
 
         DebugLogger.network("\(method) \(url)")
 
+        if method.uppercased() != "GET" {
+            guard let token = TokenKeychain.shared.getToken(), !token.isEmpty else {
+                completion(.failure(NSError(
+                    domain: "GitHubAPI",
+                    code: 401,
+                    userInfo: [NSLocalizedDescriptionKey: "此操作需要登录 GitHub，请先登录并确认 Token 权限。"]
+                )))
+                return
+            }
+        }
+
         var request = URLRequest(url: urlObj)
         request.httpMethod = method
         request.allHTTPHeaderFields = getHeaders()
