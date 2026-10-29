@@ -28,6 +28,7 @@ struct RepoHeaderView: View {
     @EnvironmentObject var appState: AppState
     // 描述展开状态
     @State private var isDescriptionExpanded: Bool = false
+    @State private var showUpstreamManager: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -132,8 +133,33 @@ struct RepoHeaderView: View {
                 }
             }
 
-            // 第三行：操作按钮组（Watch / Fork / Star）
+            // 第三行：操作按钮组（Watch / Fork / Star / 上游仓库）
             HStack(spacing: 8) {
+                // 上游仓库管理入口：Fork 自动识别，普通仓库支持手动关联
+                Button {
+                    showUpstreamManager = true
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrow.triangle.branch")
+                            .font(.system(size: 13))
+                        Text("上游")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundColor(appState.isDarkMode ? .white : .primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(appState.isDarkMode ? Color(red: 0.15, green: 0.15, blue: 0.15) : Color(red: 0.96, green: 0.96, blue: 0.96))
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(appState.isDarkMode ? Color(red: 0.3, green: 0.3, blue: 0.3) : Color(red: 0.85, green: 0.85, blue: 0.85), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .sheet(isPresented: $showUpstreamManager) {
+                    UpstreamRepositoryView(repository: repository)
+                }
+
                 // 关注按钮
                 Button(action: {
                     // Watch功能暂未实现，显示提示
