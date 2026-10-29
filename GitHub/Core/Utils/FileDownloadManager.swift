@@ -74,14 +74,32 @@ class FileDownloadManager {
 
     // MARK: - 分享文件
 
-    /// 分享文件（使用UIActivityViewController）
+    /// 分享文件（使用系统原生分享面板）
     /// - Parameter fileURL: 本地文件URL
+    func shareFile(at fileURL: URL) {
+        DispatchQueue.main.async {
+            guard let viewController = Self.getTopViewController(),
+                  viewController.viewIfLoaded?.window != nil,
+                  viewController.presentedViewController == nil else {
+                DebugLogger.share("❌ 无法呈现分享面板：当前没有可用的顶层视图控制器")
+                return
+            }
+            self.shareFile(at: fileURL, from: viewController)
+        }
+    }
+
+    /// 从指定视图控制器呈现系统分享面板
     func shareFile(at fileURL: URL, from viewController: UIViewController) {
         let activityVC = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
 
         if let popover = activityVC.popoverPresentationController {
             popover.sourceView = viewController.view
-            popover.sourceRect = CGRect(x: viewController.view.bounds.midX, y: viewController.view.bounds.midY, width: 0, height: 0)
+            popover.sourceRect = CGRect(
+                x: viewController.view.bounds.midX,
+                y: viewController.view.bounds.midY,
+                width: 0,
+                height: 0
+            )
             popover.permittedArrowDirections = []
         }
 
@@ -117,18 +135,35 @@ class FileDownloadManager {
         }
     }
 
-    /// 获取当前最顶层的视图控制器
+    /// 获取当前前台活跃窗口中真正可见的最顶层视图控制器
     static func getTopViewController() -> UIViewController? {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first(where: { $0.isKeyWindow }) else {
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .filter { $0.activationState == .foregroundActive }
+
+        guard let window = scenes
+            .flatMap(\.windows)
+            .first(where: { $0.isKeyWindow }),
+              let rootViewController = window.rootViewController else {
             return nil
         }
 
-        var topVC = window.rootViewController
-        while let presentedVC = topVC?.presentedViewController {
-            topVC = presentedVC
+        func topViewController(from controller: UIViewController) -> UIViewController {
+            if let presented = controller.presentedViewController {
+                return topViewController(from: presented)
+            }
+            if let navigation = controller as? UINavigationController,
+               let visible = navigation.visibleViewController {
+                return topViewController(from: visible)
+            }
+            if let tab = controller as? UITabBarController,
+               let selected = tab.selectedViewController {
+                return topViewController(from: selected)
+            }
+            return controller
         }
-        return topVC
+
+        return topViewController(from: rootViewController)
     }
 
     // MARK: - 保存到文件App
