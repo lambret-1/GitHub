@@ -731,7 +731,7 @@ struct CodeTextView: UIViewRepresentable {
             }
         }
 
-MARK: - 查找功能
+        // MARK: - 查找功能
 
         func performSearch(text searchText: String, currentIndex: Int) {
             searchWorkItem?.cancel()
