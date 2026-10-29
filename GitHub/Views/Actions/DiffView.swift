@@ -222,6 +222,26 @@ struct DiffView: View {
                     return
                 }
 
+                guard let http = response as? HTTPURLResponse else {
+                    errorMessage = "加载 Diff 失败：GitHub 返回了无效响应"
+                    return
+                }
+                guard (200...299).contains(http.statusCode) else {
+                    let serverMessage = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["message"] as? String
+                    let remaining = http.value(forHTTPHeaderField: "X-RateLimit-Remaining")
+                    let retryAfter = http.value(forHTTPHeaderField: "Retry-After")
+                    let limited = http.statusCode == 429 || remaining == "0" || (http.statusCode == 403 && ((serverMessage ?? "").localizedCaseInsensitiveContains("rate limit") || retryAfter != nil))
+                    if limited {
+                        errorMessage = "GitHub API 请求频率已达上限，请稍后重试。"
+                    } else if http.statusCode == 401 {
+                        errorMessage = "GitHub Token 已失效，请重新登录。"
+                    } else if http.statusCode == 403 {
+                        errorMessage = "无权读取此 Diff（403），请检查仓库权限或组织 SSO 授权。"
+                    } else {
+                        errorMessage = "加载 Diff 失败（HTTP \(http.statusCode)）：\(serverMessage ?? "未知错误")"
+                    }
+                    return
+                }
                 if let data = data, let content = String(data: data, encoding: .utf8) {
                     diffContent = content
                 } else {

@@ -489,8 +489,21 @@ struct TagListView: View {
     private func 处理下载完成(临时文件URL: URL, 响应: URLResponse?, 文件名: String) {
         // 检查HTTP状态码
         if let http响应 = 响应 as? HTTPURLResponse, !(200...299).contains(http响应.statusCode) {
+            let 剩余次数 = http响应.value(forHTTPHeaderField: "X-RateLimit-Remaining")
+            let 重试秒数 = http响应.value(forHTTPHeaderField: "Retry-After")
+            let 限流 = http响应.statusCode == 429 || 剩余次数 == "0" || (http响应.statusCode == 403 && 重试秒数 != nil)
+            let 错误消息: String
+            if 限流 {
+                错误消息 = "GitHub API 请求频率已达上限，请稍后重试。"
+            } else if http响应.statusCode == 401 {
+                错误消息 = "GitHub Token 已失效，请重新登录。"
+            } else if http响应.statusCode == 403 {
+                错误消息 = "无权下载该标签的资源，请检查仓库权限或组织 SSO 授权。"
+            } else {
+                错误消息 = "下载失败：服务器返回错误 \(http响应.statusCode)"
+            }
             DispatchQueue.main.async {
-                self.下载失败处理(错误消息: "下载失败：服务器返回错误 \(http响应.statusCode)")
+                self.下载失败处理(错误消息: 错误消息)
             }
             return
         }
