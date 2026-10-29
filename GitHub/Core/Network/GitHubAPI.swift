@@ -65,7 +65,7 @@ class GitHubAPI {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
-        URLSession.shared.dataTask(with: request) { _, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     completion(.failure(error))
@@ -87,7 +87,7 @@ class GitHubAPI {
                 if (200...299).contains(httpResponse.statusCode) {
                     completion(.success(true))
                 } else {
-                    let message = self.apiErrorMessage(statusCode: httpResponse.statusCode, data: nil, response: httpResponse, fallback: failureMessage)
+                    let message = self.apiErrorMessage(statusCode: httpResponse.statusCode, data: data, response: httpResponse, fallback: failureMessage)
                     completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: message])))
                 }
             }
@@ -95,7 +95,19 @@ class GitHubAPI {
     }
 
     private func apiErrorMessage(statusCode: Int, data: Data?, response: HTTPURLResponse, fallback: String) -> String {
-        let message = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["message"] as? String
+        let payload = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+        let message = payload?["message"] as? String
+        let validationErrors: String = {
+            guard let errors = payload?["errors"] as? [[String: Any]] else { return "" }
+            let details = errors.compactMap { item -> String? in
+                let field = item["field"] as? String
+                let code = item["code"] as? String
+                let detail = item["message"] as? String
+                let parts = [field, code, detail].compactMap { $0 }.filter { !$0.isEmpty }
+                return parts.isEmpty ? nil : parts.joined(separator: ": ")
+            }
+            return details.isEmpty ? "" : " 详细信息：\(details.joined(separator: "；"))"
+        }()
         let remaining = response.value(forHTTPHeaderField: "X-RateLimit-Remaining")
         let reset = response.value(forHTTPHeaderField: "X-RateLimit-Reset")
         let retryAfter = response.value(forHTTPHeaderField: "Retry-After")
@@ -115,7 +127,11 @@ class GitHubAPI {
         }
         if statusCode == 403 { return "GitHub 拒绝访问（403），请检查 Token 权限或组织 SSO 授权。\(message.map { " GitHub：\($0)" } ?? "")" }
         if statusCode == 404 { return "资源不存在或当前 Token 无权访问（404）。\(message.map { " GitHub：\($0)" } ?? "")" }
-        return "\(fallback)（HTTP \(statusCode)）\(message.map { "：\($0)" } ?? "")"
+        if statusCode == 422 {
+            let reason = message ?? "请求内容未通过 GitHub 校验"
+            return "\(fallback)（HTTP 422）：\(reason)\(validationErrors)。请检查仓库名称是否已被占用、名称格式是否有效，以及账号是否达到仓库创建限制。"
+        }
+        return "\(fallback)（HTTP \(statusCode)）\(message.map { "：\($0)" } ?? "")\(validationErrors)"
     }
 
     private func getHeaders() -> [String: String] {
