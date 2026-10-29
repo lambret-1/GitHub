@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-10-29 01:56:02 UTC
+**生成时间**: 2026-10-29 02:07:11 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -11,7 +11,7 @@
 | 类型 | 数量 | 状态 |
 |------|------|------|
 | 🔴 错误 | **00** 个 | 无错误 |
-| 🟡 警告 | **35** 个 | 建议清理 |
+| 🟡 警告 | **34** 个 | 建议清理 |
 
 ---
 
@@ -20,7 +20,7 @@
 | 警告类型 | 数量 | 占比 |
 |----------|------|------|
 | ⚠️ 弃用API警告 | 2 个 | 5% |
-| 📦 未使用变量警告 | 26 个 | 74% |
+| 📦 未使用变量警告 | 25 个 | 73% |
 | 🔄 类型转换警告 | 00 个 | 0% |
 | 🔍 可空性警告 | 00 个 | 0% |
 | 📝 其他警告 | 7 个 | 20% |
@@ -64,12 +64,11 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/Share/ShareUploadView.swift:170:25: warning: 'init(isActive:destination:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
 ```
 
-### 📦 未使用变量警告 (26个)
+### 📦 未使用变量警告 (25个)
 
 ```
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/AppState.swift:37:44: warning: immutable value 'account' was never used; consider replacing with '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Core/Utils/AppState.swift:55:31: warning: immutable value 'self' was never used; consider replacing with '_' or removing it
-/Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/CodeTextView.swift:486:31: warning: value 'self' was defined but never used; consider replacing with boolean test
 /Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3717:25: warning: initialization of immutable value 'createdName' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/FileBrowserView.swift:3756:25: warning: initialization of immutable value 'newName' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/GitHubApp.swift:85:24: warning: value 'release' was defined but never used; consider replacing with boolean test
@@ -87,6 +86,7 @@
 /Users/runner/work/GitHub/GitHub/GitHub/Views/PullRequests/PullRequestDetailView.swift:436:68: warning: left side of nil coalescing operator '??' has non-optional type 'String', so the right side is never used
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/PythonTokenizer.swift:81:25: warning: initialization of immutable value 'quote' was never used; consider replacing with assignment to '_' or removing it
 /Users/runner/work/GitHub/GitHub/GitHub/Views/FileBrowser/ReadmeView.swift:452:13: warning: initialization of immutable value 'theme' was never used; consider replacing with assignment to '_' or removing it
+/Users/runner/work/GitHub/GitHub/GitHub/Views/Settings/RepositorySettingsView.swift:325:20: warning: value 'size' was defined but never used; consider replacing with boolean test
 ```
 
 ### 📝 其他警告 (7个)
@@ -109,7 +109,7 @@ warning: The application supports opening files, but doesn't declare whether it 
 
 - **质量评级**: **C级**（一般，建议清理警告）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 48960 行
+- **代码总行数**: 48970 行
 
 ### 💡 修复建议
 
@@ -120,7 +120,7 @@ warning: The application supports opening files, but doesn't declare whether it 
 - 参考Apple官方文档了解废弃原因和替代方案
 
 
-#### 2. 未使用变量警告 (26个)
+#### 2. 未使用变量警告 (25个)
 - 删除未使用的变量和函数
 - 检查是否是调试代码遗留
 - 使用Xcode的静态分析工具辅助清理
