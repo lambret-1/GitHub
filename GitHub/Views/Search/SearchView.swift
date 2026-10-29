@@ -491,13 +491,13 @@ struct UserRow: View {
                 }
 
                 HStack(spacing: 12) {
-                    Text("\(user.publicRepos) 仓库")
+                    Text("\(user.publicRepos ?? 0) 仓库")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("\(user.followers) 关注者")
+                    Text("\(user.followers ?? 0) 关注者")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("\(user.following) 关注")
+                    Text("\(user.following ?? 0) 关注")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
