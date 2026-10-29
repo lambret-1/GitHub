@@ -98,7 +98,7 @@ struct TriggerWorkflowView: View {
                                         set: { inputs[key] = $0 }
                                     ))
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .font(.subheadline())
+                                    .font(.subheadline)
                                 }
                             }
                         }
