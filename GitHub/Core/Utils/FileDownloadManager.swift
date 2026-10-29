@@ -140,7 +140,7 @@ class FileDownloadManager {
         let delegate = ExportDelegate()
         exportDelegate = delegate
         documentPicker.delegate = delegate
-        viewController.present(documentPicker, animated: true
+        viewController.present(documentPicker, animated: true)
     }
 
     // MARK: - 清理下载文件
