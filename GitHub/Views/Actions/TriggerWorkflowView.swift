@@ -13,6 +13,8 @@ struct TriggerWorkflowView: View {
     @State private var branchError: String?
     @State private var inputs: [String: String] = [:]
     @State private var inputKeys: [String] = []
+    @State private var inputOptions: [String: [String]] = [:]
+    @State private var inputDefaults: [String: String] = [:]
     @State private var isTriggering: Bool = false
     @State private var triggerSuccess: Bool = false
     @State private var triggerError: String?
@@ -80,12 +82,24 @@ struct TriggerWorkflowView: View {
                                 Text(key)
                                     .font(.subheadline)
                                     .frame(width: 100, alignment: .leading)
-                                TextField("输入值", text: Binding(
-                                    get: { inputs[key] ?? "" },
-                                    set: { inputs[key] = $0 }
-                                ))
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .font(.subheadline)
+                                if let options = inputOptions[key], !options.isEmpty {
+                                    Picker(key, selection: Binding(
+                                        get: { inputs[key] ?? inputDefaults[key] ?? options[0] },
+                                        set: { inputs[key] = $0 }
+                                    )) {
+                                        ForEach(options, id: \.self) { option in
+                                            Text(option).tag(option)
+                                        }
+                                    }
+                                    .pickerStyle(MenuPickerStyle())
+                                } else {
+                                    TextField("输入值", text: Binding(
+                                        get: { inputs[key] ?? inputDefaults[key] ?? "" },
+                                        set: { inputs[key] = $0 }
+                                    ))
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .font(.subheadline())
+                                }
                             }
                         }
                     }
@@ -199,8 +213,13 @@ struct TriggerWorkflowView: View {
 
     private func parseInputsFromYAML(_ content: String) {
         var parsedKeys: [String] = []
+        var parsedOptions: [String: [String]] = [:]
+        var parsedDefaults: [String: String] = [:]
         var inInputsSection = false
         var inputsIndentation = 0
+        var currentKey: String?
+        var inOptions = false
+        var optionsIndentation = 0
 
         for line in content.components(separatedBy: .newlines) {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -210,22 +229,61 @@ struct TriggerWorkflowView: View {
             if trimmed == "inputs:" {
                 inInputsSection = true
                 inputsIndentation = indentation
+                currentKey = nil
+                inOptions = false
                 continue
             }
             guard inInputsSection else { continue }
             if indentation <= inputsIndentation {
                 inInputsSection = false
+                currentKey = nil
+                inOptions = false
                 continue
             }
-            // Only direct children of inputs are user parameters; ignore nested description/type/default/options metadata.
-            guard indentation == inputsIndentation + 2, trimmed.hasSuffix(":"), !trimmed.hasPrefix("-") else { continue }
-            let key = String(trimmed.dropLast()).trimmingCharacters(in: .whitespaces)
-            guard !key.isEmpty, !parsedKeys.contains(key) else { continue }
-            parsedKeys.append(key)
+
+            if indentation == inputsIndentation + 2,
+               trimmed.hasSuffix(":"),
+               !trimmed.hasPrefix("-") {
+                let key = String(trimmed.dropLast()).trimmingCharacters(in: .whitespaces)
+                guard !key.isEmpty else { continue }
+                if !parsedKeys.contains(key) { parsedKeys.append(key) }
+                currentKey = key
+                inOptions = false
+                continue
+            }
+
+            guard let key = currentKey else { continue }
+            if indentation == inputsIndentation + 4 {
+                if trimmed == "options:" {
+                    inOptions = true
+                    optionsIndentation = indentation
+                } else {
+                    inOptions = false
+                    if trimmed.hasPrefix("default:") {
+                        let value = String(trimmed.dropFirst("default:".count))
+                            .trimmingCharacters(in: .whitespaces)
+                            .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+                        if !value.isEmpty { parsedDefaults[key] = value }
+                    }
+                }
+                continue
+            }
+
+            if inOptions && indentation > optionsIndentation && trimmed.hasPrefix("-") {
+                let option = String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces)
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+                if !option.isEmpty {
+                    parsedOptions[key, default: []].append(option)
+                }
+            }
         }
 
         self.inputKeys = parsedKeys
-        for key in parsedKeys where inputs[key] == nil { inputs[key] = "" }
+        self.inputOptions = parsedOptions
+        self.inputDefaults = parsedDefaults
+        for key in parsedKeys where inputs[key] == nil {
+            inputs[key] = parsedDefaults[key] ?? parsedOptions[key]?.first ?? ""
+        }
     }
 
     // MARK: - 触发工作流
