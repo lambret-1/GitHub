@@ -68,7 +68,7 @@ class YAMLTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
             }
 
             // 列表项 -
-            if line[index] == "-" && (index == line.endIndex || line[line.index(after: index)].isWhitespace) {
+            if line[index] == "-" && index < line.index(before: line.endIndex) && line[line.index(after: index)].isWhitespace {
                 let range = NSRange(location: lineStartOffset + line.distance(from: line.startIndex, to: index), length: 1)
                 tokens.append(SyntaxToken(type: .operatorSymbol, range: range, text: "-"))
                 index = line.index(after: index)
