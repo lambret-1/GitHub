@@ -82,7 +82,7 @@ struct GitHubApp: App {
             }
             // 更新推送对话框
             .alert("发现新版本", isPresented: $appState.showUpdateAlert) {
-                if let release = appState.latestRelease {
+                if appState.latestRelease != nil {
                     Button("立即更新") {
                         appState.downloadUpdateNow()
                     }

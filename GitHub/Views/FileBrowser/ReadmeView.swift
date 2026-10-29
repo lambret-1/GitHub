@@ -449,7 +449,6 @@ struct ReadmeWebView: UIViewRepresentable {
 
     // 构建完整的HTML文档，包含GitHub官方CSS样式
     private func buildFullHTML() -> String {
-        let theme = isDarkMode ? "dark" : "light"
         let bgColor = isDarkMode ? "#0d1117" : "#ffffff"
         let textColor = isDarkMode ? "#c9d1d9" : "#24292f"
 

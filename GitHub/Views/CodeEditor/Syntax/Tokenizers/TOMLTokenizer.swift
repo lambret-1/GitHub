@@ -21,7 +21,6 @@ class TOMLTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
 
         while index < text.endIndex {
             let char = text[index]
-            let start = index
 
             // 跳过空白字符
             if char.isWhitespace {

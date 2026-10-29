@@ -53,7 +53,7 @@ struct ShareUploadView: View {
     // MARK: - 视图主体
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 // 文件列表部分
                 Section {
@@ -142,8 +142,8 @@ struct ShareUploadView: View {
                 // 上传配置部分
                 Section {
                     // 选择仓库
-                    NavigationLink(isActive: $showRepoPicker) {
-                        repoSelectionView
+                    Button {
+                        showRepoPicker = true
                     } label: {
                         HStack {
                             Image(systemName: "folder.fill")
@@ -164,11 +164,14 @@ struct ShareUploadView: View {
                                 .font(.system(size: 12))
                         }
                     }
+                    .navigationDestination(isPresented: $showRepoPicker) {
+                        repoSelectionView
+                    }
 
                     // 选择分支
                     if selectedRepo != nil {
-                        NavigationLink(isActive: $showBranchPicker) {
-                            branchSelectionView
+                        Button {
+                            showBranchPicker = true
                         } label: {
                             HStack {
                                 Image(systemName: "arrow.triangle.branch")
@@ -182,6 +185,9 @@ struct ShareUploadView: View {
                                     .foregroundColor(.gray)
                                     .font(.system(size: 12))
                             }
+                        }
+                        .navigationDestination(isPresented: $showBranchPicker) {
+                            branchSelectionView
                         }
                     }
 

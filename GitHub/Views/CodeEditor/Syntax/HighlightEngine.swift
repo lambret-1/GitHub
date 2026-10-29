@@ -49,7 +49,6 @@ class HighlightEngine {
                 let obliqueFont = font
                 attributedString.addAttribute(.font, value: obliqueFont, range: token.range)
                 // 添加倾斜效果
-                let obliqueTransform = CGAffineTransform(a: 1, b: 0, c: 0.2, d: 1, tx: 0, ty: 0)
                 attributedString.addAttribute(.obliqueness, value: 0.2, range: token.range)
             }
 

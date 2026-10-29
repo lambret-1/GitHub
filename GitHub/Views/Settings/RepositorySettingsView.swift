@@ -322,7 +322,7 @@ struct RepositorySettingsView: View {
                     .foregroundColor(.secondary)
             }
 
-            if let size = repo.size {
+            if repo.size != nil {
                 HStack {
                     Text("仓库大小")
                     Spacer()
