@@ -94,7 +94,7 @@ struct JobLogView: View {
         var result: [LogLine] = []
         var currentGroupId: UUID? = nil
 
-        for (index, line) in allLogLines.enumerated() {
+        for line in allLogLines {
             // 增量加载：只显示前 visibleLineCount 行
             if result.count >= visibleLineCount {
                 break
