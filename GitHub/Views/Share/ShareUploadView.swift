@@ -42,6 +42,7 @@ struct ShareUploadView: View {
     @State private var uploadProgress: Double = 0
     @State private var currentUploadingFileName: String = ""
     @State private var uploadResults: [String: Bool] = [:] // 文件名: 是否成功
+    @State private var uploadErrorMessages: [String: String] = [:] // 文件名: 失败原因
     @State private var showUploadResult: Bool = false
 
     // MARK: - 计算属性
@@ -291,7 +292,13 @@ struct ShareUploadView: View {
             } message: {
                 let successCount = uploadResults.values.filter { $0 }.count
                 let failCount = uploadResults.count - successCount
-                return Text("成功：\(successCount)个，失败：\(failCount)个")
+                let failureDetails = uploadErrorMessages
+                    .sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedAscending }
+                    .prefix(3)
+                    .map { "\($0.key)：\($0.value)" }
+                    .joined(separator: "\n")
+                let summary = "成功：\(successCount)个，失败：\(failCount)个"
+                return Text(failureDetails.isEmpty ? summary : "\(summary)\n\n失败原因：\n\(failureDetails)")
             }
         }
     }
@@ -434,6 +441,7 @@ struct ShareUploadView: View {
         isUploading = true
         uploadProgress = 0
         uploadResults = [:]
+        uploadErrorMessages = [:]
 
         let files = shareFileManager.pendingFiles
         let totalCount = files.count
@@ -457,7 +465,6 @@ struct ShareUploadView: View {
             // 读取文件内容
             do {
                 let fileData = try Data(contentsOf: file.fileURL)
-                let contentBase64 = fileData.base64EncodedString()
 
                 // 构建上传路径
                 var targetPath = uploadPath.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -467,11 +474,13 @@ struct ShareUploadView: View {
                 targetPath += file.fileName
 
                 // 上传到GitHub
-                GitHubAPI.shared.createFile(
+                // 二进制上传 API 会且只会对原始 Data 做一次 Base64 编码。
+                // 之前先手动 Base64、再调用 createFile 二次编码，会把附件内容上传成乱码文本。
+                GitHubAPI.shared.uploadFileData(
                     owner: repo.ownerName,
                     repo: repo.name,
                     path: targetPath,
-                    content: contentBase64,
+                    fileData: fileData,
                     message: "通过分享上传：\(file.fileName)（GitHub中文客户端）",
                     branch: selectedBranch
                 ) { result in
@@ -479,8 +488,10 @@ struct ShareUploadView: View {
                         switch result {
                         case .success:
                             uploadResults[file.fileName] = true
-                        case .failure:
+                            uploadErrorMessages.removeValue(forKey: file.fileName)
+                        case .failure(let error):
                             uploadResults[file.fileName] = false
+                            uploadErrorMessages[file.fileName] = error.localizedDescription
                         }
                         uploadNext(index: index + 1)
                     }
@@ -488,6 +499,7 @@ struct ShareUploadView: View {
             } catch {
                 DispatchQueue.main.async {
                     uploadResults[file.fileName] = false
+                    uploadErrorMessages[file.fileName] = error.localizedDescription
                     uploadNext(index: index + 1)
                 }
             }
