@@ -111,8 +111,9 @@ struct UpstreamRepositoryView: View {
                             LabeledContent("状态", value: comparison.status)
                             LabeledContent("领先提交", value: "\(comparison.aheadBy)")
                             LabeledContent("落后提交", value: "\(comparison.behindBy)")
-                            LabeledContent("变更文件", value: "\(comparison.totalCommits) 个提交")
-                            if let url = URL(string: "https://github.com/\(repository.fullName)/compare/\(targetBranch)...\(upstreamOwner):\(upstreamBranch)") {
+                            LabeledContent("提交数量", value: "\(comparison.totalCommits)")
+                            LabeledContent("变更文件", value: "\(comparison.files.count)")
+                            if let url = URL(string: "https://github.com/\(upstreamFullName)/compare/\(upstreamBranch)...\(repository.ownerName):\(targetBranch)") {
                                 Link("在 GitHub 查看完整比较", destination: url)
                             }
                         }
@@ -156,11 +157,11 @@ struct UpstreamRepositoryView: View {
     }
 
     private func compareBranches() {
-        guard let owner = repository.ownerName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
-              let repo = repository.name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
-              let base = targetBranch.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let head = "\(upstreamOwner):\(upstreamBranch)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/compare/\(base)...\(head)") else {
+        guard let upstreamOwnerEncoded = upstreamOwner.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let upstreamNameEncoded = upstreamName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let upstreamBranchEncoded = upstreamBranch.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let targetBranchEncoded = targetBranch.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://api.github.com/repos/\(upstreamOwnerEncoded)/\(upstreamNameEncoded)/compare/\(upstreamBranchEncoded)...\(repository.ownerName):\(targetBranchEncoded)") else {
             statusMessage = "分支名称或仓库地址无效"
             return
         }
@@ -182,10 +183,14 @@ struct UpstreamRepositoryView: View {
     }
 
     private func syncUpstream() {
+        guard targetBranch == upstreamBranch else {
+            statusMessage = "GitHub 原生 Fork 同步要求上游分支与当前仓库目标分支同名。请将两个分支都设为同一个名称后再同步。"
+            return
+        }
         guard let owner = repository.ownerName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
               let repo = repository.name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
               let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/merge-upstream"),
-              let body = try? JSONSerialization.data(withJSONObject: ["branch": targetBranch]) else {
+              let body = try? JSONSerialization.data(withJSONObject: ["branch": upstreamBranch]) else {
             statusMessage = "仓库地址或目标分支无效"
             return
         }
@@ -259,13 +264,18 @@ private struct UpstreamComparison: Decodable {
     let aheadBy: Int
     let behindBy: Int
     let totalCommits: Int
+    let files: [UpstreamChangedFile]
 
     enum CodingKeys: String, CodingKey {
-        case status
+        case status, files
         case aheadBy = "ahead_by"
         case behindBy = "behind_by"
         case totalCommits = "total_commits"
     }
+}
+
+private struct UpstreamChangedFile: Decodable {
+    let filename: String
 }
 
 private struct UpstreamSyncResponse: Decodable {
