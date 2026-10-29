@@ -75,11 +75,11 @@ struct CodeTextView: UIViewRepresentable {
         // 配置行号 LayoutManager
         let lineNumberFont = UIFont.monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
         layoutManager.lineNumberFont = lineNumberFont
-        // 大文件性能优化：超过1MB的文件不遍历计算行号宽度，直接使用最大宽度80pt
+        // 性能优化：超过256KB的文件不遍历计算行号宽度，直接使用最大宽度80pt
         let fileSizeForLineNumber = text.utf8.count
         let calculatedLineNumberWidth: CGFloat
         if showLineNumbers {
-            if fileSizeForLineNumber > 1024 * 1024 {
+            if fileSizeForLineNumber > 256 * 1024 {
                 // 大文件：直接使用最大宽度，避免遍历整个文件计算行数
                 calculatedLineNumberWidth = 80
             } else {
@@ -102,10 +102,10 @@ struct CodeTextView: UIViewRepresentable {
         // 设置初始文本
         // 性能优化：先显示纯文本（立即响应），再异步执行语法高亮（避免大文件/长行文件卡死主线程）
         // 编辑模式下使用纯文本，避免语法高亮导致光标乱跳换行问题
-        // 大文件（>1MB）或TXT文件：纯文本显示，保证性能
+        // 较大文件（>256KB）或TXT文件：纯文本显示，避免打开卡死
         let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         let fileSize = text.utf8.count
-        let isLargeFile = fileSize > 1024 * 1024  // 1MB阈值，超过此大小自动禁用语法高亮
+        let isLargeFile = fileSize > 256 * 1024  // 超过256KB禁用全文件语法高亮，避免卡死
         let isTxtFile = fileName.lowercased().hasSuffix(".txt")  // TXT纯文本文件，无需语法高亮
         let 需要语法高亮 = !isEditable && !isLargeFile && !isTxtFile
 
@@ -192,11 +192,11 @@ struct CodeTextView: UIViewRepresentable {
         // 更新行号显示（仅当行号宽度或显示状态真的变化时才更新，避免每次updateUIView都触发重新布局导致光标乱跳）
         if let layoutManager = textView.layoutManager as? LineNumberLayoutManager {
             let lineNumberFont = UIFont.monospacedSystemFont(ofSize: fontSize - 2, weight: .regular)
-            // 大文件性能优化：超过1MB的文件不遍历计算行号宽度，直接使用最大宽度80pt
+            // 性能优化：超过256KB的文件不遍历计算行号宽度，直接使用最大宽度80pt
             let fileSizeForUpdate = textView.text.utf8.count
             let calculatedLineNumberWidth: CGFloat
             if showLineNumbers {
-                if fileSizeForUpdate > 1024 * 1024 {
+                if fileSizeForUpdate > 256 * 1024 {
                     // 大文件：直接使用最大宽度，避免遍历整个文件计算行数
                     calculatedLineNumberWidth = 80
                 } else {
@@ -231,8 +231,9 @@ struct CodeTextView: UIViewRepresentable {
         // 外部文本变化时更新（编辑模式下完全禁用外部文本回写，避免状态更新导致视图重绘进而触发文本回写循环）
         if !isEditable && textView.text != text && !context.coordinator.isInternalUpdate {
             let selectedRange = textView.selectedRange
-            // 编辑模式下使用纯文本，避免语法高亮导致光标乱跳换行问题
-            if isEditable {
+            // 编辑模式、纯文本和较大文件均使用纯文本更新，避免主线程同步解析整份文件。
+            (textView.layoutManager as? LineNumberLayoutManager)?.invalidateNewlinePositions()
+            if isEditable || text.utf8.count > 256 * 1024 || fileName.lowercased().hasSuffix(".txt") {
                 textView.textStorage.setAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.label]))
             } else {
                 let highlightedText = SyntaxHighlighter.highlight(text, font: font, fileName: fileName)
@@ -674,7 +675,9 @@ struct CodeTextView: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) {
             guard !isSearching else { return }
 
-            // 输入法组合阶段不回写未确认的拼音/候选文本。
+            (textView.layoutManager as? LineNumberLayoutManager)?.invalidateNewlinePositions()
+
+            // 输入法组合阶段不回写未确认的拼音/候选文本.
             updateUndoRedoState()
             guard textView.markedTextRange == nil else { return }
 
@@ -774,7 +777,12 @@ struct CodeTextView: UIViewRepresentable {
 
             guard !searchMatches.isEmpty else {
                 let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-                let highlightedText = SyntaxHighlighter.highlight(fullText, font: font, fileName: fileName)
+                let highlightedText: NSAttributedString
+                if fullText.utf8.count > 256 * 1024 || fileName.lowercased().hasSuffix(".txt") {
+                    highlightedText = NSAttributedString(string: fullText, attributes: [.font: font, .foregroundColor: UIColor.label])
+                } else {
+                    highlightedText = SyntaxHighlighter.highlight(fullText, font: font, fileName: fileName)
+                }
                 isInternalUpdate = true
                 textView.textStorage.setAttributedString(highlightedText)
                 DispatchQueue.main.async { [weak self] in
@@ -787,8 +795,13 @@ struct CodeTextView: UIViewRepresentable {
             let safeIndex = max(0, min(currentIndex, searchMatches.count - 1))
 
             let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-            let highlightedText = SyntaxHighlighter.highlight(fullText, font: font, fileName: fileName)
-            let mutableAttributedString = NSMutableAttributedString(attributedString: highlightedText)
+            let baseText: NSAttributedString
+            if fullText.utf8.count > 256 * 1024 || fileName.lowercased().hasSuffix(".txt") {
+                baseText = NSAttributedString(string: fullText, attributes: [.font: font, .foregroundColor: UIColor.label])
+            } else {
+                baseText = SyntaxHighlighter.highlight(fullText, font: font, fileName: fileName)
+            }
+            let mutableAttributedString = NSMutableAttributedString(attributedString: baseText)
 
             for (index, range) in searchMatches.enumerated() {
                 if index == safeIndex {
@@ -825,7 +838,12 @@ struct CodeTextView: UIViewRepresentable {
             guard !isSearching else { return }
 
             let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-            let highlightedText = SyntaxHighlighter.highlight(fullText, font: font, fileName: fileName)
+            let highlightedText: NSAttributedString
+            if fullText.utf8.count > 256 * 1024 || fileName.lowercased().hasSuffix(".txt") {
+                highlightedText = NSAttributedString(string: fullText, attributes: [.font: font, .foregroundColor: UIColor.label])
+            } else {
+                highlightedText = SyntaxHighlighter.highlight(fullText, font: font, fileName: fileName)
+            }
 
             isInternalUpdate = true
             textView.textStorage.setAttributedString(highlightedText)
@@ -836,6 +854,11 @@ struct CodeTextView: UIViewRepresentable {
         }
 
         func resetSearch() {
+            // updateUIView 可能频繁调用；没有活动搜索时无需重复解析整份文件。
+            guard !currentSearchText.isEmpty || !searchMatches.isEmpty else {
+                searchWorkItem?.cancel()
+                return
+            }
             searchWorkItem?.cancel()
             currentSearchText = ""
             searchMatches = []
