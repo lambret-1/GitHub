@@ -288,8 +288,8 @@ struct TriggerWorkflowView: View {
                 continue
             }
 
-            guard let dispatchIndentation = dispatchIndentation else { continue }
-            if line.indentation <= dispatchIndentation {
+            guard let dispatchLevel = dispatchIndentation else { continue }
+            if line.indentation <= dispatchLevel {
                 dispatchIndentation = nil
                 inputsIndentation = nil
                 currentKey = nil
@@ -297,20 +297,20 @@ struct TriggerWorkflowView: View {
                 continue
             }
 
-            if inputsIndentation == nil, line.text == "inputs:", line.indentation > dispatchIndentation {
+            if inputsIndentation == nil, line.text == "inputs:", line.indentation > dispatchLevel {
                 inputsIndentation = line.indentation
                 continue
             }
 
-            guard let inputsIndentation = inputsIndentation else { continue }
-            if line.indentation <= inputsIndentation {
+            guard let inputsLevel = inputsIndentation else { continue }
+            if line.indentation <= inputsLevel {
                 inputsIndentation = nil
                 currentKey = nil
                 optionsIndentation = nil
                 continue
             }
 
-            if line.indentation == inputsIndentation + 2,
+            if line.indentation == inputsLevel + 2,
                line.text.hasSuffix(":"),
                !line.text.hasPrefix("-") {
                 let key = String(line.text.dropLast()).trimmingCharacters(in: .whitespaces)
@@ -322,7 +322,7 @@ struct TriggerWorkflowView: View {
             }
 
             guard let key = currentKey else { continue }
-            if line.indentation == inputsIndentation + 4 {
+            if line.indentation == inputsLevel + 4 {
                 if line.text == "options:" {
                     optionsIndentation = line.indentation
                 } else {
