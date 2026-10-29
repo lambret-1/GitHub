@@ -236,7 +236,7 @@ class HighlightTaskManager {
         // 创建新任务（先声明为可选，避免循环引用）
         var workItem: DispatchWorkItem?
         workItem = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
+            guard self != nil else { return }
 
             // 检查任务是否被取消
             if workItem?.isCancelled ?? true {
