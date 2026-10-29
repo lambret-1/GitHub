@@ -198,42 +198,34 @@ struct TriggerWorkflowView: View {
     // MARK: - 从YAML中解析输入参数
 
     private func parseInputsFromYAML(_ content: String) {
-        var keys: [String] = []
+        var parsedKeys: [String] = []
         var inInputsSection = false
         var inputsIndentation = 0
 
         for line in content.components(separatedBy: .newlines) {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
+            let indentation = line.prefix(while: { $0 == " " }).count
 
-            // 检测inputs: 关键字
-            if trimmed == "inputs:" || trimmed.hasSuffix("inputs:") {
+            if trimmed == "inputs:" {
                 inInputsSection = true
-                inputsIndentation = line.prefix(while: { $0 == " " }).count
+                inputsIndentation = indentation
                 continue
             }
-
-            // 如果在inputs区域内
-            if inInputsSection {
-                let currentIndentation = line.prefix(while: { $0 == " " }).count
-
-                // 如果遇到与inputs同级或更高级别的键，则退出inputs区域
-                if currentIndentation <= inputsIndentation && !trimmed.isEmpty {
-                    inInputsSection = false
-                    continue
-                }
-
-                // 解析输入参数键（缩进比inputs多一级，且以:结尾）
-                if currentIndentation > inputsIndentation && trimmed.contains(":") {
-                    let key = String(trimmed.split(separator: ":").first ?? "")
-                    if !key.isEmpty && !keys.contains(key) {
-                        keys.append(key)
-                        inputs[key] = ""
-                    }
-                }
+            guard inInputsSection else { continue }
+            if indentation <= inputsIndentation {
+                inInputsSection = false
+                continue
             }
+            // Only direct children of inputs are user parameters; ignore nested description/type/default/options metadata.
+            guard indentation == inputsIndentation + 2, trimmed.hasSuffix(":"), !trimmed.hasPrefix("-") else { continue }
+            let key = String(trimmed.dropLast()).trimmingCharacters(in: .whitespaces)
+            guard !key.isEmpty, !parsedKeys.contains(key) else { continue }
+            parsedKeys.append(key)
         }
 
-        self.inputKeys = keys
+        self.inputKeys = parsedKeys
+        for key in parsedKeys where inputs[key] == nil { inputs[key] = "" }
     }
 
     // MARK: - 触发工作流
