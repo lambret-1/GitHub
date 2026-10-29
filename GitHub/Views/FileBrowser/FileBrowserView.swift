@@ -2016,8 +2016,7 @@ struct FileBrowserView: View {
 
                 switch result {
                 case .success(let data):
-                    do {
-                        // 此请求使用 raw media type，响应体是原始文本而不是 Contents API JSON。
+                    // 此请求使用 raw media type，响应体是原始文本而不是 Contents API JSON。
                         let content = String(data: data, encoding: .utf8) ?? ""
 
                         if content.lowercased().contains(lowercasedQuery) {
@@ -2047,12 +2046,6 @@ struct FileBrowserView: View {
                             results.append(searchItem)
                             lock.unlock()
                         }
-                    } catch {
-                        lock.lock()
-                        errorCount += 1
-                        failedFiles.append(fileItem.path)
-                        lock.unlock()
-                    }
                 case .failure:
                     lock.lock()
                     errorCount += 1
