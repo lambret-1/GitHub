@@ -138,10 +138,6 @@ class KeyboardManager: ObservableObject {
             animationCurve = curve
         }
 
-        // 更新可见状态
-        if let willShow = willShow {
-            // 不立即更新isKeyboardVisible，等didShow/didHide再更新，避免状态闪烁
-        }
     }
 
     // MARK: - 安全区域获取
