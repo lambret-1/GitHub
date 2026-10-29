@@ -188,6 +188,7 @@ class GitHubAPI {
 
                     let errorMessage = self.apiErrorMessage(statusCode: httpResponse.statusCode, data: data, response: httpResponse, fallback: "GitHub API 请求失败")
                     DebugLogger.networkError("\(method) \(url) 失败 (HTTP \(httpResponse.statusCode)): \(errorMessage)")
+                    completion(.failure(NSError(domain: "GitHubAPI", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMessage])))
                 }
             }
         }.resume()
