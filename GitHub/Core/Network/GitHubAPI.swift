@@ -1087,7 +1087,7 @@ class GitHubAPI {
     /// 创建新仓库
     func createRepository(name: String, description: String = "", isPrivate: Bool = false, autoInit: Bool = true, completion: @escaping (Result<Bool, Error>) -> Void) {
         let url = APIEndpoints.createRepository.url
-        var body: [String: Any] = [
+        let body: [String: Any] = [
             "name": name,
             "description": description,
             "private": isPrivate,
