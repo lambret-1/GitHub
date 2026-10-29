@@ -2287,23 +2287,9 @@ struct FileBrowserView: View {
 
             DispatchQueue.main.async {
                 self.isDownloadingZip = false
-                let activityVC = UIActivityViewController(activityItems: [destinationURL], applicationActivities: nil)
-                activityVC.completionWithItemsHandler = { _, _, _, _ in
-                    // 分享完成后保留文件，直到系统清理临时目录。
-                }
-
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
-                    var topVC = rootVC
-                    while let presentedVC = topVC.presentedViewController {
-                        topVC = presentedVC
-                    }
-                    topVC.present(activityVC, animated: true)
-                    self.zipDownloadMessage = "下载完成，已打开分享面板"
-                } else {
-                    self.zipDownloadMessage = "下载完成，但无法打开分享面板。文件暂存于：\(destinationURL.lastPathComponent)"
-                }
-                self.showZipDownloadAlert = true
+                // 成功后直接打开系统分享面板。不要同时弹出 SwiftUI Alert：
+                // 两个模态控制器竞争同一呈现层时，UIActivityViewController 可能被系统拒绝呈现。
+                FileDownloadManager.shared.shareFile(at: destinationURL)
             }
         } catch {
             DispatchQueue.main.async {
