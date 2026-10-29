@@ -50,6 +50,17 @@ class GitHubAPI {
             return
         }
 
+        if method.uppercased() != "GET" {
+            guard let token = TokenKeychain.shared.getToken(), !token.isEmpty else {
+                completion(.failure(NSError(
+                    domain: "GitHubAPI",
+                    code: 401,
+                    userInfo: [NSLocalizedDescriptionKey: "此操作需要登录 GitHub，请先登录并确认 Token 权限。"]
+                )))
+                return
+            }
+        }
+
         var request = URLRequest(url: urlObj)
         request.httpMethod = method
         request.allHTTPHeaderFields = getHeaders()
@@ -226,13 +237,18 @@ class GitHubAPI {
     /// 使用指定 Token 验证用户身份，不修改全局 Keychain。
     /// 登录和添加账号时必须使用此方法，避免验证中的临时 Token 污染正在使用的账号。
     func getUserInfo(token: String, completion: @escaping (Result<GitHubUser, Error>) -> Void) {
+        let normalizedToken = TokenKeychain.normalizedToken(token)
+        guard !normalizedToken.isEmpty else {
+            completion(.failure(NSError(domain: "GitHubAPI", code: 401, userInfo: [NSLocalizedDescriptionKey: "请输入有效的 GitHub Token"])))
+            return
+        }
         guard let url = URL(string: APIEndpoints.user.url) else {
             completion(.failure(NSError(domain: "GitHubAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])))
             return
         }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("token \(normalizedToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
         request.setValue("GitHub-iOS-Client", forHTTPHeaderField: "User-Agent")
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
