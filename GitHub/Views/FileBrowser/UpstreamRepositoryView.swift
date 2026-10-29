@@ -18,6 +18,10 @@ struct UpstreamRepositoryView: View {
 
     private var storageKey: String { "upstream.repository.\(repository.fullName.lowercased())" }
     private var hasUpstream: Bool { !upstreamOwner.isEmpty && !upstreamName.isEmpty }
+    private var canSyncFork: Bool {
+        guard repository.是Fork, let parent = repository.parent else { return false }
+        return parent.ownerName.caseInsensitiveCompare(upstreamOwner) == .orderedSame && parent.name.caseInsensitiveCompare(upstreamName) == .orderedSame
+    }
     private var upstreamFullName: String { "\(upstreamOwner)/\(upstreamName)" }
 
     var body: some View {
@@ -64,7 +68,7 @@ struct UpstreamRepositoryView: View {
                     }
                     .disabled(isWorking || !hasUpstream || targetBranch.isEmpty || upstreamBranch.isEmpty)
 
-                    if repository.是Fork {
+                    if canSyncFork {
                         Button(role: .destructive) {
                             showSyncConfirmation = true
                         } label: {
@@ -96,7 +100,7 @@ struct UpstreamRepositoryView: View {
                 Button("同步到 \(targetBranch)", role: .destructive) { syncUpstream() }
                 Button("取消", role: .cancel) {}
             } message: {
-                Text("GitHub 将把上游分支「\(upstreamBranch)」合并到当前仓库的「\(targetBranch)」。此操作会修改远端分支，建议先检查差异并确认已有备份。")
+                Text("GitHub 将把上游分支「\(upstreamBranch)」合并到当前仓库的「\(targetBranch)」。此操作会修改远端分支；建议先检查差异并确认已有备份。上方手动填写的上游分支仅用于差异比较。")
             }
             .sheet(isPresented: $showComparison) {
                 NavigationStack {
