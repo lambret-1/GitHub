@@ -73,10 +73,8 @@ class AppState: ObservableObject {
         isLoading = true
         errorMessage = nil
 
-        // 先临时保存token用于验证
-        TokenKeychain.shared.saveToken(token)
-
-        GitHubAPI.shared.getUserInfo { [weak self] result in
+        // 使用候选 Token 独立验证，不覆盖当前已登录账号的凭据
+        GitHubAPI.shared.getUserInfo(token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 switch result {
@@ -97,9 +95,8 @@ class AppState: ObservableObject {
 
                     completion(true, nil)
                 case .failure(let error):
-                    // 验证失败，删除token
-                    TokenKeychain.shared.deleteToken()
-                    self?.isLoggedIn = false
+                    // 验证失败时保留原有账号与 Token，避免错误输入导致当前会话丢失
+                    self?.isLoggedIn = TokenKeychain.shared.hasToken
                     self?.errorMessage = error.localizedDescription
                     completion(false, error.localizedDescription)
                 }
