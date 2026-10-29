@@ -1,6 +1,6 @@
 # 🐛 可视化警告日志报告 (Bug Log)
 
-**生成时间**: 2026-10-29 12:17:42 UTC
+**生成时间**: 2026-10-29 16:34:44 UTC
 **源日志文件**: `build.log`
 **构建状态**: ✅ 构建成功
 
@@ -11,7 +11,7 @@
 | 类型 | 数量 | 状态 |
 |------|------|------|
 | 🔴 错误 | **00** 个 | 无错误 |
-| 🟡 警告 | **2** 个 | 建议清理 |
+| 🟡 警告 | **1** 个 | 建议清理 |
 
 ---
 
@@ -20,7 +20,7 @@
 | 警告类型 | 数量 | 占比 |
 |----------|------|------|
 | ⚠️ 弃用API警告 | 00 个 | 0% |
-| 📦 未使用变量警告 | 2 个 | 100% |
+| 📦 未使用变量警告 | 1 个 | 100% |
 | 🔄 类型转换警告 | 00 个 | 0% |
 | 🔍 可空性警告 | 00 个 | 0% |
 | 📝 其他警告 | 0 个 | 0% |
@@ -31,19 +31,17 @@
 
 | 排名 | 文件名 | 警告数量 | 严重程度 |
 |------|--------|----------|----------|
-| 1 | `YAMLTokenizer.swift` | 1 个 | 🟢 低 |
-| 2 | `HTMLTokenizer.swift` | 1 个 | 🟢 低 |
+| 1 | `HTMLTokenizer.swift` | 1 个 | 🟢 低 |
 
 ---
 
 ## 📝 警告详情列表
 
 
-### 📦 未使用变量警告 (2个)
+### 📦 未使用变量警告 (1个)
 
 ```
 /Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/HTMLTokenizer.swift:74:21: warning: initialization of immutable value 'tagStart' was never used; consider replacing with assignment to '_' or removing it
-/Users/runner/work/GitHub/GitHub/GitHub/Views/CodeEditor/Syntax/Tokenizers/YAMLTokenizer.swift:31:14: warning: immutable value 'lineIndex' was never used; consider replacing with '_' or removing it
 ```
 
 ---
@@ -54,12 +52,12 @@
 
 - **质量评级**: **A级**（优秀）
 - **警告密度**: 每千行约 0 个警告
-- **代码总行数**: 49225 行
+- **代码总行数**: 49245 行
 
 ### 💡 修复建议
 
 
-#### 2. 未使用变量警告 (2个)
+#### 2. 未使用变量警告 (1个)
 - 删除未使用的变量和函数
 - 检查是否是调试代码遗留
 - 使用Xcode的静态分析工具辅助清理
