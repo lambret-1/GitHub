@@ -134,7 +134,8 @@ struct RepoHeaderView: View {
             }
 
             // 第三行：操作按钮组（Watch / Fork / Star / 上游仓库）
-            HStack(spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
                 // 上游仓库管理入口：Fork 自动识别，普通仓库支持手动关联
                 Button {
                     showUpstreamManager = true
@@ -142,7 +143,7 @@ struct RepoHeaderView: View {
                     HStack(spacing: 5) {
                         Image(systemName: "arrow.triangle.branch")
                             .font(.system(size: 13))
-                        Text("上游")
+                        Text(repository.是Fork ? "同步上游" : "关联上游")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
@@ -159,6 +160,7 @@ struct RepoHeaderView: View {
                 .sheet(isPresented: $showUpstreamManager) {
                     UpstreamRepositoryView(repository: repository)
                 }
+                .fixedSize(horizontal: true, vertical: false)
 
                 // 关注按钮
                 Button(action: {
@@ -183,6 +185,7 @@ struct RepoHeaderView: View {
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
+                .fixedSize(horizontal: true, vertical: false)
 
                 // 复刻按钮
                 Button(action: {
@@ -208,6 +211,7 @@ struct RepoHeaderView: View {
                 }
                 .disabled(isForking)
                 .buttonStyle(PlainButtonStyle())
+                .fixedSize(horizontal: true, vertical: false)
 
                 // 标星按钮（带动画效果）
                 Button(action: {
@@ -255,8 +259,8 @@ struct RepoHeaderView: View {
                 }
                 .disabled(isStarring || isCheckingStar)
                 .buttonStyle(PlainButtonStyle())
-
-                Spacer()
+                .fixedSize(horizontal: true, vertical: false)
+                }
             }
 
             // 提交信息栏（上移到操作按钮组下方，背景色与RepoHeaderView一致）
