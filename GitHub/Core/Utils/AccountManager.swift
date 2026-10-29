@@ -25,13 +25,19 @@ class AccountManager: ObservableObject {
 
     /// 添加账号
     func addAccount(_ account: GitHubAccount) {
-        // 检查是否已存在相同账号
-        if !accounts.contains(where: { $0.id == account.id }) {
+        // 同一 GitHub 用户重新登录时同步更新 Token，避免内存中的当前账号与持久化账号不一致。
+        if let index = accounts.firstIndex(where: { $0.id == account.id }) {
+            accounts[index] = account
+        } else {
             accounts.append(account)
-            saveAccounts()
         }
+        saveAccounts()
+
         // 如果是第一个账号，自动设为当前账号
         if currentAccount == nil {
+            switchTo(account)
+        } else if currentAccount?.id == account.id {
+            // 当前账号凭据更新后同步 Keychain 与 currentAccount
             switchTo(account)
         }
     }
