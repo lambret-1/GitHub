@@ -345,10 +345,10 @@ final class CodeSearchService {
 
         // 限制并发数，避免每次搜索同时发出 30 个 commits 请求导致次级限流。
         await withTaskGroup(of: (Int, Date?).self) { group in
-            var nextIndex = 0
             let initialCount = min(3, files.count)
+            var nextIndex = initialCount
 
-            func addTask(for index: Int, to group: inout TaskGroup<(Int, Date?)>) {
+            for index in 0..<initialCount {
                 let file = files[index]
                 group.addTask {
                     do {
@@ -365,11 +365,6 @@ final class CodeSearchService {
                 }
             }
 
-            for _ in 0..<initialCount {
-                addTask(for: nextIndex, to: &group)
-                nextIndex += 1
-            }
-
             while let result = await group.next() {
                 if let date = result.1 {
                     updatedFiles[result.0].lastModified = date
@@ -379,8 +374,22 @@ final class CodeSearchService {
                     break
                 }
                 if nextIndex < files.count {
-                    addTask(for: nextIndex, to: &group)
+                    let index = nextIndex
+                    let file = files[index]
                     nextIndex += 1
+                    group.addTask {
+                        do {
+                            let date = try await self.getFileLastModified(
+                                owner: owner,
+                                repo: repo,
+                                path: file.path,
+                                branch: branch
+                            )
+                            return (index, date)
+                        } catch {
+                            return (index, nil)
+                        }
+                    }
                 }
             }
         }
