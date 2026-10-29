@@ -3766,7 +3766,6 @@ struct BranchPickerView: View {
                         )
                         branches.append(newBranch)
                     }
-                    let createdName = newBranchName
                     newBranchName = ""
                     // 延迟3秒后从API刷新，确保GitHub API已更新
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
@@ -3805,7 +3804,6 @@ struct BranchPickerView: View {
                         selectedBranch = renameBranchNewName
                         onSelect()
                     }
-                    let newName = renameBranchNewName
                     renameBranchNewName = ""
                     // 延迟3秒后从API刷新，确保GitHub API已更新
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
