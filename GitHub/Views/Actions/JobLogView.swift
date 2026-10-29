@@ -1100,7 +1100,15 @@ struct JobLogView: View {
                         performSearch()
                     }
                 case .failure(let error):
-                    self.errorMessage = "加载日志失败: \(error.localizedDescription)"
+                    let nsError = error as NSError
+                    if nsError.code == 404 {
+                        // GitHub 在作业日志尚不可用、已过期或 Token 缺少 Actions 读取权限时，
+                        // 可能统一返回 404。停止自动轮询，避免持续发送必然失败的请求。
+                        self.isAutoRefreshing = false
+                        self.errorMessage = "GitHub 暂时无法提供此作业的日志（HTTP 404）。请确认当前 Token 对该仓库具有 Actions 读取权限；如果权限正常，日志也可能尚未生成或已过期。检查后可点击右上角刷新按钮重试。"
+                    } else {
+                        self.errorMessage = "加载日志失败: \(error.localizedDescription)"
+                    }
                 }
             }
         }
