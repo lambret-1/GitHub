@@ -393,10 +393,14 @@ struct RepoListView: View {
 
     // 创建新仓库
     private func createRepository() {
-        guard !createRepoName.isEmpty else { return }
+        let repositoryName = createRepoName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !repositoryName.isEmpty else {
+            errorMessage = "请输入仓库名称"
+            return
+        }
         isCreatingRepo = true
         GitHubAPI.shared.createRepository(
-            name: createRepoName,
+            name: repositoryName,
             description: createRepoDescription,
             isPrivate: createRepoIsPrivate,
             autoInit: true
