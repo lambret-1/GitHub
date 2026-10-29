@@ -39,7 +39,6 @@ class HTMLTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
 
         while index < text.endIndex {
             let char = text[index]
-            let start = index
 
             // 注释 <!-- -->
             if char == "<" && text[index...].hasPrefix("<!--") {
@@ -58,7 +57,6 @@ class HTMLTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
 
             // 文档类型 <!DOCTYPE>
             if char == "<" && text[index...].hasPrefix("<!DOCTYPE") {
-                let tagStart = index
                 while index < text.endIndex && text[index] != ">" {
                     index = text.index(after: index)
                 }
