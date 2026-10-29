@@ -1,35 +1,74 @@
 import Security
 import Foundation
 
-class TokenKeychain {
+final class TokenKeychain {
     static let shared = TokenKeychain()
+
     private let service = "com.github.client.token"
     private let account = "github-pat"
-    
+
     private init() {}
-    
+
+    /// 清理用户粘贴的 Token，兼容裸 Token、"token xxx" 和 "Bearer xxx" 格式。
+    static func normalizedToken(_ rawToken: String) -> String {
+        var token = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        for prefix in ["Bearer ", "bearer ", "token ", "Token "] {
+            if token.hasPrefix(prefix) {
+                token = String(token.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+                break
+            }
+        }
+        return token
+    }
+
     @discardableResult
-    func saveToken(_ token: String) -> Bool {
-        guard let data = token.data(using: .utf8) else {
-            DebugLogger.authError("保存Token失败：无法转换为Data")
+    func saveToken(_ rawToken: String) -> Bool {
+        let token = Self.normalizedToken(rawToken)
+        guard !token.isEmpty, let data = token.data(using: .utf8) else {
+            DebugLogger.authError("保存 Token 失败：Token 为空或无法编码")
             return false
         }
 
-        let query: [CFString: Any] = [
+        let matchQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
-            kSecAttrAccount: account,
+            kSecAttrAccount: account
+        ]
+
+        let updateAttributes: [CFString: Any] = [
             kSecValueData: data,
             kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
 
-        SecItemDelete(query as CFDictionary)
-        let status = SecItemAdd(query as CFDictionary, nil)
-        let success = status == errSecSuccess
+        let updateStatus = SecItemUpdate(matchQuery as CFDictionary, updateAttributes as CFDictionary)
+        if updateStatus == errSecSuccess {
+            DebugLogger.auth("Token 更新成功")
+            return true
+        }
+
+        guard updateStatus == errSecItemNotFound else {
+            DebugLogger.authError("Token 更新失败 (状态码: \(updateStatus))")
+            return false
+        }
+
+        var addQuery = matchQuery
+        addQuery[kSecValueData] = data
+        addQuery[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+        let success = addStatus == errSecSuccess
         if success {
-            DebugLogger.auth("Token保存成功 (长度: \(token.count))")
+            DebugLogger.auth("Token 保存成功")
+        } else if addStatus == errSecDuplicateItem {
+            // 并发保存时，另一请求可能刚好创建了项目；改为更新现有项目。
+            let retryStatus = SecItemUpdate(matchQuery as CFDictionary, updateAttributes as CFDictionary)
+            if retryStatus == errSecSuccess {
+                DebugLogger.auth("Token 并发更新成功")
+                return true
+            }
+            DebugLogger.authError("Token 并发更新失败 (状态码: \(retryStatus))")
+            return false
         } else {
-            DebugLogger.authError("Token保存失败 (状态码: \(status))")
+            DebugLogger.authError("Token 保存失败 (状态码: \(addStatus))")
         }
         return success
     }
@@ -45,14 +84,24 @@ class TokenKeychain {
 
         var data: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &data)
-
-        if status == errSecSuccess, let tokenData = data as? Data {
-            let token = String(data: tokenData, encoding: .utf8)
-            DebugLogger.auth("Token读取成功 (长度: \(token?.count ?? 0))")
-            return token
+        guard status == errSecSuccess,
+              let tokenData = data as? Data,
+              let rawToken = String(data: tokenData, encoding: .utf8) else {
+            DebugLogger.auth("Token 读取失败或不存在 (状态码: \(status))")
+            return nil
         }
-        DebugLogger.auth("Token读取失败或不存在 (状态码: \(status))")
-        return nil
+
+        let token = Self.normalizedToken(rawToken)
+        guard !token.isEmpty else {
+            DebugLogger.authError("Keychain 中的 Token 为空")
+            return nil
+        }
+
+        // 顺手迁移旧版本可能保存的带前缀 Token，确保所有请求拿到统一格式。
+        if token != rawToken {
+            _ = saveToken(token)
+        }
+        return token
     }
 
     @discardableResult
@@ -63,16 +112,17 @@ class TokenKeychain {
             kSecAttrAccount: account
         ]
         let status = SecItemDelete(query as CFDictionary)
-        let success = status == errSecSuccess
+        let success = status == errSecSuccess || status == errSecItemNotFound
         if success {
-            DebugLogger.auth("Token删除成功")
+            DebugLogger.auth("Token 删除/清理完成")
         } else {
-            DebugLogger.authError("Token删除失败 (状态码: \(status))")
+            DebugLogger.authError("Token 删除失败 (状态码: \(status))")
         }
         return success
     }
-    
+
     var hasToken: Bool {
-        return getToken() != nil
+        guard let token = getToken() else { return false }
+        return !token.isEmpty
     }
 }
