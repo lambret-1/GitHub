@@ -24,7 +24,6 @@ struct CodeEditorView: View {
     var initialLineNumber: Int? = nil
 
     // 用于退出页面
-    @Environment(\.dismiss) private var dismiss
 
     @State private var fileContent: FileContent?
     @State private var codeText: String = ""
@@ -50,13 +49,6 @@ struct CodeEditorView: View {
     @State private var showFormatSuccess: Bool = false
     @State private var lastCommitInfo: Commit?
 
-    // 未保存提醒状态
-    @State private var showUnsavedAlert: Bool = false
-    // 标记是否保存后自动退出（从"未保存提醒"弹窗点击"保存并离开"时设置）
-    @State private var shouldDismissAfterSave: Bool = false
-    // 编辑模式下点击返回的提示
-    @State private var editReturnAlert: Bool = false
-
     // 查找相关状态
     @State private var showSearch: Bool = false
     @State private var searchText: String = ""
@@ -71,8 +63,7 @@ struct CodeEditorView: View {
     @State private var showNoSelectionAlert: Bool = false
     @State private var waitingForSelectedText: Bool = false
 
-    // 二次确认状态
-    @State private var showCancelConfirm: Bool = false
+    // 提交确认状态
     @State private var showSubmitConfirm: Bool = false
 
     // 图片预览相关状态
@@ -163,17 +154,8 @@ struct CodeEditorView: View {
         // 使用系统自动键盘避让，UITextView会自动调整contentInset
         .navigationTitle(fileName)
         .navigationBarTitleDisplayMode(.inline)
-        // 隐藏系统默认返回按钮，使用自定义返回按钮实现编辑保护
+        // 不限制编辑期间的系统返回按钮和侧滑返回。
         .navigationBarBackButtonHidden(false)
-        // 编辑模式下禁用手势返回
-        .gesture(
-            DragGesture()
-                .onEnded { value in
-                    if isEditing && value.translation.width > 50 {
-                        editReturnAlert = true
-                    }
-                }
-        )
         .toolbar {
             // 左侧：撤销和重做按钮（仅在编辑模式下显示，从三个点菜单迁移至此，方便快速操作）
             ToolbarItem(placement: .navigationBarLeading) {
@@ -237,15 +219,10 @@ struct CodeEditorView: View {
                     Divider()
 
                     if fileContent?.isTextFile ?? false {
-                        // 取消编辑按钮
+                        // 取消编辑：直接恢复原始内容并退出编辑模式。
                         Button(action: {
-                            // 有修改时弹出二次确认，无修改时直接恢复并退出
-                            if hasChanges {
-                                showCancelConfirm = true
-                            } else {
-                                codeText = originalContent
-                                isEditing = false
-                            }
+                            codeText = originalContent
+                            isEditing = false
                         }) {
                             Label("取消编辑", systemImage: "xmark.circle")
                                 .foregroundColor(.red)
@@ -358,14 +335,8 @@ struct CodeEditorView: View {
         }
         .alert("提交成功", isPresented: $showSaveSuccess) {
             Button("确定") {
-                // 如果是从"未保存提醒"弹窗点击"保存并离开"触发的提交，提交成功后自动退出
-                if shouldDismissAfterSave {
-                    shouldDismissAfterSave = false
-                    dismiss()
-                } else {
-                    isEditing = false
-                    loadFile()
-                }
+                isEditing = false
+                loadFile()
             }
         } message: {
             Text("文件已成功提交到 GitHub 仓库")
@@ -409,48 +380,6 @@ struct CodeEditorView: View {
             Button("确定") {}
         } message: {
             Text("请先在代码中选中要查找的文字，然后再点击「查找选中文字」")
-        }
-        // 未保存提醒弹窗
-        .alert("文件未保存", isPresented: $showUnsavedAlert) {
-            // 保存按钮（蓝色）
-            Button(action: {
-                // 标记保存后自动退出
-                shouldDismissAfterSave = true
-                // 先提交修改，提交成功后退出
-                showCommitDialog = true
-                showUnsavedAlert = false
-            }) {
-                Text("保存并离开")
-                    .foregroundColor(.blue)
-            }
-            // 不保存按钮（红色）
-            Button(role: .destructive) {
-                // 直接退出，不保存
-                dismiss()
-            } label: {
-                Text("不保存，直接离开")
-                    .foregroundColor(.red)
-            }
-            // 取消按钮
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("当前文件有未保存的修改，确定要离开吗？")
-        }
-        // 编辑模式下点击返回的提示
-        .alert("正在编辑中", isPresented: $editReturnAlert) {
-            Button("确定") {}
-        } message: {
-            Text("正在编辑文件，请先完成编辑或点击「完成编辑」后再返回")
-        }
-        // 取消编辑二次确认
-        .alert("确认取消", isPresented: $showCancelConfirm) {
-            Button("继续编辑", role: .cancel) {}
-            Button("放弃修改", role: .destructive) {
-                codeText = originalContent
-                isEditing = false
-            }
-        } message: {
-            Text("您有未保存的修改，确定要放弃吗？")
         }
         // 提交修改二次确认
         .alert("确认提交", isPresented: $showSubmitConfirm) {
