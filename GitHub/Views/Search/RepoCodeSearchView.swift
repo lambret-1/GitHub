@@ -3,7 +3,6 @@ import SwiftUI
 struct RepoCodeSearchView: View {
     @StateObject private var viewModel: RepoCodeSearchViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var debounceTask: Task<Void, Never>?
     @State private var showSortMenu: Bool = false
     @FocusState private var isSearchFieldFocused: Bool // 搜索输入框聚焦状态，控制光标显示和键盘弹出
     private let onJumpToCode: (String, Int) -> Void
@@ -105,16 +104,10 @@ struct RepoCodeSearchView: View {
                     viewModel.search()
                 }
                 .onChange(of: viewModel.query) { _ in
+                    // 仅更新本地建议；GitHub Code Search 有独立且较低的限流额度，
+                    // 不应在每次键入时自动发起网络请求。
                     viewModel.updateSuggestions()
-                    viewModel.showSuggestions = true
-                    debounceTask?.cancel()
-                    debounceTask = Task {
-                        try? await Task.sleep(nanoseconds: 300_000_000)
-                        if !Task.isCancelled {
-                            viewModel.showSuggestions = false
-                            viewModel.search()
-                        }
-                    }
+                    viewModel.showSuggestions = !viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 }
             if !viewModel.query.isEmpty {
                 Button {
@@ -124,6 +117,14 @@ struct RepoCodeSearchView: View {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.gray)
                 }
+                Button {
+                    viewModel.showSuggestions = false
+                    viewModel.search()
+                } label: {
+                    Image(systemName: "arrow.right.circle.fill")
+                        .foregroundColor(.accentColor)
+                }
+                .accessibilityLabel("搜索代码")
             }
         }
         .padding(.horizontal, 12)

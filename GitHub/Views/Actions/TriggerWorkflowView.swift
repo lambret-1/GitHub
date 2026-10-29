@@ -15,6 +15,8 @@ struct TriggerWorkflowView: View {
     @State private var inputKeys: [String] = []
     @State private var inputOptions: [String: [String]] = [:]
     @State private var inputDefaults: [String: String] = [:]
+    @State private var isLoadingInputs: Bool = true
+    @State private var inputError: String?
     @State private var isTriggering: Bool = false
     @State private var triggerSuccess: Bool = false
     @State private var triggerError: String?
@@ -74,8 +76,16 @@ struct TriggerWorkflowView: View {
                     }
                 }
 
-                // 输入参数（如果有）
-                if !inputKeys.isEmpty {
+                // 输入参数：明确显示加载/读取错误，避免解析失败时看起来像选项被删除。
+                if isLoadingInputs {
+                    Section(header: Text("输入参数")) {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("正在读取工作流参数…")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } else if !inputKeys.isEmpty {
                     Section(header: Text("输入参数")) {
                         ForEach(inputKeys, id: \.self) { key in
                             HStack {
@@ -101,6 +111,15 @@ struct TriggerWorkflowView: View {
                                     .font(.subheadline)
                                 }
                             }
+                        }
+                    }
+                } else if let error = inputError {
+                    Section(header: Text("输入参数")) {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        Button("重试读取参数") {
+                            parseWorkflowInputs(branch: selectedBranch)
                         }
                     }
                 }
@@ -159,7 +178,9 @@ struct TriggerWorkflowView: View {
             )
             .onAppear {
                 loadBranches()
-                parseWorkflowInputs()
+            }
+            .onChange(of: selectedBranch) { newBranch in
+                parseWorkflowInputs(branch: newBranch)
             }
         }
     }
@@ -176,12 +197,18 @@ struct TriggerWorkflowView: View {
                 switch result {
                 case .success(let branches):
                     self.branches = branches
-                    // 默认选择main分支，如果不存在则选择第一个
-                    if !branches.contains(where: { $0.name == "main" }) {
-                        self.selectedBranch = branches.first?.name ?? "main"
+                    // 默认选择 main；不存在时使用首个分支，确保参数与当前触发分支一致。
+                    let preferredBranch = branches.contains(where: { $0.name == "main" })
+                        ? "main"
+                        : (branches.first?.name ?? "main")
+                    if self.selectedBranch != preferredBranch {
+                        self.selectedBranch = preferredBranch
+                    } else {
+                        self.parseWorkflowInputs(branch: preferredBranch)
                     }
                 case .failure(let error):
                     self.branchError = "加载分支失败: \(error.localizedDescription)"
+                    self.parseWorkflowInputs(branch: self.selectedBranch)
                 }
             }
         }
@@ -189,101 +216,149 @@ struct TriggerWorkflowView: View {
 
     // MARK: - 解析工作流输入参数
 
-    private func parseWorkflowInputs() {
-        // 从工作流文件路径中解析输入参数
-        // 注意：GitHub API的workflow_dispatch事件的inputs需要从工作流文件中解析
-        // 这里我们先尝试获取工作流文件内容来解析inputs
-        GitHubAPI.shared.getFileContent(owner: owner, repo: repo, path: workflow.path) { result in
+    private func parseWorkflowInputs(branch: String) {
+        isLoadingInputs = true
+        inputError = nil
+
+        GitHubAPI.shared.getFileContent(owner: owner, repo: repo, path: workflow.path, branch: branch) { result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let fileContent):
                     let content = fileContent.decodedContent
-                    if !content.isEmpty {
-                        self.parseInputsFromYAML(content)
-                    }
-                case .failure:
-                    // 如果获取文件内容失败，则不显示输入参数
-                    break
+                    self.parseInputsFromYAML(content)
+                    self.isLoadingInputs = false
+                case .failure(let error):
+                    self.inputKeys = []
+                    self.inputOptions = [:]
+                    self.inputDefaults = [:]
+                    self.inputs = [:]
+                    self.inputError = "无法读取工作流参数：\(error.localizedDescription)"
+                    self.isLoadingInputs = false
                 }
             }
         }
     }
 
-    // MARK: - 从YAML中解析输入参数
+    // MARK: - 从 YAML 中解析 workflow_dispatch.inputs
+    // 只解析 on.workflow_dispatch.inputs，避免误把 job/step 的 inputs 当作手动触发参数。
 
     private func parseInputsFromYAML(_ content: String) {
+        struct YAMLLine {
+            let text: String
+            let indentation: Int
+        }
+        let lines: [YAMLLine] = content.components(separatedBy: .newlines).compactMap { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else { return nil }
+            return YAMLLine(
+                text: trimmed,
+                indentation: line.prefix(while: { $0 == " " }).count
+            )
+        }
+
+        var inOnSection = false
+        var onIndentation = 0
+        var dispatchIndentation: Int?
+        var inputsIndentation: Int?
+        var currentKey: String?
+        var optionsIndentation: Int?
         var parsedKeys: [String] = []
         var parsedOptions: [String: [String]] = [:]
         var parsedDefaults: [String: String] = [:]
-        var inInputsSection = false
-        var inputsIndentation = 0
-        var currentKey: String?
-        var inOptions = false
-        var optionsIndentation = 0
 
-        for line in content.components(separatedBy: .newlines) {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
-            let indentation = line.prefix(while: { $0 == " " }).count
-
-            if trimmed == "inputs:" {
-                inInputsSection = true
-                inputsIndentation = indentation
+        for line in lines {
+            if line.text == "on:" || line.text.hasPrefix("on: #") {
+                inOnSection = true
+                onIndentation = line.indentation
+                dispatchIndentation = nil
+                inputsIndentation = nil
                 currentKey = nil
-                inOptions = false
-                continue
-            }
-            guard inInputsSection else { continue }
-            if indentation <= inputsIndentation {
-                inInputsSection = false
-                currentKey = nil
-                inOptions = false
                 continue
             }
 
-            if indentation == inputsIndentation + 2,
-               trimmed.hasSuffix(":"),
-               !trimmed.hasPrefix("-") {
-                let key = String(trimmed.dropLast()).trimmingCharacters(in: .whitespaces)
+            guard inOnSection else { continue }
+            if line.indentation <= onIndentation {
+                inOnSection = false
+                dispatchIndentation = nil
+                inputsIndentation = nil
+                currentKey = nil
+                continue
+            }
+
+            if dispatchIndentation == nil,
+               line.indentation > onIndentation,
+               line.text.hasPrefix("workflow_dispatch:") {
+                dispatchIndentation = line.indentation
+                continue
+            }
+
+            guard let dispatchLevel = dispatchIndentation else { continue }
+            if line.indentation <= dispatchLevel {
+                dispatchIndentation = nil
+                inputsIndentation = nil
+                currentKey = nil
+                optionsIndentation = nil
+                continue
+            }
+
+            if inputsIndentation == nil, line.text == "inputs:", line.indentation > dispatchLevel {
+                inputsIndentation = line.indentation
+                continue
+            }
+
+            guard let inputsLevel = inputsIndentation else { continue }
+            if line.indentation <= inputsLevel {
+                inputsIndentation = nil
+                currentKey = nil
+                optionsIndentation = nil
+                continue
+            }
+
+            if line.indentation == inputsLevel + 2,
+               line.text.hasSuffix(":"),
+               !line.text.hasPrefix("-") {
+                let key = String(line.text.dropLast()).trimmingCharacters(in: .whitespaces)
                 guard !key.isEmpty else { continue }
                 if !parsedKeys.contains(key) { parsedKeys.append(key) }
                 currentKey = key
-                inOptions = false
+                optionsIndentation = nil
                 continue
             }
 
             guard let key = currentKey else { continue }
-            if indentation == inputsIndentation + 4 {
-                if trimmed == "options:" {
-                    inOptions = true
-                    optionsIndentation = indentation
+            if line.indentation == inputsLevel + 4 {
+                if line.text == "options:" {
+                    optionsIndentation = line.indentation
                 } else {
-                    inOptions = false
-                    if trimmed.hasPrefix("default:") {
-                        let value = String(trimmed.dropFirst("default:".count))
+                    optionsIndentation = nil
+                    if line.text.hasPrefix("default:") {
+                        let value = String(line.text.dropFirst("default:".count))
                             .trimmingCharacters(in: .whitespaces)
                             .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
-                        if !value.isEmpty { parsedDefaults[key] = value }
+                        parsedDefaults[key] = value
                     }
                 }
                 continue
             }
 
-            if inOptions && indentation > optionsIndentation && trimmed.hasPrefix("-") {
-                let option = String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces)
+            if let optionsIndentation,
+               line.indentation > optionsIndentation,
+               line.text.hasPrefix("-") {
+                let option = String(line.text.dropFirst())
+                    .trimmingCharacters(in: .whitespaces)
                     .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
-                if !option.isEmpty {
+                if !option.isEmpty, !parsedOptions[key, default: []].contains(option) {
                     parsedOptions[key, default: []].append(option)
                 }
             }
         }
 
-        self.inputKeys = parsedKeys
-        self.inputOptions = parsedOptions
-        self.inputDefaults = parsedDefaults
-        for key in parsedKeys where inputs[key] == nil {
-            inputs[key] = parsedDefaults[key] ?? parsedOptions[key]?.first ?? ""
-        }
+        inputKeys = parsedKeys
+        inputOptions = parsedOptions
+        inputDefaults = parsedDefaults
+        inputs = Dictionary(uniqueKeysWithValues: parsedKeys.map {
+            ($0, parsedDefaults[$0] ?? parsedOptions[$0]?.first ?? "")
+        })
     }
 
     // MARK: - 触发工作流

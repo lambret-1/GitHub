@@ -264,23 +264,12 @@ final class CodeSearchService {
         }
 
         guard (200...299).contains(http.statusCode) else {
-            // 尝试解析GitHub返回的详细错误信息
-            var 错误消息 = "请求失败(\(http.statusCode))"
-            if let 错误响应 = try? JSONDecoder().decode(GitHubAPIError.self, from: data) {
-                错误消息 = 错误响应.message
+            if http.statusCode == 422 {
+                throw NSError(domain: "CodeSearch", code: 422, userInfo: [NSLocalizedDescriptionKey: "搜索查询语法无效，请检查搜索词。"])
             }
-            // 针对常见状态码给出更友好的提示
-            switch http.statusCode {
-            case 401:
-                错误消息 = "登录状态已失效，请重新登录后再搜索"
-            case 403:
-                错误消息 = "API请求频率超限或权限不足，请稍后重试"
-            case 422:
-                错误消息 = "搜索查询语法无效，请检查搜索词"
-            default:
-                break
-            }
-            throw NSError(domain: "CodeSearch", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: 错误消息])
+            // 根据响应头和 GitHub 返回的 message 区分限流、权限不足与登录失效，
+            // 避免把所有 403 都误报为“请求频率超限”。
+            throw Self.makeAPIError(statusCode: http.statusCode, data: data, response: http)
         }
 
         let result = try JSONDecoder().decode(CodeSearchResponse.self, from: data)
@@ -354,9 +343,13 @@ final class CodeSearchService {
     ) async -> [CodeSearchFile] {
         var updatedFiles = files
 
-        // 使用withTaskGroup并发请求（搜索结果最多30个，不会超过GitHub API速率限制）
+        // 限制并发数，避免每次搜索同时发出 30 个 commits 请求导致次级限流。
         await withTaskGroup(of: (Int, Date?).self) { group in
-            for (index, file) in files.enumerated() {
+            let initialCount = min(3, files.count)
+            var nextIndex = initialCount
+
+            for index in 0..<initialCount {
+                let file = files[index]
                 group.addTask {
                     do {
                         let date = try await self.getFileLastModified(
@@ -372,10 +365,31 @@ final class CodeSearchService {
                 }
             }
 
-            // 收集剩余结果
-            for await result in group {
+            while let result = await group.next() {
                 if let date = result.1 {
                     updatedFiles[result.0].lastModified = date
+                }
+                if Task.isCancelled {
+                    group.cancelAll()
+                    break
+                }
+                if nextIndex < files.count {
+                    let index = nextIndex
+                    let file = files[index]
+                    nextIndex += 1
+                    group.addTask {
+                        do {
+                            let date = try await self.getFileLastModified(
+                                owner: owner,
+                                repo: repo,
+                                path: file.path,
+                                branch: branch
+                            )
+                            return (index, date)
+                        } catch {
+                            return (index, nil)
+                        }
+                    }
                 }
             }
         }
