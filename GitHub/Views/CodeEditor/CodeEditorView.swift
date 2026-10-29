@@ -558,6 +558,15 @@ struct CodeEditorView: View {
 
     // MARK: - 文件信息栏
 
+    /// 当前文件总行数；编辑时根据最新文本实时更新。
+    private var totalLineCount: Int {
+        guard !codeText.isEmpty else { return 0 }
+        let newlineCount = codeText.reduce(into: 0) { count, character in
+            if character == "\n" { count += 1 }
+        }
+        return newlineCount + (codeText.hasSuffix("\n") ? 0 : 1)
+    }
+
     private var fileInfoBar: some View {
         HStack(spacing: 12) {
             // 文件大小
@@ -566,6 +575,11 @@ struct CodeEditorView: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
+
+            // 总行数，紧跟文件大小显示
+            Label("\(totalLineCount) 行", systemImage: "text.alignleft")
+                .font(.caption2)
+                .foregroundColor(.secondary)
 
             // 大文件模式提示（性能优化与崩溃防护）
             if isUltraLargeFileMode {
