@@ -34,9 +34,9 @@ class AppState: ObservableObject {
         accountCancellable = AccountManager.shared.$currentAccount
             .receive(on: DispatchQueue.main)
             .sink { [weak self] account in
-                guard let self = self, let account = account else { return }
+                guard self != nil, account != nil else { return }
                 // 账号切换时，自动加载新用户信息
-                self.loadUserInfo()
+                self?.loadUserInfo()
             }
     }
     
