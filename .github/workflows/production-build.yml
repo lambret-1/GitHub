@@ -523,7 +523,26 @@ jobs:
             git commit -m "docs(bug-log): 更新 v${CURRENT_VERSION} 构建警告日志 [skip ci]" -m "版本: v${CURRENT_VERSION} | Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME}"
             # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
             git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            git push origin main
+            # 构建期间 main 可能已被版本递增或其他构建任务推进；先同步再推送，避免非快进失败。
+            pushed=false
+            for attempt in 1 2 3; do
+              git fetch origin main
+              if ! git rebase origin/main; then
+                git rebase --abort || true
+                echo "::error::bug.md 提交与 main 存在冲突，已停止推送以保护远端内容"
+                exit 1
+              fi
+              if git push origin HEAD:main; then
+                pushed=true
+                break
+              fi
+              echo "::warning::bug.md 推送遇到并发更新，第 ${attempt}/3 次尝试失败"
+              sleep 2
+            done
+            if [ "$pushed" != "true" ]; then
+              echo "::error::bug.md 推送重试 3 次仍失败"
+              exit 1
+            fi
             echo "::notice::bug.md已提交并推送到 main 分支"
           fi
 
@@ -722,7 +741,26 @@ jobs:
             git commit -m "docs(changelog): 追加 v${VERSION_NEW} 更新日志 [skip ci]" -m "版本: v${VERSION_NEW} | Commit: ${COMMIT_SHORT} | SHA256: ${IPA_SHA256} | 构建耗时: ${BUILD_DURATION} 秒"
             # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
             git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            git push origin main
+            # README 与构建日志/版本提交可能并发更新，使用 rebase 后再推送，不强推覆盖 main。
+            pushed=false
+            for attempt in 1 2 3; do
+              git fetch origin main
+              if ! git rebase origin/main; then
+                git rebase --abort || true
+                echo "::error::README 提交与 main 存在冲突，已停止推送以保护远端内容"
+                exit 1
+              fi
+              if git push origin HEAD:main; then
+                pushed=true
+                break
+              fi
+              echo "::warning::README 推送遇到并发更新，第 ${attempt}/3 次尝试失败"
+              sleep 2
+            done
+            if [ "$pushed" != "true" ]; then
+              echo "::error::README 推送重试 3 次仍失败"
+              exit 1
+            fi
             echo "::notice::README变更已提交并推送到 main 分支"
           fi
 
