@@ -9,6 +9,9 @@ import UIKit
 class FileDownloadManager {
     static let shared = FileDownloadManager()
 
+    // UIDocumentPickerViewController.delegate 是 weak，必须由管理器强持有代理。
+    private var exportDelegate: ExportDelegate?
+
     private init() {}
 
     // MARK: - 下载文件夹路径
@@ -134,8 +137,10 @@ class FileDownloadManager {
     /// - Parameter fileURL: 本地文件URL
     func exportToFilesApp(at fileURL: URL, from viewController: UIViewController) {
         let documentPicker = UIDocumentPickerViewController(forExporting: [fileURL], asCopy: true)
-        documentPicker.delegate = ExportDelegate()
-        viewController.present(documentPicker, animated: true)
+        let delegate = ExportDelegate()
+        exportDelegate = delegate
+        documentPicker.delegate = delegate
+        viewController.present(documentPicker, animated: true
     }
 
     // MARK: - 清理下载文件
