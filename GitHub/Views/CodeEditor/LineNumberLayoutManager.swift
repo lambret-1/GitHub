@@ -27,16 +27,17 @@ class LineNumberLayoutManager: NSLayoutManager {
     /// 性能优化：使用rangeOfCharacter批量查找替代逐字符遍历，1MB文件从数百毫秒降至数毫秒
     func precomputeNewlinePositions() {
         guard let text = textStorage?.string else { return }
-        let hash = text.hashValue
-        if hash == cachedTextHash && newlinePositions != nil {
-            return // 缓存有效，无需重新计算
+        // 行号重绘可能频繁触发，避免每次都对整份文本计算 hash。
+        // 文本变化时由调用方显式失效缓存。
+        if newlinePositions != nil {
+            return
         }
 
         let nsString = text as NSString
         let length = nsString.length
         guard length > 0 else {
             newlinePositions = []
-            cachedTextHash = hash
+            cachedTextHash = nil
             return
         }
 
@@ -59,7 +60,13 @@ class LineNumberLayoutManager: NSLayoutManager {
         }
 
         newlinePositions = positions
-        cachedTextHash = hash
+        cachedTextHash = nil
+    }
+
+    /// 文本内容变化时调用，避免每次绘制行号都重新扫描全文。
+    func invalidateNewlinePositions() {
+        newlinePositions = nil
+        cachedTextHash = nil
     }
 
     /// 使用二分查找计算指定位置的行号
