@@ -485,11 +485,21 @@ struct CodeTextView: UIViewRepresentable {
                 ) { [weak self] _ in
                     guard let self = self else { return }
                     guard let pasteboardText = UIPasteboard.general.string, !pasteboardText.isEmpty else { return }
-                    let mutableText = NSMutableString(string: textView.text)
-                    mutableText.insert(pasteboardText, at: range.location)
-                    textView.text = mutableText as String
-                    textView.selectedRange = NSRange(location: range.location + pasteboardText.count, length: 0)
-                    // 不立即回写@Binding，让textViewDidChange统一处理，避免光标乱跳
+
+                    // 使用菜单提供的 range 替换选中内容；若没有选区则在光标处插入。
+                    // 直接设置 UITextView.text 不会可靠触发 textViewDidChange，因此必须同步 @Binding，
+                    // 否则提交时读取的 codeText 可能仍是旧内容或空字符串。
+                    let currentText = textView.text as NSString
+                    guard range.location >= 0,
+                          range.location + range.length <= currentText.length else { return }
+                    let updatedText = currentText.replacingCharacters(in: range, with: pasteboardText)
+                    textView.text = updatedText
+                    let pastedLength = (pasteboardText as NSString).length
+                    textView.selectedRange = NSRange(location: range.location + pastedLength, length: 0)
+
+                    self.text = updatedText
+                    self.onTextChange?(updatedText)
+                    self.updateUndoRedoState()
                 }
                 actions.append(pasteAction)
             }
