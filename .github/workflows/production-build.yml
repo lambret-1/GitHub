@@ -561,7 +561,7 @@ jobs:
       - name: 发布GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.current_version }}
+          tag_name: v${{ steps.version.outputs.current_version }}-build-${{ github.run_number }}-build-${{ github.run_number }}
           name: v${{ steps.version.outputs.current_version }}
           body_path: release-notes.md
           files: |
