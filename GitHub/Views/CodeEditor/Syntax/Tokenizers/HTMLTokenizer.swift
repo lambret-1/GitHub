@@ -86,7 +86,18 @@ class HTMLTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
             // 开始标签 <tag ...>
             if char == "<" {
                 let tagStart = index
-                index = text.index(after: index)
+                let openingDelimiterEnd = text.index(after: tagStart)
+                tokens.append(
+                    SyntaxToken(
+                        type: .keyword,
+                        range: NSRange(
+                            location: text.distance(from: text.startIndex, to: tagStart),
+                            length: 1
+                        ),
+                        text: "<"
+                    )
+                )
+                index = openingDelimiterEnd
 
                 // 标签名
                 let nameStart = index
