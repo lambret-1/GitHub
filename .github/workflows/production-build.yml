@@ -95,7 +95,6 @@ jobs:
           echo "version_new=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
           echo "本次构建版本号（不自动递增）: ${NEW_VERSION}"
 
-      # 版本号仅从 Info.plist 读取，不执行版本递增，也不提交版本变更。
 
   # Job 2：Xcode 编译与 IPA 导出（依赖版本计算Job完成）
   # ============================================================================
@@ -561,7 +560,7 @@ jobs:
       - name: 发布GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.current_version }}-build-${{ github.run_number }}-build-${{ github.run_number }}
+          tag_name: v${{ steps.version.outputs.current_version }}-build-${{ github.run_number }}
           name: v${{ steps.version.outputs.current_version }}
           body_path: release-notes.md
           files: |
