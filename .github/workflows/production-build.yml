@@ -22,8 +22,8 @@ on:
       - main
   workflow_dispatch:  # 支持手动触发
 
-# 并发控制：同一时间仅允许一个生产构建运行，新构建排队等待（不取消进行中的构建，
-# 避免 Release 发布中途被截断导致制品不一致）
+# 并发控制：同一时间仅允许一个生产构建运行，避免版本文件被并发修改。
+# 手动重建沿用当前版本，不再重复递增。
 concurrency:
   group: production-build-main
   cancel-in-progress: false
@@ -47,7 +47,7 @@ jobs:
     name: 版本计算与单元测试
     runs-on: macos-15
     outputs:
-      version_new: ${{ steps.bump.outputs.version_new }}
+      version_new: ${{ steps.read_version.outputs.version_new }}
       version_old: ${{ steps.bump.outputs.version_old }}
       git_commit_short: ${{ steps.commit_info.outputs.commit_short }}
       build_start_time: ${{ steps.time.outputs.start_time }}
@@ -91,8 +91,11 @@ jobs:
           fi
           echo "::notice::版本进位单元测试全部通过"
 
+      # 手动触发仅用于重建当前版本，不递增版本号；只有 main 的代码推送才产生新版本。
+      # 重复点击 Run workflow / 重跑任务不会消耗版本号。
       # Step 5: 执行版本号自动递增
       - name: 执行版本号自动递增
+        if: github.event_name == 'push'
         id: bump
         run: |
           echo "=========================================="
@@ -106,16 +109,21 @@ jobs:
             exit ${BUMP_EXIT_CODE}
           fi
 
-      # Step 6: 读取递增后的版本号（用于后续步骤传递）
-      - name: 读取新版本号
+      # Step 6: 读取最终构建版本。push 使用递增后的版本；手动触发沿用仓库当前版本。
+      - name: 读取构建版本号
         id: read_version
         run: |
           NEW_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${{ env.INFO_PLIST_PATH }}")
           echo "version_new=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "递增后版本号: ${NEW_VERSION}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "手动重建模式：沿用当前版本 ${NEW_VERSION}，不递增版本号"
+          else
+            echo "本次构建版本号: ${NEW_VERSION}"
+          fi
 
-      # Step 7: 提交版本变更到仓库（Info.plist）
+      # Step 7: 仅 push 构建提交版本变更；手动重建不写回 Info.plist。
       - name: 提交版本变更
+        if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
