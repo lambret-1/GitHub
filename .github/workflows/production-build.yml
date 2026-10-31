@@ -1,14 +1,14 @@
 # ==============================================================================
 # 工作流名称：生产构建流水线（Production Build Pipeline）
-# 触发条件：仅 main 分支推送触发完整生产流水线
+# 触发条件：main 分支推送或手动触发
 # 流水线职责：
 #   1. 版本进位单元测试（质量门禁）
-#   2. 版本号自动递增（三段式语义版本，补丁位0~9自动进位）
+#   2. 读取 Info.plist 当前版本号（不自动递增、不提交版本变更）
 #   3. Xcode 编译（未签名，适配全能签导入标准）
 #   4. 导出未签名 IPA 制品
 #   5. 计算 IPA SHA256 哈希 + 生成制品元数据 JSON
 #   6. 自动更新 README 顶部更新日志
-#   7. 提交版本变更 + README 变更到仓库
+#   7. 提交 README 变更到仓库（版本号保持不变）
 #   8. 上传 IPA + 元数据作为 Artifacts
 #   9. 自动清理过期 Artifacts（节约存储配额）
 # 严格禁止：PR/其他分支触发本流水线 
@@ -22,11 +22,7 @@ on:
       - main
   workflow_dispatch:  # 支持手动触发
 
-# 并发控制：同一时间仅允许一个生产构建运行，避免版本文件被并发修改。
-# 手动重建沿用当前版本，不再重复递增。
-concurrency:
-  group: production-build-main
-  cancel-in-progress: false
+# 不设置 concurrency：允许多个生产构建同时运行。
 
 # 全局环境变量（消除硬编码，便于统一维护）
 env:
@@ -48,7 +44,6 @@ jobs:
     runs-on: macos-15
     outputs:
       version_new: ${{ steps.read_version.outputs.version_new }}
-      version_old: ${{ steps.bump.outputs.version_old }}
       git_commit_short: ${{ steps.commit_info.outputs.commit_short }}
       build_start_time: ${{ steps.time.outputs.start_time }}
     steps:
@@ -91,24 +86,7 @@ jobs:
           fi
           echo "::notice::版本进位单元测试全部通过"
 
-      # 手动触发仅用于重建当前版本，不递增版本号；只有 main 的代码推送才产生新版本。
-      # 重复点击 Run workflow / 重跑任务不会消耗版本号。
-      # Step 5: 执行版本号自动递增
-      - name: 执行版本号自动递增
-        if: github.event_name == 'push'
-        id: bump
-        run: |
-          echo "=========================================="
-          echo "开始执行版本号自动递增..."
-          echo "=========================================="
-          chmod +x scripts/bump-version.sh
-          bash scripts/bump-version.sh
-          BUMP_EXIT_CODE=$?
-          if [ ${BUMP_EXIT_CODE} -ne 0 ]; then
-            echo "::error::版本号递增失败，退出码: ${BUMP_EXIT_CODE}"
-            exit ${BUMP_EXIT_CODE}
-          fi
-
+      # 所有触发方式均使用 Info.plist 当前版本，不自动递增。
       # Step 6: 读取最终构建版本。push 使用递增后的版本；手动触发沿用仓库当前版本。
       - name: 读取构建版本号
         id: read_version
@@ -121,55 +99,8 @@ jobs:
             echo "本次构建版本号: ${NEW_VERSION}"
           fi
 
-      # Step 7: 仅 push 构建提交版本变更；手动重建不写回 Info.plist。
-      - name: 提交版本变更
-        if: github.event_name == 'push'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+      # 版本号仅从 Info.plist 读取，不执行版本递增，也不提交版本变更。
 
-          # 检查是否有变更
-          if git diff --quiet "${{ env.INFO_PLIST_PATH }}"; then
-            echo "::warning::Info.plist 无变更，跳过提交"
-          else
-            git add "${{ env.INFO_PLIST_PATH }}"
-            NEW_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${{ env.INFO_PLIST_PATH }}")
-            COMMIT_SHORT=$(git rev-parse --short HEAD)
-            BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-            git commit -m "chore(release): 版本号自动递增至 v${NEW_VERSION} [skip ci]" -m "触发Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME} | 触发方式: GitHub Actions 生产构建流水线"
-            # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
-            git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-
-            # 构建期间 main 可能被开发者或其他自动化提交更新。
-            # 每次推送前同步远端并 rebase 当前版本提交，最多重试 3 次；
-            # 不使用 force push，避免覆盖 main 上的其他提交。
-            PUSH_SUCCEEDED=false
-            for ATTEMPT in 1 2 3; do
-              echo "推送版本提交，第 ${ATTEMPT}/3 次尝试..."
-              git fetch origin main
-              if ! git rebase origin/main; then
-                git rebase --abort || true
-                echo "::error::版本提交无法 rebase 到最新 main，可能存在 Info.plist 冲突；为保护远端提交，停止自动推送"
-                exit 1
-              fi
-
-              if git push origin HEAD:main; then
-                PUSH_SUCCEEDED=true
-                break
-              fi
-
-              echo "::warning::推送被拒绝，远端 main 可能再次更新，将重新同步后重试"
-              sleep "${ATTEMPT}"
-            done
-
-            if [ "${PUSH_SUCCEEDED}" != "true" ]; then
-              echo "::error::重试 3 次后仍无法推送版本提交"
-              exit 1
-            fi
-            echo "::notice::版本变更已提交并推送到 main 分支"
-          fi
-
-  # ============================================================================
   # Job 2：Xcode 编译与 IPA 导出（依赖版本计算Job完成）
   # ============================================================================
   build-ipa:
