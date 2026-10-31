@@ -87,17 +87,13 @@ jobs:
           echo "::notice::版本进位单元测试全部通过"
 
       # 所有触发方式均使用 Info.plist 当前版本，不自动递增。
-      # Step 6: 读取最终构建版本。push 使用递增后的版本；手动触发沿用仓库当前版本。
+      # Step 6: 读取 Info.plist 当前版本号，所有触发方式保持一致。
       - name: 读取构建版本号
         id: read_version
         run: |
           NEW_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${{ env.INFO_PLIST_PATH }}")
           echo "version_new=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "手动重建模式：沿用当前版本 ${NEW_VERSION}，不递增版本号"
-          else
-            echo "本次构建版本号: ${NEW_VERSION}"
-          fi
+          echo "本次构建版本号（不自动递增）: ${NEW_VERSION}"
 
       # 版本号仅从 Info.plist 读取，不执行版本递增，也不提交版本变更。
 
