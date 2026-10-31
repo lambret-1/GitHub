@@ -561,7 +561,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.current_version }}-build-${{ github.run_number }}
-          name: v${{ steps.version.outputs.current_version }}
+          name: v${{ steps.version.outputs.current_version }}-build-${{ github.run_number }}
           body_path: release-notes.md
           files: |
             ${{ env.IPA_FILE_NAME }}
