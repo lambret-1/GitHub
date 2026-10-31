@@ -69,6 +69,20 @@ class HTMLTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
                 continue
             }
 
+            // 结束标签 </tag>
+            if char == "<" && index < text.index(before: text.endIndex) && text[text.index(after: index)] == "/" {
+                let tagStart = index
+                while index < text.endIndex && text[index] != ">" {
+                    index = text.index(after: index)
+                }
+                if index < text.endIndex {
+                    index = text.index(after: index)
+                }
+                let range = NSRange(location: text.distance(from: text.startIndex, to: tagStart), length: text.distance(from: tagStart, to: index))
+                tokens.append(SyntaxToken(type: .keyword, range: range, text: String(text[tagStart..<index])))
+                continue
+            }
+
             // 开始标签 <tag ...>
             if char == "<" {
                 let tagStart = index
@@ -136,20 +150,6 @@ class HTMLTokenizer: BaseLanguageTokenizer, LanguageTokenizer {
                     tokens.append(SyntaxToken(type: .keyword, range: range, text: text[index] == "/" ? "/>" : ">"))
                     index = text.index(index, offsetBy: text[index] == "/" ? 2 : 1)
                 }
-                continue
-            }
-
-            // 结束标签 </tag>
-            if char == "<" && index < text.index(before: text.endIndex) && text[text.index(after: index)] == "/" {
-                let tagStart = index
-                while index < text.endIndex && text[index] != ">" {
-                    index = text.index(after: index)
-                }
-                if index < text.endIndex {
-                    index = text.index(after: index)
-                }
-                let range = NSRange(location: text.distance(from: text.startIndex, to: tagStart), length: text.distance(from: tagStart, to: index))
-                tokens.append(SyntaxToken(type: .keyword, range: range, text: String(text[tagStart..<index])))
                 continue
             }
 
