@@ -10,7 +10,7 @@ swift --version
 xcodegen --version
 swiftlint version
 
-ACTUAL_XCODE_VERSION="$(xcodebuild -version | awk '/Xcode / { print $2; exit }')"
+ACTUAL_XCODE_VERSION="$(xcodebuild -version | sed -n 's/^Xcode //p')"
 if [[ "${ACTUAL_XCODE_VERSION}" != "${EXPECTED_XCODE_VERSION}" ]]; then
   echo "::error::Expected Xcode ${EXPECTED_XCODE_VERSION}, found ${ACTUAL_XCODE_VERSION}"
   exit 1
