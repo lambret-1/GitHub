@@ -34,6 +34,7 @@ struct SearchBar: UIViewRepresentable {
     func makeUIView(context: UIViewRepresentableContext<SearchBar>) -> UISearchBar {
         let searchBar = UISearchBar(frame: .zero)
         searchBar.delegate = context.coordinator
+        searchBar.searchTextField.accessibilityIdentifier = "repo.searchField"
         searchBar.placeholder = placeholder
         searchBar.searchBarStyle = .minimal
         searchBar.autocapitalizationType = .none
