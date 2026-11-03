@@ -36,6 +36,7 @@ struct IssuesListView: View {
                         .font(.system(size: 24))
                         .foregroundColor(.blue)
                 }
+                .accessibilityIdentifier("issues.createButton")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)

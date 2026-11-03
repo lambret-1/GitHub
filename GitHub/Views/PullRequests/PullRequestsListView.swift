@@ -38,6 +38,7 @@ struct PullRequestsListView: View {
                         .font(.system(size: 24))
                         .foregroundColor(.blue)
                 }
+                .accessibilityIdentifier("pullRequests.createButton")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)

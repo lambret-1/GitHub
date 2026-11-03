@@ -137,7 +137,8 @@ xcodebuild test \
 
 - 使用独立启动参数加载本地 Issue/PR fixture，列表、筛选、刷新不得请求真实 GitHub API。
 - 验证开放、已关闭、全部三种状态筛选。
-- 为状态选择器与列表项提供稳定的 Accessibility Identifier。
+- 验证新建 Issue/PR 表单的必填校验与取消流程。
+- 为状态选择器、创建入口与列表项提供稳定的 Accessibility Identifier。
 - UI 测试模式下拦截创建 Issue/PR 请求，避免误提交真实数据。
 - 正常运行时仍走原有 GitHub API 逻辑。
 

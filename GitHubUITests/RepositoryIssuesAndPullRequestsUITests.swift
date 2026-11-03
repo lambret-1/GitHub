@@ -33,11 +33,13 @@ final class RepositoryIssuesAndPullRequestsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["issue.row.1"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.staticTexts["issue.row.2"].exists)
 
-        app.buttons["已关闭"].tap()
+        let statePicker = app.segmentedControls["issues.statePicker"]
+        XCTAssertTrue(statePicker.waitForExistence(timeout: 5))
+        statePicker.buttons["已关闭"].tap()
         XCTAssertTrue(app.staticTexts["issue.row.2"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["issue.row.1"].exists)
 
-        app.buttons["全部"].tap()
+        statePicker.buttons["全部"].tap()
         XCTAssertTrue(app.staticTexts["issue.row.1"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["issue.row.2"].exists)
     }
@@ -49,13 +51,37 @@ final class RepositoryIssuesAndPullRequestsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["pullRequest.row.11"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.staticTexts["pullRequest.row.12"].exists)
 
-        app.buttons["已关闭"].tap()
+        let statePicker = app.segmentedControls["pullRequests.statePicker"]
+        XCTAssertTrue(statePicker.waitForExistence(timeout: 5))
+        statePicker.buttons["已关闭"].tap()
         XCTAssertTrue(app.staticTexts["pullRequest.row.12"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["pullRequest.row.11"].exists)
 
-        app.buttons["全部"].tap()
+        statePicker.buttons["全部"].tap()
         XCTAssertTrue(app.staticTexts["pullRequest.row.11"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["pullRequest.row.12"].exists)
+    }
+
+    func testIssueCreateSheetCanBeCancelledWithoutNetwork() {
+        openRepository()
+        app.buttons["repo.tab.Issues"].tap()
+        app.buttons["issues.createButton"].tap()
+
+        XCTAssertTrue(app.navigationBars["新建Issue"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["创建"].isEnabled)
+        app.buttons["取消"].tap()
+        XCTAssertTrue(app.segmentedControls["issues.statePicker"].waitForExistence(timeout: 5))
+    }
+
+    func testPullRequestCreateSheetCanBeCancelledWithoutNetwork() {
+        openRepository()
+        app.buttons["repo.tab.Pull Requests"].tap()
+        app.buttons["pullRequests.createButton"].tap()
+
+        XCTAssertTrue(app.navigationBars["新建Pull Request"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["创建"].isEnabled)
+        app.buttons["取消"].tap()
+        XCTAssertTrue(app.segmentedControls["pullRequests.statePicker"].waitForExistence(timeout: 5))
     }
 
     private func openRepository() {
