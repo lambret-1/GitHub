@@ -135,7 +135,7 @@ struct ProfileView: View {
                                 Text("账号管理")
                                     .foregroundColor(.primary)
                                 Spacer()
-                                Text("\(AppState.isUITesting ? 1 : AccountManager.shared.accounts.count) 个账号")
+                                Text("\(AccountManager.shared.accounts.count) 个账号")
                                     .foregroundColor(.gray)
                                     .font(.subheadline)
                                 Image(systemName: "chevron.right")
