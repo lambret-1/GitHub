@@ -53,8 +53,11 @@ print(f"SwiftLint summary: {len(errors)} errors, {len(warnings)} warnings across
 for item in violations[:100]:
     level = item.get("severity", "warning").lower()
     command = "error" if level == "error" else "warning"
+    source_file = item.get("file", "")
+    if source_file and os.path.isabs(source_file):
+        source_file = os.path.relpath(source_file, os.getcwd())
     print(
-        f"::{command} file={item.get('file')},line={item.get('line')},"
+        f"::{command} file={source_file},line={item.get('line')},"
         f"col={item.get('character')}::{item.get('rule_id')}: {item.get('reason')}"
     )
 if len(violations) > 100:
