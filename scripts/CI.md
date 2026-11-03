@@ -80,3 +80,10 @@ xcodebuild test \
 - Token 错误提示提供稳定的 Accessibility Identifier，供自动化测试读取。
 
 所有登录流程 UI 测试必须继续使用 `-ui-testing` 与 `UI_TESTING=1`，不得在自动化测试中使用真实凭据或访问真实 GitHub 服务。
+
+第五阶段 5.3 扩展主界面导航自动化覆盖：
+
+- 使用额外启动参数 `-ui-testing-authenticated` 进入隔离的已登录界面壳层。
+- 该模式仅将内存态 `isLoggedIn` 设为 true，不读取真实账号、Keychain 或用户信息。
+- 验证主界面“仓库”和“我的”Tab 均存在，并可切换到“我的”导航页面。
+- 该启动参数只在 UI 测试模式下生效，不改变正常启动和生产登录行为。
