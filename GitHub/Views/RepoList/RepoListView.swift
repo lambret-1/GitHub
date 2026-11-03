@@ -55,6 +55,7 @@ struct RepoListView: View {
                             .cornerRadius(8)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityIdentifier("repo.starredButton")
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
