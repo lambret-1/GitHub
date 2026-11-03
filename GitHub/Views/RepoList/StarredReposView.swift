@@ -40,6 +40,10 @@ struct StarredReposView: View {
 
     // 当前登录用户名（用于筛选自己的仓库）
     private var currentUsername: String {
+        if AppState.isUITesting,
+           ProcessInfo.processInfo.arguments.contains("-ui-testing-starred-fixtures") {
+            return "ui-tester"
+        }
         return appState.currentUser?.login ?? ""
     }
 
@@ -122,15 +126,24 @@ struct StarredReposView: View {
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
                         .foregroundColor(.blue)
+                        .accessibilityIdentifier("starred.sortMenu")
                 }
             }
         }
         .onAppear {
+            guard !AppState.isUITesting else {
+                if ProcessInfo.processInfo.arguments.contains("-ui-testing-starred-fixtures") {
+                    repos = Self.uiTestStarredRepositories
+                }
+                isLoading = false
+                return
+            }
             if repos.isEmpty {
                 loadStarredRepos()
             }
         }
         .refreshable {
+            guard !AppState.isUITesting else { return }
             await refreshStarredRepos()
         }
         .overlay {
@@ -166,6 +179,7 @@ struct StarredReposView: View {
                 .font(.system(size: 16))
 
             TextField("搜索星标仓库...", text: $searchText)
+                .accessibilityIdentifier("starred.searchField")
                 .font(.system(size: 15))
                 .foregroundColor(appState.isDarkMode ? .white : .primary)
                 .autocapitalization(.none)
@@ -213,6 +227,7 @@ struct StarredReposView: View {
                             .cornerRadius(16)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityIdentifier("starred.filter.\(filterType.rawValue)")
                 }
 
                 Spacer()
@@ -366,6 +381,41 @@ struct StarredReposView: View {
         .background(appState.isDarkMode ? Color.black : Color(.systemBackground))
     }
 
+    /// Deterministic local fixtures for starred-repository UI automation.
+    private static var uiTestStarredRepositories: [Repository] {
+        let tester = RepositoryOwner(login: "ui-tester", id: 1, avatarUrl: "")
+        let community = RepositoryOwner(login: "octo-community", id: 2, avatarUrl: "")
+        return [
+            Repository(
+                id: 201, name: "swift-foundation", fullName: "ui-tester/swift-foundation",
+                description: "Swift libraries and utilities", language: "Swift",
+                stargazersCount: 120, forksCount: 12, watchersCount: 120, openIssuesCount: 1,
+                isPrivate: false, htmlUrl: "https://example.invalid/swift-foundation",
+                defaultBranch: "main", updatedAt: nil, createdAt: nil, owner: tester,
+                size: 256, topics: [], license: nil, permissions: nil, isFork: false,
+                parent: nil, archived: false, disabled: false
+            ),
+            Repository(
+                id: 202, name: "python-cli", fullName: "octo-community/python-cli",
+                description: "Command line utilities", language: "Python",
+                stargazersCount: 80, forksCount: 8, watchersCount: 80, openIssuesCount: 2,
+                isPrivate: false, htmlUrl: "https://example.invalid/python-cli",
+                defaultBranch: "main", updatedAt: nil, createdAt: nil, owner: community,
+                size: 128, topics: [], license: nil, permissions: nil, isFork: false,
+                parent: nil, archived: false, disabled: false
+            ),
+            Repository(
+                id: 203, name: "design-system", fullName: "octo-community/design-system",
+                description: "Shared interface components", language: "Swift",
+                stargazersCount: 40, forksCount: 4, watchersCount: 40, openIssuesCount: 0,
+                isPrivate: false, htmlUrl: "https://example.invalid/design-system",
+                defaultBranch: "main", updatedAt: nil, createdAt: nil, owner: community,
+                size: 96, topics: [], license: nil, permissions: nil, isFork: false,
+                parent: nil, archived: false, disabled: false
+            )
+        ]
+    }
+
     // MARK: - 加载星标仓库列表
     private func loadStarredRepos() {
         isLoading = true
@@ -410,7 +460,7 @@ struct StarredReposView: View {
 
     // MARK: - 加载更多
     private func loadMoreRepos() {
-        guard !isLoadingMore && hasMorePages else { return }
+        guard !AppState.isUITesting, !isLoadingMore, hasMorePages else { return }
         isLoadingMore = true
         let nextPage = currentPage + 1
 
@@ -467,6 +517,7 @@ struct StarredRepoCard: View {
 
                 // 所有者/仓库名
                 Text("\(repo.ownerName)/\(repo.name)")
+                    .accessibilityIdentifier("starred.row.\(repo.name)")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.blue)
                     .lineLimit(1)
