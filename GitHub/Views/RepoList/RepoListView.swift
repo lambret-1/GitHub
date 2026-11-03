@@ -42,6 +42,7 @@ struct RepoListView: View {
                 // 搜索栏 + 星标按钮
                 HStack(spacing: 12) {
                     SearchBar(text: $searchText, placeholder: "搜索仓库")
+                        .accessibilityIdentifier("repo.searchBar")
                         .frame(maxWidth: .infinity)
 
                     // 星标按钮，点击跳转到星标列表页面
@@ -66,6 +67,7 @@ struct RepoListView: View {
                                 selectedFilter = filter
                                 applyFilter()
                             }
+                            .accessibilityIdentifier("repo.filter.\(filter.rawValue)")
                         }
                     }
                     .padding(.horizontal)
@@ -288,6 +290,10 @@ struct RepoListView: View {
         .onAppear {
             // UI 测试只验证导航与空状态，不访问真实 GitHub API。
             if AppState.isUITesting {
+                if ProcessInfo.processInfo.arguments.contains("-ui-testing-repository-fixtures") {
+                    repos = Self.uiTestRepositories
+                    applyFilter()
+                }
                 isLoading = false
                 return
             }
@@ -307,6 +313,41 @@ struct RepoListView: View {
         }
     }
     
+
+    /// Deterministic local data used only by repository-list UI automation.
+    private static var uiTestRepositories: [Repository] {
+        let owner = RepositoryOwner(login: "ui-tester", id: 1, avatarUrl: "")
+        return [
+            Repository(
+                id: 101, name: "swift-client", fullName: "ui-tester/swift-client",
+                description: "iOS application written in Swift", language: "Swift",
+                stargazersCount: 12, forksCount: 2, watchersCount: 12, openIssuesCount: 0,
+                isPrivate: true, htmlUrl: "https://example.invalid/swift-client",
+                defaultBranch: "main", updatedAt: nil, createdAt: nil, owner: owner,
+                size: 128, topics: [], license: nil, permissions: nil, isFork: false,
+                parent: nil, archived: false, disabled: false
+            ),
+            Repository(
+                id: 102, name: "python-tools", fullName: "ui-tester/python-tools",
+                description: "Command line utilities", language: "Python",
+                stargazersCount: 8, forksCount: 1, watchersCount: 8, openIssuesCount: 0,
+                isPrivate: false, htmlUrl: "https://example.invalid/python-tools",
+                defaultBranch: "main", updatedAt: nil, createdAt: nil, owner: owner,
+                size: 64, topics: [], license: nil, permissions: nil, isFork: false,
+                parent: nil, archived: false, disabled: false
+            ),
+            Repository(
+                id: 103, name: "design-system", fullName: "ui-tester/design-system",
+                description: "Shared UI components for Swift apps", language: "Swift",
+                stargazersCount: 5, forksCount: 0, watchersCount: 5, openIssuesCount: 0,
+                isPrivate: false, htmlUrl: "https://example.invalid/design-system",
+                defaultBranch: "main", updatedAt: nil, createdAt: nil, owner: owner,
+                size: 32, topics: [], license: nil, permissions: nil, isFork: false,
+                parent: nil, archived: false, disabled: false
+            )
+        ]
+    }
+
     private func loadRepos(completion: (() -> Void)? = nil) {
         isLoading = true
         errorMessage = nil
@@ -468,6 +509,7 @@ struct RepoRow: View {
                 Image(systemName: repo.isPrivate ? "lock.fill" : "folder.fill")
                     .foregroundColor(repo.isPrivate ? .orange : .blue)
                 Text(repo.name)
+                    .accessibilityIdentifier("repo.row.\(repo.name)")
                     .font(.headline)
                     .lineLimit(1)
                 Spacer()
