@@ -38,6 +38,7 @@ struct AccountManagerView: View {
                             .foregroundColor(.blue)
                     }
                 }
+                .accessibilityIdentifier("account.addButton")
             }
         }
         .listStyle(InsetGroupedListStyle())
@@ -96,9 +97,11 @@ struct AccountManagerView: View {
                         .font(.subheadline)
                         .foregroundColor(.blue)
                 }
+                .accessibilityIdentifier("account.switch.\(account.username)")
             }
         }
         .padding(.vertical, 4)
+        .accessibilityIdentifier("account.row.\(account.username)")
         .contextMenu {
             if !isCurrent {
                 Button(role: .destructive, action: {
@@ -106,6 +109,7 @@ struct AccountManagerView: View {
                 }) {
                     Label("删除账号", systemImage: "trash")
                 }
+                .accessibilityIdentifier("account.delete.\(account.username)")
             }
         }
     }
