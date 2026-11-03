@@ -113,3 +113,12 @@ xcodebuild test \
 - 验证个人中心“关于”页面导航与返回，以及退出确认取消行为。
 - 为个人资料关键字段及页面入口提供稳定的 Accessibility Identifier。
 - 测试 fixture 不读取真实账号凭据、不触发个人资料网络请求；正常运行行为保持不变。
+
+
+第五阶段 5.7 扩展多账号管理 UI 自动化覆盖：
+
+- UI 测试模式注入三个内存账号，初始化时不读取账号 UserDefaults。
+- 测试模式下账号新增、删除、切换仅更新内存状态，不写入 UserDefaults 或 Keychain。
+- 验证当前账号与其他账号展示、切换账号、删除非当前账号。
+- 验证添加账号表单打开和取消流程，不提交真实 Token、不访问 GitHub API。
+- 为账号管理入口、账号行、切换/删除、添加和取消按钮增加 Accessibility Identifier。
