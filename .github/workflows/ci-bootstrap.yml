@@ -40,12 +40,12 @@ jobs:
         run: |
           {
             echo "### CI 工具链版本"
-            echo '\x60\x60\x60text'
+            echo '```text'
             xcodebuild -version
             swift --version
             xcodegen --version
             swiftlint version
-            echo '\x60\x60\x60'
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 验证 CI 基础设施
