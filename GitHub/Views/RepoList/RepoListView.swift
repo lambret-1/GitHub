@@ -41,7 +41,7 @@ struct RepoListView: View {
             VStack(spacing: 0) {
                 // 搜索栏 + 星标按钮
                 HStack(spacing: 12) {
-                    SearchBar(text: $searchText, placeholder: "搜索仓库")
+                    SearchBar(text: $searchText, placeholder: "搜索仓库", accessibilityIdentifier: "repo.searchField")
                         .accessibilityIdentifier("repo.searchBar")
                         .frame(maxWidth: .infinity)
 
