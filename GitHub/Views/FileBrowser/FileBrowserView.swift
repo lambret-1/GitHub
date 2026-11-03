@@ -335,6 +335,23 @@ struct FileBrowserView: View {
                 }
         )
         .onAppear {
+            // UI 自动化使用本地 fixture，禁止详情页初始化触发真实 GitHub API。
+            if AppState.isUITesting {
+                if Self.isUITestingFileBrowserEnabled {
+                    branches = [
+                        Branch(
+                            name: "main",
+                            commit: BranchCommit(sha: "fixture-main-sha", url: "https://example.invalid/commit"),
+                            protected: false
+                        )
+                    ]
+                    loadFiles()
+                } else {
+                    isLoading = false
+                }
+                return
+            }
+
             // 页面布局统一：无论自己仓库还是别人仓库，都加载相同的布局组件
             // 包括：RepoHeaderView、BranchBarView、最新提交信息栏、路径导航栏、文件列表、README
             if selectedBranch.isEmpty {
@@ -1601,7 +1618,8 @@ struct FileBrowserView: View {
                         .foregroundColor(.blue)
                         .font(.system(size: 15))
                 }
-                
+                .accessibilityIdentifier("file.path.root")
+
                 if !currentPath.isEmpty {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12))
@@ -1619,6 +1637,7 @@ struct FileBrowserView: View {
                                 .font(.system(size: 15))
                                 .foregroundColor(index == components.count - 1 ? .primary : .blue)
                         }
+                        .accessibilityIdentifier("file.path.component.\(component)")
                         if index < components.count - 1 {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 12))
@@ -1637,6 +1656,51 @@ struct FileBrowserView: View {
 
     /// 判断当前仓库是否是用户自己的仓库
     /// 优先使用 AccountManager.currentAccount，若为 nil（Token 存在但 UserDefaults 账号信息丢失）则回退到 appState.currentUser
+    private static var isUITestingFileBrowserEnabled: Bool {
+        AppState.isUITesting
+            && ProcessInfo.processInfo.arguments.contains("-ui-testing-filebrowser-fixtures")
+    }
+
+    /// 仅供仓库详情 UI 自动化使用的确定性目录结构。
+    private static func uiTestingFiles(for path: String) -> [FileItem] {
+        switch path {
+        case "Sources":
+            return [
+                FileItem(
+                    name: "App.swift", path: "Sources/App.swift", sha: "fixture-app",
+                    size: 256, type: "file", downloadUrl: nil, htmlUrl: nil
+                ),
+                FileItem(
+                    name: "Components", path: "Sources/Components", sha: "fixture-components",
+                    size: nil, type: "dir", downloadUrl: nil, htmlUrl: nil
+                )
+            ]
+        case "Sources/Components":
+            return [
+                FileItem(
+                    name: "Button.swift", path: "Sources/Components/Button.swift",
+                    sha: "fixture-button", size: 128, type: "file",
+                    downloadUrl: nil, htmlUrl: nil
+                )
+            ]
+        default:
+            return [
+                FileItem(
+                    name: "Sources", path: "Sources", sha: "fixture-sources",
+                    size: nil, type: "dir", downloadUrl: nil, htmlUrl: nil
+                ),
+                FileItem(
+                    name: "README.md", path: "README.md", sha: "fixture-readme",
+                    size: 64, type: "file", downloadUrl: nil, htmlUrl: nil
+                ),
+                FileItem(
+                    name: "Package.swift", path: "Package.swift", sha: "fixture-package",
+                    size: 96, type: "file", downloadUrl: nil, htmlUrl: nil
+                )
+            ]
+        }
+    }
+
     var isOwnRepository: Bool {
         let currentUsername: String?
         if let accountUsername = accountManager.currentAccount?.username {
@@ -2152,6 +2216,23 @@ struct FileBrowserView: View {
     }
 
     func loadFiles(completion: (() -> Void)? = nil) {
+        if AppState.isUITesting {
+            if Self.isUITestingFileBrowserEnabled {
+                files = Self.uiTestingFiles(for: currentPath)
+                readmeContent = currentPath.isEmpty
+                    ? "# swift-client\n\n本地 UI 自动化测试仓库。"
+                    : nil
+                isLoadingReadme = false
+                isLoadingLatestCommit = false
+            } else {
+                files = []
+            }
+            errorMessage = nil
+            isLoading = false
+            completion?()
+            return
+        }
+
         isLoading = true
         errorMessage = nil
 
@@ -2187,6 +2268,13 @@ struct FileBrowserView: View {
 
     /// 加载仓库README内容（支持子文件夹）
     func loadReadme() {
+        guard !AppState.isUITesting else {
+            isLoadingReadme = false
+            readmeContent = Self.isUITestingFileBrowserEnabled && currentPath.isEmpty
+                ? "# swift-client\n\n本地 UI 自动化测试仓库。"
+                : nil
+            return
+        }
         isLoadingReadme = true
         readmeError = nil
         readmeContent = nil
@@ -2352,6 +2440,11 @@ struct FileBrowserView: View {
 
     // MARK: - 加载当前目录最新提交（用于顶部提交栏）
     func loadLatestCommit() {
+        guard !AppState.isUITesting else {
+            isLoadingLatestCommit = false
+            latestCommit = nil
+            return
+        }
         isLoadingLatestCommit = true
         latestCommit = nil
 
@@ -2375,6 +2468,7 @@ struct FileBrowserView: View {
     }
 
     func loadBranches() {
+        guard !AppState.isUITesting else { return }
         GitHubAPI.shared.getBranches(owner: repository.ownerName, repo: repository.name) { result in
             DispatchQueue.main.async {
                 switch result {
@@ -2393,6 +2487,7 @@ struct FileBrowserView: View {
 
     /// 加载仓库标签列表
     func loadTags() {
+        guard !AppState.isUITesting else { return }
         GitHubAPI.shared.getTags(owner: repository.ownerName, repo: repository.name) { result in
             DispatchQueue.main.async {
                 switch result {
@@ -2442,6 +2537,7 @@ struct FileBrowserView: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
+            .accessibilityIdentifier("file.row.\(file.name)")
         } else if file.isDirectory {
             Button(action: {
                 navigateToDirectory(file.path)
@@ -2449,6 +2545,7 @@ struct FileBrowserView: View {
                 FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
             }
             .buttonStyle(PlainButtonStyle())
+            .accessibilityIdentifier("file.row.\(file.name)")
             .contextMenu {
                 contextMenuContent(for: file)
             }
@@ -2472,6 +2569,7 @@ struct FileBrowserView: View {
                 FileRow(file: file, owner: repository.ownerName, repo: repository.name, branch: selectedBranch)
             }
             .buttonStyle(PlainButtonStyle())
+            .accessibilityIdentifier("file.row.\(file.name)")
             .contextMenu {
                 contextMenuContent(for: file)
             }
