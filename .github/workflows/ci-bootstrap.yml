@@ -1,0 +1,44 @@
+name: CI 基础设施检查
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  XCODE_VERSION: "15.4"
+
+jobs:
+  bootstrap:
+    name: 工具链与 XcodeGen 配置检查
+    runs-on: macos-14
+    steps:
+      - name: 检出触发提交
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: 选择 Xcode
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer"
+          xcodebuild -version
+          swift --version
+
+      - name: 安装 CI 工具
+        run: |
+          brew install xcodegen swiftlint
+          xcodegen --version
+          swiftlint version
+
+      - name: 验证 CI 基础设施
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          chmod +x scripts/ci-bootstrap.sh
+          ./scripts/ci-bootstrap.sh
