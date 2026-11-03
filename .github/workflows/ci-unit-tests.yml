@@ -17,6 +17,15 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
+      - name: 选择并校验 Xcode 15.4
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_15.4.app/Contents/Developer"
+          xcodebuild -version
+          ACTUAL_XCODE_VERSION="$(xcodebuild -version | sed -n 's/^Xcode //p')"
+          if [[ "${ACTUAL_XCODE_VERSION}" != "15.4" ]]; then
+            echo "::error::Expected Xcode 15.4, found ${ACTUAL_XCODE_VERSION}"
+            exit 1
+          fi
       - name: 下载 Bootstrap 验证的 Xcode 工程
         uses: actions/download-artifact@v4
         with:
