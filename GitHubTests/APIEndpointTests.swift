@@ -25,7 +25,7 @@ final class APIEndpointTests: XCTestCase {
         ).url
 
         XCTAssertTrue(url.hasPrefix("https://api.github.com/search/code?q="))
-        XCTAssertTrue(url.contains("repo%3Aoctocat%2Fhello-world"))
+        XCTAssertTrue(url.contains("repo:octocat/hello-world"))
         XCTAssertTrue(url.contains("page=3&per_page=30"))
     }
 
