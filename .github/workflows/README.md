@@ -43,7 +43,7 @@ Bootstrap 生成并验证 Xcode 工程后，将工程作为本次 run 的短期 
 - 推送到 testping 分支。
 - workflow_dispatch 手动触发。
 
-本阶段不修改生产构建触发分支、发布步骤或制品行为。生产构建保持独立，不加入普通 CI 队列。
+生产构建使用独立的 `production-build` concurrency group，设置 `cancel-in-progress: false`。运行中的生产构建不会被普通 CI 或后续生产触发中断；生产构建不加入普通 CI 队列。触发分支、发布步骤与制品行为保持不变。
 
 ## 维护约定
 
