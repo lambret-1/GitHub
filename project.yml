@@ -14,7 +14,7 @@ options:
     iOS: "16.0"
   createIntermediateGroups: true
   developmentLanguage: zh-Hans
-  xcodeVersion: "15.0"
+  xcodeVersion: "15.4"
   objectVersion: 60
 
 settings:
