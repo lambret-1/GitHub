@@ -64,6 +64,7 @@ jobs:
             -scheme GitHub \
             -destination 'platform=iOS Simulator,name=iPhone 15' \
             -resultBundlePath TestResults.xcresult \
+            -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO
 
       - name: 上传 XCTest 结果
