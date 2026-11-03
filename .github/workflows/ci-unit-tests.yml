@@ -33,7 +33,7 @@ jobs:
 
       - name: 安装 XcodeGen
         run: |
-          brew install xcodegen
+          brew install xcodegen swiftlint
           xcodegen --version
 
       - name: 生成并验证 Xcode 项目
