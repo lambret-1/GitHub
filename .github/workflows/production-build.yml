@@ -457,11 +457,11 @@ jobs:
             git commit -m "docs(bug-log): 更新 v${CURRENT_VERSION} 构建警告日志 [skip ci]" -m "版本: v${CURRENT_VERSION} | Commit: ${COMMIT_SHORT} | 构建时间: ${BUILD_TIME}"
             # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
             git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            # 构建期间 main 可能已被版本递增或其他构建任务推进；先同步再推送，避免非快进失败。
+            # 构建期间 main 可能被其他构建推进；对自动生成的 bug.md 使用当前构建内容解决重叠修改，再同步推送。
             pushed=false
             for attempt in 1 2 3; do
               git fetch origin main
-              if ! git rebase origin/main; then
+              if ! git rebase -X theirs origin/main; then
                 git rebase --abort || true
                 echo "::error::bug.md 提交与 main 存在冲突，已停止推送以保护远端内容"
                 exit 1
@@ -675,11 +675,11 @@ jobs:
             git commit -m "docs(changelog): 追加 v${VERSION_NEW} 更新日志 [skip ci]" -m "版本: v${VERSION_NEW} | Commit: ${COMMIT_SHORT} | SHA256: ${IPA_SHA256} | 构建耗时: ${BUILD_DURATION} 秒"
             # 使用 REPO_ADMIN_TOKEN 配置 remote URL，绕过分支保护
             git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
-            # README 与构建日志/版本提交可能并发更新，使用 rebase 后再推送，不强推覆盖 main。
+            # README 与构建日志由并发构建自动生成；冲突时保留当前构建生成内容，再进行非强制推送。
             pushed=false
             for attempt in 1 2 3; do
               git fetch origin main
-              if ! git rebase origin/main; then
+              if ! git rebase -X theirs origin/main; then
                 git rebase --abort || true
                 echo "::error::README 提交与 main 存在冲突，已停止推送以保护远端内容"
                 exit 1
