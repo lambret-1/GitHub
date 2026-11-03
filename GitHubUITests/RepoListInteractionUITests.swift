@@ -20,31 +20,42 @@ final class RepoListInteractionUITests: XCTestCase {
     func testSearchFiltersRepositoryNamesAndDescriptions() {
         let searchField = app.searchFields["repo.searchField"]
         XCTAssertTrue(searchField.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["swift-client"].exists)
-        XCTAssertTrue(app.staticTexts["python-tools"].exists)
+        XCTAssertTrue(app.staticTexts["repo.row.swift-client"].exists)
+        XCTAssertTrue(app.staticTexts["repo.row.python-tools"].exists)
         searchField.tap()
         searchField.typeText("design")
-        XCTAssertTrue(app.staticTexts["design-system"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.staticTexts["swift-client"].exists)
-        XCTAssertFalse(app.staticTexts["python-tools"].exists)
+        XCTAssertTrue(app.staticTexts["repo.row.design-system"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["repo.row.swift-client"].exists)
+        XCTAssertFalse(app.staticTexts["repo.row.python-tools"].exists)
     }
 
     func testVisibilityFiltersAndCombinedSearch() {
         let privateFilter = app.buttons["repo.filter.私有"]
         XCTAssertTrue(privateFilter.waitForExistence(timeout: 10))
         privateFilter.tap()
-        XCTAssertTrue(app.staticTexts["swift-client"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.staticTexts["python-tools"].exists)
-        XCTAssertFalse(app.staticTexts["design-system"].exists)
+        XCTAssertTrue(app.staticTexts["repo.row.swift-client"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["repo.row.python-tools"].exists)
+        XCTAssertFalse(app.staticTexts["repo.row.design-system"].exists)
         app.buttons["repo.filter.公开"].tap()
-        XCTAssertTrue(app.staticTexts["python-tools"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["design-system"].exists)
-        XCTAssertFalse(app.staticTexts["swift-client"].exists)
+        XCTAssertTrue(app.staticTexts["repo.row.python-tools"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["repo.row.design-system"].exists)
+        XCTAssertFalse(app.staticTexts["repo.row.swift-client"].exists)
         let searchField = app.searchFields["repo.searchField"]
         searchField.tap()
         searchField.typeText("design")
-        XCTAssertTrue(app.staticTexts["design-system"].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.staticTexts["python-tools"].exists)
+        XCTAssertTrue(app.staticTexts["repo.row.design-system"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["repo.row.python-tools"].exists)
+    }
+
+
+    func testSearchMatchesRepositoryDescription() {
+        let searchField = app.searchFields["repo.searchField"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 10))
+        searchField.tap()
+        searchField.typeText("Command line")
+        XCTAssertTrue(app.staticTexts["repo.row.python-tools"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["repo.row.swift-client"].exists)
+        XCTAssertFalse(app.staticTexts["repo.row.design-system"].exists)
     }
 
     func testSearchWithNoMatchesShowsEmptyState() {
