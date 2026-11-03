@@ -11,7 +11,7 @@ struct GitHubApp: App {
     init() {
         // 安装崩溃日志记录器（使用Signal Handler和NSException Handler双机制捕获崩溃）
         // 必须在App启动最早期调用，确保能够捕获所有崩溃
-        CrashLogger.shared.install()
+        if !AppState.isUITesting {\n            CrashLogger.shared.install()\n        }
     }
 
     var body: some Scene {
@@ -41,7 +41,7 @@ struct GitHubApp: App {
             }
             // 监听APP前后台状态变化，从后台回到前台时也检测分享文件（解决onOpenURL不触发的问题）
             .onChange(of: scenePhase) { newPhase in
-                if newPhase == .active {
+                if newPhase == .active && !AppState.isUITesting {
                     // 延迟一下确保界面准备就绪
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         showShareUploadIfNeeded()
