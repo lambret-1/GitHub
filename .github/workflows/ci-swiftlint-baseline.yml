@@ -1,0 +1,38 @@
+name: SwiftLint 历史基线生成（一次性）
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    name: 生成现有代码基线
+    runs-on: macos-14
+    steps:
+      - name: 检出触发提交
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: 安装 SwiftLint
+        run: |
+          brew install swiftlint
+          swiftlint version
+
+      - name: 生成历史问题基线
+        run: |
+          swiftlint lint --config .swiftlint.yml --write-baseline .swiftlint.baseline.json
+          test -s .swiftlint.baseline.json
+
+      - name: 上传基线文件
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftlint-baseline-${{ github.run_id }}
+          path: .swiftlint.baseline.json
+          retention-days: 7
