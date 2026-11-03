@@ -40,3 +40,4 @@ jobs:
           name: swiftlint-baseline-${{ github.run_id }}
           path: .swiftlint.baseline.json
           retention-days: 7
+          include-hidden-files: true
