@@ -17,9 +17,44 @@ class AccountManager: ObservableObject {
     private let currentAccountIdKey = "github_current_account_id"
 
     private init() {
+        if Self.isUITesting {
+            accounts = Self.uiTestingAccounts
+            currentAccount = Self.uiTestingAccounts[0]
+            return
+        }
         loadAccounts()
         loadCurrentAccount()
     }
+
+    /// UI 自动化使用纯内存账号，不读取或写入 UserDefaults / Keychain。
+    private static var isUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ui-testing")
+            || ProcessInfo.processInfo.environment["UI_TESTING"] == "1"
+    }
+
+    private static let uiTestingAccounts = [
+        GitHubAccount(
+            id: "9001",
+            username: "ui-tester",
+            token: "ui-testing-token",
+            avatarUrl: nil,
+            displayName: "UI Test User"
+        ),
+        GitHubAccount(
+            id: "9002",
+            username: "octo-community",
+            token: "ui-testing-token",
+            avatarUrl: nil,
+            displayName: "Octo Community"
+        ),
+        GitHubAccount(
+            id: "9003",
+            username: "swift-labs",
+            token: "ui-testing-token",
+            avatarUrl: nil,
+            displayName: "Swift Labs"
+        )
+    ]
 
     // MARK: - 账号管理
 
@@ -64,6 +99,7 @@ class AccountManager: ObservableObject {
         saveCurrentAccountId(account.id)
 
         // 更新TokenKeychain中的Token
+        guard !Self.isUITesting else { return }
         TokenKeychain.shared.saveToken(account.token)
     }
 
@@ -80,6 +116,7 @@ class AccountManager: ObservableObject {
     // MARK: - 持久化
 
     private func saveAccounts() {
+        guard !Self.isUITesting else { return }
         if let encoded = try? JSONEncoder().encode(accounts) {
             UserDefaults.standard.set(encoded, forKey: accountsKey)
         }
@@ -93,6 +130,7 @@ class AccountManager: ObservableObject {
     }
 
     private func saveCurrentAccountId(_ id: String?) {
+        guard !Self.isUITesting else { return }
         UserDefaults.standard.set(id, forKey: currentAccountIdKey)
     }
 
