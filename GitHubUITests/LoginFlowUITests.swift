@@ -43,6 +43,45 @@ final class LoginFlowUITests: XCTestCase {
         XCTAssertEqual(tokenField.value as? String, "请输入 GitHub 个人访问令牌")
     }
 
+    func testWhitespaceOnlyTokenShowsValidationError() {
+        let tokenField = app.textFields["login.tokenField"]
+        XCTAssertTrue(tokenField.waitForExistence(timeout: 10))
+        tokenField.tap()
+        tokenField.typeText("   ")
+
+        let loginButton = app.buttons["login.submitButton"]
+        XCTAssertTrue(loginButton.isEnabled)
+        loginButton.tap()
+
+        let errorMessage = app.staticTexts["login.errorMessage"]
+        XCTAssertTrue(errorMessage.waitForExistence(timeout: 3))
+        XCTAssertEqual(errorMessage.label, "请输入有效的 Token")
+        XCTAssertTrue(app.staticTexts["login.title"].exists)
+    }
+
+    func testRejectedTokenShowsErrorAndDoesNotPersistLoginAfterRelaunch() {
+        let tokenField = app.textFields["login.tokenField"]
+        XCTAssertTrue(tokenField.waitForExistence(timeout: 10))
+        tokenField.tap()
+        tokenField.typeText("ghp_invalid_test_token")
+
+        let loginButton = app.buttons["login.submitButton"]
+        XCTAssertTrue(loginButton.isEnabled)
+        loginButton.tap()
+
+        let errorMessage = app.staticTexts["login.errorMessage"]
+        XCTAssertTrue(errorMessage.waitForExistence(timeout: 3))
+        XCTAssertEqual(errorMessage.label, "UI 测试模式已拦截真实登录请求")
+        XCTAssertTrue(app.staticTexts["login.title"].exists)
+
+        app.terminate()
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["login.title"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["login.errorMessage"].exists)
+        XCTAssertFalse(app.buttons["login.submitButton"].isEnabled)
+    }
+
     func testTokenHelpCanExpandAndCollapse() {
         let helpButton = app.buttons["login.tokenHelpButton"]
         XCTAssertTrue(helpButton.waitForExistence(timeout: 10))
