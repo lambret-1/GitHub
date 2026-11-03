@@ -22,7 +22,10 @@ on:
       - testping
   workflow_dispatch:  # 支持手动触发
 
-# 不设置 concurrency：允许多个生产构建同时运行。
+# 生产构建独立串行；运行中的构建不会被后续发布或普通 CI 中断。
+concurrency:
+  group: production-build
+  cancel-in-progress: false
 
 # 全局环境变量（消除硬编码，便于统一维护）
 env:
