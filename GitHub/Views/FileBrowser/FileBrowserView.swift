@@ -337,6 +337,9 @@ struct FileBrowserView: View {
         .onAppear {
             // UI 自动化使用本地 fixture，禁止详情页初始化触发真实 GitHub API。
             if AppState.isUITesting {
+                if selectedBranch.isEmpty {
+                    selectedBranch = repository.defaultBranch ?? "main"
+                }
                 if Self.isUITestingFileBrowserEnabled {
                     branches = [
                         Branch(
@@ -568,6 +571,7 @@ struct FileBrowserView: View {
                         }
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityIdentifier("repo.tab.\(tab.rawValue)")
                 }
             }
         }
@@ -2222,6 +2226,8 @@ struct FileBrowserView: View {
                 readmeContent = currentPath.isEmpty
                     ? "# swift-client\n\n本地 UI 自动化测试仓库。"
                     : nil
+                readmeError = nil
+                latestCommit = nil
                 isLoadingReadme = false
                 isLoadingLatestCommit = false
             } else {

@@ -115,14 +115,6 @@ xcodebuild test \
 - 测试 fixture 不读取真实账号凭据、不触发个人资料网络请求；正常运行行为保持不变。
 
 
-第五阶段 5.8 扩展仓库详情与文件浏览 UI 自动化覆盖：
-
-- 使用 `-ui-testing-filebrowser-fixtures` 加载固定目录树，不请求真实 GitHub API。
-- 验证仓库详情页根目录文件、目录进入、多级目录导航和面包屑返回。
-- UI 测试模式下仓库详情初始化、目录刷新、分支/标签/README/最新提交加载均不得触发网络请求。
-- 为文件行与目录面包屑提供稳定的 Accessibility Identifier。
-- fixture 仅在 UI 测试模式与专用启动参数同时启用时生效。
-
 第五阶段 5.7 扩展多账号管理 UI 自动化覆盖：
 
 - UI 测试模式注入三个内存账号，初始化时不读取账号 UserDefaults。
@@ -130,6 +122,15 @@ xcodebuild test \
 - 验证当前账号与其他账号展示、切换账号、删除非当前账号。
 - 验证添加账号表单打开和取消流程，不提交真实 Token、不访问 GitHub API。
 - 为账号管理入口、账号行、切换/删除、添加和取消按钮增加 Accessibility Identifier。
+
+
+第五阶段 5.8 扩展仓库详情与文件浏览 UI 自动化覆盖：
+
+- 使用 `-ui-testing-filebrowser-fixtures` 加载固定目录树，不请求真实 GitHub API。
+- 验证仓库详情页根目录文件、目录进入、多级目录导航和面包屑返回。
+- UI 测试模式下仓库详情初始化、目录刷新、分支/标签/README/最新提交加载均不得触发网络请求。
+- 为文件行与目录面包屑提供稳定的 Accessibility Identifier。
+- fixture 仅在 UI 测试模式与专用启动参数同时启用时生效。
 
 
 ## CI Queue Manager 1.0
