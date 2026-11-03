@@ -1,0 +1,41 @@
+name: SwiftLint 代码质量检查
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  swiftlint:
+    name: SwiftLint
+    runs-on: macos-14
+    steps:
+      - name: 检出触发提交
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: 安装 SwiftLint
+        run: |
+          brew install swiftlint
+          swiftlint version
+
+      - name: 执行 SwiftLint
+        run: |
+          chmod +x scripts/ci-swiftlint.sh
+          ./scripts/ci-swiftlint.sh
+
+      - name: 上传 SwiftLint 报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftlint-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: swiftlint-report.json
+          if-no-files-found: warn
+          retention-days: 14
