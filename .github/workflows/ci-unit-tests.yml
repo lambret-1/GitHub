@@ -31,10 +31,14 @@ jobs:
           xcodebuild -version
           swift --version
 
-      - name: 安装 XcodeGen
+      - name: 安装 XcodeGen 和 SwiftLint
         run: |
           brew install xcodegen swiftlint
           xcodegen --version
+          swiftlint version
+
+      - name: 执行 SwiftLint
+        run: swiftlint lint --quiet
 
       - name: 生成并验证 Xcode 项目
         env:
