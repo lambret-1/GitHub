@@ -3,7 +3,7 @@ import XCTest
 
 final class ModelDecodingTests: XCTestCase {
     func testRepositoryDecodesGitHubSnakeCaseFields() throws {
-        let json = """
+        let json = Data("""
         {
           "id": 42,
           "name": "sample",
@@ -25,7 +25,7 @@ final class ModelDecodingTests: XCTestCase {
           },
           "fork": true
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let repository = try JSONDecoder().decode(Repository.self, from: json)
 
@@ -40,7 +40,7 @@ final class ModelDecodingTests: XCTestCase {
     }
 
     func testRepositoryPermissionFallsBackToNoneWhenMissing() throws {
-        let json = """
+        let json = Data("""
         {
           "id": 1,
           "name": "repo",
@@ -53,17 +53,17 @@ final class ModelDecodingTests: XCTestCase {
             "avatar_url": "https://example.com/avatar.png"
           }
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let repository = try JSONDecoder().decode(Repository.self, from: json)
 
-        XCTAssertEqual(repository.currentPermission, .none)
-        XCTAssertFalse(repository.isWritable)
-        XCTAssertFalse(repository.isFork)
+        XCTAssertEqual(repository.当前权限, .none)
+        XCTAssertFalse(repository.可写)
+        XCTAssertFalse(repository.是Fork)
     }
 
     func testCodeSearchResponseDecodesNestedRepository() throws {
-        let json = """
+        let json = Data("""
         {
           "total_count": 1,
           "items": [{
@@ -87,7 +87,7 @@ final class ModelDecodingTests: XCTestCase {
             }
           }]
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let response = try JSONDecoder().decode(CodeSearchResponse.self, from: json)
         let item = try XCTUnwrap(try JSONDecoder().decode([CodeSearchItem].self, from: jsonObjectItems(from: json)).first)
@@ -99,9 +99,9 @@ final class ModelDecodingTests: XCTestCase {
     }
 
     func testGitHubAPIErrorDecodesDocumentationURL() throws {
-        let json = """
+        let json = Data("""
         {"message":"Not Found","documentation_url":"https://docs.github.com/rest"}
-        """.data(using: .utf8)!
+        """.utf8)
 
         let error = try JSONDecoder().decode(GitHubAPIError.self, from: json)
 
