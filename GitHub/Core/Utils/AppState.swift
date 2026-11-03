@@ -6,6 +6,7 @@ class AppState: ObservableObject {
     static let shared = AppState()
     static var isUITesting: Bool {
         ProcessInfo.processInfo.arguments.contains("-ui-testing")
+            || ProcessInfo.processInfo.environment["UI_TESTING"] == "1"
     }
     
     @Published var isLoggedIn: Bool = false
@@ -29,11 +30,14 @@ class AppState: ObservableObject {
     private let laterReminderKey = "laterReminderTimestamp"
     
     private init() {
-        // 从UserDefaults读取暗黑模式设置
-        isDarkMode = UserDefaults.standard.bool(forKey: "isDarkMode")
-        // UI 测试使用固定的未登录状态，避免读取 Keychain、恢复账号或触发网络请求。
-        guard !Self.isUITesting else { return }
+        // UI 测试必须在读取任何持久化状态前退出初始化，避免真实账号和用户偏好污染测试。
+        guard !Self.isUITesting else {
+            isDarkMode = false
+            return
+        }
 
+        // 正常运行时读取用户的暗黑模式设置。
+        isDarkMode = UserDefaults.standard.bool(forKey: "isDarkMode")
         checkLoginStatus()
 
         // 监听AccountManager的currentAccount变化，账号切换时自动加载新用户信息
@@ -49,6 +53,7 @@ class AppState: ObservableObject {
     /// 切换暗黑模式
     func toggleDarkMode() {
         isDarkMode.toggle()
+        guard !Self.isUITesting else { return }
         UserDefaults.standard.set(isDarkMode, forKey: "isDarkMode")
     }
     
