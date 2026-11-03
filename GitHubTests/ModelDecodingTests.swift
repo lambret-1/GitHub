@@ -34,9 +34,9 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertTrue(repository.isPrivate)
         XCTAssertEqual(repository.defaultBranch, "main")
         XCTAssertEqual(repository.ownerName, "octocat")
-        XCTAssertEqual(repository.currentPermission, .write)
-        XCTAssertTrue(repository.isWritable)
-        XCTAssertTrue(repository.isFork)
+        XCTAssertEqual(repository.当前权限, .write)
+        XCTAssertTrue(repository.可写)
+        XCTAssertTrue(repository.是Fork)
     }
 
     func testRepositoryPermissionFallsBackToNoneWhenMissing() throws {
