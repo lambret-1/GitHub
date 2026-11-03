@@ -27,6 +27,8 @@ final class MainNavigationUITests: XCTestCase {
         let profileTab = tabBar.buttons["我的"]
         XCTAssertTrue(repositoriesTab.exists)
         XCTAssertTrue(profileTab.exists)
+        // 测试模式使用本地空状态，证明仓库页未发起真实网络请求。
+        XCTAssertTrue(app.staticTexts["没有找到仓库"].waitForExistence(timeout: 5))
 
         profileTab.tap()
 
