@@ -96,3 +96,11 @@ xcodebuild test \
 - 验证按仓库名称搜索、私有/公开筛选、搜索与筛选组合，以及无匹配结果的空状态。
 - 为搜索输入框、筛选控件和仓库行提供稳定的 Accessibility Identifier。
 - fixture 仅在同时启用 UI 测试模式与 `-ui-testing-repository-fixtures` 时加载，不影响正常运行和 5.3 的空状态测试。
+
+
+第五阶段 5.5 扩展星标仓库列表自动化覆盖：
+
+- 使用 `-ui-testing-starred-fixtures` 加载固定的本地星标仓库，不读取真实星标列表、不调用 GitHub API。
+- 验证星标仓库列表初始展示、自己的/别人的筛选、按仓库描述搜索和无匹配空状态。
+- 搜索框、筛选按钮、星标仓库行及入口提供稳定的 Accessibility Identifier。
+- UI 测试模式下跳过星标列表网络加载、下拉刷新和分页请求；正常运行逻辑保持不变。
