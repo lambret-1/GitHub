@@ -41,7 +41,7 @@ final class StarredReposUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["starred.row.swift-foundation"].exists)
     }
 
-    func testSearchMatchesRepositoryDescriptionAndShowsEmptyState() {
+    func testSearchMatchesRepositoryDescription() {
         let searchField = app.textFields["starred.searchField"]
         XCTAssertTrue(searchField.waitForExistence(timeout: 10))
         searchField.tap()
@@ -49,12 +49,12 @@ final class StarredReposUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["starred.row.python-cli"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["starred.row.swift-foundation"].exists)
         XCTAssertFalse(app.staticTexts["starred.row.design-system"].exists)
+    }
 
+    func testSearchWithNoMatchesShowsEmptyState() {
+        let searchField = app.textFields["starred.searchField"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 10))
         searchField.tap()
-        let clearCount = (searchField.value as? String ?? "").count
-        for _ in 0..<clearCount {
-            searchField.typeText(XCUIKeyboardKey.delete.rawValue)
-        }
         searchField.typeText("not-a-starred-repository")
         XCTAssertTrue(app.staticTexts["没有找到匹配的仓库"].waitForExistence(timeout: 3))
     }
