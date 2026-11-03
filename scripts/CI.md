@@ -1,35 +1,71 @@
-# CI 基础设施
+# CI 与 UI 自动化测试基础设施
 
-## 阶段一：工具链与项目生成检查
-
-当前 CI 基础环境：
+## 工具链
 
 | 项目 | 版本 |
 | --- | --- |
 | GitHub Actions Runner | macOS 14 |
 | Xcode | 15.4 |
 | Swift | 5.10（随 Xcode 15.4 提供） |
-| XcodeGen | 2.46.0（当前 CI Runner 安装版本） |
-| SwiftLint | 0.65.1（当前 CI Runner 安装版本） |
+| XcodeGen | 2.46.0 |
+| SwiftLint | 0.65.1 |
 | iOS Deployment Target | 16.0 |
 
-工作流：`.github/workflows/ci-bootstrap.yml`
+## 测试 Target
 
-本地执行：
+XcodeGen 通过 `project.yml` 声明三个 Target：
+
+- `GitHub`：iOS 主应用。
+- `GitHubTests`：单元测试。
+- `GitHubUITests`：iOS Simulator UI 自动化测试。
+
+`GitHub` Scheme 同时包含 XCTest 与 XCUITest，并启用代码覆盖率收集。
+
+## UI 测试隔离约定
+
+UI 测试启动应用时必须同时设置：
+
+- 启动参数：`-ui-testing`
+- 启动环境变量：`UI_TESTING=1`
+
+应用检测到 UI 测试模式后：
+
+1. 不读取 Keychain 登录状态，不恢复真实账号。
+2. 不发起启动阶段的用户信息或版本检查网络请求。
+3. 不安装崩溃日志处理器。
+4. 使用固定的浅色模式初始状态，不读取或写入持久化主题偏好。
+5. 跳过分享文件扫描等启动副作用。
+
+每个 UI 测试在结束时终止被测应用，避免测试实例跨用例残留。CI 禁用 Xcode 测试并行执行，避免模拟器和共享持久化状态造成竞争。
+
+## 本地执行
 
 ```bash
 brew install xcodegen swiftlint
-chmod +x scripts/ci-bootstrap.sh
-GITHUB_SHA="$(git rev-parse HEAD)" ./scripts/ci-bootstrap.sh
+./scripts/ci-swiftlint.sh
+./scripts/ci-bootstrap.sh
+xcodebuild test \
+  -project GitHub.xcodeproj \
+  -scheme GitHub \
+  -destination 'platform=iOS Simulator,name=iPhone 15' \
+  -resultBundlePath TestResults.xcresult \
+  -parallel-testing-enabled NO \
+  CODE_SIGNING_ALLOWED=NO
 ```
 
-检查脚本会：
+## GitHub Actions
 
-1. 输出 macOS、Xcode、Swift、XcodeGen 和 SwiftLint 版本。
-2. 检查项目配置、SwiftLint 配置和 Info.plist 是否存在。
-3. 使用 XcodeGen 生成 `GitHub.xcodeproj`。
-4. 将生成工程的 `objectVersion` 规范为 60，以兼容 Xcode 15.4。
-5. 使用 `xcodebuild -list` 验证工程和 GitHub Scheme。
-6. 确认当前检出的提交 SHA 与 CI 触发 SHA 一致。
+工作流：`.github/workflows/ci-unit-tests.yml`
 
-> 当前阶段只验证 CI 工具链和 XcodeGen 工程生成，不执行 SwiftLint 全量检查、XCTest 或 XCUITest。这些检查分别在后续阶段接入。
+执行顺序：
+
+1. 检出触发提交并校验工具链版本。
+2. 执行 SwiftLint 质量门禁。
+3. 使用 XcodeGen 生成工程并验证 Scheme。
+4. 检查 iPhone 15 模拟器可用性。
+5. 顺序执行 XCTest 与 XCUITest。
+6. 无论测试成功或失败，上传 `TestResults.xcresult`（若已生成）。
+
+## 当前阶段验收范围
+
+第五阶段 5.1 只验收测试基础设施与隔离机制：Target/Scheme 配置、UI 测试启动约定、持久化状态隔离、应用生命周期清理，以及 CI 的非并行模拟器执行。业务页面覆盖率在后续子阶段逐步扩展。
