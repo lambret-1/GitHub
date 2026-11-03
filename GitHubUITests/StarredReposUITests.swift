@@ -9,8 +9,12 @@ final class StarredReposUITests: XCTestCase {
         app.launchArguments = ["-ui-testing", "-ui-testing-authenticated", "-ui-testing-starred-fixtures"]
         app.launchEnvironment["UI_TESTING"] = "1"
         app.launch()
-        app.tabBars.buttons["仓库"].tap()
-        app.buttons["repo.starredButton"].tap()
+        let repositoriesTab = app.tabBars.buttons["仓库"]
+        XCTAssertTrue(repositoriesTab.waitForExistence(timeout: 10))
+        repositoriesTab.tap()
+        let starredButton = app.buttons["repo.starredButton"]
+        XCTAssertTrue(starredButton.waitForExistence(timeout: 5))
+        starredButton.tap()
     }
 
     override func tearDownWithError() throws {
