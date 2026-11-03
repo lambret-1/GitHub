@@ -39,6 +39,10 @@ class AppState: ObservableObject {
         guard !Self.isUITesting else {
             isDarkMode = false
             isLoggedIn = Self.isUITestingAuthenticated
+            if Self.isUITestingAuthenticated,
+               ProcessInfo.processInfo.arguments.contains("-ui-testing-profile-fixtures") {
+                currentUser = Self.uiTestingProfile
+            }
             return
         }
 
@@ -56,6 +60,23 @@ class AppState: ObservableObject {
             }
     }
     
+    /// 固定个人资料仅用于 UI 自动化，避免读取账号凭据或请求 GitHub API。
+    private static let uiTestingProfile = GitHubUser(
+        id: 9001,
+        login: "ui-tester",
+        name: "UI Test User",
+        avatarUrl: "",
+        bio: "本地 UI 自动化测试账号",
+        company: "Example Labs",
+        location: "San Francisco",
+        blog: "https://example.invalid",
+        publicRepos: 12,
+        followers: 34,
+        following: 5,
+        htmlUrl: "https://example.invalid/ui-tester",
+        createdAt: nil
+    )
+
     /// 切换暗黑模式
     func toggleDarkMode() {
         isDarkMode.toggle()
