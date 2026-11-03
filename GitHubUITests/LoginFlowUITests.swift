@@ -12,7 +12,7 @@ final class LoginFlowUITests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        if app?.state == .running {
+        if let app = app, app.state != .notRunning {
             app.terminate()
         }
         app = nil
