@@ -47,7 +47,6 @@ final class RepoListInteractionUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["repo.row.python-tools"].exists)
     }
 
-
     func testSearchMatchesRepositoryDescription() {
         let searchField = app.searchFields["repo.searchField"]
         XCTAssertTrue(searchField.waitForExistence(timeout: 10))
