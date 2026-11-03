@@ -4,55 +4,60 @@ import Combine
 
 class AppState: ObservableObject {
     static let shared = AppState()
-    
+    static var isUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ui-testing")
+    }
+
     @Published var isLoggedIn: Bool = false
     @Published var currentUser: GitHubUser?
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
-    
+
     // 暗黑模式状态
     @Published var isDarkMode: Bool = false
-    
+
     // 更新推送相关状态
     @Published var showUpdateAlert: Bool = false
     @Published var latestRelease: AppVersion.ReleaseInfo?
     @Published var isDownloadingUpdate: Bool = false
     @Published var updateDownloadProgress: Double = 0
-    
+
     // AccountManager的cancellable，用于监听账号切换
     private var accountCancellable: AnyCancellable?
-    
+
     // 稍后提醒的时间戳（UserDefaults键名）
     private let laterReminderKey = "laterReminderTimestamp"
-    
+
     private init() {
-        // 从UserDefaults读取暗黑模式设置
         isDarkMode = UserDefaults.standard.bool(forKey: "isDarkMode")
+
+        // UI 测试使用固定的未登录状态，避免读取 Keychain、恢复账号或触发网络请求。
+        guard !Self.isUITesting else { return }
+
         checkLoginStatus()
-        
+
         // 监听AccountManager的currentAccount变化，账号切换时自动加载新用户信息
         accountCancellable = AccountManager.shared.$currentAccount
             .receive(on: DispatchQueue.main)
             .sink { [weak self] account in
-                guard self != nil, account != nil else { return }
-                // 账号切换时，自动加载新用户信息
-                self?.loadUserInfo()
+                guard let self, account != nil else { return }
+                self.loadUserInfo()
             }
     }
-    
+
     /// 切换暗黑模式
     func toggleDarkMode() {
         isDarkMode.toggle()
         UserDefaults.standard.set(isDarkMode, forKey: "isDarkMode")
     }
-    
+
     func checkLoginStatus() {
         isLoggedIn = TokenKeychain.shared.hasToken
         if isLoggedIn {
-            // 修复：Token 存在但 AccountManager 中账号信息丢失时，自动从网络恢复账号
+            // Token 存在但账号信息丢失时，从网络恢复账号。
             if AccountManager.shared.currentAccount == nil {
                 loadUserInfo { user in
-                    guard let user = user else { return }
+                    guard let user else { return }
                     let account = GitHubAccount(
                         id: String(user.id),
                         username: user.login,
@@ -68,12 +73,11 @@ class AppState: ObservableObject {
             }
         }
     }
-    
+
     func login(token: String, completion: @escaping (Bool, String?) -> Void) {
         isLoading = true
         errorMessage = nil
 
-        // 使用候选 Token 独立验证，不覆盖当前已登录账号的凭据
         GitHubAPI.shared.getUserInfo(token: token) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isLoading = false
@@ -81,8 +85,6 @@ class AppState: ObservableObject {
                 case .success(let user):
                     self?.currentUser = user
                     self?.isLoggedIn = true
-
-                    // 将账号添加到AccountManager
                     let account = GitHubAccount(
                         id: String(user.id),
                         username: user.login,
@@ -92,10 +94,8 @@ class AppState: ObservableObject {
                     )
                     AccountManager.shared.addAccount(account)
                     AccountManager.shared.switchTo(account)
-
                     completion(true, nil)
                 case .failure(let error):
-                    // 验证失败时保留原有账号与 Token，避免错误输入导致当前会话丢失
                     self?.isLoggedIn = TokenKeychain.shared.hasToken
                     self?.errorMessage = error.localizedDescription
                     completion(false, error.localizedDescription)
@@ -105,16 +105,14 @@ class AppState: ObservableObject {
     }
 
     func logout() {
-        // 从AccountManager中删除当前账号
         if let currentAccount = AccountManager.shared.currentAccount {
             AccountManager.shared.deleteAccount(currentAccount)
         }
-
         TokenKeychain.shared.deleteToken()
         currentUser = nil
         isLoggedIn = false
     }
-    
+
     func loadUserInfo(completion: ((GitHubUser?) -> Void)? = nil) {
         GitHubAPI.shared.getUserInfo { [weak self] result in
             DispatchQueue.main.async {
@@ -128,25 +126,22 @@ class AppState: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - 更新推送功能
-    
+
     /// 检查更新并推送通知
     /// - Parameter force: 是否强制检查（忽略稍后提醒）
     func checkForUpdatesAndNotify(force: Bool = false) {
-        // 如果不是强制检查，检查是否在稍后提醒时间内
-        if !force {
-            if let laterTimestamp = UserDefaults.standard.object(forKey: laterReminderKey) as? TimeInterval {
-                let currentTime = Date().timeIntervalSince1970
-                // 稍后提醒有效期为1小时
-                if currentTime - laterTimestamp < 60 * 60 {
-                    return
-                }
+        if !force,
+           let laterTimestamp = UserDefaults.standard.object(forKey: laterReminderKey) as? TimeInterval {
+            let currentTime = Date().timeIntervalSince1970
+            if currentTime - laterTimestamp < 60 * 60 {
+                return
             }
         }
-        
+
         AppVersion.checkForUpdates { [weak self] result in
-            guard let self = self else { return }
+            guard let self else { return }
             DispatchQueue.main.async {
                 if case .updateAvailable(let release) = result {
                     self.latestRelease = release
@@ -155,31 +150,25 @@ class AppState: ObservableObject {
             }
         }
     }
-    
+
     /// 稍后提醒更新
     func remindLater() {
         showUpdateAlert = false
-        // 记录当前时间戳，1小时内不再提醒（应用启动时强制检查会忽略此限制）
         UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: laterReminderKey)
     }
-    
+
     /// 立即下载更新
     func downloadUpdateNow() {
         guard let release = latestRelease else { return }
         showUpdateAlert = false
         isDownloadingUpdate = true
         updateDownloadProgress = 0
-        
-        // 找到IPA文件的下载链接
-        let ipaAsset = release.assets.first { $0.name.hasSuffix(".ipa") }
-        guard let asset = ipaAsset else {
+
+        guard let asset = release.assets.first(where: { $0.name.hasSuffix(".ipa") }) else {
             isDownloadingUpdate = false
             return
         }
-        
-        // 下载更新并自动弹出分享面板
-        // 使用API端点URL（url字段），支持私有仓库，需要认证头
-        // API端点会返回302重定向到实际下载地址，URLSession自动跟随
+
         FileDownloadManager.shared.downloadAndShare(
             from: asset.url,
             fileName: asset.name,
@@ -192,7 +181,7 @@ class AppState: ObservableObject {
             DispatchQueue.main.async {
                 self?.isDownloadingUpdate = false
                 if case .failure = result {
-                    // 下载失败，可以在这里添加错误处理
+                    // 下载失败时由界面状态结束下载覆盖层。
                 }
             }
         }
