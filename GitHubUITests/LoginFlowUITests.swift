@@ -53,7 +53,7 @@ final class LoginFlowUITests: XCTestCase {
         XCTAssertTrue(loginButton.isEnabled)
         loginButton.tap()
 
-        let errorMessage = app.staticTexts["login.errorMessage"]
+        let errorMessage = app.descendants(matching: .any)["login.errorMessage"]
         XCTAssertTrue(errorMessage.waitForExistence(timeout: 3))
         XCTAssertEqual(errorMessage.label, "请输入有效的 Token")
         XCTAssertTrue(app.staticTexts["login.title"].exists)
@@ -69,7 +69,7 @@ final class LoginFlowUITests: XCTestCase {
         XCTAssertTrue(loginButton.isEnabled)
         loginButton.tap()
 
-        let errorMessage = app.staticTexts["login.errorMessage"]
+        let errorMessage = app.descendants(matching: .any)["login.errorMessage"]
         XCTAssertTrue(errorMessage.waitForExistence(timeout: 3))
         XCTAssertEqual(errorMessage.label, "UI 测试模式已拦截真实登录请求")
         XCTAssertTrue(app.staticTexts["login.title"].exists)

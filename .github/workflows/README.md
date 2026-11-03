@@ -1,55 +1,55 @@
 # GitHub Actions 工作流目录
 
-本目录存放项目的 CI/CD 工作流配置文件。
+本目录存放项目 CI/CD 工作流配置。
 
-## CI 统一入口
+## CI Queue Manager 1.0
 
-### ci-orchestrator.yml
+### 唯一自动入口：ci-orchestrator.yml
 
-CI Queue Manager 1.0 统一入口，负责 Push、Pull Request 和手动 CI 调度。
+监听 Push（main）、Pull Request 和 workflow_dispatch。所有事件由 Orchestrator 编排：
 
-执行顺序：
-1. SwiftLint 质量门禁。
-2. Bootstrap：安装工具链、生成并验证 Xcode 工程。
-3. XCTest + XCUITest：在 iPhone 15 Simulator 上顺序执行。
-4. 汇总各阶段结果；任一必要阶段失败，统一入口失败。
+1. SwiftLint 与 Bootstrap 并行执行。
+2. 两个质量门禁都成功后，才启动 XCTest。
+3. XCTest 成功后才启动 XCUITest。
+4. 汇总提交 SHA、事件、引用分支和每阶段结果；任一必要阶段失败则整体失败。
 
-队列策略：
-- 同一 Push 分支的新提交取消该分支正在运行的旧自动 CI。
-- 同一 PR 的新提交取消该 PR 正在运行的旧自动 CI。
-- Push、PR、手动运行使用不同 concurrency group，互不误取消。
-- 手动运行使用唯一 run ID，始终独立执行。
-- 仅 Orchestrator 定义 concurrency，Reusable Workflows 不声明共享组。
+Bootstrap 生成并验证 Xcode 工程后，将工程作为本次 run 的短期 Artifact 交给测试 Job，避免在不同 Runner 上重复安装工具和生成工程。
+
+### 队列隔离与运行策略
+
+- main Push：按 Git ref 分组。
+- Pull Request：按 PR number 分组，不同 PR 互不影响。
+- workflow_dispatch：每次 run ID 独立分组，不被 Push/PR 任务替换。
+- `cancel-in-progress: false`：新提交不会中断同组正在运行的旧任务；GitHub Actions 原生并发只保留一个待处理任务，新的待处理运行会替换旧待处理运行。
+- 本阶段不主动取消运行中的旧 SHA；精确 SHA 过期识别与 API 取消属于后续 Latest 队列阶段。
+- 生产构建不复用普通 CI concurrency group。
 
 ### 可复用工作流与 Action
 
 | 文件 | 职责 |
 | --- | --- |
 | ci-swiftlint.yml | 可复用 SwiftLint 质量门禁 |
-| ci-unit-tests.yml | 可复用 Bootstrap + XCTest + XCUITest |
-| ci-bootstrap.yml | 可复用独立基础设施检查 |
-| ../actions/ci-bootstrap/action.yml | 统一工具链安装与 XcodeGen 校验模块 |
+| ci-bootstrap.yml | 可复用工具链与 XcodeGen 检查 |
+| ci-unit-tests.yml | 串行执行 XCTest、XCUITest |
+| ../actions/ci-bootstrap/action.yml | 安装工具链并生成/验证 Xcode 工程 |
 
-子工作流仅通过 workflow_call 调用，不再监听 Push、PR 或手动事件，避免重复触发。手动 CI 请从 ci-orchestrator.yml 的 Run workflow 入口启动。
+子工作流仅使用 workflow_call，不监听 Push、PR 或手动事件，也不声明共享 concurrency group。手动 CI 从 ci-orchestrator.yml 的 Run workflow 入口启动。
 
 ## 生产构建
 
 ### production-build.yml
 
-生产构建当前实际触发条件：
+生产构建当前触发条件为：
 - 推送到 testping 分支。
 - workflow_dispatch 手动触发。
-- PR 不触发。
 
-生产构建保持独立于普通 CI：本阶段不修改其触发分支、发布行为或原有并行策略，不加入普通 CI concurrency group。
-
-主要功能包括版本检查、Xcode 编译、未签名 IPA 导出、SHA256 元数据、README 更新日志、Artifacts 上传与清理。
+本阶段不修改生产构建触发分支、发布步骤或制品行为。生产构建保持独立，不加入普通 CI 队列。
 
 ## 维护约定
 
 1. 自动 CI 事件入口只保留在 ci-orchestrator.yml。
-2. 可复用工作流只使用 workflow_call。
-3. 不在 Reusable Workflow 中声明与 Orchestrator 冲突的 concurrency group。
-4. 所有 Artifacts 使用 run ID 与 attempt 唯一命名，避免并发覆盖。
-5. 生产构建与普通 CI 队列隔离。
+2. SwiftLint 和 Bootstrap 必须都成功后才可执行测试。
+3. XCTest 与 XCUITest 串行执行，XCUITest 依赖 XCTest 成功。
+4. 所有测试 Artifacts 使用 run ID 与 attempt 唯一命名。
+5. 普通 CI 与生产构建队列隔离。
 6. 敏感信息使用 GitHub Secrets，不在工作流中硬编码。

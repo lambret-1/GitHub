@@ -18,3 +18,10 @@ jobs:
           fetch-depth: 1
       - name: 执行统一 Bootstrap Action
         uses: ./.github/actions/ci-bootstrap
+      - name: 上传已验证的 Xcode 工程
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcode-project-${{ github.run_id }}-${{ github.run_attempt }}
+          path: GitHub.xcodeproj
+          if-no-files-found: error
+          retention-days: 1

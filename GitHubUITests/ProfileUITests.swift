@@ -37,6 +37,11 @@ final class ProfileUITests: XCTestCase {
 
     func testAboutNavigationAndBackToProfile() {
         let aboutButton = app.buttons["profile.aboutButton"]
+        var aboutSwipeCount = 0
+        while !aboutButton.exists && aboutSwipeCount < 5 {
+            app.swipeUp()
+            aboutSwipeCount += 1
+        }
         XCTAssertTrue(aboutButton.waitForExistence(timeout: 10))
         aboutButton.tap()
 
@@ -49,6 +54,11 @@ final class ProfileUITests: XCTestCase {
 
     func testLogoutCanBeCancelledWithoutLeavingProfile() {
         let logoutButton = app.buttons["profile.logoutButton"]
+        var logoutSwipeCount = 0
+        while !logoutButton.exists && logoutSwipeCount < 5 {
+            app.swipeUp()
+            logoutSwipeCount += 1
+        }
         XCTAssertTrue(logoutButton.waitForExistence(timeout: 10))
         logoutButton.tap()
 

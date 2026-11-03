@@ -9,10 +9,11 @@ on:
 permissions:
   contents: read
 
-# Push、PR、手动运行分组隔离；新自动提交取消同队列旧运行。
+# A 策略：正在运行的旧任务继续完成；GitHub 只替换同组较旧的待处理任务。
+# Push、PR、手动运行彼此隔离；生产构建不进入此队列。
 concurrency:
   group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || github.event_name == 'workflow_dispatch' && format('ci-manual-{0}', github.run_id) || format('ci-push-{0}', github.ref) }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   swiftlint:
@@ -21,9 +22,15 @@ jobs:
     permissions:
       contents: read
 
+  bootstrap:
+    name: Bootstrap validation
+    uses: ./.github/workflows/ci-bootstrap.yml
+    permissions:
+      contents: read
+
   tests:
-    name: Bootstrap + XCTest + XCUITest
-    needs: swiftlint
+    name: XCTest then XCUITest
+    needs: [swiftlint, bootstrap]
     uses: ./.github/workflows/ci-unit-tests.yml
     permissions:
       contents: read
@@ -31,23 +38,32 @@ jobs:
   summary:
     name: CI result summary
     if: always()
-    needs: [swiftlint, tests]
+    needs: [swiftlint, bootstrap, tests]
     runs-on: ubuntu-latest
     steps:
       - name: 汇总流水线结果
         env:
           SWIFTLINT_RESULT: ${{ needs.swiftlint.result }}
+          BOOTSTRAP_RESULT: ${{ needs.bootstrap.result }}
           TESTS_RESULT: ${{ needs.tests.result }}
+          HEAD_SHA: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref }}
         run: |
           {
             echo "## CI Queue Manager 1.0"
             echo
+            echo "- **Event:** ${EVENT_NAME}"
+            echo "- **Ref:** ${REF_NAME}"
+            echo "- **Commit:** ${HEAD_SHA}"
+            echo
             echo "| Stage | Result |"
             echo "|---|---|"
             echo "| SwiftLint | ${SWIFTLINT_RESULT} |"
-            echo "| Bootstrap + XCTest + XCUITest | ${TESTS_RESULT} |"
+            echo "| Bootstrap | ${BOOTSTRAP_RESULT} |"
+            echo "| XCTest → XCUITest | ${TESTS_RESULT} |"
           } >> "$GITHUB_STEP_SUMMARY"
-          if [[ "${SWIFTLINT_RESULT}" != "success" || "${TESTS_RESULT}" != "success" ]]; then
+          if [[ "${SWIFTLINT_RESULT}" != "success" || "${BOOTSTRAP_RESULT}" != "success" || "${TESTS_RESULT}" != "success" ]]; then
             echo "::error::CI did not complete successfully."
             exit 1
           fi

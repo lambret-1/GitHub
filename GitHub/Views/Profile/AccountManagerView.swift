@@ -101,6 +101,7 @@ struct AccountManagerView: View {
             }
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("account.row.\(account.username)")
         .contextMenu {
             if !isCurrent {

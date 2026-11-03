@@ -8,17 +8,20 @@ permissions:
 
 jobs:
   unit-tests:
-    name: XCTest + XCUITest（iOS Simulator）
+    name: XCTest then XCUITest（iOS Simulator）
     runs-on: macos-14
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: 检出触发提交
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
-      - name: 生成并验证 Xcode 项目
-        uses: ./.github/actions/ci-bootstrap
+      - name: 下载 Bootstrap 验证的 Xcode 工程
+        uses: actions/download-artifact@v4
+        with:
+          name: xcode-project-${{ github.run_id }}-${{ github.run_attempt }}
+          path: GitHub.xcodeproj
       - name: 检查可用模拟器
         run: |
           xcrun simctl list devices available
@@ -26,13 +29,24 @@ jobs:
             echo "::error::iPhone 15 simulator is not available on this runner"
             exit 1
           fi
-      - name: 执行 XCTest + XCUITest
+      - name: 执行 XCTest
         run: |
           xcodebuild test \
             -project GitHub.xcodeproj \
             -scheme GitHub \
             -destination 'platform=iOS Simulator,name=iPhone 15' \
-            -resultBundlePath TestResults.xcresult \
+            -only-testing:GitHubTests \
+            -resultBundlePath XCTestResults.xcresult \
+            -parallel-testing-enabled NO \
+            CODE_SIGNING_ALLOWED=NO
+      - name: 执行 XCUITest
+        run: |
+          xcodebuild test \
+            -project GitHub.xcodeproj \
+            -scheme GitHub \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -only-testing:GitHubUITests \
+            -resultBundlePath XCUITestResults.xcresult \
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO
       - name: 上传 XCTest + XCUITest 结果
@@ -40,6 +54,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: xcode-test-results-${{ github.run_id }}-${{ github.run_attempt }}
-          path: TestResults.xcresult
+          path: |
+            XCTestResults.xcresult
+            XCUITestResults.xcresult
           if-no-files-found: ignore
           retention-days: 14
