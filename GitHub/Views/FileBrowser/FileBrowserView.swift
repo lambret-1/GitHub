@@ -1660,6 +1660,25 @@ struct FileBrowserView: View {
 
     /// 判断当前仓库是否是用户自己的仓库
     /// 优先使用 AccountManager.currentAccount，若为 nil（Token 存在但 UserDefaults 账号信息丢失）则回退到 appState.currentUser
+    private static var uiTestingLatestCommit: Commit {
+        let person = CommitPerson(
+            name: "UI Test User",
+            email: "ui-tester@example.invalid",
+            date: "2026-01-01T00:00:00Z"
+        )
+        let detail = CommitDetail(
+            message: "Add local UI test fixture",
+            author: person,
+            committer: person
+        )
+        return Commit(
+            sha: "abcdef0123456789",
+            commit: detail,
+            author: CommitAuthor(login: "ui-tester", avatarUrl: nil),
+            htmlUrl: "https://example.invalid/commit/abcdef0"
+        )
+    }
+
     private static var isUITestingFileBrowserEnabled: Bool {
         AppState.isUITesting
             && ProcessInfo.processInfo.arguments.contains("-ui-testing-filebrowser-fixtures")
@@ -2227,7 +2246,9 @@ struct FileBrowserView: View {
                     ? "# swift-client\n\n本地 UI 自动化测试仓库。"
                     : nil
                 readmeError = nil
-                latestCommit = nil
+                latestCommit = ProcessInfo.processInfo.arguments.contains("-ui-testing-commit-fixtures")
+                    ? Self.uiTestingLatestCommit
+                    : nil
                 isLoadingReadme = false
                 isLoadingLatestCommit = false
             } else {

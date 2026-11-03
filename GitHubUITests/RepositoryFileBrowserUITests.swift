@@ -10,7 +10,8 @@ final class RepositoryFileBrowserUITests: XCTestCase {
             "-ui-testing",
             "-ui-testing-authenticated",
             "-ui-testing-repository-fixtures",
-            "-ui-testing-filebrowser-fixtures"
+            "-ui-testing-filebrowser-fixtures",
+            "-ui-testing-commit-fixtures"
         ]
         app.launchEnvironment["UI_TESTING"] = "1"
         app.launch()
@@ -32,6 +33,20 @@ final class RepositoryFileBrowserUITests: XCTestCase {
         XCTAssertTrue(app.buttons["file.row.Sources"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["file.row.README.md"].exists)
         XCTAssertTrue(app.buttons["file.row.Package.swift"].exists)
+    }
+
+    func testCommitHistoryLoadsLocalFixtureWithoutNetwork() {
+        let repository = app.staticTexts["repo.row.swift-client"]
+        XCTAssertTrue(repository.waitForExistence(timeout: 10))
+        repository.tap()
+
+        let historyButton = app.buttons["repo.viewCommitHistory"]
+        XCTAssertTrue(historyButton.waitForExistence(timeout: 10))
+        historyButton.tap()
+
+        XCTAssertTrue(app.navigationBars["提交记录"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["commit.row.abcdef0"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Add local UI test fixture"].exists)
     }
 
     func testNestedDirectoryNavigationAndBreadcrumbReturnToRoot() {

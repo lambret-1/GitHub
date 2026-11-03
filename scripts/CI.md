@@ -143,6 +143,13 @@ xcodebuild test \
 - 正常运行时仍走原有 GitHub API 逻辑。
 
 
+第五阶段 5.10 扩展提交历史 UI 自动化覆盖：
+
+- 使用 `-ui-testing-commit-fixtures` 注入本地提交记录，不访问真实 GitHub API。
+- 验证仓库头部的提交历史入口、提交列表标题和提交信息展示。
+- UI 测试模式下提交列表、刷新和分页均使用本地数据或安全空状态。
+- 为提交历史入口和提交行提供稳定的 Accessibility Identifier。
+
 ## CI Queue Manager 1.0
 
 统一入口：`.github/workflows/ci-orchestrator.yml`

@@ -62,7 +62,7 @@ struct CommitsListView: View {
         .navigationTitle("提交记录")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            if commits.isEmpty {
+            if AppState.isUITesting || commits.isEmpty {
                 loadCommits()
             }
         }
@@ -147,8 +147,40 @@ struct CommitsListView: View {
         .padding(.vertical, 40)
     }
 
+    /// 仅供 UI 自动化使用的本地提交记录。
+    private static var uiTestingCommits: [Commit] {
+        let person = CommitPerson(
+            name: "UI Test User",
+            email: "ui-tester@example.invalid",
+            date: "2026-01-01T00:00:00Z"
+        )
+        let detail = CommitDetail(
+            message: "Add local UI test fixture",
+            author: person,
+            committer: person
+        )
+        return [
+            Commit(
+                sha: "abcdef0123456789",
+                commit: detail,
+                author: CommitAuthor(login: "ui-tester", avatarUrl: nil),
+                htmlUrl: "https://example.invalid/commit/abcdef0"
+            )
+        ]
+    }
+
     // MARK: - 加载提交列表
     private func loadCommits() {
+        if AppState.isUITesting {
+            commits = ProcessInfo.processInfo.arguments.contains("-ui-testing-commit-fixtures")
+                ? Self.uiTestingCommits
+                : []
+            isLoading = false
+            errorMessage = nil
+            hasMore = false
+            return
+        }
+
         isLoading = true
         errorMessage = nil
 
@@ -168,6 +200,10 @@ struct CommitsListView: View {
 
     // MARK: - 加载更多提交
     private func loadMoreCommits() {
+        guard !AppState.isUITesting else {
+            isLoadingMore = false
+            return
+        }
         isLoadingMore = true
         currentPage += 1
 
@@ -214,6 +250,7 @@ struct CommitRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 // 提交信息
                 Text(commit.message)
+                    .accessibilityIdentifier("commit.row.\(commit.shortSha)")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
                     .lineLimit(2)

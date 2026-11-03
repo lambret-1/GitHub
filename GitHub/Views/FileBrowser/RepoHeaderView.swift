@@ -333,6 +333,7 @@ struct RepoHeaderView: View {
                             .frame(width: 20, height: 20)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityIdentifier("repo.viewCommitHistory")
                     .accessibilityLabel("查看提交历史")
                 } else {
                     // 无提交信息（空仓库状态，生产级空态设计）
