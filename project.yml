@@ -55,4 +55,30 @@ targets:
         INFOPLIST_FILE: GitHub/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: GitHub/GitHub.entitlements
-    # VPN 暂时从本次 IPA 构建中排除；对应源代码与 target 配置留存在仓库备份中
+
+  GitHubTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: GitHubTests
+    dependencies:
+      - target: GitHub
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.github.client.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        TEST_TARGET_NAME: GitHub
+
+schemes:
+  GitHub:
+    build:
+      targets:
+        GitHub: all
+    test:
+      config: Debug
+      targets:
+        - GitHubTests
+      gatherCoverageData: true
