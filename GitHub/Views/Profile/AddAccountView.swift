@@ -145,6 +145,17 @@ struct AddAccountView: View {
         let trimmedToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedToken.isEmpty else { return }
 
+        if AppState.isUITesting {
+            let account = GitHubAccount(
+                id: "9004",
+                username: "ui-added",
+                token: "ui-testing-token",
+                displayName: "UI Added Account"
+            )
+            onSuccess(account)
+            return
+        }
+
         isVerifying = true
         verifyError = nil
 
