@@ -3,7 +3,7 @@
 # 用途：通过 YAML 配置动态生成标准 Xcode 项目（.xcodeproj）
 # 工具：XcodeGen (https://github.com/yonaskolb/XcodeGen)
 # 使用：xcodegen generate
-# 注意：版本号由 Info.plist 管理，CI 自动递增，此处不硬编码版本
+# 注意：版本号由 GitHub/Info.plist 管理；CI 只读取现有版本，不自动递增
 # ==============================================================================
 
 name: GitHub
