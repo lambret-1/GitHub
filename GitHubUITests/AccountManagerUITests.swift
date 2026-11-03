@@ -49,6 +49,24 @@ final class AccountManagerUITests: XCTestCase {
         XCTAssertTrue(app.buttons["account.switch.ui-tester"].exists)
     }
 
+    func testAddAccountUsesLocalFixtureWithoutNetwork() {
+        let addButton = app.buttons["account.addButton"]
+        XCTAssertTrue(addButton.waitForExistence(timeout: 5))
+        addButton.tap()
+
+        let tokenField = app.secureTextFields["account.tokenField"]
+        XCTAssertTrue(tokenField.waitForExistence(timeout: 5))
+        tokenField.tap()
+        tokenField.typeText("test-token")
+
+        let createButton = app.buttons["验证并添加"]
+        XCTAssertTrue(createButton.exists)
+        createButton.tap()
+
+        XCTAssertTrue(app.navigationBars["账号管理"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["@ui-added"].waitForExistence(timeout: 5))
+    }
+
     func testAddAccountSheetCanBeCancelledWithoutNetwork() {
         let addButton = app.buttons["account.addButton"]
         XCTAssertTrue(addButton.waitForExistence(timeout: 5))
