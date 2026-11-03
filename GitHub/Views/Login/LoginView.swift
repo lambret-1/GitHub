@@ -111,6 +111,7 @@ struct LoginView: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(.red)
                             Text(errorMessage)
+                                .accessibilityIdentifier("login.errorMessage")
                                 .foregroundColor(.red)
                                 .font(.subheadline)
                         }
