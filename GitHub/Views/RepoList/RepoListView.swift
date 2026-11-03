@@ -312,7 +312,6 @@ struct RepoListView: View {
             applyFilter()
         }
     }
-    
 
     /// Deterministic local data used only by repository-list UI automation.
     private static var uiTestRepositories: [Repository] {
