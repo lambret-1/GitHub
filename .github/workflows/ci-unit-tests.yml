@@ -1,0 +1,70 @@
+name: CI 单元测试
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  XCODE_VERSION: "15.4"
+
+jobs:
+  unit-tests:
+    name: XCTest（iOS Simulator）
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - name: 检出触发提交
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: 选择 Xcode
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer"
+          xcodebuild -version
+          swift --version
+
+      - name: 安装 XcodeGen
+        run: |
+          brew install xcodegen
+          xcodegen --version
+
+      - name: 生成并验证 Xcode 项目
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          chmod +x scripts/ci-bootstrap.sh
+          ./scripts/ci-bootstrap.sh
+
+      - name: 检查可用模拟器
+        run: |
+          xcrun simctl list devices available
+          if ! xcrun simctl list devices available | grep -q "iPhone 15 ("; then
+            echo "::error::iPhone 15 simulator is not available on this runner"
+            exit 1
+          fi
+
+      - name: 执行 XCTest
+        run: |
+          xcodebuild test \
+            -project GitHub.xcodeproj \
+            -scheme GitHub \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: 上传 XCTest 结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xctest-results
+          path: TestResults.xcresult
+          if-no-files-found: ignore
+          retention-days: 14
