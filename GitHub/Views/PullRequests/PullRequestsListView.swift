@@ -60,7 +60,7 @@ struct PullRequestsListView: View {
             PullRequestDetailView(owner: owner, repo: repo, pullRequest: pr)
         }
         .onAppear {
-            if pullRequests.isEmpty {
+            if AppState.isUITesting || pullRequests.isEmpty {
                 loadPullRequests()
             }
         }
@@ -79,6 +79,7 @@ struct PullRequestsListView: View {
             Text("全部").tag("all")
         }
         .pickerStyle(.segmented)
+        .accessibilityIdentifier("pullRequests.statePicker")
         .onChange(of: selectedState) { _ in
             currentPage = 1
             hasMore = true
@@ -210,8 +211,55 @@ struct PullRequestsListView: View {
         }
     }
 
+    /// 仅供 UI 自动化使用的本地 Pull Request 数据。
+    private static var uiTestingPullRequests: [PullRequest] {
+        let user = GitHubUser(
+            id: 9001, login: "ui-tester", name: "UI Test User", avatarUrl: "",
+            bio: nil, company: nil, location: nil, blog: nil,
+            publicRepos: nil, followers: nil, following: nil,
+            htmlUrl: "https://example.invalid/ui-tester", createdAt: nil
+        )
+        let head = PullRequestBranch(label: nil, ref: "feature/ui", sha: "fixture-head", user: nil, repo: nil)
+        let base = PullRequestBranch(label: nil, ref: "main", sha: "fixture-base", user: nil, repo: nil)
+        return [
+            PullRequest(
+                id: 11, number: 11, title: "Open pull request fixture", body: "Local fixture",
+                state: .open, user: user, labels: nil, milestone: nil, comments: 0,
+                reviewComments: 0, commits: 1, additions: 3, deletions: 0, changedFiles: 1,
+                createdAt: nil, updatedAt: nil, closedAt: nil, mergedAt: nil,
+                htmlUrl: "https://example.invalid/pulls/11", head: head, base: base,
+                draft: false, mergeable: true, mergeableState: .clean, merged: false,
+                mergedBy: nil, mergeCommitSha: nil
+            ),
+            PullRequest(
+                id: 12, number: 12, title: "Closed pull request fixture", body: "Local fixture",
+                state: .closed, user: user, labels: nil, milestone: nil, comments: 0,
+                reviewComments: 0, commits: 1, additions: 0, deletions: 2, changedFiles: 1,
+                createdAt: nil, updatedAt: nil, closedAt: nil, mergedAt: nil,
+                htmlUrl: "https://example.invalid/pulls/12", head: head, base: base,
+                draft: false, mergeable: false, mergeableState: .unknown, merged: false,
+                mergedBy: nil, mergeCommitSha: nil
+            )
+        ]
+    }
+
     // MARK: - 加载PR列表
     private func loadPullRequests() {
+        if AppState.isUITesting {
+            let fixtures = Self.uiTestingPullRequests
+            if ProcessInfo.processInfo.arguments.contains("-ui-testing-pull-request-fixtures") {
+                pullRequests = selectedState == "all"
+                    ? fixtures
+                    : fixtures.filter { $0.state.rawValue == selectedState }
+            } else {
+                pullRequests = []
+            }
+            isLoading = false
+            errorMessage = nil
+            hasMore = false
+            return
+        }
+
         isLoading = true
         errorMessage = nil
 
@@ -231,6 +279,10 @@ struct PullRequestsListView: View {
 
     // MARK: - 加载更多PR
     private func loadMorePullRequests() {
+        guard !AppState.isUITesting else {
+            isLoadingMore = false
+            return
+        }
         isLoadingMore = true
         currentPage += 1
 
@@ -250,6 +302,11 @@ struct PullRequestsListView: View {
 
     // MARK: - 创建PR
     private func createPullRequest() {
+        guard !AppState.isUITesting else {
+            isCreating = false
+            errorMessage = "UI 测试模式已拦截创建 Pull Request 请求"
+            return
+        }
         isCreating = true
         let title = newPRTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         let head = newPRHead.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -295,6 +352,7 @@ struct PullRequestRow: View {
                 // 标题
                 HStack(spacing: 6) {
                     Text(pr.title)
+                        .accessibilityIdentifier("pullRequest.row.\(pr.number)")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(appState.isDarkMode ? .white : .primary)
                         .lineLimit(2)

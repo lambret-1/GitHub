@@ -58,7 +58,7 @@ struct IssuesListView: View {
             IssueDetailView(owner: owner, repo: repo, issue: issue)
         }
         .onAppear {
-            if issues.isEmpty {
+            if AppState.isUITesting || issues.isEmpty {
                 loadIssues()
             }
         }
@@ -77,6 +77,7 @@ struct IssuesListView: View {
             Text("全部").tag("all")
         }
         .pickerStyle(.segmented)
+        .accessibilityIdentifier("issues.statePicker")
         .onChange(of: selectedState) { _ in
             currentPage = 1
             hasMore = true
@@ -197,8 +198,47 @@ struct IssuesListView: View {
         }
     }
 
+    /// 仅供 UI 自动化使用的本地 Issue 数据。
+    private static var uiTestingIssues: [Issue] {
+        let user = GitHubUser(
+            id: 9001, login: "ui-tester", name: "UI Test User", avatarUrl: "",
+            bio: nil, company: nil, location: nil, blog: nil,
+            publicRepos: nil, followers: nil, following: nil,
+            htmlUrl: "https://example.invalid/ui-tester", createdAt: nil
+        )
+        return [
+            Issue(
+                id: 1, number: 1, title: "Open issue fixture", body: "Local fixture",
+                state: .open, user: user, labels: nil, milestone: nil, comments: 0,
+                createdAt: nil, updatedAt: nil, closedAt: nil,
+                htmlUrl: "https://example.invalid/issues/1", pullRequest: nil
+            ),
+            Issue(
+                id: 2, number: 2, title: "Closed issue fixture", body: "Local fixture",
+                state: .closed, user: user, labels: nil, milestone: nil, comments: 0,
+                createdAt: nil, updatedAt: nil, closedAt: nil,
+                htmlUrl: "https://example.invalid/issues/2", pullRequest: nil
+            )
+        ]
+    }
+
     // MARK: - 加载Issues
     private func loadIssues() {
+        if AppState.isUITesting {
+            let fixtures = Self.uiTestingIssues
+            if ProcessInfo.processInfo.arguments.contains("-ui-testing-issues-fixtures") {
+                issues = selectedState == "all"
+                    ? fixtures
+                    : fixtures.filter { $0.state.rawValue == selectedState }
+            } else {
+                issues = []
+            }
+            isLoading = false
+            errorMessage = nil
+            hasMore = false
+            return
+        }
+
         isLoading = true
         errorMessage = nil
 
@@ -218,6 +258,10 @@ struct IssuesListView: View {
 
     // MARK: - 加载更多Issues
     private func loadMoreIssues() {
+        guard !AppState.isUITesting else {
+            isLoadingMore = false
+            return
+        }
         isLoadingMore = true
         currentPage += 1
 
@@ -237,6 +281,11 @@ struct IssuesListView: View {
 
     // MARK: - 创建Issue
     private func createIssue() {
+        guard !AppState.isUITesting else {
+            isCreating = false
+            errorMessage = "UI 测试模式已拦截创建 Issue 请求"
+            return
+        }
         isCreating = true
         let title = newIssueTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         let body = newIssueBody.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -277,6 +326,7 @@ struct IssueRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 // 标题
                 Text(issue.title)
+                    .accessibilityIdentifier("issue.row.\(issue.number)")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(appState.isDarkMode ? .white : .primary)
                     .lineLimit(2)

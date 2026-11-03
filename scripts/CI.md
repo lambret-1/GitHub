@@ -133,6 +133,15 @@ xcodebuild test \
 - fixture 仅在 UI 测试模式与专用启动参数同时启用时生效。
 
 
+第五阶段 5.9 扩展 Issues 与 Pull Requests UI 自动化覆盖：
+
+- 使用独立启动参数加载本地 Issue/PR fixture，列表、筛选、刷新不得请求真实 GitHub API。
+- 验证开放、已关闭、全部三种状态筛选。
+- 为状态选择器与列表项提供稳定的 Accessibility Identifier。
+- UI 测试模式下拦截创建 Issue/PR 请求，避免误提交真实数据。
+- 正常运行时仍走原有 GitHub API 逻辑。
+
+
 ## CI Queue Manager 1.0
 
 统一入口：`.github/workflows/ci-orchestrator.yml`
