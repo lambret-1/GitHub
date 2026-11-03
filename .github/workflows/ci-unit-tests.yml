@@ -1,4 +1,4 @@
-name: CI 单元测试
+name: CI 自动化测试
 
 on:
   push:
@@ -15,7 +15,7 @@ env:
 
 jobs:
   unit-tests:
-    name: XCTest（iOS Simulator）
+    name: XCTest + XCUITest（iOS Simulator）
     runs-on: macos-14
     timeout-minutes: 45
     steps:
@@ -64,7 +64,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: xctest-results
+          name: xcode-test-results
           path: TestResults.xcresult
           if-no-files-found: ignore
           retention-days: 14
