@@ -45,12 +45,14 @@ struct AddAccountView: View {
                             // 使用普通TextField，支持剪切板粘贴和第三方输入法
                             if showToken {
                                 TextField("ghp_xxxxxxxxxxxxxxxxxxxx", text: $token)
+                                    .accessibilityIdentifier("account.tokenField")
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .autocapitalization(.none)
                                     .disableAutocorrection(true)
                                     .textContentType(.none)
                             } else {
                                 SecureField("ghp_xxxxxxxxxxxxxxxxxxxx", text: $token)
+                                    .accessibilityIdentifier("account.tokenField")
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .autocapitalization(.none)
                                     .disableAutocorrection(true)
@@ -128,6 +130,7 @@ struct AddAccountView: View {
                             .cornerRadius(10)
                     }
                     .disabled(isVerifying)
+                    .accessibilityIdentifier("account.cancelAddButton")
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
