@@ -11,7 +11,9 @@ struct GitHubApp: App {
     init() {
         // 安装崩溃日志记录器（使用Signal Handler和NSException Handler双机制捕获崩溃）
         // 必须在App启动最早期调用，确保能够捕获所有崩溃
-        if !AppState.isUITesting {\n            CrashLogger.shared.install()\n        }
+        if !AppState.isUITesting {
+            CrashLogger.shared.install()
+        }
     }
 
     var body: some Scene {
@@ -30,6 +32,7 @@ struct GitHubApp: App {
             .preferredColorScheme(appState.isDarkMode ? .dark : .light)
             // 应用启动时自动检查更新（强制检查，忽略稍后提醒）
             .onAppear {
+                guard !AppState.isUITesting else { return }
                 // 延迟2秒检查更新，避免影响启动速度
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     appState.checkForUpdatesAndNotify(force: true)
