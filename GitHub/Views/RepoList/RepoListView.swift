@@ -286,12 +286,18 @@ struct RepoListView: View {
             }
         }
         .onAppear {
+            // UI 测试只验证导航与空状态，不访问真实 GitHub API。
+            if AppState.isUITesting {
+                isLoading = false
+                return
+            }
             if repos.isEmpty {
                 loadRepos()
             }
         }
         // 监听账号切换，切换后自动重新加载仓库
-        .onChange(of: AccountManager.shared.currentAccount?.id) { _ in
+        .onChange(of: AppState.isUITesting ? nil : AccountManager.shared.currentAccount?.id) { _ in
+            guard !AppState.isUITesting else { return }
             repos = []
             filteredRepos = []
             loadRepos()
