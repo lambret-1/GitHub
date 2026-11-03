@@ -29,7 +29,7 @@ struct LoginView: View {
                         // 带发光脉冲效果的头像
                         GlowingAvatarView(imageName: "AppIconImage", size: 80)
 
-                        Text("GitHub 中文客户端")
+                        Text("GitHub 中文客户端")\n                            .accessibilityIdentifier("login.title")
                             .font(.largeTitle.bold())
                             .foregroundColor(.green)
                             .shadow(color: Color.green.opacity(0.8), radius: 10, x: 0, y: 0)
@@ -46,7 +46,7 @@ struct LoginView: View {
                             .font(.headline)
                             .foregroundColor(.green)
                        HStack(spacing: 8) {
-    TextField("请输入 GitHub 个人访问令牌", text: $tokenText)
+    TextField("请输入 GitHub 个人访问令牌", text: $tokenText)\n        .accessibilityIdentifier("login.tokenField")
         .textFieldStyle(RoundedBorderTextFieldStyle())
         .font(.system(size: 14, design: .monospaced))
         .autocapitalization(.none)
@@ -79,7 +79,7 @@ struct LoginView: View {
 
                         if showTokenHelp {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("获取步骤：")
+                                Text("获取步骤：")\n                                    .accessibilityIdentifier("login.tokenHelpContent")
                                     .font(.caption.bold())
                                     .foregroundColor(.green)
                                 Text("1. 打开 GitHub → Settings → Developer settings")
@@ -143,7 +143,7 @@ struct LoginView: View {
                         )
                         .shadow(color: Color.green.opacity(0.3), radius: 8, x: 0, y: 0)
                     }
-                    .disabled(appState.isLoading || tokenText.isEmpty)
+                    .accessibilityIdentifier("login.submitButton")\n                    .disabled(appState.isLoading || tokenText.isEmpty)
                   .padding(.init(top: 50, leading: 0, bottom: 0, trailing: 0))
 
                     Spacer(minLength: 40)
