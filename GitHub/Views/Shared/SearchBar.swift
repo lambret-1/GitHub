@@ -6,7 +6,7 @@ import SwiftUI
 struct SearchBar: UIViewRepresentable {
     @Binding var text: String
     var placeholder: String
-    var accessibilityIdentifier: String? = nil
+    var accessibilityIdentifier: String?
     var onSearchButtonClicked: (() -> Void)?
 
     class Coordinator: NSObject, UISearchBarDelegate {
