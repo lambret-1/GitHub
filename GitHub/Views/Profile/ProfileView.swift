@@ -142,6 +142,7 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                         }
+                        .accessibilityIdentifier("profile.accountManagerButton")
 
                         Button(action: {
                             if let url = URL(string: user.htmlUrl) {
