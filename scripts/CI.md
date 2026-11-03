@@ -171,7 +171,7 @@ xcodebuild test \
 - 手动运行按 run ID 独立分组。
 - Orchestrator 使用 `cancel-in-progress: false`：运行中的旧任务允许完成；同组较旧的待处理任务由新待处理任务替换。
 - 本阶段不执行运行中任务的主动取消；SHA 去重、过期判断和 GitHub API 取消属于后续 Latest 队列阶段。
-- 生产构建不加入普通 CI concurrency group，保持独立。
+- 生产构建使用独立的 `production-build` concurrency group，`cancel-in-progress: false`，与普通 CI 完全隔离。
 
 ### 可复用工作流
 
