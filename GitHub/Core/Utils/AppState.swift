@@ -58,6 +58,10 @@ class AppState: ObservableObject {
     }
     
     func checkLoginStatus() {
+        guard !Self.isUITesting else {
+            isLoggedIn = false
+            return
+        }
         isLoggedIn = TokenKeychain.shared.hasToken
         if isLoggedIn {
             // 修复：Token 存在但 AccountManager 中账号信息丢失时，自动从网络恢复账号
@@ -83,6 +87,15 @@ class AppState: ObservableObject {
     func login(token: String, completion: @escaping (Bool, String?) -> Void) {
         isLoading = true
         errorMessage = nil
+
+        // UI 测试禁止访问真实 GitHub API，确保测试 Token 不会触发网络或凭据写入。
+        if Self.isUITesting {
+            let message = "UI 测试模式已拦截真实登录请求"
+            isLoading = false
+            errorMessage = message
+            completion(false, message)
+            return
+        }
 
         // 使用候选 Token 独立验证，不覆盖当前已登录账号的凭据
         GitHubAPI.shared.getUserInfo(token: token) { [weak self] result in
@@ -116,6 +129,12 @@ class AppState: ObservableObject {
     }
 
     func logout() {
+        if Self.isUITesting {
+            currentUser = nil
+            isLoggedIn = false
+            return
+        }
+
         // 从AccountManager中删除当前账号
         if let currentAccount = AccountManager.shared.currentAccount {
             AccountManager.shared.deleteAccount(currentAccount)
@@ -127,6 +146,10 @@ class AppState: ObservableObject {
     }
     
     func loadUserInfo(completion: ((GitHubUser?) -> Void)? = nil) {
+        guard !Self.isUITesting else {
+            completion?(nil)
+            return
+        }
         GitHubAPI.shared.getUserInfo { [weak self] result in
             DispatchQueue.main.async {
                 switch result {
@@ -145,6 +168,8 @@ class AppState: ObservableObject {
     /// 检查更新并推送通知
     /// - Parameter force: 是否强制检查（忽略稍后提醒）
     func checkForUpdatesAndNotify(force: Bool = false) {
+        guard !Self.isUITesting else { return }
+
         // 如果不是强制检查，检查是否在稍后提醒时间内
         if !force {
             if let laterTimestamp = UserDefaults.standard.object(forKey: laterReminderKey) as? TimeInterval {
@@ -170,13 +195,14 @@ class AppState: ObservableObject {
     /// 稍后提醒更新
     func remindLater() {
         showUpdateAlert = false
+        guard !Self.isUITesting else { return }
         // 记录当前时间戳，1小时内不再提醒（应用启动时强制检查会忽略此限制）
         UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: laterReminderKey)
     }
     
     /// 立即下载更新
     func downloadUpdateNow() {
-        guard let release = latestRelease else { return }
+        guard !Self.isUITesting, let release = latestRelease else { return }
         showUpdateAlert = false
         isDownloadingUpdate = true
         updateDownloadProgress = 0
