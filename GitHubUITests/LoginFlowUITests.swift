@@ -7,7 +7,16 @@ final class LoginFlowUITests: XCTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UI_TESTING"] = "1"
         app.launch()
+    }
+
+    override func tearDownWithError() throws {
+        if app?.state == .running {
+            app.terminate()
+        }
+        app = nil
+        try super.tearDownWithError()
     }
 
     func testLoginScreenShowsRequiredControls() {
