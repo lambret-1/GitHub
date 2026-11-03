@@ -8,6 +8,11 @@ class AppState: ObservableObject {
         ProcessInfo.processInfo.arguments.contains("-ui-testing")
             || ProcessInfo.processInfo.environment["UI_TESTING"] == "1"
     }
+
+    /// UI 测试专用的已登录入口，用于验证主界面导航，不加载真实账号或凭据。
+    static var isUITestingAuthenticated: Bool {
+        isUITesting && ProcessInfo.processInfo.arguments.contains("-ui-testing-authenticated")
+    }
     
     @Published var isLoggedIn: Bool = false
     @Published var currentUser: GitHubUser?
@@ -33,6 +38,7 @@ class AppState: ObservableObject {
         // UI 测试必须在读取任何持久化状态前退出初始化，避免真实账号和用户偏好污染测试。
         guard !Self.isUITesting else {
             isDarkMode = false
+            isLoggedIn = Self.isUITestingAuthenticated
             return
         }
 
