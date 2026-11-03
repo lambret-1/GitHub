@@ -33,7 +33,7 @@ env:
   IPA_FILE_NAME: GitHub.ipa
   ARTIFACT_RETENTION_DAYS: 30
   DEPLOYMENT_TARGET: 16.0
-  XCODEGEN_VERSION: "2.40.0"
+  XCODEGEN_VERSION: "2.46.0"
 
 jobs:
   # ============================================================================
