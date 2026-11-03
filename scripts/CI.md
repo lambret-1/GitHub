@@ -55,16 +55,16 @@ xcodebuild test \
 
 ## GitHub Actions
 
-工作流：`.github/workflows/ci-unit-tests.yml`
+统一入口：`.github/workflows/ci-orchestrator.yml`
 
 执行顺序：
 
-1. 检出触发提交并校验工具链版本。
-2. 执行 SwiftLint 质量门禁。
-3. 使用 XcodeGen 生成工程并验证 Scheme。
-4. 检查 iPhone 15 模拟器可用性。
-5. 顺序执行 XCTest 与 XCUITest。
-6. 无论测试成功或失败，上传 `TestResults.xcresult`（若已生成）。
+1. SwiftLint 与 Bootstrap 在独立 Job 中并行执行。
+2. Bootstrap 使用 XcodeGen 生成并验证工程，通过短期 Artifact 将工程传递给测试 Job。
+3. 两个质量门禁全部成功后，检查 iPhone 15 模拟器并执行 XCTest。
+4. XCTest 成功后，串行执行 XCUITest。
+5. 无论测试成功或失败，上传 XCTest/XCUITest Result Bundle（若已生成）。
+6. Summary 汇总事件、ref、commit SHA 与各阶段结果。
 
 ## 当前阶段验收范围
 
