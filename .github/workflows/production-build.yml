@@ -19,7 +19,7 @@ name: 生产构建流水线
 on:
   push:
     branches:
-      - main
+      - testping
   workflow_dispatch:  # 支持手动触发
 
 # 不设置 concurrency：允许多个生产构建同时运行。
