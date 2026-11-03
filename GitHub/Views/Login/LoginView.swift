@@ -30,7 +30,7 @@ struct LoginView: View {
                         GlowingAvatarView(imageName: "AppIconImage", size: 80)
 
                         Text("GitHub 中文客户端")
-                            .accessibilityIdentifier("login.title")\n                            .accessibilityIdentifier("login.title")
+                            .accessibilityIdentifier("login.title")                            .accessibilityIdentifier("login.title")
                             .font(.largeTitle.bold())
                             .foregroundColor(.green)
                             .shadow(color: Color.green.opacity(0.8), radius: 10, x: 0, y: 0)
@@ -48,7 +48,7 @@ struct LoginView: View {
                             .foregroundColor(.green)
                        HStack(spacing: 8) {
     TextField("请输入 GitHub 个人访问令牌", text: $tokenText)
-        .accessibilityIdentifier("login.tokenField")\n        .accessibilityIdentifier("login.tokenField")
+        .accessibilityIdentifier("login.tokenField")        .accessibilityIdentifier("login.tokenField")
         .textFieldStyle(RoundedBorderTextFieldStyle())
         .font(.system(size: 14, design: .monospaced))
         .autocapitalization(.none)
@@ -84,7 +84,7 @@ struct LoginView: View {
                         if showTokenHelp {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("获取步骤：")
-                                    .accessibilityIdentifier("login.tokenHelpContent")\n                                    .accessibilityIdentifier("login.tokenHelpContent")
+                                    .accessibilityIdentifier("login.tokenHelpContent")                                    .accessibilityIdentifier("login.tokenHelpContent")
                                     .font(.caption.bold())
                                     .foregroundColor(.green)
                                 Text("1. 打开 GitHub → Settings → Developer settings")
@@ -148,7 +148,7 @@ struct LoginView: View {
                         )
                         .shadow(color: Color.green.opacity(0.3), radius: 8, x: 0, y: 0)
                     }
-                    .accessibilityIdentifier("login.submitButton")\n                    .accessibilityIdentifier("login.submitButton")
+                    .accessibilityIdentifier("login.submitButton")                    .accessibilityIdentifier("login.submitButton")
                     .disabled(appState.isLoading || tokenText.isEmpty)
                   .padding(.init(top: 50, leading: 0, bottom: 0, trailing: 0))
 
