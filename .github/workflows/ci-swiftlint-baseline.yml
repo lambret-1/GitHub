@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   baseline:
@@ -33,6 +33,18 @@ jobs:
           set -e
           test -s .swiftlint.baseline.json
           echo "Baseline generated; initial lint exit status: ${LINT_STATUS}"
+
+      - name: 将历史基线提交到 main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .swiftlint.baseline.json
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: add SwiftLint legacy baseline [skip ci]"
+            git push origin HEAD:main
+          else
+            echo "SwiftLint baseline is unchanged"
+          fi
 
       - name: 上传基线文件
         uses: actions/upload-artifact@v4
