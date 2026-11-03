@@ -56,6 +56,22 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: GitHub/GitHub.entitlements
 
+  GitHubUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: GitHubUITests
+    dependencies:
+      - target: GitHub
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.github.client.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        TEST_TARGET_NAME: GitHub
+
   GitHubTests:
     type: bundle.unit-test
     platform: iOS
@@ -81,4 +97,5 @@ schemes:
       config: Debug
       targets:
         - GitHubTests
+        - GitHubUITests
       gatherCoverageData: true
