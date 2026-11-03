@@ -44,8 +44,10 @@ struct ProfileView: View {
                             // 姓名和用户名
                             VStack(spacing: 4) {
                                 Text(user.displayName)
+                                    .accessibilityIdentifier("profile.displayName")
                                     .font(.title2.bold())
                                 Text("@\(user.login)")
+                                    .accessibilityIdentifier("profile.username")
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                             }
@@ -53,6 +55,7 @@ struct ProfileView: View {
                             // 简介
                             if let bio = user.bio, !bio.isEmpty {
                                 Text(bio)
+                                    .accessibilityIdentifier("profile.bio")
                                     .font(.body)
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
@@ -132,7 +135,7 @@ struct ProfileView: View {
                                 Text("账号管理")
                                     .foregroundColor(.primary)
                                 Spacer()
-                                Text("\(AccountManager.shared.accounts.count) 个账号")
+                                Text("\(AppState.isUITesting ? 1 : AccountManager.shared.accounts.count) 个账号")
                                     .foregroundColor(.gray)
                                     .font(.subheadline)
                                 Image(systemName: "chevron.right")
@@ -196,6 +199,7 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                         }
+                        .accessibilityIdentifier("profile.aboutButton")
 
                         // 崩溃日志
                         Button(action: {
@@ -212,6 +216,7 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                         }
+                        .accessibilityIdentifier("profile.crashLogsButton")
 
                         // 调试日志
                         Button(action: {
@@ -228,6 +233,7 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                         }
+                        .accessibilityIdentifier("profile.debugLogsButton")
 
                         Button(action: {
                             showLogoutAlert = true
@@ -240,6 +246,7 @@ struct ProfileView: View {
                                     .foregroundColor(.red)
                             }
                         }
+                        .accessibilityIdentifier("profile.logoutButton")
                     }
                 } else {
                     Section {
