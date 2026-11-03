@@ -38,7 +38,9 @@ jobs:
           swiftlint version
 
       - name: 执行 SwiftLint
-        run: swiftlint lint --quiet
+        run: |
+          chmod +x scripts/ci-swiftlint.sh
+          ./scripts/ci-swiftlint.sh
 
       - name: 生成并验证 Xcode 项目
         env:
