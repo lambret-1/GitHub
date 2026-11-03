@@ -1,0 +1,53 @@
+name: CI Queue Manager 1.0
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Push、PR、手动运行分组隔离；新自动提交取消同队列旧运行。
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || github.event_name == 'workflow_dispatch' && format('ci-manual-{0}', github.run_id) || format('ci-push-{0}', github.ref) }}
+  cancel-in-progress: true
+
+jobs:
+  swiftlint:
+    name: SwiftLint quality gate
+    uses: ./.github/workflows/ci-swiftlint.yml
+    permissions:
+      contents: read
+
+  tests:
+    name: Bootstrap + XCTest + XCUITest
+    needs: swiftlint
+    uses: ./.github/workflows/ci-unit-tests.yml
+    permissions:
+      contents: read
+
+  summary:
+    name: CI result summary
+    if: always()
+    needs: [swiftlint, tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 汇总流水线结果
+        env:
+          SWIFTLINT_RESULT: ${{ needs.swiftlint.result }}
+          TESTS_RESULT: ${{ needs.tests.result }}
+        run: |
+          {
+            echo "## CI Queue Manager 1.0"
+            echo
+            echo "| Stage | Result |"
+            echo "|---|---|"
+            echo "| SwiftLint | ${SWIFTLINT_RESULT} |"
+            echo "| Bootstrap + XCTest + XCUITest | ${TESTS_RESULT} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${SWIFTLINT_RESULT}" != "success" || "${TESTS_RESULT}" != "success" ]]; then
+            echo "::error::CI did not complete successfully."
+            exit 1
+          fi

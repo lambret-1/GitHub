@@ -1,0 +1,39 @@
+name: CI Bootstrap
+description: Install the pinned CI toolchain and validate the generated Xcode project.
+
+runs:
+  using: composite
+  steps:
+    - name: 选择 Xcode 15.4
+      shell: bash
+      run: |
+        sudo xcode-select -s "/Applications/Xcode_15.4.app/Contents/Developer"
+        xcodebuild -version
+        swift --version
+    - name: 安装 CI 工具
+      shell: bash
+      run: |
+        brew install xcodegen swiftlint
+        xcodegen --version
+        swiftlint version
+    - name: 记录工具链版本
+      shell: bash
+      run: |
+        {
+          echo "### CI 工具链版本"
+          echo "Xcode:"
+          xcodebuild -version
+          echo "Swift:"
+          swift --version
+          echo "XcodeGen:"
+          xcodegen --version
+          echo "SwiftLint:"
+          swiftlint version
+        } >> "$GITHUB_STEP_SUMMARY"
+    - name: 验证 CI 基础设施
+      shell: bash
+      env:
+        GITHUB_SHA: ${{ github.sha }}
+      run: |
+        chmod +x scripts/ci-bootstrap.sh
+        ./scripts/ci-bootstrap.sh

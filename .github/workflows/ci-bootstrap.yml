@@ -1,17 +1,10 @@
 name: CI 基础设施检查
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-  workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
-
-env:
-  XCODE_VERSION: "15.4"
 
 jobs:
   bootstrap:
@@ -23,34 +16,5 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
-
-      - name: 选择 Xcode
-        run: |
-          sudo xcode-select -s "/Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer"
-          xcodebuild -version
-          swift --version
-
-      - name: 安装 CI 工具
-        run: |
-          brew install xcodegen swiftlint
-          xcodegen --version
-          swiftlint version
-
-      - name: 记录工具链版本
-        run: |
-          {
-            echo "### CI 工具链版本"
-            echo '```text'
-            xcodebuild -version
-            swift --version
-            xcodegen --version
-            swiftlint version
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: 验证 CI 基础设施
-        env:
-          GITHUB_SHA: ${{ github.sha }}
-        run: |
-          chmod +x scripts/ci-bootstrap.sh
-          ./scripts/ci-bootstrap.sh
+      - name: 执行统一 Bootstrap Action
+        uses: ./.github/actions/ci-bootstrap

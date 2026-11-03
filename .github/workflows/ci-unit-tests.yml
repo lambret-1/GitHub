@@ -1,17 +1,10 @@
 name: CI 自动化测试
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-  workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
-
-env:
-  XCODE_VERSION: "15.4"
 
 jobs:
   unit-tests:
@@ -24,31 +17,8 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
-
-      - name: 选择 Xcode
-        run: |
-          sudo xcode-select -s "/Applications/Xcode_${{ env.XCODE_VERSION }}.app/Contents/Developer"
-          xcodebuild -version
-          swift --version
-
-      - name: 安装 XcodeGen 和 SwiftLint
-        run: |
-          brew install xcodegen swiftlint
-          xcodegen --version
-          swiftlint version
-
-      - name: 执行 SwiftLint
-        run: |
-          chmod +x scripts/ci-swiftlint.sh
-          ./scripts/ci-swiftlint.sh
-
       - name: 生成并验证 Xcode 项目
-        env:
-          GITHUB_SHA: ${{ github.sha }}
-        run: |
-          chmod +x scripts/ci-bootstrap.sh
-          ./scripts/ci-bootstrap.sh
-
+        uses: ./.github/actions/ci-bootstrap
       - name: 检查可用模拟器
         run: |
           xcrun simctl list devices available
@@ -56,8 +26,7 @@ jobs:
             echo "::error::iPhone 15 simulator is not available on this runner"
             exit 1
           fi
-
-      - name: 执行 XCTest
+      - name: 执行 XCTest + XCUITest
         run: |
           xcodebuild test \
             -project GitHub.xcodeproj \
@@ -66,12 +35,11 @@ jobs:
             -resultBundlePath TestResults.xcresult \
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO
-
-      - name: 上传 XCTest 结果
+      - name: 上传 XCTest + XCUITest 结果
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: xcode-test-results
+          name: xcode-test-results-${{ github.run_id }}-${{ github.run_attempt }}
           path: TestResults.xcresult
           if-no-files-found: ignore
           retention-days: 14
