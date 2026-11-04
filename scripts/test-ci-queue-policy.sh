@@ -14,7 +14,9 @@ if [[ "$1" != "ls-remote" ]]; then
   echo "Unexpected git command: $*" >&2
   exit 2
 fi
-printf '%s\t%s\n' "${MOCK_LATEST_SHA-}" "$3"
+if [[ -n "${MOCK_LATEST_SHA-}" ]]; then
+  printf '%s\t%s\n' "$MOCK_LATEST_SHA" "$3"
+fi
 if [[ -n "${MOCK_REF_FILE:-}" ]]; then
   printf '%s' "$3" > "$MOCK_REF_FILE"
 fi
