@@ -15,14 +15,14 @@
 
 Bootstrap 生成并验证 Xcode 工程后，将工程作为本次 run 的短期 Artifact 交给测试 Job，避免在不同 Runner 上重复安装工具和生成工程。
 
-### 队列隔离与运行策略
+### 队列隔离与 Latest 策略
 
-- main Push：按 Git ref 分组。
+- Push：按 Git ref 分组。
+- workflow_dispatch：按 Git ref 分组，与同一分支 Push 共享队列。
 - Pull Request：按 PR number 分组，不同 PR 互不影响。
-- workflow_dispatch：每次 run ID 独立分组，不被 Push/PR 任务替换。
-- `cancel-in-progress: false`：新提交不会中断同组正在运行的旧任务；GitHub Actions 原生并发只保留一个待处理任务，新的待处理运行会替换旧待处理运行。
-- 本阶段不主动取消运行中的旧 SHA；精确 SHA 过期识别与 API 取消属于后续 Latest 队列阶段。
-- 生产构建不复用普通 CI concurrency group。
+- `cancel-in-progress: true`：同组新运行到来时取消正在执行的旧运行；GitHub Actions 原生并发只保留一个待处理运行，新的待处理运行会替换旧待处理运行。
+- 同一分支或 PR 仅保留最新有效运行；PR 与普通分支队列相互隔离。
+- 生产构建不复用普通 CI concurrency group，继续使用独立生产队列。
 
 ### 可复用工作流与 Action
 
