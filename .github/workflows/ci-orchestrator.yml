@@ -9,11 +9,13 @@ on:
 permissions:
   contents: read
 
-# A 策略：正在运行的旧任务继续完成；GitHub 只替换同组较旧的待处理任务。
-# Push、PR、手动运行彼此隔离；生产构建不进入此队列。
+# Latest 策略：同一 PR 或同一分支只保留最新有效运行。
+# 新运行会取消同组正在执行的旧运行；GitHub 原生并发会替换较旧的待处理运行。
+# PR 按 PR number 隔离；Push 与 workflow_dispatch 按 ref 共享队列。
+# 生产构建不进入普通 CI 队列。
 concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || github.event_name == 'workflow_dispatch' && format('ci-manual-{0}', github.run_id) || format('ci-push-{0}', github.ref) }}
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-ref-{0}', github.ref) }}
+  cancel-in-progress: true
 
 jobs:
   swiftlint:
