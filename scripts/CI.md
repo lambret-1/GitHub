@@ -183,3 +183,11 @@ xcodebuild test \
 | `.github/actions/ci-bootstrap/action.yml` | 统一工具链安装与项目生成 |
 
 子工作流只使用 `workflow_call`，不重复监听 Push、PR 或手动事件，不定义与 Orchestrator 冲突的 concurrency。
+
+
+### 阶段三：Latest 队列治理（实施中）
+
+- 队列键按 main 分支、PR 编号和手动 run ID 隔离；同组运行中任务保留，待处理任务由 GitHub Actions concurrency 替换。
+- 新增 `scripts/ci/queue-controller.sh`：Push/PR 启动前解析远端分支最新 SHA；发现当前 SHA 已过期时输出跳过决策，防止旧提交继续消耗 XCTest/XCUITest Runner。
+- 手动触发保持独立，不参与自动 SHA 过滤。
+- 后续需完成 Orchestrator 对 Queue Controller 输出的门禁接入、成功 SHA 去重和队列场景实测。
