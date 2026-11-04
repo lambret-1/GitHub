@@ -152,42 +152,42 @@ xcodebuild test \
 
 ## CI Queue Manager 1.0
 
-统一入口：`.github/workflows/ci-orchestrator.yml`
+### 队列规则
 
-### 阶段二 Orchestrator
+- Push：按完整 Git ref 分组。
+- workflow_dispatch：按所选 Git ref 分组，与同一 ref 的 Push 共享队列。
+- Pull Request：按 PR number 分组，不同 PR 互不影响。
+- 同组新运行取消正在执行的旧运行；GitHub Actions concurrency 将较旧待处理运行替换为新待处理运行。
+- 生产构建使用独立 production-build concurrency group，cancel-in-progress=false，不受普通 CI 取消策略影响。
 
-执行依赖关系：
+### Latest queue guard
 
-1. SwiftLint 与 Bootstrap 两个独立 Job 并行执行。
-2. Bootstrap 生成并验证 Xcode 工程，将工程作为本次 run 的短期 Artifact 传递给测试 Job。
-3. SwiftLint 与 Bootstrap 均成功后启动 XCTest。
-4. XCTest 成功后启动 XCUITest。
-5. 最终 Summary 汇总事件、ref、commit SHA、SwiftLint、Bootstrap 和测试结果；任何必要阶段失败都会使 Orchestrator 失败。
+scripts/ci/queue-controller.sh 在昂贵 CI 阶段之前执行：
 
-### 队列隔离与取消策略
+- Push 和 workflow_dispatch 查询对应 Git ref 的当前远端 SHA。
+- Pull Request 查询 refs/pull/<number>/merge，并与触发运行的 github.sha 比较。不得将 PR head SHA 与 merge SHA 比较。
+- 远端 ref 无法解析时 fail closed，防止未验证提交继续执行。
+- 过期运行输出 should_run=false，跳过 SwiftLint、Bootstrap、XCTest 和 XCUITest。
+- 当前 SHA 与远端 ref 一致时继续执行。
+- 已成功的 queue/ref/SHA 命中 Actions Cache 时跳过重复执行。
+- 仅 SwiftLint、Bootstrap、XCTest、XCUITest 全部成功后保存成功 SHA；失败、取消和过期运行不缓存。
 
-- main Push 按 Git ref 分组。
-- PR 按 PR number 分组，不同 PR 不互相影响。
-- 手动运行按 run ID 独立分组。
-- Orchestrator 使用 `cancel-in-progress: false`：运行中的旧任务允许完成；同组较旧的待处理任务由新待处理任务替换。
-- 本阶段不执行运行中任务的主动取消；SHA 去重、过期判断和 GitHub API 取消属于后续 Latest 队列阶段。
-- 生产构建使用独立的 `production-build` concurrency group，`cancel-in-progress: false`，与普通 CI 完全隔离。
+### 自动化验收
 
-### 可复用工作流
+运行：
 
-| 文件 | 职责 |
-| --- | --- |
-| `.github/workflows/ci-swiftlint.yml` | SwiftLint 质量门禁 |
-| `.github/workflows/ci-bootstrap.yml` | 工具链、XcodeGen 与 Scheme 验证 |
-| `.github/workflows/ci-unit-tests.yml` | XCTest → XCUITest 串行执行 |
-| `.github/actions/ci-bootstrap/action.yml` | 统一工具链安装与项目生成 |
+~~~bash
+./scripts/test-ci-queue-policy.sh
+~~~
 
-子工作流只使用 `workflow_call`，不重复监听 Push、PR 或手动事件，不定义与 Orchestrator 冲突的 concurrency。
+覆盖最新/过期 Push、最新/过期 PR merge ref、手动触发与 Push 共享 ref 队列。该策略测试同时作为 Bootstrap gate 的一部分在 CI 中执行。
 
+## 生产构建
 
-### 阶段三：Latest 队列治理（实施中）
+生产构建工作流：.github/workflows/production-build.yml
 
-- 队列键按 main 分支、PR 编号和手动 run ID 隔离；同组运行中任务保留，待处理任务由 GitHub Actions concurrency 替换。
-- 新增 `scripts/ci/queue-controller.sh`：Push/PR 启动前解析远端分支最新 SHA；发现当前 SHA 已过期时输出跳过决策，防止旧提交继续消耗 XCTest/XCUITest Runner。
-- 手动触发保持独立，不参与自动 SHA 过滤。
-- 后续需完成 Orchestrator 对 Queue Controller 输出的门禁接入、成功 SHA 去重和队列场景实测。
+- Push 触发范围保持 testping 分支。
+- 支持 workflow_dispatch。
+- 使用独立 production-build concurrency group。
+- cancel-in-progress=false，运行中的生产构建不会被新触发取消。
+- 生产构建与普通 CI 队列隔离。

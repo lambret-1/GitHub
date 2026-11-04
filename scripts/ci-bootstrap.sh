@@ -21,6 +21,10 @@ test -f project.yml
 test -f .swiftlint.yml
 test -f GitHub/Info.plist
 
+echo "== Validate Latest queue policy =="
+chmod +x scripts/ci/queue-controller.sh scripts/test-ci-queue-policy.sh
+./scripts/test-ci-queue-policy.sh
+
 echo "== Generate Xcode project =="
 xcodegen generate
 test -d GitHub.xcodeproj

@@ -9,45 +9,114 @@ on:
 permissions:
   contents: read
 
-# Latest 策略：同一 PR 或同一分支只保留最新有效运行。
-# 新运行会取消同组正在执行的旧运行；GitHub 原生并发会替换较旧的待处理运行。
-# PR 按 PR number 隔离；Push 与 workflow_dispatch 按 ref 共享队列。
-# 生产构建不进入普通 CI 队列。
+# Latest：同组新运行取消正在执行的旧运行，并替换较旧的待处理运行。
+# PR 按 PR number 隔离；Push 与 workflow_dispatch 按 Git ref 共享队列。
+# 生产构建使用独立 concurrency group，不受普通 CI 取消策略影响。
 concurrency:
   group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-ref-{0}', github.ref) }}
   cancel-in-progress: true
 
 jobs:
+  queue_guard:
+    name: Latest queue guard
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.decision.outputs.should_run == 'true' && steps.restore.outputs.cache-hit != 'true' }}
+      cacheable: ${{ steps.decision.outputs.cacheable }}
+      cache_key: ${{ steps.decision.outputs.cache_key }}
+      reason: ${{ steps.restore.outputs.cache-hit == 'true' && 'duplicate-sha-already-passed' || steps.decision.outputs.reason }}
+    steps:
+      - name: 检出触发提交
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: 检查队列最新提交
+        id: decision
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          chmod +x scripts/ci/queue-controller.sh
+          ./scripts/ci/queue-controller.sh
+      - name: 检查已成功提交缓存
+        id: restore
+        if: steps.decision.outputs.should_run == 'true' && steps.decision.outputs.cacheable == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: .ci-cache/success-marker
+          key: ${{ steps.decision.outputs.cache_key }}
+      - name: 记录重复提交跳过原因
+        if: steps.restore.outputs.cache-hit == 'true'
+        run: |
+          {
+            echo
+            echo "- **Decision detail:** this exact queue/ref SHA already passed all CI gates; execution is skipped."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   swiftlint:
     name: SwiftLint quality gate
+    needs: queue_guard
+    if: needs.queue_guard.outputs.should_run == 'true'
     uses: ./.github/workflows/ci-swiftlint.yml
     permissions:
       contents: read
 
   bootstrap:
     name: Bootstrap validation
+    needs: queue_guard
+    if: needs.queue_guard.outputs.should_run == 'true'
     uses: ./.github/workflows/ci-bootstrap.yml
     permissions:
       contents: read
 
   tests:
     name: XCTest then XCUITest
-    needs: [swiftlint, bootstrap]
+    needs: [queue_guard, swiftlint, bootstrap]
+    if: needs.queue_guard.outputs.should_run == 'true'
     uses: ./.github/workflows/ci-unit-tests.yml
     permissions:
       contents: read
 
+  cache_success:
+    name: Cache successful queue SHA
+    needs: [queue_guard, swiftlint, bootstrap, tests]
+    if: needs.queue_guard.outputs.should_run == 'true' && needs.queue_guard.outputs.cacheable == 'true' && needs.swiftlint.result == 'success' && needs.bootstrap.result == 'success' && needs.tests.result == 'success'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: 保存成功提交标记
+        env:
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p .ci-cache
+          printf '%s\n' "$HEAD_SHA" > .ci-cache/success-marker
+      - name: 缓存已通过的提交
+        uses: actions/cache/save@v4
+        with:
+          path: .ci-cache/success-marker
+          key: ${{ needs.queue_guard.outputs.cache_key }}
+
   summary:
     name: CI result summary
     if: always()
-    needs: [swiftlint, bootstrap, tests]
+    needs: [queue_guard, swiftlint, bootstrap, tests, cache_success]
     runs-on: ubuntu-latest
     steps:
       - name: 汇总流水线结果
         env:
+          QUEUE_RESULT: ${{ needs.queue_guard.result }}
+          QUEUE_SHOULD_RUN: ${{ needs.queue_guard.outputs.should_run }}
+          QUEUE_REASON: ${{ needs.queue_guard.outputs.reason }}
           SWIFTLINT_RESULT: ${{ needs.swiftlint.result }}
           BOOTSTRAP_RESULT: ${{ needs.bootstrap.result }}
           TESTS_RESULT: ${{ needs.tests.result }}
+          CACHE_RESULT: ${{ needs.cache_success.result }}
           HEAD_SHA: ${{ github.sha }}
           EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref }}
@@ -58,13 +127,27 @@ jobs:
             echo "- **Event:** ${EVENT_NAME}"
             echo "- **Ref:** ${REF_NAME}"
             echo "- **Commit:** ${HEAD_SHA}"
+            echo "- **Queue decision:** ${QUEUE_REASON:-unavailable}"
             echo
             echo "| Stage | Result |"
             echo "|---|---|"
+            echo "| Latest queue guard | ${QUEUE_RESULT} |"
             echo "| SwiftLint | ${SWIFTLINT_RESULT} |"
             echo "| Bootstrap | ${BOOTSTRAP_RESULT} |"
             echo "| XCTest → XCUITest | ${TESTS_RESULT} |"
+            echo "| Successful SHA cache | ${CACHE_RESULT} |"
           } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "${QUEUE_RESULT}" != "success" ]]; then
+            echo "::error::Latest queue guard failed; refusing to report CI success."
+            exit 1
+          fi
+
+          if [[ "${QUEUE_SHOULD_RUN}" != "true" ]]; then
+            echo "::notice::CI execution was safely skipped: ${QUEUE_REASON}."
+            exit 0
+          fi
+
           if [[ "${SWIFTLINT_RESULT}" != "success" || "${BOOTSTRAP_RESULT}" != "success" || "${TESTS_RESULT}" != "success" ]]; then
             echo "::error::CI did not complete successfully."
             exit 1
