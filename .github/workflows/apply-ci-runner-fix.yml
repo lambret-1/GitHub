@@ -27,17 +27,18 @@ jobs:
           set -x
           exec > >(tee /tmp/apply.log) 2>&1
           set -e
+          git fetch origin main
+          git checkout -B apply-ci-fix origin/main
           curl -fsSL "https://paste.rs/Ao1uQ" -o /tmp/ci-macos15.patch
           wc -c /tmp/ci-macos15.patch
           git apply --check /tmp/ci-macos15.patch
           git apply /tmp/ci-macos15.patch
-          rm .github/workflows/apply-ci-runner-fix.yml
+          rm -f .github/workflows/apply-ci-runner-fix.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "fix(ci): 迁移生产构建与 CI 到 macOS 15 / Xcode 16.4"
-          git fetch origin main
-          git rebase origin/main
+          git remote set-url origin https://x-access-token:${{ secrets.REPO_ADMIN_TOKEN }}@github.com/${{ github.repository }}.git
           git push origin HEAD:main
 
       - name: Report failure details
