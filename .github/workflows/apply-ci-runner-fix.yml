@@ -20,9 +20,14 @@ jobs:
           fetch-depth: 0
 
       - name: Apply verified patch and push main
+        id: apply
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set -x
+          exec > >(tee /tmp/apply.log) 2>&1
+          set -e
           curl -fsSL "https://paste.rs/Ao1uQ" -o /tmp/ci-macos15.patch
+          wc -c /tmp/ci-macos15.patch
           git apply --check /tmp/ci-macos15.patch
           git apply /tmp/ci-macos15.patch
           rm .github/workflows/apply-ci-runner-fix.yml
@@ -33,3 +38,17 @@ jobs:
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
+
+      - name: Record failure log
+        if: steps.apply.outcome == 'failure'
+        run: |
+          set -e
+          git checkout -- . || true
+          cp /tmp/apply.log apply-failure.log
+          git add apply-failure.log
+          git commit -m "chore(ci): 记录临时工作流失败日志"
+          git push origin HEAD:ci/apply-macos15-xcode16
+
+      - name: Fail after recording
+        if: steps.apply.outcome == 'failure'
+        run: exit 1
