@@ -41,8 +41,9 @@ struct ShareUploadView: View {
     @State private var isUploading: Bool = false
     @State private var uploadProgress: Double = 0
     @State private var currentUploadingFileName: String = ""
-    @State private var uploadResults: [String: Bool] = [:] // 文件名: 是否成功
-    @State private var uploadErrorMessages: [String: String] = [:] // 文件名: 失败原因
+    @State private var uploadResults: [String: Bool] = [:] // 文件唯一键: 是否成功
+    @State private var uploadErrorMessages: [String: String] = [:] // 文件唯一键: 失败原因
+    @State private var uploadedSessionIDs: Set<String> = [] // 本次上传涉及的会话目录，成功后只清理这些
     @State private var showUploadResult: Bool = false
 
     // MARK: - 计算属性
@@ -109,7 +110,7 @@ struct ShareUploadView: View {
                                 Spacer()
 
                                 // 上传结果图标
-                                if let success = uploadResults[file.fileName] {
+                                if let success = uploadResults[resultKey(for: file)] {
                                     Image(systemName: success ? "checkmark.circle.fill" : "xmark.circle.fill")
                                         .foregroundColor(success ? .green : .red)
                                         .font(.system(size: 20))
@@ -281,9 +282,9 @@ struct ShareUploadView: View {
                 Button("确定") {
                     let successCount = uploadResults.values.filter { $0 }.count
                     if successCount == uploadResults.count {
-                        // 全部成功：删除本次上传涉及的所有会话文件夹（文件夹隔离，不影响其他会话）
-                        let sessionIDs = Set(shareFileManager.pendingFiles.map { $0.sessionID })
-                        for sessionID in sessionIDs {
+                        // 全部成功：只删除本次上传涉及的会话文件夹。
+                        // 不能重新读 pendingFiles，否则上传期间新到的文件会被误删。
+                        for sessionID in uploadedSessionIDs {
                             shareFileManager.removeSessionDirectory(sessionID: sessionID)
                         }
                         dismiss()
@@ -295,7 +296,7 @@ struct ShareUploadView: View {
                 let failureDetails = uploadErrorMessages
                     .sorted { $0.key.localizedCaseInsensitiveCompare($1.key) == .orderedAscending }
                     .prefix(3)
-                    .map { "\($0.key)：\($0.value)" }
+                    .map { "\(displayName(forResultKey: $0.key))：\($0.value)" }
                     .joined(separator: "\n")
                 let summary = "成功：\(successCount)个，失败：\(failCount)个"
                 return Text(failureDetails.isEmpty ? summary : "\(summary)\n\n失败原因：\n\(failureDetails)")
@@ -442,9 +443,11 @@ struct ShareUploadView: View {
         uploadProgress = 0
         uploadResults = [:]
         uploadErrorMessages = [:]
+        uploadedSessionIDs = []
 
         let files = shareFileManager.pendingFiles
         let totalCount = files.count
+        uploadedSessionIDs = Set(files.map { $0.sessionID })
 
         func uploadNext(index: Int) {
             guard index < files.count else {
@@ -466,9 +469,10 @@ struct ShareUploadView: View {
             do {
                 let fileData = try Data(contentsOf: file.fileURL)
 
-                // 构建上传路径
+                // 构建上传路径（去掉首尾多余的 "/"，避免 "/docs/a.png" 这类 404 路径）
                 var targetPath = uploadPath.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !targetPath.isEmpty && !targetPath.hasSuffix("/") {
+                targetPath = targetPath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                if !targetPath.isEmpty {
                     targetPath += "/"
                 }
                 targetPath += file.fileName
@@ -485,21 +489,23 @@ struct ShareUploadView: View {
                     branch: selectedBranch
                 ) { result in
                     DispatchQueue.main.async {
+                        let key = resultKey(for: file)
                         switch result {
                         case .success:
-                            uploadResults[file.fileName] = true
-                            uploadErrorMessages.removeValue(forKey: file.fileName)
+                            uploadResults[key] = true
+                            uploadErrorMessages.removeValue(forKey: key)
                         case .failure(let error):
-                            uploadResults[file.fileName] = false
-                            uploadErrorMessages[file.fileName] = error.localizedDescription
+                            uploadResults[key] = false
+                            uploadErrorMessages[key] = error.localizedDescription
                         }
                         uploadNext(index: index + 1)
                     }
                 }
             } catch {
                 DispatchQueue.main.async {
-                    uploadResults[file.fileName] = false
-                    uploadErrorMessages[file.fileName] = error.localizedDescription
+                    let key = resultKey(for: file)
+                    uploadResults[key] = false
+                    uploadErrorMessages[key] = error.localizedDescription
                     uploadNext(index: index + 1)
                 }
             }
@@ -509,6 +515,17 @@ struct ShareUploadView: View {
     }
 
     // MARK: - 辅助方法
+
+    /// 上传结果使用「会话目录 + 文件名」作为唯一键。
+    /// 只用文件名会导致不同会话里的同名文件互相覆盖结果。
+    private func resultKey(for file: ShareFileManager.PendingFile) -> String {
+        "\(file.sessionID)/\(file.fileName)"
+    }
+
+    /// 结果键是「会话ID/文件名」，展示失败原因时只取文件名
+    private func displayName(forResultKey key: String) -> String {
+        key.split(separator: "/").last.map(String.init) ?? key
+    }
 
     private func fileIcon(for fileName: String) -> String {
         let ext = (fileName as NSString).pathExtension.lowercased()

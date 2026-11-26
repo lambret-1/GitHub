@@ -612,11 +612,57 @@ class GitHubAPI {
     func uploadFileData(owner: String, repo: String, path: String, fileData: Data, message: String, branch: String = "main", completion: @escaping (Result<Bool, Error>) -> Void) {
         let base64Content = fileData.base64EncodedString()
 
-        let body: [String: Any] = [
+        putFileContent(
+            owner: owner,
+            repo: repo,
+            path: path,
+            base64Content: base64Content,
+            message: message,
+            branch: branch,
+            sha: nil
+        ) { result in
+            switch result {
+            case .success:
+                completion(.success(true))
+            case .failure(let error):
+                // 同名文件已存在时 GitHub 要求带 sha；首次未带 sha 会返回 409/422。
+                // 此时读取现有文件 sha 后重试一次，实现“上传即更新”，与 GitHub 网页端行为一致。
+                let nsError = error as NSError
+                guard nsError.code == 409 || nsError.code == 422 else {
+                    completion(.failure(error))
+                    return
+                }
+                self.getFileContent(owner: owner, repo: repo, path: path, branch: branch) { contentResult in
+                    switch contentResult {
+                    case .success(let file):
+                        self.putFileContent(
+                            owner: owner,
+                            repo: repo,
+                            path: path,
+                            base64Content: base64Content,
+                            message: message,
+                            branch: branch,
+                            sha: file.sha,
+                            completion: completion
+                        )
+                    case .failure:
+                        completion(.failure(error))
+                    }
+                }
+            }
+        }
+    }
+
+    /// 单次 PUT 文件内容；`sha` 为空表示新建，非空表示更新已有文件
+    private func putFileContent(owner: String, repo: String, path: String, base64Content: String, message: String, branch: String, sha: String?, completion: @escaping (Result<Bool, Error>) -> Void) {
+        var body: [String: Any] = [
             "message": message,
             "content": base64Content,
             "branch": branch
         ]
+        if let sha = sha {
+            body["sha"] = sha
+        }
 
         performRequest(url: APIEndpoints.updateFile(owner: owner, repo: repo, path: path).url, method: "PUT", body: body) { result in
             switch result {

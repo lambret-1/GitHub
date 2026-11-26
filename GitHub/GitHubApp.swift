@@ -3,10 +3,20 @@ import SwiftUI
 @main
 struct GitHubApp: App {
     @StateObject private var appState = AppState.shared
-    // 分享文件上传视图显示状态
-    @State private var showShareUpload: Bool = false
+    // 分享文件上传视图的展示请求。
+    // 用 item 而不是 Bool：Bool 一旦遇到一次"弹窗没真正弹出来"就会一直停在 true，
+    // 之后每次分享都会被 `guard !showShareUpload` 拦掉，表现为"分享好几次才进待传区"。
+    @State private var shareUploadRequest: ShareUploadRequest?
+    // 记录最近一次请求时间和页面是否真的出现，用于识别"请求了但系统没弹出"的失败情况
+    @State private var shareUploadRequestedAt: Date?
+    @State private var isShareUploadVisible: Bool = false
+    @State private var shareUploadRetryCount: Int = 0
     // 监听APP前后台状态，确保从后台唤起时也能检测分享文件
     @Environment(\.scenePhase) private var scenePhase
+
+    private struct ShareUploadRequest: Identifiable {
+        let id = UUID()
+    }
 
     init() {
         // 安装崩溃日志记录器（使用Signal Handler和NSException Handler双机制捕获崩溃）
@@ -51,10 +61,21 @@ struct GitHubApp: App {
                     }
                 }
             }
-            // 分享文件上传视图
-            .sheet(isPresented: $showShareUpload) {
+            // 分享文件上传视图（item 驱动：每次分享都会生成新的请求，关闭后自动清空）
+            .sheet(item: $shareUploadRequest, onDismiss: {
+                shareUploadRequest = nil
+                shareUploadRequestedAt = nil
+                isShareUploadVisible = false
+                shareUploadRetryCount = 0
+            }) { _ in
                 ShareUploadView()
                     .environmentObject(appState)
+                    .onAppear {
+                        isShareUploadVisible = true
+                    }
+                    .onDisappear {
+                        isShareUploadVisible = false
+                    }
             }
             // 处理URL打开事件（包括"打开方式"传递的文件和URL Scheme）
             .onOpenURL { url in
@@ -134,14 +155,14 @@ struct GitHubApp: App {
     // MARK: - 分享上传辅助方法
 
     /// 检测并显示分享文件上传视图
-    /// 简化逻辑：直接扫描文件并弹出sheet，避免复杂的状态重置导致弹窗失败
+    /// 使用 item 驱动 + 每次分享生成新的请求，关闭后自动清空，避免状态卡死
     private func showShareUploadIfNeeded() {
         DebugLogger.share("=== showShareUploadIfNeeded 被调用 ===")
         ShareFileManager.shared.scanPendingFiles()
         DebugLogger.share("待上传文件数: \(ShareFileManager.shared.pendingFiles.count)")
         DebugLogger.share("hasPendingFiles: \(ShareFileManager.shared.hasPendingFiles)")
         DebugLogger.share("isLoggedIn: \(appState.isLoggedIn)")
-        DebugLogger.share("showShareUpload当前值: \(showShareUpload)")
+        DebugLogger.share("shareUploadRequest: \(shareUploadRequest == nil ? "nil" : "已存在")")
 
         guard ShareFileManager.shared.hasPendingFiles && appState.isLoggedIn else {
             DebugLogger.share("❌ 条件不满足，不弹出sheet")
@@ -154,15 +175,47 @@ struct GitHubApp: App {
             return
         }
 
-        // 如果sheet已经在显示中，不重复设置
-        guard !showShareUpload else {
-            DebugLogger.share("⚠️ sheet已在显示中，不重复弹出")
-            return
+        // 如果sheet已经在显示/待显示中，不重复设置
+        if shareUploadRequest != nil {
+            // 页面已经真正出现，忽略重复请求
+            if isShareUploadVisible {
+                DebugLogger.share("⚠️ 分享上传页正在显示，忽略重复请求")
+                return
+            }
+
+            // 请求后 2 秒内仍未出现，可能仍在转场中，先不打断
+            if let requestedAt = shareUploadRequestedAt,
+               Date().timeIntervalSince(requestedAt) < 2.0 {
+                DebugLogger.share("⏳ 分享上传页呈现中，等待转场完成")
+                return
+            }
+
+            // 请求存在但页面始终没出现：说明系统丢弃了这次 presentation，重置后重试
+            guard shareUploadRetryCount < 3 else {
+                DebugLogger.share("❌ 分享上传页多次呈现失败，释放状态等待下次分享")
+                shareUploadRequest = nil
+                shareUploadRequestedAt = nil
+                shareUploadRetryCount = 0
+                return
+            }
+            DebugLogger.share("⚠️ 上次分享上传页未真正显示，重置后重试")
+            shareUploadRequest = nil
+            shareUploadRequestedAt = nil
         }
 
-        // 直接弹出sheet
+        guard shareUploadRequest == nil else { return }
+
+        // 生成一次新的展示请求，保证每次分享都能重新呈现
         DebugLogger.share("✅ 条件满足，弹出sheet")
-        showShareUpload = true
+        shareUploadRequest = ShareUploadRequest()
+        shareUploadRequestedAt = Date()
+        shareUploadRetryCount += 1
+
+        // 2.2 秒后回查：只在"请求还在但页面没出现"时继续重试，避免用户手动关掉后被自动重新弹开
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+            guard shareUploadRequest != nil && !isShareUploadVisible else { return }
+            showShareUploadIfNeeded()
+        }
     }
 }
 

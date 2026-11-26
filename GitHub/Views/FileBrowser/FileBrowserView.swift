@@ -76,6 +76,10 @@ struct FileBrowserView: View {
     @State var uploadProgress: Double = 0
     @State var selectedFiles: [URL] = []
     @State var showUploadConfirm: Bool = false
+    // 文件选择器关闭后是否要继续弹出"确认上传"页。
+    // 不能在选择回调里直接把 showUploadConfirm 置 true：此时 DocumentPicker 的 sheet
+    // 还在呈现/ dismiss 过程中，系统会丢弃第二个 sheet，表现为"选完文件没反应，要重复选几次"。
+    @State var shouldShowUploadConfirmAfterPicker: Bool = false
     @State var currentUploadIndex: Int = 0
     @State var totalUploadCount: Int = 0
     @State var currentUploadFileName: String = ""
@@ -1223,7 +1227,16 @@ struct FileBrowserView: View {
         if isOwnRepository {
             // 自己的仓库：显示文件操作相关功能
             Button(action: {
-                showDocumentPicker = true
+                // 清掉上一次未完成的待传列表，避免取消后残留旧文件
+                selectedFiles = []
+                shouldShowUploadConfirmAfterPicker = false
+                showUploadConfirm = false
+                // 先复位一次，避免上一次 sheet presentation 失败后状态卡在 true
+                showDocumentPicker = false
+                // Menu 自身也在 dismiss，等下一个 RunLoop 再present，避免 sheet 被系统忽略
+                DispatchQueue.main.async {
+                    showDocumentPicker = true
+                }
             }) {
                 Label("上传文件", systemImage: "square.and.arrow.up")
             }
@@ -4099,11 +4112,41 @@ private struct FileBrowserUploadSheetsModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: view.$showDocumentPicker) {
-                DocumentPickerView(allowsMultipleSelection: true) { urls in
-                    view.selectedFiles = urls
-                    view.showUploadConfirm = true
+            .sheet(
+                isPresented: view.$showDocumentPicker,
+                onDismiss: {
+                    // onDismiss 只有在上一个 sheet 完全关闭后才会回调。
+                    // 在这里再弹出"确认上传"页，避免两次 modal 转场重叠被系统丢弃。
+                    guard view.shouldShowUploadConfirmAfterPicker else { return }
+                    view.shouldShowUploadConfirmAfterPicker = false
+                    DispatchQueue.main.async {
+                        guard !view.showUploadConfirm else { return }
+                        view.showUploadConfirm = true
+                    }
                 }
+            ) {
+                DocumentPickerView(
+                    allowsMultipleSelection: true,
+                    onPick: { urls in
+                        view.selectedFiles = urls
+                        view.shouldShowUploadConfirmAfterPicker = !urls.isEmpty
+                        // 显式关闭选择器，确保一定会走 onDismiss 链路
+                        view.showDocumentPicker = false
+                        // 兜底：即使 SwiftUI 没有回调 onDismiss，转场结束后也能弹出确认页
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            guard !view.selectedFiles.isEmpty,
+                                  !view.showUploadConfirm,
+                                  !view.showDocumentPicker else { return }
+                            view.shouldShowUploadConfirmAfterPicker = false
+                            view.showUploadConfirm = true
+                        }
+                    },
+                    onCancel: {
+                        view.selectedFiles = []
+                        view.shouldShowUploadConfirmAfterPicker = false
+                        view.showDocumentPicker = false
+                    }
+                )
             }
             .sheet(isPresented: view.$showUploadConfirm) {
                 view.uploadConfirmView

@@ -49,10 +49,21 @@ class ShareFileManager: ObservableObject {
     /// - Returns: 是否接收成功
     @discardableResult
     func receiveFile(from sourceURL: URL) -> Bool {
+        // 从"文件"App / iCloud / 其它 App 经"打开方式"传进来的 URL 可能是安全作用域资源。
+        // 不申请访问权限时 moveItem/copyItem 会报 "Operation not permitted"，
+        // 表现为分享后待传区没有文件，需要反复分享碰运气。
+        let didStartAccessing = sourceURL.startAccessingSecurityScopedResource()
+        defer {
+            if didStartAccessing {
+                sourceURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        // 创建本次接收的独立文件夹（文件夹隔离）
+        let sessionID = UUID().uuidString
+        let sessionDirectory = pendingUploadRootDirectory.appendingPathComponent(sessionID, isDirectory: true)
+
         do {
-            // 创建本次接收的独立文件夹（文件夹隔离）
-            let sessionID = UUID().uuidString
-            let sessionDirectory = pendingUploadRootDirectory.appendingPathComponent(sessionID, isDirectory: true)
             try FileManager.default.createDirectory(at: sessionDirectory, withIntermediateDirectories: true, attributes: nil)
 
             // 移动文件到会话目录
@@ -63,7 +74,19 @@ class ShareFileManager: ObservableObject {
                 try FileManager.default.removeItem(at: destinationURL)
             }
 
-            try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
+            do {
+                try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
+            } catch {
+                // 跨沙盒来源可能不允许 move，降级为 copy，避免整个接收流程直接失败
+                DebugLogger.share("⚠️ move 失败，降级 copy: \(error.localizedDescription)")
+                // move 失败可能留下半成品目标，先清理再 copy
+                if FileManager.default.fileExists(atPath: destinationURL.path) {
+                    try? FileManager.default.removeItem(at: destinationURL)
+                }
+                try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+                // 源文件在 Inbox 时顺手清理；清理失败不影响接收结果
+                try? FileManager.default.removeItem(at: sourceURL)
+            }
 
             DebugLogger.share("✅ 文件接收成功: \(sourceURL.lastPathComponent) -> 会话: \(sessionID)")
 
@@ -72,6 +95,8 @@ class ShareFileManager: ObservableObject {
 
             return true
         } catch {
+            // 失败时删除本次创建的空会话目录，避免留下空目录干扰后续扫描
+            try? FileManager.default.removeItem(at: sessionDirectory)
             DebugLogger.share("❌ 文件接收失败: \(error.localizedDescription)")
             return false
         }
@@ -79,6 +104,14 @@ class ShareFileManager: ObservableObject {
 
     /// 扫描待上传根目录，加载所有会话文件夹中的文件
     func scanPendingFiles() {
+        // @Published 属性必须在主线程更新，否则界面可能收不到刷新（表现为"文件其实收到了但待传区不显示"）
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.scanPendingFiles()
+            }
+            return
+        }
+
         DebugLogger.share("=== scanPendingFiles 开始扫描 ===")
         DebugLogger.share("待上传目录: \(pendingUploadRootDirectory.path)")
         do {
@@ -199,6 +232,13 @@ class ShareFileManager: ObservableObject {
     func cleanupEmptySessionDirectory(sessionID: String) {
         let sessionDir = pendingUploadRootDirectory.appendingPathComponent(sessionID, isDirectory: true)
         do {
+            // 只清理创建超过 10 秒的目录，避免把刚创建、文件还没 move 进来的会话目录删掉
+            if let values = try? sessionDir.resourceValues(forKeys: [.creationDateKey]),
+               let creationDate = values.creationDate,
+               Date().timeIntervalSince(creationDate) < 10 {
+                return
+            }
+
             let files = try FileManager.default.contentsOfDirectory(
                 at: sessionDir,
                 includingPropertiesForKeys: nil,
